@@ -1,1 +1,1 @@
-# arc-omtd
+# registry-core
