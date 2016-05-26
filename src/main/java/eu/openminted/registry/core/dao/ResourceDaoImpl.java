@@ -76,7 +76,7 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 	}
 
 
-	public String addResource(Resource resource) {
+	public void addResource(Resource resource) throws DaoException{
 		String response = "";
 		ResourceType resourceType = resourceTypeDao.getResourceType(resource.getResourceType());
 
@@ -117,8 +117,10 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 			//resource type not found
 			response = "resource type not found";
 		}
-		return response;
-
+		
+		if(!response.equals("OK")){
+			throw new DaoException(response);
+		}
 	}
 
 	public void updateResource(Resource resource) {

@@ -7,6 +7,8 @@ import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.Tools;
 import eu.openminted.registry.core.service.ResourceService;
+import eu.openminted.registry.core.service.ServiceException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -139,12 +141,12 @@ public class ResourceController {
 
 				resource.setCreationDate(new Date());
 				resource.setModificationDate(new Date());
-				String response = resourceService.addResource(resource);
-
-				if(response.equals("OK")){
-					responseEntity = new ResponseEntity<String>(Tools.objToJson(resource), HttpStatus.CREATED);
-				}else{
-					responseEntity = new ResponseEntity<String>("{\"error\":\""+response+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
+				
+				responseEntity = new ResponseEntity<String>(Tools.objToJson(resource), HttpStatus.CREATED);
+				try{
+					resourceService.addResource(resource);
+				}catch(ServiceException ex){
+					responseEntity = new ResponseEntity<String>("{\"error\":\""+ex.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
 				}
 			}
 

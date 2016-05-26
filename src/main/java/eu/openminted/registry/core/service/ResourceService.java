@@ -54,17 +54,17 @@ public class ResourceService {
 		return resources;
 	}
 
-	public String addResource(Resource resource) {
+	public void addResource(Resource resource) throws ServiceException {
 
 		resource.setIndexedFields(getIndexedFields(resource));
 
-//		try {
-//			// dao.skata()..
-//		} catch (DaoException de) {
-//			throw new ServiceException("Error saving resource", de);
-//		}
+		try {
+			resourceDao.addResource(resource);
+		} catch (DaoException de) {
+			throw new ServiceException(de.getMessage());
+		}
 
-		return resourceDao.addResource(resource);
+		
 	}
 
 	public Resource updateResource(Resource resource) {

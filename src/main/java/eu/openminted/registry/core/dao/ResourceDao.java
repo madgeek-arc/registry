@@ -16,7 +16,7 @@ public interface ResourceDao {
 	
 	public List<Resource> getResource();
 	
-	String addResource(Resource resource);
+	void addResource(Resource resource) throws DaoException;
 	
 	void updateResource(Resource resource);
 	
