@@ -1,8 +1,12 @@
-package controllers;
+package eu.openminted.registry.core.controllers;
 
 import java.util.Date;
 import java.util.List;
 
+import eu.openminted.registry.core.domain.Paging;
+import eu.openminted.registry.core.domain.Resource;
+import eu.openminted.registry.core.domain.Tools;
+import eu.openminted.registry.core.service.ResourceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,21 +17,15 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import domain.Paging;
-import domain.Resource;
-import domain.Tools;
-import service.ResourceService;
-
-
 @RestController
 public class ResourceController {
 
 	   @Autowired
-	   ResourceService resourceService;  
+	   ResourceService resourceService;
 	  
 	    @RequestMapping(value = "/resources/{resourceType}/{id}", method = RequestMethod.GET, headers = "Accept=application/json")  
 	    public ResponseEntity<String> getResourceById(@PathVariable("resourceType") String resourceType,@PathVariable("id") String id) {  
-	    	Resource resource = resourceService.getResource(resourceType,id); 
+	    	Resource resource = resourceService.getResource(resourceType,id);
 	    	ResponseEntity<String> responseEntity;
 	    	if(resource==null){
 	    		responseEntity = new ResponseEntity<String>(HttpStatus.NOT_FOUND);
@@ -138,15 +136,18 @@ public class ResourceController {
 						e.printStackTrace();
 					}
 	    		}
-	    	}
-	    	resource.setCreationDate(new Date());
-	    	resource.setModificationDate(new Date());
-	    	String response = resourceService.addResource(resource);
-	    	if(response.equals("OK")){
-	    		responseEntity = new ResponseEntity<String>(Tools.objToJson(resource), HttpStatus.CREATED);
-	    	}else{
-	    		responseEntity = new ResponseEntity<String>("{\"error\":\""+response+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
-	    	}
+
+				resource.setCreationDate(new Date());
+				resource.setModificationDate(new Date());
+				String response = resourceService.addResource(resource);
+
+				if(response.equals("OK")){
+					responseEntity = new ResponseEntity<String>(Tools.objToJson(resource), HttpStatus.CREATED);
+				}else{
+					responseEntity = new ResponseEntity<String>("{\"error\":\""+response+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
+				}
+			}
+
 	        return responseEntity;  
 	    }  
 	  

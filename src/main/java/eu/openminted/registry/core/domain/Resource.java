@@ -1,11 +1,19 @@
-package domain;
+package eu.openminted.registry.core.domain;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import eu.openminted.registry.core.domain.index.IndexedField;
 
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
+import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
+import javax.persistence.OneToMany;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
@@ -48,6 +56,11 @@ public class Resource {
 	@Temporal(TemporalType.TIMESTAMP)
     @Column(name = "modification_date", nullable = false)
 	private Date modificationDate;
+
+	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+	@Column
+	@JsonManagedReference
+	private List<IndexedField> indexedFields;
 	
 	
 	public Resource(int id, String resourceType,String version,String payload,String payloadFormat) {
@@ -107,8 +120,6 @@ public class Resource {
 	public void setModificationDate(Date modificationDate) {
 		this.modificationDate = modificationDate;
 	}
-	
-	
 
 	public String getPayloadUrl() {
 		return payloadUrl;
@@ -116,6 +127,14 @@ public class Resource {
 
 	public void setPayloadUrl(String payloadUrl) {
 		this.payloadUrl = payloadUrl;
+	}
+
+	public List<IndexedField> getIndexedFields() {
+		return indexedFields;
+	}
+
+	public void setIndexedFields(List<IndexedField> indexedFields) {
+		this.indexedFields = indexedFields;
 	}
 
 	@PrePersist
@@ -128,7 +147,6 @@ public class Resource {
 	   modificationDate = new Date();
 	}
 
-	
 	@PrePersist
 	private void ensureId(){
 	    this.setId(UUID.randomUUID().toString());

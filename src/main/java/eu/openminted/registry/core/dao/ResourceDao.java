@@ -1,12 +1,12 @@
-package dao;
+package eu.openminted.registry.core.dao;
+
+import eu.openminted.registry.core.domain.Resource;
 
 import java.util.List;
 
-import domain.Resource;
-
 public interface ResourceDao {
 
-	Resource getResource(String resourceType,String id);
+	Resource getResource(String resourceType, String id);
 	
 	public List<Resource> getResource(String resourceType);
 	

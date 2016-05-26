@@ -1,4 +1,4 @@
-package domain;
+package eu.openminted.registry.core.domain;
 
 
 import java.io.ByteArrayInputStream;
@@ -15,6 +15,7 @@ import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
 
+import org.apache.log4j.Logger;
 import org.everit.json.schema.ValidationException;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONObject;
@@ -24,11 +25,8 @@ import org.xml.sax.SAXException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import domain.Paging;
-import domain.Resource;
-import domain.ResourceType;
-
 public class Tools {
+	private static Logger logger = Logger.getLogger(Tools.class);
 	
 	  public static String getText(String url) throws Exception {
 
@@ -47,8 +45,9 @@ public class Tools {
 		  try {
 			return mapper.writeValueAsString(paging);
 		} catch (JsonProcessingException e) {
-			// TODO Auto-generated catch block
-			return "";
+			logger.error("Error serializing object to json", e);
+
+			return null;
 		}
 	  }
 	  
@@ -59,8 +58,9 @@ public class Tools {
 		  try {
 			return mapper.writeValueAsString(resource);
 		} catch (JsonProcessingException e) {
-			// TODO Auto-generated catch block
-			return "";
+			  logger.error("Error serializing object to json", e);
+
+			  return null;
 		}
 	  }
 	  
@@ -71,8 +71,9 @@ public class Tools {
 		  try {
 			return mapper.writeValueAsString(resourceType);
 		} catch (JsonProcessingException e) {
-			// TODO Auto-generated catch block
-			return "";
+			  logger.error("Error serializing object to json", e);
+
+			  return null;
 		}
 	  }
 

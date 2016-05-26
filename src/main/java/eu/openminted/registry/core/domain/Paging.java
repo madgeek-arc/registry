@@ -1,4 +1,4 @@
-package domain;
+package eu.openminted.registry.core.domain;
 
 import java.util.List;
 

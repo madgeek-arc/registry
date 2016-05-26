@@ -1,4 +1,4 @@
-package dao;
+package eu.openminted.registry.core.dao;
 import java.io.Serializable;
 import java.lang.reflect.ParameterizedType;
 

@@ -1,11 +1,21 @@
-package domain;
+package eu.openminted.registry.core.domain;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import eu.openminted.registry.core.domain.index.IndexField;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
+import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
+import javax.persistence.OneToMany;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
@@ -15,6 +25,7 @@ import javax.validation.constraints.Size;
 
 @Entity
 @Table(name="ResourceType")
+//@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
 public class ResourceType {
 	
 	@Id
@@ -44,8 +55,15 @@ public class ResourceType {
 	@Temporal(TemporalType.TIMESTAMP)
     @Column(name = "modification_date", nullable = false)
 	private Date modificationDate;
-	
-	
+
+	@Column
+	private String indexMapperClass;
+
+	@OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL})
+//	@ElementCollection(targetClass = IndexField.class)
+	@Column
+	@JsonManagedReference
+	private List<IndexField> indexFields;
 	
 	public ResourceType(){
 		
@@ -105,6 +123,22 @@ public class ResourceType {
 
 	public void setSchemaUrl(String schemaUrl) {
 		this.schemaUrl = schemaUrl;
+	}
+
+	public String getIndexMapperClass() {
+		return indexMapperClass;
+	}
+
+	public void setIndexMapperClass(String indexMapperClass) {
+		this.indexMapperClass = indexMapperClass;
+	}
+
+	public List<IndexField> getIndexFields() {
+		return indexFields;
+	}
+
+	public void setIndexFields(List<IndexField> indexFields) {
+		this.indexFields = indexFields;
 	}
 
 	@PrePersist

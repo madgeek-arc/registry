@@ -1,7 +1,4 @@
-package configuration;
-import java.util.Properties;
-
-import javax.sql.DataSource;
+package eu.openminted.registry.core.configuration;
 
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,14 +8,17 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.orm.hibernate4.HibernateTransactionManager;
-import org.springframework.orm.hibernate4.LocalSessionFactoryBean;
+import org.springframework.orm.hibernate5.HibernateTransactionManager;
+import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
- 
+
+import javax.sql.DataSource;
+import java.util.Properties;
+
 @Configuration
 @EnableTransactionManagement
-@ComponentScan({ "configuration" })
-@PropertySource(value = { "classpath:application.properties" })
+@ComponentScan({ "eu.openminted.registry.core.configuration" })
+@PropertySource(value = { "classpath:application.properties", "classpath:registry.properties" })
 public class HibernateConfiguration {
  
     @Autowired
@@ -28,7 +28,7 @@ public class HibernateConfiguration {
     public LocalSessionFactoryBean sessionFactory() {
         LocalSessionFactoryBean sessionFactory = new LocalSessionFactoryBean();
         sessionFactory.setDataSource(dataSource());
-        sessionFactory.setPackagesToScan(new String[] { "classes" });
+        sessionFactory.setPackagesToScan("eu.openminted.registry.core.domain", "eu.openminted.registry.core.domain.index");
         sessionFactory.setHibernateProperties(hibernateProperties());
         return sessionFactory;
      }
