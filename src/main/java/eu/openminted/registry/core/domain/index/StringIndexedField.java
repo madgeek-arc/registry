@@ -11,6 +11,9 @@ public class StringIndexedField extends IndexedField<String> {
 
 	private String value;
 
+	public StringIndexedField() {
+	}
+
 	public StringIndexedField(String name, String value) {
 		setName(name);
 		setValue(value);

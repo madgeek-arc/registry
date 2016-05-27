@@ -58,18 +58,24 @@ public class ResourceService {
 
 		resource.setIndexedFields(getIndexedFields(resource));
 
+		if (resource.getIndexedFields() != null)
+			for (IndexedField indexedField:resource.getIndexedFields())
+				indexedField.setResource(resource);
+
 		try {
 			resourceDao.addResource(resource);
 		} catch (DaoException de) {
 			throw new ServiceException(de.getMessage());
 		}
-
-		
 	}
 
 	public Resource updateResource(Resource resource) {
 
 		resource.setIndexedFields(getIndexedFields(resource));
+
+		if (resource.getIndexedFields() != null)
+			for (IndexedField indexedField:resource.getIndexedFields())
+				indexedField.setResource(resource);
 
 		resourceDao.updateResource(resource);
 

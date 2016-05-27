@@ -34,7 +34,7 @@ public class Resource {
 	private String resourceType;
 	
 	@Size(min=3, max=50)
-    @Column(name = "version", nullable = false)
+    @Column(name = "version", nullable = true)
 	private String version;
 	
 	@Size(min=3, max=10000)
