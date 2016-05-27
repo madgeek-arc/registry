@@ -22,7 +22,9 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 
 		Criteria cr = getSession().createCriteria(Resource.class);
 		cr.add(Restrictions.eq("id", id));
-		cr.add(Restrictions.eq("resourceType", resourceType));
+
+		if (resourceType != null)
+			cr.add(Restrictions.eq("resourceType", resourceType));
 
 		if (cr.list().size() == 0)
 			return null;
