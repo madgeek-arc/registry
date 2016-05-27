@@ -18,7 +18,7 @@ import java.util.Properties;
 @Configuration
 @EnableTransactionManagement
 @ComponentScan({ "eu.openminted.registry.core.configuration" })
-@PropertySource(value = { "classpath:application.properties", "classpath:registry.properties" })
+@PropertySource(value = { "classpath:application.properties", "classpath:registry.properties"} , ignoreResourceNotFound = true )
 public class HibernateConfiguration {
  
     @Autowired
