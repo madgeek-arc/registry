@@ -1,20 +1,19 @@
 package eu.openminted.registry.core.domain.index;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import eu.openminted.registry.core.domain.Resource;
-import org.hibernate.annotations.Type;
+import java.io.Serializable;
+import java.util.Set;
 
 import javax.persistence.Column;
-import javax.persistence.Embeddable;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
 import javax.persistence.ManyToOne;
-import javax.persistence.MappedSuperclass;
-import java.io.Serializable;
-import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
+import eu.openminted.registry.core.domain.Resource;
 
 /**
  * Created by antleb on 5/20/16.

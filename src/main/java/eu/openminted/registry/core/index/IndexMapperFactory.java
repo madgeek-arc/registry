@@ -1,7 +1,8 @@
 package eu.openminted.registry.core.index;
 
-import eu.openminted.registry.core.domain.ResourceType;
 import org.springframework.stereotype.Repository;
+
+import eu.openminted.registry.core.domain.ResourceType;
 
 /**
  * Created by antleb on 5/21/16.

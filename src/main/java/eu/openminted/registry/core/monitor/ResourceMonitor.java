@@ -1,16 +1,15 @@
 package eu.openminted.registry.core.monitor;
 
-import eu.openminted.registry.core.dao.ResourceDao;
-import eu.openminted.registry.core.domain.Resource;
-import eu.openminted.registry.core.service.ResourceService;
+import java.util.List;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.hibernate.service.spi.InjectService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import eu.openminted.registry.core.dao.ResourceDao;
+import eu.openminted.registry.core.domain.Resource;
 
 /**
  * Created by antleb on 5/26/16.

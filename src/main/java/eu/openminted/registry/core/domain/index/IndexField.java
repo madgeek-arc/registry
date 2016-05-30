@@ -1,18 +1,16 @@
 package eu.openminted.registry.core.domain.index;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import eu.openminted.registry.core.domain.ResourceType;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
+import java.io.Serializable;
 
 import javax.persistence.Column;
-import javax.persistence.Embeddable;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
-import java.io.Serializable;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
+import eu.openminted.registry.core.domain.ResourceType;
 
 /**
  * Created by antleb on 5/20/16.

@@ -3,12 +3,9 @@ package eu.openminted.registry.core.service;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.jayway.jsonpath.JsonPath;
 
 import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
@@ -66,7 +63,7 @@ public class ResourceService {
 		if (resource.getIndexedFields() != null)
 			for (IndexedField indexedField:resource.getIndexedFields())
 				indexedField.setResource(resource);
-
+			
 			String response = checkValid(resource);
 			if(response.equals("OK")){
 				resource.setId(UUID.randomUUID().toString());

@@ -1,13 +1,14 @@
 package eu.openminted.registry.core.index;
 
-import eu.openminted.registry.core.domain.index.IndexField;
-import eu.openminted.registry.core.domain.index.IndexedField;
-import eu.openminted.registry.core.domain.ResourceType;
-import org.apache.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+
+import org.apache.log4j.Logger;
+
+import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.index.IndexField;
+import eu.openminted.registry.core.domain.index.IndexedField;
 
 /**
  * Created by antleb on 5/20/16.
@@ -42,7 +43,7 @@ public class DefaultIndexMapper implements IndexMapper {
 				String fieldType = indexField.getType();
 				String path = indexField.getPath();
 
-				Object value = getValue(payload, fieldType, path, resourceType.getPayloadType());
+				Set<Object> value = getValue(payload, fieldType, path, resourceType.getPayloadType());
 
 				res.add(indexedFieldFactory.getIndexedField(fieldName, value, fieldType));
 			} catch (Exception e) {
@@ -54,7 +55,7 @@ public class DefaultIndexMapper implements IndexMapper {
 		return res;
 	}
 
-	private Object getValue(String payload, String fieldType, String path, String payloadType) {
+	private Set<Object> getValue(String payload, String fieldType, String path, String payloadType) {
 		FieldParser fieldParser;
 
 		if (payloadType.equals("json"))

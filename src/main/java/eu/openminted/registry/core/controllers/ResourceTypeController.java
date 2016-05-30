@@ -1,9 +1,8 @@
 package eu.openminted.registry.core.controllers;
 
-import eu.openminted.registry.core.domain.Paging;
-import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.domain.Tools;
-import eu.openminted.registry.core.service.ResourceTypeService;
+import java.util.Date;
+import java.util.List;
+
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,8 +14,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Date;
-import java.util.List;
+import eu.openminted.registry.core.domain.Paging;
+import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.Tools;
+import eu.openminted.registry.core.service.ResourceTypeService;
 
 @RestController
 public class ResourceTypeController {

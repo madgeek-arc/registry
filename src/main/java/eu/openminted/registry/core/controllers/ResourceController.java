@@ -3,12 +3,6 @@ package eu.openminted.registry.core.controllers;
 import java.util.Date;
 import java.util.List;
 
-import eu.openminted.registry.core.domain.Paging;
-import eu.openminted.registry.core.domain.Resource;
-import eu.openminted.registry.core.domain.Tools;
-import eu.openminted.registry.core.service.ResourceService;
-import eu.openminted.registry.core.service.ServiceException;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +12,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import eu.openminted.registry.core.domain.Paging;
+import eu.openminted.registry.core.domain.Resource;
+import eu.openminted.registry.core.domain.Tools;
+import eu.openminted.registry.core.service.ResourceService;
+import eu.openminted.registry.core.service.ServiceException;
 
 @RestController
 public class ResourceController {

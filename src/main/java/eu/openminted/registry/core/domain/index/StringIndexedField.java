@@ -1,15 +1,22 @@
 package eu.openminted.registry.core.domain.index;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
 import java.util.Set;
+
+import javax.persistence.Column;
+import javax.persistence.ElementCollection;
+import javax.persistence.Entity;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
 
 /**
  * Created by antleb on 5/24/16.
  */
+
 @Entity
 public class StringIndexedField extends IndexedField<String> {
-
+	
+	@Column
+	@ElementCollection
 	private Set<String> values;
 
 	public StringIndexedField() {
@@ -22,7 +29,6 @@ public class StringIndexedField extends IndexedField<String> {
 	}
 
 	@Override
-	@Column
 	public Set<String> getValues() {
 		return values;
 	}

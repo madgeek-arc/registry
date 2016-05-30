@@ -2,14 +2,15 @@ package eu.openminted.registry.core.service;
 
 import java.util.List;
 
-import eu.openminted.registry.core.dao.ResourceTypeDao;
-import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.domain.index.IndexField;
-import eu.openminted.registry.core.index.DefaultIndexMapper;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import eu.openminted.registry.core.dao.ResourceTypeDao;
+import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.index.IndexField;
+import eu.openminted.registry.core.index.DefaultIndexMapper;
 
 @Service("resourceTypeService")
 @Transactional

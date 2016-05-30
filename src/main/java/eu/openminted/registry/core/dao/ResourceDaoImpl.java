@@ -1,16 +1,14 @@
 package eu.openminted.registry.core.dao;
 
-import eu.openminted.registry.core.domain.Resource;
-import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.domain.Tools;
+import java.util.List;
+
 import org.hibernate.Criteria;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.criterion.Restrictions;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import eu.openminted.registry.core.domain.Resource;
 
 @Repository("resourceDao")
 public class ResourceDaoImpl extends AbstractDao<String, Resource> implements ResourceDao {

@@ -1,8 +1,8 @@
 package eu.openminted.registry.core.dao;
 
-import eu.openminted.registry.core.domain.ResourceType;
-
 import java.util.List;
+
+import eu.openminted.registry.core.domain.ResourceType;
 
 public interface ResourceTypeDao {
 
