@@ -19,6 +19,7 @@ import javax.persistence.PreUpdate;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+import javax.persistence.Transient;
 import javax.validation.constraints.Size;
 
 @Entity
@@ -41,8 +42,7 @@ public class Resource {
     @Column(name = "payload", nullable = false)
 	private String payload;
 	
-	@Size(min=3, max=200)
-    @Column(name = "payloadUrl", nullable = false)
+	@Transient
 	private String payloadUrl;
 	
 	@Size(min=3, max=30)
@@ -147,9 +147,5 @@ public class Resource {
 	   modificationDate = new Date();
 	}
 
-	@PrePersist
-	private void ensureId(){
-	    this.setId(UUID.randomUUID().toString());
-	}
 
 }

@@ -15,8 +15,6 @@ import java.util.List;
 @Repository("resourceDao")
 public class ResourceDaoImpl extends AbstractDao<String, Resource> implements ResourceDao {
 
-	@Autowired
-	ResourceTypeDao resourceTypeDao;
 
 	public Resource getResource(String resourceType, String id) {
 
@@ -78,51 +76,8 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 	}
 
 
-	public void addResource(Resource resource) throws DaoException{
-		String response = "";
-		ResourceType resourceType = resourceTypeDao.getResourceType(resource.getResourceType());
-
-		if (resourceType != null) {
-			if (resourceType.getPayloadType().equals(resource.getPayloadFormat())) {
-				if (resourceType.getPayloadType().equals("xml")) {
-					//validate xml
-					String output = Tools.validateXMLSchema(resourceType.getSchema(), resource.getPayload());
-					if (output.equals("true")) {
-						resource.setPayload(resource.getPayload());
-						persist(resource);
-						response = "OK";
-					} else {
-						response = "XML and XSD mismatch";
-					}
-				} else if (resourceType.getPayloadType().equals("json")) {
-
-					//validate json
-//					String jsonResponse = Tools.validateJSONSchema(resourceType.getSchema(), resource.getPayload());
-					String jsonResponse = "true";
-
-					if (jsonResponse.equals("true")) {
-						resource.setPayload(resource.getPayload());
-						persist(resource);
-						response = "OK";
-					} else {
-						response = "JSON and Schema missmatch";
-					}
-				} else {
-					//payload type not supported
-					response = "type not supported";
-				}
-			} else {
-				//payload and schema format do not match, we cant validate
-				response = "payload and schema format are different";
-			}
-		} else {
-			//resource type not found
-			response = "resource type not found";
-		}
-		
-		if(!response.equals("OK")){
-			throw new DaoException(response);
-		}
+	public void addResource(Resource resource){
+		persist(resource);
 	}
 
 	public void updateResource(Resource resource) {

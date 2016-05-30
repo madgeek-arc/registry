@@ -21,6 +21,7 @@ import javax.persistence.PreUpdate;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+import javax.persistence.Transient;
 import javax.validation.constraints.Size;
 
 @Entity
@@ -28,10 +29,8 @@ import javax.validation.constraints.Size;
 //@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
 public class ResourceType {
 	
+
 	@Id
-	@Column(name = "id", nullable = false)
-	private String id;	
-	
 	@Size(min=3, max=50)
     @Column(name = "name", nullable = false)
 	private String name;
@@ -40,8 +39,7 @@ public class ResourceType {
     @Column(name = "schema", nullable = false)
 	private String schema;
 	
-	@Size(min=3, max=200)
-    @Column(name = "schemaUrl", nullable = false)
+	@Transient
 	private String schemaUrl;
 	
 	@Size(min=3, max=30)
@@ -67,14 +65,6 @@ public class ResourceType {
 	
 	public ResourceType(){
 		
-	}
-	
-	public String getId() {
-		return id;
-	}
-	
-	public void setId(String string) {
-		this.id = string;
 	}
 	
 	public String getName() {
@@ -139,11 +129,6 @@ public class ResourceType {
 
 	public void setIndexFields(List<IndexField> indexFields) {
 		this.indexFields = indexFields;
-	}
-
-	@PrePersist
-	private void ensureId(){
-	    this.setId(UUID.randomUUID().toString());
 	}
 	
 	@PrePersist

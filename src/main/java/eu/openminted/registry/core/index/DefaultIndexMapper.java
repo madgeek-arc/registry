@@ -33,7 +33,7 @@ public class DefaultIndexMapper implements IndexMapper {
 		return indexFields;
 	}
 
-	public List<IndexedField> getValues(String resource, ResourceType resourceType) {
+	public List<IndexedField> getValues(String payload, ResourceType resourceType) {
 		List<IndexedField> res = new ArrayList<IndexedField>();
 
 		for (IndexField indexField:resourceType.getIndexFields()) {
@@ -42,7 +42,7 @@ public class DefaultIndexMapper implements IndexMapper {
 				String fieldType = indexField.getType();
 				String path = indexField.getPath();
 
-				Object value = getValue(resource, fieldType, path, resourceType.getPayloadType());
+				Object value = getValue(payload, fieldType, path, resourceType.getPayloadType());
 
 				res.add(indexedFieldFactory.getIndexedField(fieldName, value, fieldType));
 			} catch (Exception e) {
@@ -50,11 +50,11 @@ public class DefaultIndexMapper implements IndexMapper {
 				logger.error(indexedFieldFactory);
 			}
 		}
-
+		
 		return res;
 	}
 
-	private Object getValue(String resource, String fieldType, String path, String payloadType) {
+	private Object getValue(String payload, String fieldType, String path, String payloadType) {
 		FieldParser fieldParser;
 
 		if (payloadType.equals("json"))
@@ -64,6 +64,6 @@ public class DefaultIndexMapper implements IndexMapper {
 		else
 			fieldParser = null;
 
-		return fieldParser.parse(resource, fieldType, path);
+		return fieldParser.parse(payload, fieldType, path);
 	}
 }

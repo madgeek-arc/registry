@@ -18,14 +18,9 @@ import java.util.Properties;
 
 @Configuration
 @EnableTransactionManagement
-<<<<<<< HEAD
 @ComponentScan({ "eu.openminted.registry.core.configuration" })
 @PropertySource(value = { "classpath:application.properties", "classpath:registry.properties"} , ignoreResourceNotFound = true )
-=======
-@ComponentScan({"eu.openminted.registry.core.configuration"})
-@PropertySource(value = {"classpath:application.properties", "classpath:registry.properties"})
 @EnableAspectJAutoProxy
->>>>>>> 728a8b5e4c527c9fe42e124453affeec03361051
 public class HibernateConfiguration {
 
 	@Autowired

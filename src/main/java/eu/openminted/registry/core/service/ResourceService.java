@@ -1,18 +1,23 @@
 package eu.openminted.registry.core.service;
 
-import eu.openminted.registry.core.dao.DaoException;
-import eu.openminted.registry.core.dao.ResourceDao;
-import eu.openminted.registry.core.dao.ResourceTypeDao;
-import eu.openminted.registry.core.domain.Resource;
-import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.domain.index.IndexedField;
-import eu.openminted.registry.core.index.IndexMapper;
-import eu.openminted.registry.core.index.IndexMapperFactory;
+import java.util.List;
+import java.util.UUID;
+
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import com.jayway.jsonpath.JsonPath;
+
+import eu.openminted.registry.core.dao.ResourceDao;
+import eu.openminted.registry.core.dao.ResourceTypeDao;
+import eu.openminted.registry.core.domain.Resource;
+import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.Tools;
+import eu.openminted.registry.core.domain.index.IndexedField;
+import eu.openminted.registry.core.index.IndexMapper;
+import eu.openminted.registry.core.index.IndexMapperFactory;
 
 @Service("resourceService")
 @Transactional
@@ -62,14 +67,17 @@ public class ResourceService {
 			for (IndexedField indexedField:resource.getIndexedFields())
 				indexedField.setResource(resource);
 
-		try {
-			resourceDao.addResource(resource);
-		} catch (DaoException de) {
-			throw new ServiceException(de.getMessage());
-		}
+			String response = checkValid(resource);
+			if(response.equals("OK")){
+				resource.setId(UUID.randomUUID().toString());
+				resourceDao.addResource(resource);
+			}else{
+				throw new ServiceException(response);
+			}
+			
 	}
 
-	public Resource updateResource(Resource resource) {
+	public Resource updateResource(Resource resource){
 
 		resource.setIndexedFields(getIndexedFields(resource));
 
@@ -114,5 +122,48 @@ public class ResourceService {
 
 	public void setResourceTypeDao(ResourceTypeDao resourceTypeDao) {
 		this.resourceTypeDao = resourceTypeDao;
+	}
+	
+	private String checkValid(Resource resource){
+		String response = "";
+		ResourceType resourceType = resourceTypeDao.getResourceType(resource.getResourceType());
+
+		if (resourceType != null) {
+			if (resourceType.getPayloadType().equals(resource.getPayloadFormat())) {
+				if (resourceType.getPayloadType().equals("xml")) {
+					//validate xml
+					String output = Tools.validateXMLSchema(resourceType.getSchema(), resource.getPayload());
+					if (output.equals("true")) {
+						resource.setPayload(resource.getPayload());
+						response = "OK";
+					} else {
+						response = "XML and XSD mismatch";
+					}
+				} else if (resourceType.getPayloadType().equals("json")) {
+
+					//validate json
+//					String jsonResponse = Tools.validateJSONSchema(resourceType.getSchema(), resource.getPayload());
+					String jsonResponse = "true";
+
+					if (jsonResponse.equals("true")) {
+						resource.setPayload(resource.getPayload());
+						response = "OK";
+					} else {
+						response = "JSON and Schema missmatch";
+					}
+				} else {
+					//payload type not supported
+					response = "type not supported";
+				}
+			} else {
+				//payload and schema format do not match, we cant validate
+				response = "payload and schema format are different";
+			}
+		} else {
+			//resource type not found
+			response = "resource type not found";
+		}
+		
+		return response;
 	}
 }
