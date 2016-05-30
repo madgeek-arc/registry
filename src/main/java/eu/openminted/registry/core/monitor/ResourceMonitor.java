@@ -1,7 +1,14 @@
 package eu.openminted.registry.core.monitor;
 
+<<<<<<< HEAD
 import java.util.List;
 
+=======
+import eu.openminted.registry.core.dao.ResourceDao;
+import eu.openminted.registry.core.domain.Resource;
+import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.service.ResourceService;
+>>>>>>> ec57f55cf4b118c3977f7872dc071fd3d184d522
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -20,6 +27,9 @@ public class ResourceMonitor {
 
 	@Autowired(required = false)
 	private List<ResourceListener> resourceListeners;
+
+	@Autowired (required = false)
+	private List<ResourceTypeListener> resourceTypeListeners;
 
 	@Autowired
 	private ResourceDao resourceDao;
@@ -67,6 +77,21 @@ public class ResourceMonitor {
 			if (resourceListeners != null)
 				for (ResourceListener listener:resourceListeners)
 					listener.resourceDeleted(previous);
+
+		} catch (Throwable throwable) {
+			throw throwable;
+		}
+	}
+
+	@Around("execution (* eu.openminted.registry.core.service.ResourceTypeService.addResourceType(eu.openminted.registry.core.domain.ResourceType)) && args(resourceType)")
+	public void resourceTypeAdded(ProceedingJoinPoint pjp, ResourceType resourceType) throws Throwable {
+
+		try {
+			pjp.proceed();
+
+			if (resourceTypeListeners != null)
+				for (ResourceTypeListener listener:resourceTypeListeners)
+					listener.resourceTypeAdded(resourceType);
 
 		} catch (Throwable throwable) {
 			throw throwable;
