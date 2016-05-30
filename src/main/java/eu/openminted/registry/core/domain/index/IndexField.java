@@ -33,6 +33,8 @@ public class IndexField implements Serializable{
 	private String path;
 	@Column
 	private String type;
+	@Column
+	private boolean multivalued;
 
 	public IndexField() {
 	}
@@ -67,6 +69,14 @@ public class IndexField implements Serializable{
 
 	public void setResourceType(ResourceType resourceType) {
 		this.resourceType = resourceType;
+	}
+
+	public boolean isMultivalued() {
+		return multivalued;
+	}
+
+	public void setMultivalued(boolean multivalued) {
+		this.multivalued = multivalued;
 	}
 
 	@Override
