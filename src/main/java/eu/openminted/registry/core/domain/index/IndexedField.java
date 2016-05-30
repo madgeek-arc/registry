@@ -14,6 +14,7 @@ import javax.persistence.InheritanceType;
 import javax.persistence.ManyToOne;
 import javax.persistence.MappedSuperclass;
 import java.io.Serializable;
+import java.util.Set;
 
 /**
  * Created by antleb on 5/20/16.
@@ -35,9 +36,9 @@ public abstract class IndexedField<T extends Object> implements Serializable {
 	public IndexedField() {
 	}
 
-	public abstract T getValue();
+	public abstract Set<T> getValues();
 
-	public abstract void setValue(T value);
+	public abstract void setValues(Set<T> value);
 
 	public String getName() {
 		return name;
