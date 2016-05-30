@@ -1,14 +1,11 @@
 package eu.openminted.registry.core.monitor;
 
-<<<<<<< HEAD
 import java.util.List;
 
-=======
 import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.service.ResourceService;
->>>>>>> ec57f55cf4b118c3977f7872dc071fd3d184d522
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
