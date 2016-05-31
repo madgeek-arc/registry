@@ -23,7 +23,6 @@ import eu.openminted.registry.core.domain.index.IndexField;
 
 @Entity
 @Table(name="ResourceType")
-//@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
 public class ResourceType {
 	
 

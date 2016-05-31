@@ -5,8 +5,13 @@ import java.util.Set;
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
+import javax.persistence.FetchType;
+import javax.persistence.Id;
+
+import org.hibernate.Hibernate;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 /**
  * Created by antleb on 5/24/16.
@@ -18,7 +23,7 @@ public class StringIndexedField extends IndexedField<String> {
 	@Column
 	@ElementCollection
 	private Set<String> values;
-
+	
 	public StringIndexedField() {
 	}
 
@@ -30,6 +35,7 @@ public class StringIndexedField extends IndexedField<String> {
 
 	@Override
 	public Set<String> getValues() {
+		Hibernate.initialize(values);
 		return values;
 	}
 

@@ -45,9 +45,9 @@ public class Tools {
 		  try {
 			return mapper.writeValueAsString(paging);
 		} catch (JsonProcessingException e) {
-			logger.error("Error serializing object to json", e);
-
-			return null;
+//			logger.error("Error serializing object to json", e);
+			return e.getMessage();
+//			return null;
 		}
 	  }
 	  
