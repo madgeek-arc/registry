@@ -6,20 +6,6 @@ import org.jdom.Document;
 
 public class ComponentRegistryService {
 
-	private static ComponentRegistryService registry = null;
-
-	public static ComponentRegistryService getInstance() {
-		if (registry == null) {
-			registry = new ComponentRegistryService();
-		}
-
-		return registry;
-	}
-
-	private ComponentRegistryService() {
-		// TODO figure out the connection to the metadata service
-	}
-
 	/**
 	 * Registers a component with the system that is available via Maven
 	 */
