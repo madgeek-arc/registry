@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.index;
 
+import java.sql.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -15,10 +16,26 @@ public class JSONFieldParser implements FieldParser {
 		if(isMultiValued){
 			List<String> answers = JsonPath.read(payload, path);
 			for(String answer:answers){
-				response.add(answer);
+				if(fieldType.equals("java.lang.String")){
+	            	response.add((String)answer);
+	            }else if(fieldType.equals("java.lang.Integer")){
+	            	response.add(Integer.parseInt(answer));
+	            }else if(fieldType.equals("java.lang.Float")){
+	            	response.add(Float.parseFloat(answer));
+	            }else if(fieldType.equals("java.lang.Date")){
+	            	response.add(Date.valueOf(answer));
+	            }
 			}
 		}else{
-			response.add(JsonPath.read(payload, path));
+			if(fieldType.equals("java.lang.String")){
+            	response.add((String)JsonPath.read(payload, path));
+            }else if(fieldType.equals("java.lang.Integer")){
+            	response.add(Integer.parseInt(JsonPath.read(payload, path)));
+            }else if(fieldType.equals("java.lang.Float")){
+            	response.add(Float.parseFloat(JsonPath.read(payload, path)));
+            }else if(fieldType.equals("java.util.Date")){
+            	response.add(Date.valueOf((String)JsonPath.read(payload, path)));
+            }
 		}
 		return response;
 	}
