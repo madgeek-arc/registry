@@ -26,16 +26,20 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Tools {
+	
+	
 	private static Logger logger = Logger.getLogger(Tools.class);
 	
 	  public static String getText(String url) throws Exception {
 
 		  String out = new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
-		  if(out==null || out.isEmpty()){
-			  return "error";
-		  }else{
-			  return out;
-		  }
+		 
+		  
+			  if(out==null || out.isEmpty()){
+				  return null;
+			  }else{
+				  return out;
+			  }
 		}
 	  
 	  public static String objToJson(Paging paging){
@@ -44,6 +48,19 @@ public class Tools {
 		  
 		  try {
 			return mapper.writeValueAsString(paging);
+		} catch (JsonProcessingException e) {
+//			logger.error("Error serializing object to json", e);
+			return e.getMessage();
+//			return null;
+		}
+	  }
+	  
+	  public static String objToJson(eu.openminted.registry.core.domain.Schema schema){
+		  
+		  ObjectMapper mapper = new ObjectMapper();
+		  
+		  try {
+			return mapper.writeValueAsString(schema);
 		} catch (JsonProcessingException e) {
 //			logger.error("Error serializing object to json", e);
 			return e.getMessage();
@@ -118,6 +135,7 @@ public class Tools {
 			}
   	      return "true";
   	   }
+	    
   }
 
 		

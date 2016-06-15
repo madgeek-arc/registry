@@ -31,7 +31,7 @@ public class ResourceType {
     @Column(name = "name", nullable = false)
 	private String name;
 	
-	@Size(min=3, max=10000)
+	@Size(max=100000)
     @Column(name = "schema", nullable = false)
 	private String schema;
 	

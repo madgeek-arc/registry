@@ -31,6 +31,7 @@ public class ResourceService {
 
 	}
 
+	
 	public Resource getResource(String resourceType, String id) {
 		Resource resource = resourceDao.getResource(resourceType, id);
 		return resource;
