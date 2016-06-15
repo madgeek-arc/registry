@@ -1,43 +1,39 @@
 package eu.openminted.registry.component.service;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.jdom.Document;
 
 public class ComponentRegistryService {
 
-	/**
-	 * Registers a component with the system that is available via Maven
-	 */
-	public void register(String groupID, String artifactID, String version) {
-		Document componentXML = createComponentXML();
-
-		// TODO fill the XML document with info from the maven artifact (both
-		// the POM and the GATE/UIMA description)
-
-		// TODO note that a GATE plugin may contain multiple components so this
-		// may all need to be inside a loop, not sure if this also applies to
-		// UIMA
-
-		register(componentXML);
+	public List<Document> describe(String groupID, String artifactID, String version) {
+		Document description = createComponentXML();
+		
+		//TODO get hold of the jar and pass that on
+		
+		return describe(null, description);
 	}
-
+	
+	
 	/**
 	 * Registers a jar available via the URL as a component
 	 */
-	public void register(URL jarURL) {
-		register(jarURL, createComponentXML());
+	public List<Document> describe(URL jarURL) {
+		return describe(jarURL, createComponentXML());
 	}
 
 	/**
 	 * Registers the component along with any other available information
 	 */
-	public void register(URL jarURL, Document openmintedComponentXML) {
-
+	public List<Document> describe(URL jarURL, Document openmintedComponentXML) {
+		
 		// TODO extra information from the GATE/UIMA component at the URL (might
 		// need to be in a loop if a single jar can define multiple components)
+		List<Document> descriptions = new ArrayList<Document>();
 		
-		register(openmintedComponentXML);
+		return descriptions;		
 	}
 
 	/**
