@@ -13,34 +13,31 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
-/**
- * Created by antleb on 5/24/16.
- */
 
 @Entity
-public class StringIndexedField extends IndexedField<String> {
+public class IntegerIndexedField extends IndexedField<Integer> {
 	
 	@Column
 	@ElementCollection
-	private Set<String> values;
+	private Set<Integer> values;
 	
-	public StringIndexedField() {
+	public IntegerIndexedField() {
 	}
 
-	public StringIndexedField(String name, Set<String> values) {
+	public IntegerIndexedField(String name, Set<Integer> values) {
 		setName(name);
 		setValues(values);
 		setType(String.class.getName());
 	}
 
 	@Override
-	public Set<String> getValues() {
+	public Set<Integer> getValues() {
 		Hibernate.initialize(values);
 		return values;
 	}
 
 	@Override
-	public void setValues(Set<String> value) {
+	public void setValues(Set<Integer> value) {
 		this.values = value;
 	}
 }

@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.domain.index.IndexedField;
+import eu.openminted.registry.core.service.ResourceService;
 
 /**
  * Created by antleb on 5/20/16.
@@ -42,8 +43,8 @@ public class DefaultIndexMapper implements IndexMapper {
 				String fieldName = indexField.getName();
 				String fieldType = indexField.getType();
 				String path = indexField.getPath();
-
-				Set<Object> value = getValue(payload, fieldType, path, resourceType.getPayloadType());
+				
+				Set<Object> value = getValue(payload, fieldType, path, resourceType.getPayloadType(),indexField.isMultivalued());
 
 				res.add(indexedFieldFactory.getIndexedField(fieldName, value, fieldType));
 			} catch (Exception e) {
@@ -55,7 +56,7 @@ public class DefaultIndexMapper implements IndexMapper {
 		return res;
 	}
 
-	private Set<Object> getValue(String payload, String fieldType, String path, String payloadType) {
+	private Set<Object> getValue(String payload, String fieldType, String path, String payloadType, boolean isMultiValued) {
 		FieldParser fieldParser;
 
 		if (payloadType.equals("json"))
@@ -65,6 +66,6 @@ public class DefaultIndexMapper implements IndexMapper {
 		else
 			fieldParser = null;
 
-		return fieldParser.parse(payload, fieldType, path);
+		return fieldParser.parse(payload, fieldType, path,isMultiValued);
 	}
 }

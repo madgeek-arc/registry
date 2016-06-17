@@ -18,6 +18,7 @@ import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.Tools;
 import eu.openminted.registry.core.service.ResourceTypeService;
+import eu.openminted.registry.core.service.ServiceException;
 
 @RestController
 public class ResourceTypeController {
@@ -107,8 +108,13 @@ public class ResourceTypeController {
 		resourceType.setCreationDate(new Date());
 		resourceType.setModificationDate(new Date());
 		responseEntity = new ResponseEntity<String>(Tools.objToJson(resourceType), HttpStatus.CREATED);
-		resourceTypeService.addResourceType(resourceType);
+		try {
+			resourceTypeService.addResourceType(resourceType);
+		} catch (ServiceException e) {
+			responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 		return responseEntity;
 	}
+	
 
 }

@@ -2,10 +2,6 @@ package eu.openminted.registry.core.monitor;
 
 import java.util.List;
 
-import eu.openminted.registry.core.dao.ResourceDao;
-import eu.openminted.registry.core.domain.Resource;
-import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.service.ResourceService;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -14,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.domain.Resource;
+import eu.openminted.registry.core.domain.ResourceType;
 
 /**
  * Created by antleb on 5/26/16.

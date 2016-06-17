@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.domain.index;
 
+import java.util.Date;
 import java.util.Set;
 
 import javax.persistence.Column;
@@ -13,34 +14,31 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
-/**
- * Created by antleb on 5/24/16.
- */
 
 @Entity
-public class StringIndexedField extends IndexedField<String> {
+public class DateIndexedField extends IndexedField<Date> {
 	
 	@Column
 	@ElementCollection
-	private Set<String> values;
+	private Set<Date> values;
 	
-	public StringIndexedField() {
+	public DateIndexedField() {
 	}
 
-	public StringIndexedField(String name, Set<String> values) {
+	public DateIndexedField(String name, Set<Date> values) {
 		setName(name);
 		setValues(values);
 		setType(String.class.getName());
 	}
 
 	@Override
-	public Set<String> getValues() {
+	public Set<Date> getValues() {
 		Hibernate.initialize(values);
 		return values;
 	}
 
 	@Override
-	public void setValues(Set<String> value) {
+	public void setValues(Set<Date> value) {
 		this.values = value;
 	}
 }
