@@ -34,6 +34,7 @@ public class SolrIndexDataFunction {
 		
 		try { 
             UpdateResponse response = solrClient.add(document);
+            solrClient.commit();
             logger.debug("UpdateResponse from add of SolrInputDocument:  " + response);
         } catch (SolrServerException e) { 
             doRollback(solrClient, resourceType); 
