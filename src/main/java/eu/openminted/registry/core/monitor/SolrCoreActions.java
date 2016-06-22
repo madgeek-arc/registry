@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.xml.sax.SAXException;
 
 import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.service.SolrOperationsService;
+import eu.openminted.registry.core.solr.service.SolrOperationsService;
 
 public class SolrCoreActions implements ResourceTypeListener {
 
