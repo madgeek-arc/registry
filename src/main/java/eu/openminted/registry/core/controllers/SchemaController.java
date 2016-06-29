@@ -1,5 +1,7 @@
 package eu.openminted.registry.core.controllers;
 
+import java.io.IOException;
+
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -8,8 +10,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import org.z3950.zing.cql.CQLParseException;
 
+import eu.dnetlib.functionality.index.cql.CqlTranslator;
+import eu.dnetlib.functionality.index.cql.CqlTranslatorImpl;
+import eu.dnetlib.functionality.index.cql.TranslatedQuery;
 import eu.openminted.registry.core.domain.Schema;
+import eu.openminted.registry.core.domain.SolrClass;
 import eu.openminted.registry.core.domain.Tools;
 import eu.openminted.registry.core.service.ResourceTypeService;
 
@@ -25,16 +32,18 @@ public class SchemaController {
 	public String getResourceTypeByName(@PathVariable("id") String id) {
 		ResponseEntity<String> responseEntity;
 		Schema schema = resourceTypeService.getSchema(id);
-//		if (schema == null) {
-//			responseEntity = new ResponseEntity<String>(HttpStatus.NOT_FOUND);
-//		} else {
-//			responseEntity = new ResponseEntity<String>(Tools.objToJson(schema), HttpStatus.OK);
-//		}
+		if (schema == null) {
+			responseEntity = new ResponseEntity<String>(HttpStatus.NOT_FOUND);
+		} else {
+			responseEntity = new ResponseEntity<String>(Tools.objToJson(schema), HttpStatus.OK);
+		}
 //		return responseEntity;
 		if(schema==null){
 			return "";
 		}else{
 			return schema.getSchema();
 		}
+//		SolrClass solrClass = new SolrClass();
+//		return solrClass.SolrClass().toString();
 	}
 }

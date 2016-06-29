@@ -159,13 +159,19 @@ public class ResourceController {
 	    @RequestMapping(value = "/resources", method = RequestMethod.PUT, headers = "Accept=application/json")  
 	    public ResponseEntity<String> updateResource(@RequestBody Resource resource) {
 	    	resource.setModificationDate(new Date());
-	    	Resource resourceFinal = resourceService.updateResource(resource);
-	    	ResponseEntity<String> responseEntity;
+	    	ResponseEntity<String> responseEntity = null;
+	    	Resource resourceFinal = null;
+			try {
+				resourceFinal = resourceService.updateResource(resource);
+			} catch (ServiceException e) {
+				responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+	    	
+	    	
 	    	if(resourceFinal==null){
 	    		responseEntity = new ResponseEntity<String>(Tools.objToJson(resourceFinal), HttpStatus.NO_CONTENT);
-	    	}else{
-	    		responseEntity = new ResponseEntity<String>(Tools.objToJson(resourceFinal), HttpStatus.OK);
 	    	}
+	    	
 	        return   responseEntity;
 	    }  
 	  

@@ -75,16 +75,21 @@ public class ResourceService {
 			
 	}
 
-	public Resource updateResource(Resource resource){
-
+	public Resource updateResource(Resource resource) throws ServiceException{
+		
 		resource.setIndexedFields(getIndexedFields(resource));
 
 		if (resource.getIndexedFields() != null)
 			for (IndexedField indexedField:resource.getIndexedFields())
 				indexedField.setResource(resource);
 
-		resourceDao.updateResource(resource);
-
+		String response = checkValid(resource);
+		if(response.equals("OK")){
+			resourceDao.updateResource(resource);
+		}else{
+			throw new ServiceException(response);
+		}
+		
 		return resource;
 	}
 
