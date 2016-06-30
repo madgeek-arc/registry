@@ -24,6 +24,8 @@ import java.io.IOException;
 public class SearchService {
 
 	private String url;
+	private SolrClient solrClient;
+
 
 	@Autowired
 	Environment environment;
@@ -34,13 +36,14 @@ public class SearchService {
 	@PostConstruct
 	public void init() {
 		url = environment.getProperty("solr.host", "http://83.212.121.189:8983/solr/");
+
+		solrClient = new HttpSolrClient(url);
 	}
 
 	public Paging search(String resourceType, String cqlQuery) throws IOException, CQLParseException, SolrServerException {
 		Paging paging;
 
 		String url = this.url.concat(resourceType+"/");
-		SolrClient solrClient = new HttpSolrClient(url);
 		SolrQuery sq = new SolrQuery();
 
 		String solrQuery = translator.toLucene(cqlQuery);
