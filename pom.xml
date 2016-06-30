@@ -158,7 +158,7 @@
 		<!-- log4j -->
 		<dependency>
 			<groupId>log4j</groupId>
-			<artifactId></artifactId>
+			<artifactId>log4j</artifactId>
 			<version>1.2.17</version>
 		</dependency>
 
@@ -175,51 +175,7 @@
 			<version>1.1.3</version>
 			<scope>compile</scope>
 		</dependency>
-	</dependencies>
-	<repositories>
-			<repository>
-                    <id>dnet4-bootstrap-snapshot</id>
-                    <name>D-Net 4 Bootstrap Snapshot</name>
-                    <url>http://maven.research-infrastructures.eu/nexus/content/repositories/dnet4-bootstrap</url>
-                    <releases>
-                        <enabled>true</enabled>
-                    </releases>
-                    <snapshots>
-                        <enabled>true</enabled>
-                    </snapshots>
-                    <layout>default</layout>
-           </repository>
-           	<repository>
-                    <id>dnet4-releases</id>
-                    <name>D-Net 4 Releases</name>
-                    <url>http://maven.research-infrastructures.eu/nexus/content/repositories/dnet4-releases</url>
-                    <releases>
-                        <enabled>true</enabled>
-                    </releases>
-                    <snapshots>
-                        <enabled>true</enabled>
-                    </snapshots>
-                    <layout>default</layout>
-           </repository>
-           <repository>
-                    <id>dnet4-bootstrap-release</id>
-                    <name>D-Net 4 Bootstrap Release</name>
-                    <url>http://maven.research-infrastructures.eu/nexus/content/repositories/dnet4-bootstrap-release</url>
-                    <releases>
-                        <enabled>true</enabled>
-                    </releases>
-                    <snapshots>
-                        <enabled>false</enabled>
-                    </snapshots>
-                    <layout>default</layout>
-           </repository>
-           <repository>
-                 <id>indexdata</id>
-                 <name>Index data</name>
-                 <url>http://maven.indexdata.com/</url>
-           </repository>
-    </repositories>	
-		
+
 		<dependency>
 			<groupId>org.eclipse.aether</groupId>
 			<artifactId>aether-api</artifactId>
@@ -283,8 +239,50 @@
 			<scope>compile</scope>
 		</dependency>
 	</dependencies>
-	
->>>>>>> ac4804bd6031923a3aa0954e13ae8c95ed7cf0a1
+	<repositories>
+			<repository>
+                    <id>dnet4-bootstrap-snapshot</id>
+                    <name>D-Net 4 Bootstrap Snapshot</name>
+                    <url>http://maven.research-infrastructures.eu/nexus/content/repositories/dnet4-bootstrap</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                    <layout>default</layout>
+           </repository>
+           	<repository>
+                    <id>dnet4-releases</id>
+                    <name>D-Net 4 Releases</name>
+                    <url>http://maven.research-infrastructures.eu/nexus/content/repositories/dnet4-releases</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                    <layout>default</layout>
+           </repository>
+           <repository>
+                    <id>dnet4-bootstrap-release</id>
+                    <name>D-Net 4 Bootstrap Release</name>
+                    <url>http://maven.research-infrastructures.eu/nexus/content/repositories/dnet4-bootstrap-release</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                    <layout>default</layout>
+           </repository>
+           <repository>
+                 <id>indexdata</id>
+                 <name>Index data</name>
+                 <url>http://maven.indexdata.com/</url>
+           </repository>
+    </repositories>
+
 	<build>
 		<pluginManagement>
 			<plugins>
