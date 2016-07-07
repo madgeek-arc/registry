@@ -43,7 +43,7 @@ public class ResourceTypeController {
 	@RequestMapping(value = "/resourceType/", params = {"from"}, method = RequestMethod.GET, headers = "Accept=application/json")
 	public ResponseEntity<String> getResourceTypes(@RequestParam(value = "from") int from) {
 		List<ResourceType> results = resourceTypeService.getAllResourceType(from, 0);
-		Paging paging = new Paging(results.size(), 0, results.size() - 1, results);
+		Paging paging = new Paging(results.size(), 0, results.size() - 1, results,null);
 		ResponseEntity<String> responseEntity;
 		if (results.size() == 0) {
 			responseEntity = new ResponseEntity<String>(Tools.objToJson(paging), HttpStatus.NO_CONTENT);
@@ -58,7 +58,7 @@ public class ResourceTypeController {
 	public ResponseEntity<String> getResourceTypes(@RequestParam(value = "from") int from, @RequestParam(value = "from") int to) {
 		List<ResourceType> results = resourceTypeService.getAllResourceType(from, to);
 		int total = resourceTypeService.getAllResourceType().size();
-		Paging paging = new Paging(total, from, to, results);
+		Paging paging = new Paging(total, from, to, results,null);
 		ResponseEntity<String> responseEntity;
 		if (total == 0) {
 			responseEntity = new ResponseEntity<String>(Tools.objToJson(paging), HttpStatus.NO_CONTENT);
@@ -71,7 +71,7 @@ public class ResourceTypeController {
 	@RequestMapping(value = "/resourceType/", method = RequestMethod.GET, headers = "Accept=application/json")
 	public ResponseEntity<String> getResourceTypes() {
 		List<ResourceType> results = resourceTypeService.getAllResourceType();
-		Paging paging = new Paging(results.size(), 0, results.size() - 1, results);
+		Paging paging = new Paging(results.size(), 0, results.size() - 1, results,null);
 		ResponseEntity<String> responseEntity;
 
 		if (results.size() == 0) {
