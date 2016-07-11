@@ -1,7 +1,5 @@
 package eu.openminted.registry.core.jms;
 
-import java.util.Properties;
-
 import javax.jms.JMSException;
 import javax.jms.Session;
 import javax.jms.TextMessage;
@@ -10,20 +8,22 @@ import javax.jms.TopicConnection;
 import javax.jms.TopicConnectionFactory;
 import javax.jms.TopicPublisher;
 import javax.jms.TopicSession;
-import javax.naming.Context;
 import javax.naming.InitialContext;
-import javax.naming.NamingException;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-public class JMSFunctions {
+@Service("jmsService")
+@Transactional
+public class JMSService {
 
     private TopicConnection connection = null;
     private TopicSession session = null;
     private Topic topic = null;
 	private InitialContext iniCtx;
     
-	public JMSFunctions(){
+	public JMSService(){
 		
 	}
 	

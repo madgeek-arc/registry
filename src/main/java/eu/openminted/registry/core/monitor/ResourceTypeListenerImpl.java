@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.xml.sax.SAXException;
 
 import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.jms.JMSFunctions;
+import eu.openminted.registry.core.jms.JMSService;
 import eu.openminted.registry.core.solr.service.SolrOperationsService;
 
 public class ResourceTypeListenerImpl implements ResourceTypeListener {
@@ -19,14 +19,17 @@ public class ResourceTypeListenerImpl implements ResourceTypeListener {
 	@Autowired
 	SolrOperationsService solrOperationService;
 	
+	@Autowired
+	JMSService jmsService;
+	
+	
 	@Override
 	public void resourceTypeAdded(ResourceType resourceType) throws IOException, URISyntaxException, SolrServerException, ParserConfigurationException, SAXException, TransformerException, InterruptedException {
 		solrOperationService.createCore(resourceType);
-		JMSFunctions jmsFunctions = new JMSFunctions();
-		jmsFunctions.createTopicFunction(resourceType.getName()+"-create");
-		jmsFunctions.createTopicFunction(resourceType.getName()+"-update");
-		jmsFunctions.createTopicFunction(resourceType.getName()+"-delete");
-		jmsFunctions.closeConnection();
+		jmsService.createTopicFunction(resourceType.getName()+"-create");
+		jmsService.createTopicFunction(resourceType.getName()+"-update");
+		jmsService.createTopicFunction(resourceType.getName()+"-delete");
+		jmsService.closeConnection();
 	}
 
 }
