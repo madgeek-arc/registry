@@ -1,4 +1,4 @@
-package eu.openminted.registry.core.jms;
+package eu.openminted.registry.core.jms.service;
 
 import javax.jms.JMSException;
 import javax.jms.Session;
