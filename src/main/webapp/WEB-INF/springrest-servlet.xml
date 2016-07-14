@@ -7,12 +7,6 @@
 
  <mvc:annotation-driven/>
  
-<context:component-scan base-package="eu.openminted.registry.core.controllers" />
-<context:component-scan base-package="eu.openminted.registry.core.service" />
-<context:component-scan base-package="eu.openminted.registry.core.dao" />
-<context:component-scan base-package="eu.openminted.registry.core.configuration" />
-<context:component-scan base-package="eu.openminted.registry.core.index" />
-<context:component-scan base-package="eu.openminted.registry.core.monitor" />
-
+<context:component-scan base-package="eu.openminted.registry.core" />
 </beans>
 

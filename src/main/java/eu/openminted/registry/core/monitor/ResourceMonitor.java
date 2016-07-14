@@ -2,6 +2,7 @@ package eu.openminted.registry.core.monitor;
 
 import java.util.List;
 
+import org.apache.log4j.Logger;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -19,6 +20,8 @@ import eu.openminted.registry.core.domain.ResourceType;
 @Component
 public class ResourceMonitor {
 
+	private static Logger logger = Logger.getLogger(ResourceMonitor.class);
+	
 	@Autowired(required = false)
 	private List<ResourceListener> resourceListeners;
 
@@ -35,9 +38,13 @@ public class ResourceMonitor {
 			pjp.proceed();
 
 			if (resourceListeners != null)
-				for (ResourceListener listener:resourceListeners)
-					listener.resourceAdded(resource);
-
+				for (ResourceListener listener:resourceListeners){
+//					try{
+						listener.resourceAdded(resource);
+//					}catch(Exception e){
+//						logger.debug("Resource monitor exception:"+e.getMessage());
+//					}
+				}
 		} catch (Throwable throwable) {
 			throw throwable;
 		}
@@ -52,9 +59,13 @@ public class ResourceMonitor {
 			pjp.proceed();
 
 			if (resourceListeners != null)
-				for (ResourceListener listener:resourceListeners)
-					listener.resourceUpdated(previous, resource);
-
+				for (ResourceListener listener:resourceListeners){
+//					try{
+						listener.resourceUpdated(previous, resource);
+//					}catch(Exception e){
+//						logger.debug("Resource monitor exception:"+e.getMessage());
+//					}
+				}
 		} catch (Throwable throwable) {
 			throw throwable;
 		}
@@ -69,8 +80,14 @@ public class ResourceMonitor {
 			pjp.proceed();
 
 			if (resourceListeners != null)
-				for (ResourceListener listener:resourceListeners)
-					listener.resourceDeleted(previous);
+				for (ResourceListener listener:resourceListeners){
+//					try{
+						listener.resourceDeleted(previous);
+//					}catch(Exception e){
+//						logger.debug("Resource monitor exception:"+e.getMessage());
+//					}
+					
+				}
 
 		} catch (Throwable throwable) {
 			throw throwable;
@@ -84,9 +101,13 @@ public class ResourceMonitor {
 			pjp.proceed();
 
 			if (resourceTypeListeners != null)
-				for (ResourceTypeListener listener:resourceTypeListeners)
-					listener.resourceTypeAdded(resourceType);
-
+				for (ResourceTypeListener listener:resourceTypeListeners){
+//					try{
+						listener.resourceTypeAdded(resourceType);
+//					}catch(Exception e){
+//						logger.debug("Resource monitor exception:"+e.getMessage());
+//					}
+				}
 		} catch (Throwable throwable) {
 			throw throwable;
 		}

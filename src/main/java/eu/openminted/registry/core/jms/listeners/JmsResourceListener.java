@@ -1,12 +1,14 @@
 package eu.openminted.registry.core.jms.listeners;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.jms.service.JMSService;
 import eu.openminted.registry.core.monitor.ResourceListener;
 import net.minidev.json.JSONObject;
 
+@Component
 public class JmsResourceListener implements ResourceListener {
 
 	@Autowired

@@ -8,6 +8,7 @@ import javax.xml.transform.TransformerException;
 
 import org.apache.solr.client.solrj.SolrServerException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.xml.sax.SAXException;
 
 import eu.openminted.registry.core.domain.ResourceType;
@@ -15,6 +16,7 @@ import eu.openminted.registry.core.jms.service.JMSService;
 import eu.openminted.registry.core.monitor.ResourceTypeListener;
 import net.minidev.json.JSONObject;
 
+@Component
 public class JmsResourceTypeListener implements ResourceTypeListener{
 
 	@Autowired

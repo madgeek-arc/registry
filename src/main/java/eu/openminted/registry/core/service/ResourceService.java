@@ -58,8 +58,8 @@ public class ResourceService {
 	}
 
 	public void addResource(Resource resource) throws ServiceException {
-
-		resource.setIndexedFields(getIndexedFields(resource));
+		if(resource.getIndexedFields()!=null)
+			resource.setIndexedFields(getIndexedFields(resource));
 
 		if (resource.getIndexedFields() != null)
 			for (IndexedField indexedField:resource.getIndexedFields())

@@ -11,11 +11,12 @@ import javax.jms.TopicSession;
 import javax.naming.InitialContext;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service("jmsService")
-@Transactional
 public class JMSService {
 
     private TopicConnection connection = null;
@@ -23,6 +24,9 @@ public class JMSService {
     private Topic topic = null;
 	private InitialContext iniCtx;
     
+	@Autowired
+	private Environment environment;
+	
 	public JMSService(){
 		
 	}
@@ -30,7 +34,7 @@ public class JMSService {
 	public String createTopicFunction(String topicName){
 		try {
 	
-			TopicConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://83.212.121.189:61616");
+			TopicConnectionFactory connectionFactory = new ActiveMQConnectionFactory(environment.getProperty("jms.host"));
 			connection = connectionFactory.createTopicConnection();
 			session = connection.createTopicSession(false,Session.AUTO_ACKNOWLEDGE);
 					
@@ -50,20 +54,9 @@ public class JMSService {
 	}
 	
 	public String publishMessage(String topicName, String message){
-//		Properties props = new Properties();
-//		props.setProperty(Context.INITIAL_CONTEXT_FACTORY,"org.apache.activemq.jndi.ActiveMQInitialContextFactory");
-//		props.setProperty(Context.PROVIDER_URL,"tcp://83.212.121.189:61616");
 		
 		 try {
-//			 InitialContext iniCtx = new InitialContext(props);
-//			 Object tmp = iniCtx.lookup("ConnectionFactory");
-//		     TopicConnectionFactory tcf = (TopicConnectionFactory) tmp;
-//		     connection = tcf.createTopicConnection();
-//		     topic = (Topic) iniCtx.lookup(topicName);
-//		     session = connection.createTopicSession(false,TopicSession.AUTO_ACKNOWLEDGE);
-//		     connection.start();
-//		     
-			 TopicConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://83.212.121.189:61616");
+			 TopicConnectionFactory connectionFactory = new ActiveMQConnectionFactory(environment.getProperty("jms.host"));
 			 connection = connectionFactory.createTopicConnection();
 			 session = connection.createTopicSession(false,Session.AUTO_ACKNOWLEDGE);
 						
@@ -76,7 +69,7 @@ public class JMSService {
 		     send.close();
 		     return "All good";
 		}  catch (JMSException e) {
-			return "wtf2 "+ e.getMessage();
+			return e.getMessage();
 		}
 		
 	}

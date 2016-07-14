@@ -1,49 +1,64 @@
 package eu.openminted.registry.core.solr.service;
 
-import org.apache.commons.io.FileUtils; 
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
-import org.apache.solr.client.solrj.SolrClient; 
-import org.apache.solr.client.solrj.SolrServerException;  
-import org.apache.solr.client.solrj.impl.HttpSolrClient; 
-import org.apache.solr.client.solrj.request.CoreAdminRequest; 
-import org.apache.solr.client.solrj.response.CoreAdminResponse; 
-import org.apache.solr.common.params.CoreAdminParams; 
-import org.w3c.dom.Document; 
-import org.w3c.dom.Element; 
-import org.w3c.dom.NodeList; 
-import org.xml.sax.SAXException; 
-
-import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.domain.index.IndexField;
-
-import javax.xml.parsers.DocumentBuilder; 
-import javax.xml.parsers.DocumentBuilderFactory; 
-import javax.xml.parsers.ParserConfigurationException; 
-import javax.xml.transform.Transformer; 
-import javax.xml.transform.TransformerException; 
-import javax.xml.transform.TransformerFactory; 
-import javax.xml.transform.dom.DOMSource; 
-import javax.xml.transform.stream.StreamResult; 
-
-import java.io.File; 
-import java.io.IOException; 
+import java.io.File;
+import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.ArrayList; 
+import java.util.ArrayList;
 import java.util.List;
 
+import javax.persistence.PersistenceException;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.request.CoreAdminRequest;
+import org.apache.solr.client.solrj.response.CoreAdminResponse;
+import org.apache.solr.client.solrj.response.UpdateResponse;
+import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.params.CoreAdminParams;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
+import eu.openminted.registry.core.domain.Resource;
+import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.index.IndexField;
+import eu.openminted.registry.core.domain.index.IndexedField;
+
+@Service("solrOperationsService")
+@Transactional
 public class SolrOperationsService {
 	private static Logger logger = Logger.getLogger(SolrOperationsService.class);
 
-	public static final String DEFAULT_HTTP_ADDRESS = "http://localhost:8983/solr";
+//	@Autowired
+//	private Environment environment;
 	
-	public static final String DEFAULT_SOLR_DATA_PARENT_DIR = "/opt/solr/server/";
 	
-	public static final String BASIC_CONFIG_DIR = "solr/configsets/omtd_registry/conf/";
+	public static String DEFAULT_HTTP_ADDRESS = "http://localhost:8983/solr";
 	
-	private static final String DEFAULT_SCHEMA_XML = "schema.xml"; 
+	public static String DEFAULT_SOLR_DATA_PARENT_DIR = "/opt/solr/server/";
+	
+	public static String BASIC_CONFIG_DIR = "solr/configsets/omtd_registry/conf/";
+	
+	private static String DEFAULT_SCHEMA_XML = "schema.xml"; 
 	 
-    private static final String DEFAULT_SOLRCONFIG_XML = "solrconfig.xml"; 
+    private static String DEFAULT_SOLRCONFIG_XML = "solrconfig.xml"; 
     
     public static SolrClient getSolrClient() { 
         return new HttpSolrClient(DEFAULT_HTTP_ADDRESS);  
@@ -97,14 +112,16 @@ public class SolrOperationsService {
         DocumentBuilder builder = domFactory.newDocumentBuilder(); 
         Document doc = builder.parse(new File(DEFAULT_SOLR_DATA_PARENT_DIR + BASIC_CONFIG_DIR + "managed-schema")); 
         NodeList nodes = doc.getElementsByTagName("schema"); 
-        for (IndexField indexField: indexFields) { 
-            Element field = doc.createElement("field"); 
-            field.setAttribute("name", indexField.getName()); 
-            field.setAttribute("type", indexField.getType()); 
-            field.setAttribute("indexed", "true"); 
-            field.setAttribute("stored", "true"); 
-            nodes.item(0).appendChild(field); 
-        } 
+        if(indexFields!=null){
+	        for (IndexField indexField: indexFields) { 
+	            Element field = doc.createElement("field"); 
+	            field.setAttribute("name", indexField.getName()); 
+	            field.setAttribute("type", indexField.getType()); 
+	            field.setAttribute("indexed", "true"); 
+	            field.setAttribute("stored", "true"); 
+	            nodes.item(0).appendChild(field); 
+	        } 
+        }
         TransformerFactory transformerFactory = TransformerFactory.newInstance(); 
         Transformer transformer = transformerFactory.newTransformer(); 
         DOMSource source = new DOMSource(doc); 
@@ -125,4 +142,90 @@ public class SolrOperationsService {
         } 
         return coreList; 
     }
+    
+    public void add(Resource resource){
+		String resourceType = resource.getResourceType();
+		SolrClient solrClient = SolrOperationsService.getSolrClient(resourceType);
+
+		SolrInputDocument document = new SolrInputDocument();
+		document.addField("id", resource.getId());
+		document.addField("resourceType", resource.getResourceType());
+		document.addField("payload", resource.getPayload());
+		document.addField("version", resource.getVersion());
+		document.addField("creation_date", resource.getCreationDate());
+		document.addField("modification_date", resource.getModificationDate());
+		if(resource.getIndexedFields()!=null){
+			for (IndexedField indexedField : resource.getIndexedFields()){
+				document.addField(indexedField.getName(), indexedField.getValues());
+			}
+		}
+		
+		try { 
+            UpdateResponse response = solrClient.add(document);
+            solrClient.commit();
+            logger.debug("UpdateResponse from add of SolrInputDocument:  " + response);
+        } catch (SolrServerException e) { 
+            doRollback(solrClient, resourceType); 
+            throw new PersistenceException( 
+                    "SolrServerException while adding Solr index for resource type " + resourceType, e); 
+        } catch (IOException e) { 
+            doRollback(solrClient, resourceType); 
+            throw new PersistenceException( 
+                    "IOException while adding Solr index for resource type " + resourceType, e); 
+        } catch (RuntimeException e) { 
+            doRollback(solrClient, resourceType); 
+            throw new PersistenceException( 
+                    "RuntimeException while adding Solr index for resource type " + resourceType, e); 
+        } 
+	}
+	
+	public void update(Resource resource){
+		add(resource);
+	}
+	
+	public void delete(Resource resource) throws PersistenceException { 
+		String resourceType = resource.getResourceType();
+		SolrClient solrClient = SolrOperationsService.getSolrClient(resourceType);
+        if (solrClient == null) { 
+            return; 
+        }  
+ 
+        try { 
+        	logger.info("Deleting item with ID" + resource.getId()); 
+        	solrClient.deleteById(resource.getId()); 
+        } catch (SolrServerException e) { 
+        	logger.info( 
+                    "SolrServerException while trying to delete resource by ID for resource type " + resourceType, e); 
+            doRollback(solrClient, resourceType); 
+            throw new PersistenceException( 
+                    "SolrServerException while trying to delete resource by ID for resource type " 
+                            + resourceType, e); 
+        } catch (IOException e) { 
+        	logger.info("IOException while trying to delete resource by ID for resource type " + resourceType, e); 
+            doRollback(solrClient, resourceType); 
+            throw new PersistenceException( 
+                    "IOException while trying to delete items by ID for persistent type " 
+                            + resourceType, e); 
+        } catch (RuntimeException e) { 
+        	logger.info( 
+                    "RuntimeException while trying to delete resource by ID for resource type " + resourceType, e); 
+            doRollback(solrClient, resourceType); 
+            throw new PersistenceException( 
+                    "RuntimeException while trying to delete resource by ID for resource type " 
+                            + resourceType, e); 
+        }	
+	}
+	
+	private void doRollback(SolrClient solrClient, String type) { 
+        logger.debug("ENTERING: doRollback()"); 
+        try { 
+        	solrClient.rollback(); 
+        } catch (SolrServerException e) { 
+        	logger.info("SolrServerException while doing rollback for resource type " + type, e); 
+        } catch (IOException e) { 
+        	logger.info("IOException while doing rollback for resource type " + type, e); 
+        } 
+        logger.debug("EXITING: doRollback()"); 
+    } 
+    
 }

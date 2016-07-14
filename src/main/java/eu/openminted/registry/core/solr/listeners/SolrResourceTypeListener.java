@@ -8,12 +8,14 @@ import javax.xml.transform.TransformerException;
 
 import org.apache.solr.client.solrj.SolrServerException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.xml.sax.SAXException;
 
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.monitor.ResourceTypeListener;
 import eu.openminted.registry.core.solr.service.SolrOperationsService;
 
+@Component
 public class SolrResourceTypeListener implements ResourceTypeListener{
 
 	@Autowired
