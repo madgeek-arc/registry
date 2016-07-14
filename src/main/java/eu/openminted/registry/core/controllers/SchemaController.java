@@ -25,16 +25,18 @@ public class SchemaController {
 	public String getResourceTypeByName(@PathVariable("id") String id) {
 		ResponseEntity<String> responseEntity;
 		Schema schema = resourceTypeService.getSchema(id);
-//		if (schema == null) {
-//			responseEntity = new ResponseEntity<String>(HttpStatus.NOT_FOUND);
-//		} else {
-//			responseEntity = new ResponseEntity<String>(Tools.objToJson(schema), HttpStatus.OK);
-//		}
+		if (schema == null) {
+			responseEntity = new ResponseEntity<String>(HttpStatus.NOT_FOUND);
+		} else {
+			responseEntity = new ResponseEntity<String>(Tools.objToJson(schema), HttpStatus.OK);
+		}
 //		return responseEntity;
 		if(schema==null){
 			return "";
 		}else{
 			return schema.getSchema();
 		}
+//		SolrClass solrClass = new SolrClass();
+//		return solrClass.SolrClass().toString();
 	}
 }

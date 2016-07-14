@@ -25,8 +25,9 @@ import org.xml.sax.SAXException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import eu.dnetlib.functionality.index.cql.CqlTranslator;
+
 public class Tools {
-	
 	
 	private static Logger logger = Logger.getLogger(Tools.class);
 	

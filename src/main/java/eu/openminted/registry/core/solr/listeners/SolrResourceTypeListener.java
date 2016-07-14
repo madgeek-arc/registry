@@ -1,4 +1,4 @@
-package eu.openminted.registry.core.monitor;
+package eu.openminted.registry.core.solr.listeners;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -11,15 +11,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.xml.sax.SAXException;
 
 import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.monitor.ResourceTypeListener;
 import eu.openminted.registry.core.solr.service.SolrOperationsService;
 
-public class SolrCoreActions implements ResourceTypeListener {
+public class SolrResourceTypeListener implements ResourceTypeListener{
 
 	@Autowired
 	SolrOperationsService solrOperationService;
 	
 	@Override
-	public void resourceTypeAdded(ResourceType resourceType) throws IOException, URISyntaxException, SolrServerException, ParserConfigurationException, SAXException, TransformerException, InterruptedException {
+	public void resourceTypeAdded(ResourceType resourceType)
+			throws IOException, URISyntaxException, SolrServerException, ParserConfigurationException, SAXException,
+			TransformerException, InterruptedException {
 		solrOperationService.createCore(resourceType);
 	}
 

@@ -8,13 +8,32 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
 		<spring.version>4.2.1.RELEASE</spring.version>
 		<hibernate.version>5.1.0.Final</hibernate.version>
 		<joda-time.version>2.3</joda-time.version>
 	</properties>
 
 	<dependencies>
+		<dependency>
+            <groupId>org.apache.activemq</groupId>
+            <artifactId>activemq-all</artifactId>
+            <version>5.10.0</version>
+        </dependency>
+		<dependency>
+			<groupId>eu.dnetlib</groupId>
+			<artifactId>cnr-cql-utils</artifactId>
+			<version>1.0.1</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.apache.commons</groupId>
+		    <artifactId>commons-lang3</artifactId>
+		    <version>3.3.2</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.apache.solr</groupId>
+		    <artifactId>solr-solrj</artifactId>
+		    <version>5.4.1</version>
+		</dependency>
 		<dependency>
 		    <groupId>com.jayway.jsonpath</groupId>
 		    <artifactId>json-path</artifactId>
@@ -25,6 +44,11 @@
 			<artifactId>junit</artifactId>
 			<version>3.8.1</version>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.lucene</groupId>
+			<artifactId>lucene-queryparser</artifactId>
+			<version>5.4.1</version>
 		</dependency>
 		<dependency>
 			<groupId>javax.servlet</groupId>
@@ -148,12 +172,6 @@
 			<artifactId>hibernate-jpa-2.1-api</artifactId>
 			<version>1.0.0.Final</version>
 		</dependency>
-
-		<dependency>
-		    <groupId>org.apache.solr</groupId>
-		    <artifactId>solr-core</artifactId>
-		    <version>6.0.0</version>
-		</dependency>
 		
 		<!-- jdom -->
 		<dependency>
@@ -162,8 +180,7 @@
 			<version>1.1.3</version>
 			<scope>compile</scope>
 		</dependency>
-		
-		<!-- aether and it's dependencies for getting components from maven -->
+
 		<dependency>
 			<groupId>org.eclipse.aether</groupId>
 			<artifactId>aether-api</artifactId>
@@ -227,7 +244,50 @@
 			<scope>compile</scope>
 		</dependency>
 	</dependencies>
-	
+	<repositories>
+			<repository>
+                    <id>dnet4-bootstrap-snapshot</id>
+                    <name>D-Net 4 Bootstrap Snapshot</name>
+                    <url>http://maven.research-infrastructures.eu/nexus/content/repositories/dnet4-bootstrap</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                    <layout>default</layout>
+           </repository>
+           	<repository>
+                    <id>dnet4-releases</id>
+                    <name>D-Net 4 Releases</name>
+                    <url>http://maven.research-infrastructures.eu/nexus/content/repositories/dnet4-releases</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                    <layout>default</layout>
+           </repository>
+           <repository>
+                    <id>dnet4-bootstrap-release</id>
+                    <name>D-Net 4 Bootstrap Release</name>
+                    <url>http://maven.research-infrastructures.eu/nexus/content/repositories/dnet4-bootstrap-release</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                    <layout>default</layout>
+           </repository>
+           <repository>
+                 <id>indexdata</id>
+                 <name>Index data</name>
+                 <url>http://maven.indexdata.com/</url>
+           </repository>
+    </repositories>
+
 	<build>
 		<pluginManagement>
 			<plugins>
