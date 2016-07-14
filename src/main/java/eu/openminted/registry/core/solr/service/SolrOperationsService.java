@@ -37,9 +37,9 @@ public class SolrOperationsService {
 
 	public static final String DEFAULT_HTTP_ADDRESS = "http://localhost:8983/solr";
 	
-	public static final String DEFAULT_SOLR_DATA_PARENT_DIR = "/opt/solr/server/";
+	public static final String DEFAULT_SOLR_DATA_PARENT_DIR = "/opt/solr/server/solr/";
 	
-	public static final String BASIC_CONFIG_DIR = "solr/configsets/omtd_registry/conf/";
+	public static final String BASIC_CONFIG_DIR = "configsets/omtd_registry/conf/";
 	
 	private static final String DEFAULT_SCHEMA_XML = "schema.xml"; 
 	 
