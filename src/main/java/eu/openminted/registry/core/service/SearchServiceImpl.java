@@ -26,7 +26,7 @@ import eu.openminted.registry.core.domain.Paging;
  * Created by antleb on 6/30/16.
  */
 @Service("searchService")
-public class SearchService {
+public class SearchServiceImpl implements SearchService {
 
 	private String url;
 	private SolrClient solrClient;
@@ -43,8 +43,10 @@ public class SearchService {
 		url = environment.getProperty("solr.host", "http://83.212.121.189:8983/solr/");
 	}
 
-	public Paging search(String resourceType, String cqlQuery, int from, int to, String browseBy) throws IOException, CQLParseException, SolrServerException {
+	@Override
+	public Paging search(String resourceType, String cqlQuery, int from, int to, String browseBy) throws ServiceException {
 		Paging paging;
+
 		if(!browseBy.equals("")){
 
 		}
@@ -52,8 +54,15 @@ public class SearchService {
 		String url = this.url.concat(resourceType+"/");
 		solrClient = new HttpSolrClient(url);
 		SolrQuery sq = new SolrQuery();
-		
-		String solrQuery = translator.toLucene(cqlQuery);
+
+		String solrQuery = null;
+		try {
+			solrQuery = translator.toLucene(cqlQuery);
+		} catch (CQLParseException e) {
+			throw new ServiceException(e);
+		} catch (IOException e) {
+			throw new ServiceException(e);
+		}
 
 		sq.setQuery(solrQuery);
 		if(!browseBy.equals("")){
@@ -64,7 +73,14 @@ public class SearchService {
 			sq.setFacetMinCount(1);
 			sq.setFacetSort("count");
 		}
-		QueryResponse rsp = solrClient.query(sq);
+		QueryResponse rsp = null;
+		try {
+			rsp = solrClient.query(sq);
+		} catch (SolrServerException e) {
+			throw new ServiceException(e);
+		} catch (IOException e) {
+			throw new ServiceException(e);
+		}
 		SolrDocumentList docs = rsp.getResults();
 		FacetField facetField = rsp.getFacetField(browseBy);
 		ArrayList<String> values = new ArrayList<String>();

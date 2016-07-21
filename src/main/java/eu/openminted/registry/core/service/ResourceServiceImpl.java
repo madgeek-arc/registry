@@ -1,12 +1,5 @@
 package eu.openminted.registry.core.service;
 
-import java.util.List;
-import java.util.UUID;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.domain.Resource;
@@ -15,10 +8,19 @@ import eu.openminted.registry.core.domain.Tools;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Created by antleb on 7/14/16.
+ */
 @Service("resourceService")
 @Transactional
-public class ResourceService {
+public class ResourceServiceImpl implements ResourceService {
 
 	@Autowired
 	private ResourceDao resourceDao;
@@ -27,56 +29,56 @@ public class ResourceService {
 	@Autowired
 	private IndexMapperFactory indexMapperFactory;
 
-	public ResourceService() {
+	public ResourceServiceImpl() {
 
 	}
 
-	
-	public Resource getResource(String resourceType, String id) {
+
+	@Override public Resource getResource(String resourceType, String id) {
 		Resource resource = resourceDao.getResource(resourceType, id);
 		return resource;
 	}
 
-	public List<Resource> getResource(String resourceType) {
+	@Override public List<Resource> getResource(String resourceType) {
 		List<Resource> resources = resourceDao.getResource(resourceType);
 		return resources;
 	}
 
-	public List<Resource> getResource(String resourceType, int from, int to) {
+	@Override public List<Resource> getResource(String resourceType, int from, int to) {
 		List<Resource> resources = resourceDao.getResource(resourceType, from, to);
 		return resources;
 	}
 
-	public List<Resource> getResource(int from, int to) {
+	@Override public List<Resource> getResource(int from, int to) {
 		List<Resource> resources = resourceDao.getResource(from, to);
 		return resources;
 	}
 
-	public List<Resource> getResource() {
+	@Override public List<Resource> getResource() {
 		List<Resource> resources = resourceDao.getResource();
 		return resources;
 	}
 
-	public void addResource(Resource resource) throws ServiceException {
+	@Override public void addResource(Resource resource) throws ServiceException {
 		if(resource.getIndexedFields()!=null)
 			resource.setIndexedFields(getIndexedFields(resource));
 
 		if (resource.getIndexedFields() != null)
 			for (IndexedField indexedField:resource.getIndexedFields())
 				indexedField.setResource(resource);
-			
-			String response = checkValid(resource);
-			if(response.equals("OK")){
-				resource.setId(UUID.randomUUID().toString());
-				resourceDao.addResource(resource);
-			}else{
-				throw new ServiceException(response);
-			}
-			
+
+		String response = checkValid(resource);
+		if(response.equals("OK")){
+			resource.setId(UUID.randomUUID().toString());
+			resourceDao.addResource(resource);
+		}else{
+			throw new ServiceException(response);
+		}
+
 	}
 
-	public Resource updateResource(Resource resource) throws ServiceException{
-		
+	@Override public Resource updateResource(Resource resource) throws ServiceException{
+
 		resource.setIndexedFields(getIndexedFields(resource));
 
 		if (resource.getIndexedFields() != null)
@@ -89,11 +91,11 @@ public class ResourceService {
 		}else{
 			throw new ServiceException(response);
 		}
-		
+
 		return resource;
 	}
 
-	public void deleteResource(String id) {
+	@Override public void deleteResource(String id) {
 		resourceDao.deleteResource(id);
 	}
 
@@ -126,8 +128,8 @@ public class ResourceService {
 	public void setResourceTypeDao(ResourceTypeDao resourceTypeDao) {
 		this.resourceTypeDao = resourceTypeDao;
 	}
-	
-	private String checkValid(Resource resource){
+
+	private String checkValid(Resource resource) {
 		String response = "";
 		ResourceType resourceType = resourceTypeDao.getResourceType(resource.getResourceType());
 
@@ -166,7 +168,8 @@ public class ResourceService {
 			//resource type not found
 			response = "resource type not found";
 		}
-		
+
 		return response;
 	}
 }
+

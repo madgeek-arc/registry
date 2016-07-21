@@ -43,57 +43,7 @@ public class Tools {
 			  }
 		}
 	  
-	  public static String objToJson(Paging paging){
-		  
-		  ObjectMapper mapper = new ObjectMapper();
-		  
-		  try {
-			return mapper.writeValueAsString(paging);
-		} catch (JsonProcessingException e) {
-//			logger.error("Error serializing object to json", e);
-			return e.getMessage();
-//			return null;
-		}
-	  }
-	  
-	  public static String objToJson(eu.openminted.registry.core.domain.Schema schema){
-		  
-		  ObjectMapper mapper = new ObjectMapper();
-		  
-		  try {
-			return mapper.writeValueAsString(schema);
-		} catch (JsonProcessingException e) {
-//			logger.error("Error serializing object to json", e);
-			return e.getMessage();
-//			return null;
-		}
-	  }
-	  
-	  public static String objToJson(Resource resource){
-		  
-		  ObjectMapper mapper = new ObjectMapper();
-		  
-		  try {
-			return mapper.writeValueAsString(resource);
-		} catch (JsonProcessingException e) {
-			  logger.error("Error serializing object to json", e);
 
-			  return null;
-		}
-	  }
-	  
-	  public static String objToJson(ResourceType resourceType){
-		  
-		  ObjectMapper mapper = new ObjectMapper();
-		  
-		  try {
-			return mapper.writeValueAsString(resourceType);
-		} catch (JsonProcessingException e) {
-			  logger.error("Error serializing object to json", e);
-
-			  return null;
-		}
-	  }
 
 	  
 	  public static String validateJSONSchema(String schemaContent, String jsonContent){

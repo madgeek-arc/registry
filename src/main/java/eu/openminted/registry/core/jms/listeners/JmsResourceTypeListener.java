@@ -23,9 +23,7 @@ public class JmsResourceTypeListener implements ResourceTypeListener{
 	JMSService jmsService;
 	
 	@Override
-	public void resourceTypeAdded(ResourceType resourceType)
-			throws IOException, URISyntaxException, SolrServerException, ParserConfigurationException, SAXException,
-			TransformerException, InterruptedException {
+	public void resourceTypeAdded(ResourceType resourceType) {
 		
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("message", "A new resource with name:"+resourceType.getName()+" has been added");
