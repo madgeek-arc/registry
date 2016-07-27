@@ -4,7 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.persistence.PersistenceException;
 import javax.xml.parsers.DocumentBuilder;
@@ -58,6 +61,17 @@ public class SolrOperationsService {
 	 
     private static String DEFAULT_SOLRCONFIG_XML = "solrconfig.xml"; 
     
+    private static final Map<String, String> FIELD_TYPES_MAP;
+    static {
+        Map<String, String> unmodifiableMap = new HashMap<String, String>();
+        unmodifiableMap.put("java.lang.Double", "double");
+        unmodifiableMap.put("java.lang.Integer", "int");
+        unmodifiableMap.put("java.lang.Long", "long");
+        unmodifiableMap.put("java.lang.String", "text_en");
+        unmodifiableMap.put("java.util.Date", "date");
+        FIELD_TYPES_MAP = Collections.unmodifiableMap(unmodifiableMap);
+    }
+
     public static SolrClient getSolrClient() { 
         return new HttpSolrClient(DEFAULT_HTTP_ADDRESS);  
     } 
@@ -114,7 +128,8 @@ public class SolrOperationsService {
 	        for (IndexField indexField: indexFields) { 
 	            Element field = doc.createElement("field"); 
 	            field.setAttribute("name", indexField.getName()); 
-	            field.setAttribute("type", indexField.getType()); 
+	            field.setAttribute("type", FIELD_TYPES_MAP.get(indexField.getType()));
+	            field.setAttribute("multiValued", "true");
 	            field.setAttribute("indexed", "true"); 
 	            field.setAttribute("stored", "true"); 
 	            nodes.item(0).appendChild(field); 
