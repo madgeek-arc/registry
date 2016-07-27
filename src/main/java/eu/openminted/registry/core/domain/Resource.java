@@ -62,7 +62,8 @@ public class Resource {
 	private List<IndexedField> indexedFields;
 	
 	
-	public Resource(int id, String resourceType,String version,String payload,String payloadFormat) {
+	public Resource(String id, String resourceType,String version,String payload,String payloadFormat) {
+		this.id = id;
 		this.resourceType = resourceType;
 		this.version = version;
 		this.payload = payload;
