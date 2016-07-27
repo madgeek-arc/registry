@@ -27,6 +27,7 @@ import org.apache.solr.client.solrj.response.CoreAdminResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.CoreAdminParams;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.Document;
@@ -36,17 +37,16 @@ import org.xml.sax.SAXException;
 
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.domain.index.IndexField;
-import eu.openminted.registry.core.domain.index.IndexedField;
 
 @Service("solrOperationsService")
 @Transactional
 public class SolrOperationsService {
 	private static Logger logger = Logger.getLogger(SolrOperationsService.class);
-
-//	@Autowired
-//	private Environment environment;
 	
+	@Autowired
+    ResourceTypeService resourceTypeService;
 	
 	public static String DEFAULT_HTTP_ADDRESS = "http://localhost:8983/solr";
 	
@@ -140,40 +140,42 @@ public class SolrOperationsService {
         } 
         return coreList; 
     }
-    
+
+
     public void add(Resource resource){
-		String resourceType = resource.getResourceType();
-		SolrClient solrClient = SolrOperationsService.getSolrClient(resourceType);
+		String type = resource.getResourceType();
+		ResourceType resourceType = resourceTypeService.getResourceType(type);
+		SolrClient solrClient = SolrOperationsService.getSolrClient(type);
 
 		SolrInputDocument document = new SolrInputDocument();
 		document.addField("id", resource.getId());
-		document.addField("resourceType", resource.getResourceType());
+		document.addField("resourceType", type);
 		document.addField("payload", resource.getPayload());
 		document.addField("version", resource.getVersion());
 		document.addField("creation_date", resource.getCreationDate());
 		document.addField("modification_date", resource.getModificationDate());
-		if(resource.getIndexedFields()!=null){
-			for (IndexedField indexedField : resource.getIndexedFields()){
-				document.addField(indexedField.getName(), indexedField.getValues());
+		if(resourceType.getIndexFields()!=null){
+			for (IndexField indexField : resourceType.getIndexFields()){
+				document.addField(indexField.getName(), indexField.getPath());
 			}
 		}
-		
+
 		try { 
             UpdateResponse response = solrClient.add(document);
             solrClient.commit();
             logger.debug("UpdateResponse from add of SolrInputDocument:  " + response);
         } catch (SolrServerException e) { 
-            doRollback(solrClient, resourceType); 
+            doRollback(solrClient, type); 
             throw new PersistenceException( 
-                    "SolrServerException while adding Solr index for resource type " + resourceType, e); 
+                    "SolrServerException while adding Solr index for resource type " + type, e); 
         } catch (IOException e) { 
-            doRollback(solrClient, resourceType); 
+            doRollback(solrClient, type); 
             throw new PersistenceException( 
-                    "IOException while adding Solr index for resource type " + resourceType, e); 
+                    "IOException while adding Solr index for resource type " + type, e); 
         } catch (RuntimeException e) { 
-            doRollback(solrClient, resourceType); 
+            doRollback(solrClient, type); 
             throw new PersistenceException( 
-                    "RuntimeException while adding Solr index for resource type " + resourceType, e); 
+                    "RuntimeException while adding Solr index for resource type " + type, e); 
         } 
 	}
 	
