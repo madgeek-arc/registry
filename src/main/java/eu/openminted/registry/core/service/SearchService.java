@@ -3,6 +3,7 @@ package eu.openminted.registry.core.service;
 import eu.openminted.registry.core.domain.Paging;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * Created by antleb on 7/15/16.
