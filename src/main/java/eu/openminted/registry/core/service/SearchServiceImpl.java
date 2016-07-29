@@ -5,6 +5,7 @@ import java.util.ArrayList;
 
 import javax.annotation.PostConstruct;
 
+import eu.openminted.registry.core.domain.Resource;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -94,14 +95,18 @@ public class SearchServiceImpl implements SearchService {
 			if(to==0){
 				to=docs.size();
 			}
-			ArrayList<SolrDocument> results = new ArrayList<SolrDocument>();
-							
+//			ArrayList<SolrDocument> results = new ArrayList<SolrDocument>();
+			ArrayList<Resource> results = new ArrayList<>();
+
 			for(int i=from;i<to;i++){
-				results.add(docs.get(i));
+
+				// TODO load from db when caching is ready or add fields to index
+				results.add(new Resource((String) docs.get(i).get("id"), "resourceType", null, (String) docs.get(i).get("payload"), null));
+
+//				results.add(docs.get(i));
 			}
 			paging = new Paging(docs.size(),from,docs.size(),results,values);
 		}
-
 		
 		return paging;
 	}

@@ -4,7 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.persistence.PersistenceException;
 import javax.xml.parsers.DocumentBuilder;
@@ -27,6 +30,7 @@ import org.apache.solr.client.solrj.response.CoreAdminResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.CoreAdminParams;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.Document;
@@ -36,17 +40,16 @@ import org.xml.sax.SAXException;
 
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.domain.index.IndexField;
-import eu.openminted.registry.core.domain.index.IndexedField;
 
 @Service("solrOperationsService")
 @Transactional
 public class SolrOperationsService {
 	private static Logger logger = Logger.getLogger(SolrOperationsService.class);
-
-//	@Autowired
-//	private Environment environment;
 	
+	@Autowired
+    ResourceTypeService resourceTypeService;
 	
 	public static String DEFAULT_HTTP_ADDRESS = "http://localhost:8983/solr";
 	
@@ -58,6 +61,17 @@ public class SolrOperationsService {
 	 
     private static String DEFAULT_SOLRCONFIG_XML = "solrconfig.xml"; 
     
+    private static final Map<String, String> FIELD_TYPES_MAP;
+    static {
+        Map<String, String> unmodifiableMap = new HashMap<String, String>();
+        unmodifiableMap.put("java.lang.Double", "double");
+        unmodifiableMap.put("java.lang.Integer", "int");
+        unmodifiableMap.put("java.lang.Long", "long");
+        unmodifiableMap.put("java.lang.String", "text_en");
+        unmodifiableMap.put("java.util.Date", "date");
+        FIELD_TYPES_MAP = Collections.unmodifiableMap(unmodifiableMap);
+    }
+
     public static SolrClient getSolrClient() { 
         return new HttpSolrClient(DEFAULT_HTTP_ADDRESS);  
     } 
@@ -114,7 +128,12 @@ public class SolrOperationsService {
 	        for (IndexField indexField: indexFields) { 
 	            Element field = doc.createElement("field"); 
 	            field.setAttribute("name", indexField.getName()); 
+<<<<<<< HEAD
 	            field.setAttribute("type", "string"); 
+=======
+	            field.setAttribute("type", FIELD_TYPES_MAP.get(indexField.getType()));
+	            field.setAttribute("multiValued", "true");
+>>>>>>> ac338464a42a0036ca73062f0e3bbdf37e6e2b57
 	            field.setAttribute("indexed", "true"); 
 	            field.setAttribute("stored", "true"); 
 	            nodes.item(0).appendChild(field); 
@@ -140,40 +159,46 @@ public class SolrOperationsService {
         } 
         return coreList; 
     }
-    
+
+
     public void add(Resource resource){
-		String resourceType = resource.getResourceType();
-		SolrClient solrClient = SolrOperationsService.getSolrClient(resourceType);
+		String type = resource.getResourceType();
+		ResourceType resourceType = resourceTypeService.getResourceType(type);
+		SolrClient solrClient = SolrOperationsService.getSolrClient(type);
 
 		SolrInputDocument document = new SolrInputDocument();
 		document.addField("id", resource.getId());
+<<<<<<< HEAD
 		document.addField("name", resource.getResourceType());
+=======
+		document.addField("resourceType", type);
+>>>>>>> ac338464a42a0036ca73062f0e3bbdf37e6e2b57
 		document.addField("payload", resource.getPayload());
 		document.addField("version", resource.getVersion());
 		document.addField("creation_date", resource.getCreationDate());
 		document.addField("modification_date", resource.getModificationDate());
-		if(resource.getIndexedFields()!=null){
-			for (IndexedField indexedField : resource.getIndexedFields()){
-				document.addField(indexedField.getName(), indexedField.getValues());
+		if(resourceType.getIndexFields()!=null){
+			for (IndexField indexField : resourceType.getIndexFields()){
+				document.addField(indexField.getName(), indexField.getPath());
 			}
 		}
-		
+
 		try { 
             UpdateResponse response = solrClient.add(document);
             solrClient.commit();
             logger.debug("UpdateResponse from add of SolrInputDocument:  " + response);
         } catch (SolrServerException e) { 
-            doRollback(solrClient, resourceType); 
+            doRollback(solrClient, type); 
             throw new PersistenceException( 
-                    "SolrServerException while adding Solr index for resource type " + resourceType, e); 
+                    "SolrServerException while adding Solr index for resource type " + type, e); 
         } catch (IOException e) { 
-            doRollback(solrClient, resourceType); 
+            doRollback(solrClient, type); 
             throw new PersistenceException( 
-                    "IOException while adding Solr index for resource type " + resourceType, e); 
+                    "IOException while adding Solr index for resource type " + type, e); 
         } catch (RuntimeException e) { 
-            doRollback(solrClient, resourceType); 
+            doRollback(solrClient, type); 
             throw new PersistenceException( 
-                    "RuntimeException while adding Solr index for resource type " + resourceType, e); 
+                    "RuntimeException while adding Solr index for resource type " + type, e); 
         } 
 	}
 	
