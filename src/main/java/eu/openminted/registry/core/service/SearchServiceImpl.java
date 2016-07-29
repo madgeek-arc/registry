@@ -47,11 +47,7 @@ public class SearchServiceImpl implements SearchService {
 	public Paging search(String resourceType, String cqlQuery, int from, int to, String browseBy) throws ServiceException {
 		Paging paging;
 
-		if(!browseBy.equals("")){
-
-		}
-		
-		String url = this.url.concat(resourceType+"/");
+		String url = this.url.concat("/"+resourceType+"/");
 		solrClient = new HttpSolrClient(url);
 		SolrQuery sq = new SolrQuery();
 
@@ -92,7 +88,6 @@ public class SearchServiceImpl implements SearchService {
 				values.add(attr.toString());
 			}
 		}
-		
 		if(docs==null || docs.size()==0){
 			paging = new Paging(0, 0, 0, null,null);
 		}else{

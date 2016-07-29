@@ -114,7 +114,7 @@ public class SolrOperationsService {
 	        for (IndexField indexField: indexFields) { 
 	            Element field = doc.createElement("field"); 
 	            field.setAttribute("name", indexField.getName()); 
-	            field.setAttribute("type", indexField.getType()); 
+	            field.setAttribute("type", "string"); 
 	            field.setAttribute("indexed", "true"); 
 	            field.setAttribute("stored", "true"); 
 	            nodes.item(0).appendChild(field); 
@@ -147,7 +147,7 @@ public class SolrOperationsService {
 
 		SolrInputDocument document = new SolrInputDocument();
 		document.addField("id", resource.getId());
-		document.addField("resourceType", resource.getResourceType());
+		document.addField("name", resource.getResourceType());
 		document.addField("payload", resource.getPayload());
 		document.addField("version", resource.getVersion());
 		document.addField("creation_date", resource.getCreationDate());

@@ -147,9 +147,8 @@ public class ResourceServiceImpl implements ResourceService {
 				} else if (resourceType.getPayloadType().equals("json")) {
 
 					//validate json
-//					String jsonResponse = Tools.validateJSONSchema(resourceType.getSchema(), resource.getPayload());
-					String jsonResponse = "true";
-
+					String jsonResponse = Tools.validateJSONSchema(resourceType.getSchema(), resource.getPayload());
+//					String jsonResponse = "true";
 					if (jsonResponse.equals("true")) {
 						resource.setPayload(resource.getPayload());
 						response = "OK";
