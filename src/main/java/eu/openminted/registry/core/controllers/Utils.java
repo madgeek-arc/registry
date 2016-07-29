@@ -2,12 +2,17 @@ package eu.openminted.registry.core.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import eu.openminted.registry.core.domain.Occurencies;
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.User;
+
 import org.apache.log4j.Logger;
 
 import java.net.URL;
+import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -23,6 +28,34 @@ public class Utils {
 
 		try {
 			return mapper.writeValueAsString(paging);
+		} catch (JsonProcessingException e) {
+//			logger.error("Error serializing object to json", e);
+			return e.getMessage();
+//			return null;
+		}
+	}
+	
+	
+	
+	public static String objToJson(Occurencies occurencies){
+
+		ObjectMapper mapper = new ObjectMapper();
+
+		try {
+			return mapper.writeValueAsString(occurencies);
+		} catch (JsonProcessingException e) {
+//			logger.error("Error serializing object to json", e);
+			return e.getMessage();
+//			return null;
+		}
+	}
+	
+	public static String objToJson(List<Occurencies> occurencies){
+
+		ObjectMapper mapper = new ObjectMapper();
+
+		try {
+			return mapper.writeValueAsString(occurencies);
 		} catch (JsonProcessingException e) {
 //			logger.error("Error serializing object to json", e);
 			return e.getMessage();
@@ -62,6 +95,19 @@ public class Utils {
 
 		try {
 			return mapper.writeValueAsString(resourceType);
+		} catch (JsonProcessingException e) {
+			logger.error("Error serializing object to json", e);
+
+			return null;
+		}
+	}
+	
+	public static String objToJson(User user){
+
+		ObjectMapper mapper = new ObjectMapper();
+
+		try {
+			return mapper.writeValueAsString(user);
 		} catch (JsonProcessingException e) {
 			logger.error("Error serializing object to json", e);
 
