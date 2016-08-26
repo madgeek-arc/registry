@@ -55,20 +55,23 @@ public class ComponentRegistryService {
 	
 	
 	/**
-	 * Registers a jar available via the URL as a component
+	 * describes the components available in the jar at the given URL
 	 */
 	public List<Document> describe(URL jarURL) throws IOException {
 		return describe(jarURL, createComponentXML());
 	}
 
 	/**
-	 * Registers the component along with any other available information
+	 * describes the components available in the jar at the given URL mixing in
+	 * any other information that may already have been provided
 	 */
 	public List<Document> describe(URL jarURL, Document openmintedComponentXML) {
 		
 		// TODO extra information from the GATE/UIMA component at the URL (might
 		// need to be in a loop if a single jar can define multiple components)
 		List<Document> descriptions = new ArrayList<Document>();
+		
+		
 		
 		return descriptions;		
 	}
