@@ -128,13 +128,9 @@ public class SolrOperationsService {
 	        for (IndexField indexField: indexFields) { 
 	            Element field = doc.createElement("field"); 
 	            field.setAttribute("name", indexField.getName()); 
-<<<<<<< HEAD
-	            field.setAttribute("type", "string"); 
-=======
 	            field.setAttribute("type", FIELD_TYPES_MAP.get(indexField.getType()));
 	            field.setAttribute("multiValued", "true");
->>>>>>> ac338464a42a0036ca73062f0e3bbdf37e6e2b57
-	            field.setAttribute("indexed", "true"); 
+	            field.setAttribute("indexed", "true");
 	            field.setAttribute("stored", "true"); 
 	            nodes.item(0).appendChild(field); 
 	        } 
@@ -168,11 +164,7 @@ public class SolrOperationsService {
 
 		SolrInputDocument document = new SolrInputDocument();
 		document.addField("id", resource.getId());
-<<<<<<< HEAD
 		document.addField("name", resource.getResourceType());
-=======
-		document.addField("resourceType", type);
->>>>>>> ac338464a42a0036ca73062f0e3bbdf37e6e2b57
 		document.addField("payload", resource.getPayload());
 		document.addField("version", resource.getVersion());
 		document.addField("creation_date", resource.getCreationDate());
