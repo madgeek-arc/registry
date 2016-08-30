@@ -2,6 +2,7 @@ package eu.openminted.registry.component.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.JarURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,35 +26,35 @@ import org.eclipse.aether.transport.file.FileTransporterFactory;
 import org.eclipse.aether.transport.http.HttpTransporterFactory;
 import org.jdom.Document;
 
+import eu.openminted.interop.componentoverview.importer.CreoleImporter;
+import eu.openminted.interop.componentoverview.importer.Importer;
+import eu.openminted.interop.componentoverview.model.ComponentMetaData;
+
 public class ComponentRegistryService {
 
-	public List<Document> describe(String groupID, String artifactID,
-			String version) throws IOException {
+	public List<Document> describe(String groupID, String artifactID, String version) throws IOException {
 		Document description = createComponentXML();
 
-		Artifact artifactObj = new DefaultArtifact(groupID, artifactID, "jar",
-				version);
+		Artifact artifactObj = new DefaultArtifact(groupID, artifactID, "jar", version);
 
-		//TODO this shouldn't be hardcoded
-		RemoteRepository central = new RemoteRepository.Builder("central",
-				"default", "http://repo1.maven.org/maven2/").build();
+		// TODO this shouldn't be hardcoded
+		RemoteRepository central = new RemoteRepository.Builder("central", "default", "http://repo1.maven.org/maven2/")
+				.build();
 
 		ArtifactRequest artifactRequest = new ArtifactRequest();
 		artifactRequest.setArtifact(artifactObj);
 		artifactRequest.addRepository(central);
 
 		try {
-			ArtifactResult artifactResult = getRepositorySystem()
-					.resolveArtifact(getRepositorySession(), artifactRequest);
+			ArtifactResult artifactResult = getRepositorySystem().resolveArtifact(getRepositorySession(),
+					artifactRequest);
 
-			return describe(artifactResult.getArtifact().getFile().toURI()
-					.toURL(), description);
+			return describe(artifactResult.getArtifact().getFile().toURI().toURL(), description);
 		} catch (ArtifactResolutionException e) {
 			throw new IOException("unable to retrieve plugin from maven", e);
 		}
 	}
-	
-	
+
 	/**
 	 * describes the components available in the jar at the given URL
 	 */
@@ -65,15 +66,45 @@ public class ComponentRegistryService {
 	 * describes the components available in the jar at the given URL mixing in
 	 * any other information that may already have been provided
 	 */
-	public List<Document> describe(URL jarURL, Document openmintedComponentXML) {
-		
+	public List<Document> describe(URL jarURL, Document openmintedComponentXML) throws IOException {
+
 		// TODO extra information from the GATE/UIMA component at the URL (might
 		// need to be in a loop if a single jar can define multiple components)
 		List<Document> descriptions = new ArrayList<Document>();
 		
+		List<ComponentMetaData> metadata = null;
+
+		// TODO how do we determine if a JAR is a GATE or UIMA (and which
+		// framework) so we can use the correct importer to extract the relevant
+		// metadata?
+
+		URL baseURL = new URL("jar:" + jarURL + "!/");
+		// System.out.println(baseURL);
+
+		JarURLConnection connection = (JarURLConnection) baseURL.openConnection();
+
+		Importer<ComponentMetaData> importer = null;
+
+		if (connection.getJarFile().getEntry("creole.xml") != null) {
+			// if it has a creole.xml at the root then this is a GATE component
+			importer = new CreoleImporter();
+
+			URL directoryXmlFileUrl = new URL(baseURL, "creole.xml");
+			metadata = importer.process(directoryXmlFileUrl);
+
+		} else {
+			throw new IOException("URL points to unknown component type:" + jarURL);
+		}
 		
-		
-		return descriptions;		
+		for (ComponentMetaData item : metadata) {
+			Document itemMetadata = (Document)openmintedComponentXML.clone();
+			
+			//TODO copy useful info from the found metadata into the base OpenMinTeD document
+			
+			descriptions.add(itemMetadata);
+		}
+
+		return descriptions;
 	}
 
 	/**
@@ -82,7 +113,7 @@ public class ComponentRegistryService {
 	 * the other methods end up calling this one eventually
 	 */
 	public void register(Document openmintedComponentXML) {
-		//TODO wrap the component XML and store it as a pending registration
+		// TODO wrap the component XML and store it as a pending registration
 	}
 
 	public Document createComponentXML() {
@@ -118,38 +149,38 @@ public class ComponentRegistryService {
 		// TODO implement the lookup within the metadata service
 		return false;
 	}
-	
+
 	private static RepositorySystem repoSystem = null;
 
-    private static DefaultRepositorySystemSession repoSystemSession = null;
+	private static DefaultRepositorySystemSession repoSystemSession = null;
 
-    private static RepositorySystem getRepositorySystem() {
-      if(repoSystem != null) return repoSystem;
+	private static RepositorySystem getRepositorySystem() {
+		if (repoSystem != null)
+			return repoSystem;
 
-      DefaultServiceLocator locator =
-              MavenRepositorySystemUtils.newServiceLocator();
-      locator.addService(RepositoryConnectorFactory.class,
-              BasicRepositoryConnectorFactory.class);
-      locator.addService(TransporterFactory.class, FileTransporterFactory.class);
-      locator.addService(TransporterFactory.class, HttpTransporterFactory.class);
+		DefaultServiceLocator locator = MavenRepositorySystemUtils.newServiceLocator();
+		locator.addService(RepositoryConnectorFactory.class, BasicRepositoryConnectorFactory.class);
+		locator.addService(TransporterFactory.class, FileTransporterFactory.class);
+		locator.addService(TransporterFactory.class, HttpTransporterFactory.class);
 
-      repoSystem = locator.getService(RepositorySystem.class);
+		repoSystem = locator.getService(RepositorySystem.class);
 
-      return repoSystem;
-    }
+		return repoSystem;
+	}
 
-    private static RepositorySystemSession getRepositorySession() {
-      if(repoSystemSession != null) return repoSystemSession;
+	private static RepositorySystemSession getRepositorySession() {
+		if (repoSystemSession != null)
+			return repoSystemSession;
 
-      repoSystemSession = MavenRepositorySystemUtils.newSession();
+		repoSystemSession = MavenRepositorySystemUtils.newSession();
 
-      //TODO pull this from the maven settings.xml file
-      LocalRepository localRepo =
-              new LocalRepository(System.getProperty("user.home")+File.separator+".m2"+File.separator+"repository/");
-      System.out.println(localRepo);
-      repoSystemSession.setLocalRepositoryManager(getRepositorySystem()
-              .newLocalRepositoryManager(repoSystemSession, localRepo));
+		// TODO pull this from the maven settings.xml file
+		LocalRepository localRepo = new LocalRepository(
+				System.getProperty("user.home") + File.separator + ".m2" + File.separator + "repository/");
+		System.out.println(localRepo);
+		repoSystemSession.setLocalRepositoryManager(
+				getRepositorySystem().newLocalRepositoryManager(repoSystemSession, localRepo));
 
-      return repoSystemSession;
-    }
+		return repoSystemSession;
+	}
 }
