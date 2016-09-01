@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.persistence.PersistenceException;
 import javax.xml.parsers.DocumentBuilder;
@@ -42,6 +43,9 @@ import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.domain.index.IndexField;
+import eu.openminted.registry.core.index.IndexMapper;
+import eu.openminted.registry.core.index.IndexMapperFactory;
+import eu.openminted.registry.core.index.IndexedFieldFactory;
 
 @Service("solrOperationsService")
 @Transactional
@@ -50,6 +54,11 @@ public class SolrOperationsService {
 	
 	@Autowired
     ResourceTypeService resourceTypeService;
+	
+	@Autowired
+	private IndexMapperFactory indexMapperFactory;
+	
+	private IndexedFieldFactory indexedFieldFactory = new IndexedFieldFactory();
 	
 	public static String DEFAULT_HTTP_ADDRESS = "http://localhost:8983/solr";
 	
@@ -128,12 +137,8 @@ public class SolrOperationsService {
 	        for (IndexField indexField: indexFields) { 
 	            Element field = doc.createElement("field"); 
 	            field.setAttribute("name", indexField.getName()); 
-<<<<<<< HEAD
-	            field.setAttribute("type", "string"); 
-=======
 	            field.setAttribute("type", FIELD_TYPES_MAP.get(indexField.getType()));
-	            field.setAttribute("multiValued", "true");
->>>>>>> ac338464a42a0036ca73062f0e3bbdf37e6e2b57
+	            field.setAttribute("multiValued", indexField.isMultivalued()+"");
 	            field.setAttribute("indexed", "true"); 
 	            field.setAttribute("stored", "true"); 
 	            nodes.item(0).appendChild(field); 
@@ -165,21 +170,28 @@ public class SolrOperationsService {
 		String type = resource.getResourceType();
 		ResourceType resourceType = resourceTypeService.getResourceType(type);
 		SolrClient solrClient = SolrOperationsService.getSolrClient(type);
-
+		IndexMapper indexMapper = null;
+		
+		try {
+			indexMapper = indexMapperFactory.createIndexMapper(resourceType);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 		SolrInputDocument document = new SolrInputDocument();
 		document.addField("id", resource.getId());
-<<<<<<< HEAD
-		document.addField("name", resource.getResourceType());
-=======
 		document.addField("resourceType", type);
->>>>>>> ac338464a42a0036ca73062f0e3bbdf37e6e2b57
 		document.addField("payload", resource.getPayload());
 		document.addField("version", resource.getVersion());
 		document.addField("creation_date", resource.getCreationDate());
 		document.addField("modification_date", resource.getModificationDate());
 		if(resourceType.getIndexFields()!=null){
 			for (IndexField indexField : resourceType.getIndexFields()){
-				document.addField(indexField.getName(), indexField.getPath());
+				String fieldName = indexField.getName();
+				String fieldType = indexField.getType();
+				String path = indexField.getPath();
+				Set<Object> value = indexMapper.getValue(resource.getPayload(), fieldType, path, resourceType.getPayloadType(),indexField.isMultivalued());
+				document.addField(indexField.getName(), indexedFieldFactory.getIndexedField(fieldName, value, fieldType));
 			}
 		}
 

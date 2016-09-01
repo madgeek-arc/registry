@@ -1,6 +1,7 @@
 package eu.openminted.registry.core.index;
 
 import java.util.List;
+import java.util.Set;
 
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
@@ -14,4 +15,6 @@ public interface IndexMapper {
 	public List<IndexField> getIndexFields();
 
 	public List<IndexedField> getValues(String resource, ResourceType resourceType);
+	
+	public Set<Object> getValue(String payload, String fieldType, String path, String payloadType, boolean isMultiValued);
 }
