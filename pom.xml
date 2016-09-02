@@ -269,6 +269,17 @@
 		</dependency>
 	</dependencies>
 	<repositories>
+			 <repository>
+		          <id>omtd-snapshots</id>
+		          <name>OpenMinTeD snapshots</name>
+		            <snapshots>
+		              <enabled>true</enabled>
+		              <updatePolicy>never</updatePolicy>
+		              <checksumPolicy>fail</checksumPolicy>
+		            </snapshots>
+		            <url>https://repo.openminted.eu/content/repositories/snapshots/</url>
+		            <layout>default</layout>
+            </repository>
 			<repository>
                     <id>dnet4-bootstrap-snapshot</id>
                     <name>D-Net 4 Bootstrap Snapshot</name>

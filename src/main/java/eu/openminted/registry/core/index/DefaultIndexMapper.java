@@ -11,9 +11,6 @@ import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.service.ResourceService;
 
-/**
- * Created by antleb on 5/20/16.
- */
 public class DefaultIndexMapper implements IndexMapper {
 
 	private static Logger logger = Logger.getLogger(DefaultIndexMapper.class);
@@ -44,12 +41,14 @@ public class DefaultIndexMapper implements IndexMapper {
 				String fieldType = indexField.getType();
 				String path = indexField.getPath();
 				
+				logger.debug("Indexing field " + fieldName + " (" + fieldType + ") with path " + path);
+				
 				Set<Object> value = getValue(payload, fieldType, path, resourceType.getPayloadType(),indexField.isMultivalued());
-
 				res.add(indexedFieldFactory.getIndexedField(fieldName, value, fieldType));
+
 			} catch (Exception e) {
 				logger.error("Errororor", e);
-				logger.error(indexedFieldFactory);
+//				logger.error(indexedFieldFactory);
 			}
 		}
 		

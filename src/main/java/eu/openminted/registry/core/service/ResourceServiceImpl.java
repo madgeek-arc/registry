@@ -8,6 +8,8 @@ import eu.openminted.registry.core.domain.Tools;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
+
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,9 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Created by antleb on 7/14/16.
- */
 @Service("resourceService")
 @Transactional
 public class ResourceServiceImpl implements ResourceService {
@@ -28,6 +27,8 @@ public class ResourceServiceImpl implements ResourceService {
 	private ResourceTypeDao resourceTypeDao;
 	@Autowired
 	private IndexMapperFactory indexMapperFactory;
+	
+	private static Logger logger = Logger.getLogger(ResourceServiceImpl.class);
 
 	public ResourceServiceImpl() {
 
@@ -60,13 +61,17 @@ public class ResourceServiceImpl implements ResourceService {
 	}
 
 	@Override public void addResource(Resource resource) throws ServiceException {
-		if(resource.getIndexedFields()!=null)
-			resource.setIndexedFields(getIndexedFields(resource));
+//		if(resource.getIndexedFields()!=null)
+		
+		resource.setIndexedFields(getIndexedFields(resource));
+		
+		logger.debug("indexed fields: " + resource.getIndexedFields().size());
+		System.out.println("indexed fields: " + resource.getIndexedFields().size());
 
 		if (resource.getIndexedFields() != null)
 			for (IndexedField indexedField:resource.getIndexedFields())
 				indexedField.setResource(resource);
-
+		
 		String response = checkValid(resource);
 		if(response.equals("OK")){
 			resource.setId(UUID.randomUUID().toString());
@@ -82,9 +87,9 @@ public class ResourceServiceImpl implements ResourceService {
 		resource.setIndexedFields(getIndexedFields(resource));
 
 		if (resource.getIndexedFields() != null)
-			for (IndexedField indexedField:resource.getIndexedFields())
+			for (IndexedField indexedField:resource.getIndexedFields()){
 				indexedField.setResource(resource);
-
+			}
 		String response = checkValid(resource);
 		if(response.equals("OK")){
 			resourceDao.updateResource(resource);
@@ -107,7 +112,7 @@ public class ResourceServiceImpl implements ResourceService {
 		try {
 			indexMapper = indexMapperFactory.createIndexMapper(resourceType);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("Error extracting fields", e);
 		}
 
 		return indexMapper.getValues(resource.getPayload(), resourceType);
