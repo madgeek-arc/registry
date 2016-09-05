@@ -58,7 +58,7 @@ public class ResourceServiceImpl implements ResourceService {
 		return resources;
 	}
 
-	@Override public void addResource(Resource resource) throws ServiceException {
+	@Override public Resource addResource(Resource resource) throws ServiceException {
 //		if(resource.getIndexedFields()!=null)
 		
 		resource.setIndexedFields(getIndexedFields(resource));
@@ -83,7 +83,8 @@ public class ResourceServiceImpl implements ResourceService {
 		}else{
 			throw new ServiceException(response);
 		}
-
+		
+		return resource;
 	}
 
 	@Override public Resource updateResource(Resource resource) throws ServiceException{

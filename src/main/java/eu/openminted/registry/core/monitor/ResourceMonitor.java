@@ -33,7 +33,7 @@ public class ResourceMonitor {
 	@Around("execution (* eu.openminted.registry.core.service.ResourceService.addResource(eu.openminted.registry.core.domain.Resource)) && args(resource)")
 	public void resourceAdded(ProceedingJoinPoint pjp, Resource resource) throws Throwable {
 
-		pjp.proceed();
+		resource = (Resource) pjp.proceed();
 
 		if (resourceListeners != null)
 			for (ResourceListener listener : resourceListeners) {

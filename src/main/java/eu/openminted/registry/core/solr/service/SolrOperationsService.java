@@ -8,7 +8,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.persistence.PersistenceException;
 import javax.xml.parsers.DocumentBuilder;
@@ -41,11 +40,12 @@ import org.xml.sax.SAXException;
 
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.domain.index.IndexField;
+import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
 import eu.openminted.registry.core.index.IndexedFieldFactory;
+import eu.openminted.registry.core.service.ResourceTypeService;
 
 @Service("solrOperationsService")
 @Transactional
@@ -187,11 +187,15 @@ public class SolrOperationsService {
 		document.addField("modification_date", resource.getModificationDate());
 		if(resourceType.getIndexFields()!=null){
 			for (IndexField indexField : resourceType.getIndexFields()){
-				String fieldName = indexField.getName();
-				String fieldType = indexField.getType();
-				String path = indexField.getPath();
-				Set<Object> value = indexMapper.getValue(resource.getPayload(), fieldType, path, resourceType.getPayloadType(),indexField.isMultivalued());
-				document.addField(indexField.getName(), indexedFieldFactory.getIndexedField(fieldName, value, fieldType));
+				for(IndexedField indexedField : resource.getIndexedFields()){
+//					String fieldName = indexField.getName();
+//					String fieldType = indexField.getType();
+//					String path = indexField.getPath();
+					java.util.Iterator iter = indexedField.getValues().iterator();
+					while(iter.hasNext()){
+						document.addField(indexField.getName(), iter.next());
+					}
+				}
 			}
 		}
 
