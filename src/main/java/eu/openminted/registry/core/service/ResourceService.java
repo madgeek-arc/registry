@@ -15,7 +15,7 @@ public interface ResourceService {
 
 	List<Resource> getResource();
 
-	void addResource(Resource resource) throws ServiceException;
+	Resource addResource(Resource resource) throws ServiceException;
 
 	Resource updateResource(Resource resource) throws ServiceException;
 
