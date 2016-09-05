@@ -7,7 +7,6 @@ import eu.openminted.registry.core.domain.Occurencies;
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.domain.User;
 
 import org.apache.log4j.Logger;
 
@@ -34,8 +33,6 @@ public class Utils {
 //			return null;
 		}
 	}
-	
-	
 	
 	public static String objToJson(Occurencies occurencies){
 
@@ -102,19 +99,6 @@ public class Utils {
 		}
 	}
 	
-	public static String objToJson(User user){
-
-		ObjectMapper mapper = new ObjectMapper();
-
-		try {
-			return mapper.writeValueAsString(user);
-		} catch (JsonProcessingException e) {
-			logger.error("Error serializing object to json", e);
-
-			return null;
-		}
-	}
-
 	public static String getText(String url) throws Exception {
 
 		String out = new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
