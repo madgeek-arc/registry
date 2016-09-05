@@ -8,7 +8,6 @@ import eu.openminted.registry.core.domain.Tools;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
-
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,14 +20,13 @@ import java.util.UUID;
 @Transactional
 public class ResourceServiceImpl implements ResourceService {
 
+	private static Logger logger = Logger.getLogger(ResourceServiceImpl.class);
 	@Autowired
 	private ResourceDao resourceDao;
 	@Autowired
 	private ResourceTypeDao resourceTypeDao;
 	@Autowired
 	private IndexMapperFactory indexMapperFactory;
-	
-	private static Logger logger = Logger.getLogger(ResourceServiceImpl.class);
 
 	public ResourceServiceImpl() {
 
@@ -75,7 +73,13 @@ public class ResourceServiceImpl implements ResourceService {
 		String response = checkValid(resource);
 		if(response.equals("OK")){
 			resource.setId(UUID.randomUUID().toString());
-			resourceDao.addResource(resource);
+
+			try {
+				resourceDao.addResource(resource);
+			} catch (Exception e) {
+				logger.error("Error saving resource", e);
+				throw new ServiceException(e);
+			}
 		}else{
 			throw new ServiceException(response);
 		}
