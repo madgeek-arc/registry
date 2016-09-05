@@ -143,9 +143,10 @@ public class ResourceController {
 				resource.setCreationDate(new Date());
 				resource.setModificationDate(new Date());
 				
-				responseEntity = new ResponseEntity<String>(Utils.objToJson(resource), HttpStatus.CREATED);
+				
 				try{
-					resourceService.addResource(resource);
+					resource = resourceService.addResource(resource);
+					responseEntity = new ResponseEntity<String>(Utils.objToJson(resource), HttpStatus.CREATED);
 				}catch(ServiceException ex){
 					responseEntity = new ResponseEntity<String>("{\"error\":\""+ex.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
 				}
