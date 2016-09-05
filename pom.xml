@@ -267,6 +267,12 @@
 			<version>2.10</version>
 			<scope>compile</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>org.xmlunit</groupId>
+			<artifactId>xmlunit-core</artifactId>
+			<version>2.2.1</version>
+		</dependency>
 	</dependencies>
 	<repositories>
 			 <repository>

@@ -9,6 +9,7 @@ import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.index.DefaultIndexMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.apache.lucene.queryparser.surround.query.SrndTermQuery;
 import org.hibernate.NonUniqueObjectException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,10 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xmlunit.builder.Input;
+import org.xmlunit.validation.Languages;
+import org.xmlunit.validation.ValidationResult;
+import org.xmlunit.validation.Validator;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.xml.XMLConstants;
@@ -32,6 +37,7 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
@@ -65,51 +71,57 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
 	}
 
-	@Override public Schema getSchema(String id){
+	@Override
+	public Schema getSchema(String id) {
 		Schema schema = schemaDao.getSchema(id);
 		return schema;
 	}
 
-	@Override public ResourceType getResourceType(String name){
+	@Override
+	public ResourceType getResourceType(String name) {
 		ResourceType resourceType = resourceTypeDao.getResourceType(name);
 		return resourceType;
 	}
 
-	@Override public List<ResourceType> getAllResourceType() {
+	@Override
+	public List<ResourceType> getAllResourceType() {
 		List<ResourceType> resourceType = resourceTypeDao.getAllResourceType();
 
 		return resourceType;
 	}
 
-	@Override public List<ResourceType> getAllResourceType(int from, int to){
-		List<ResourceType> resourceType = resourceTypeDao.getAllResourceType(from,to);
+	@Override
+	public List<ResourceType> getAllResourceType(int from, int to) {
+		List<ResourceType> resourceType = resourceTypeDao.getAllResourceType(from, to);
 		return resourceType;
 	}
 
-	@Override public ResourceType addResourceType(ResourceType resourceType) throws ServiceException{
+	@Override
+	public ResourceType addResourceType(ResourceType resourceType) throws ServiceException {
+		Schema schema = new Schema();
 
 		if (resourceType.getIndexMapperClass() == null)
 			resourceType.setIndexMapperClass(DefaultIndexMapper.class.getName());
 
 		if (resourceType.getIndexFields() != null) {
-			for (IndexField field:resourceType.getIndexFields())
+			for (IndexField field : resourceType.getIndexFields())
 				field.setResourceType(resourceType);
 		}
-		try {
-			exportIncludes(resourceType,resourceType.getSchemaUrl());
-		} catch (ServiceException e) {
-			// TODO Auto-generated catch block
-			throw new ServiceException(e.getMessage());
-		}
+
+		exportIncludes(resourceType, resourceType.getSchemaUrl());
+
 		resourceTypeDao.addResourceType(resourceType);
-		Schema schema = new Schema();
+
 		schema.setId(stringToMd5(resourceType.getSchema()));
-		if(resourceType.getSchemaUrl()!=null){
+
+		if (resourceType.getSchemaUrl() != null) {
 			schema.setOriginalUrl(resourceType.getSchemaUrl());
 		}
+
 		schema.setSchema(resourceType.getSchema());
 
 		schemaDao.addSchema(schema);
+
 		return resourceType;
 	}
 
@@ -121,7 +133,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 		this.resourceTypeDao = resourceTypeDao;
 	}
 
-	private String stringToMd5(String stringToBeConverted){
+	private String stringToMd5(String stringToBeConverted) {
 		MessageDigest md;
 		try {
 			md = MessageDigest.getInstance("MD5");
@@ -137,20 +149,22 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 		}
 	}
 
-	private void exportIncludes(ResourceType resourceType, String baseUrl) throws ServiceException{
+	private void exportIncludes(ResourceType resourceType, String baseUrl) throws ServiceException {
 		String type = resourceType.getPayloadType();
 		boolean isFromUrl;
-		if(resourceType.getSchemaUrl().equals("not_set")){
+
+		if (resourceType.getSchemaUrl().equals("not_set")) {
 			isFromUrl = false;
-		}else{
+		} else {
 			isFromUrl = true;
 		}
 
-		if(type.equals("xml")){
+		if (type.equals("xml")) {
 			try {
+				validateScema(resourceType.getSchema());
 				DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
 				dbFactory.setNamespaceAware(true);
-				dbFactory.setValidating(true);
+//				dbFactory.setValidating(true);
 				DocumentBuilder dBuilder;
 
 				dBuilder = dbFactory.newDocumentBuilder();
@@ -186,59 +200,76 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 				String expression = "//xs:include/attribute::schemaLocation";
 				NodeList nodeList = (NodeList) xpath.compile(expression).evaluate(doc, XPathConstants.NODESET);
 				for (int i = 0; i < nodeList.getLength(); i++) {
-					Node nNode = nodeList.item(i);
-					String response = "";
-					response = nNode.getTextContent();
-					int validation = isValidUrl(response,isFromUrl);
-					if(validation!=0){
-						String schemaResponse = "";
-						if(validation==2){
-							response = baseUrl.replace(baseUrl.substring(baseUrl.lastIndexOf("/")+1), response);
+					String schemaUrl = nodeList.item(i).getTextContent();
+
+					logger.debug("Checking schema: " + schemaUrl);
+
+					int validation = isValidUrl(schemaUrl, isFromUrl);
+					if (validation != 0) {
+						String schemaContent;
+
+						if (validation == 2) {
+							schemaUrl = baseUrl.replace(baseUrl.substring(baseUrl.lastIndexOf("/") + 1), schemaUrl);
 						}
+
 						try {
-							schemaResponse = Tools.getText(response);
+							schemaContent = Tools.getText(schemaUrl);
 						} catch (Exception e) {
-							throw new ServiceException("failed to download file(s)");
+							throw new ServiceException("failed to download file(s)", e);
 						}
-						Schema schema = schemaDao.getSchema(stringToMd5(schemaResponse));
-						if(schema!=null){
-							//schema already exists
-							nodeList.item(i).setNodeValue(getBaseEnvLinkURL()+"/schemaService/"+schema.getId()+"");
-						}else{
+
+						Schema schema = schemaDao.getSchema(stringToMd5(schemaContent));
+
+						if (schema != null) {
+							logger.debug("Schema " + schemaUrl + " is already in the db. Ignoring...");
+							nodeList.item(i).setNodeValue(getBaseEnvLinkURL() + "/schemaService/" + schema.getId());
+						} else {
 							//add schema in db and call the "exportIncludes" function again
-							resourceType.setSchema(schemaResponse);
-							exportIncludes(resourceType,response);
+							resourceType.setSchema(schemaContent);
+
 							schema = new Schema();
 							schema.setId(stringToMd5(resourceType.getSchema()));
 							schema.setSchema(resourceType.getSchema());
 							schema.setOriginalUrl(nodeList.item(i).getNodeValue());
-							nodeList.item(i).setNodeValue(getBaseEnvLinkURL()+"/schemaService/"+schema.getId()+"");
-							try{
-								schemaDao.addSchema(schema);
-							}catch (NonUniqueObjectException e){
+							nodeList.item(i).setNodeValue(getBaseEnvLinkURL() + "/schemaService/" + schema.getId() + "");
 
+							try {
+								schemaDao.addSchema(schema);
+							} catch (NonUniqueObjectException e) {
+								throw new ServiceException(e);
 							}
+
+							exportIncludes(resourceType, schemaUrl);
 						}
-					}else{
+					} else {
 						throw new ServiceException("includes contain relative paths that cannot be resolved");
 					}
-//			        out = out.concat(getText(response,type,whatFor));
 				}
 				resourceType.setSchema(documentToString(doc));
-//			     resourceType.setSchema(nodeList.getLength()+"");
-			} catch (ParserConfigurationException e){
-//		    	  out = out.concat(e.getMessage());
-			} catch (SAXException e) {
-//		    	  out = out.concat(e.getMessage());
-			} catch (IOException e) {
-//		    	  out = out.concat(e.getMessage());
-			} catch (XPathExpressionException e) {
-//		    	  out = out.concat(e.getMessage());
+			} catch (ServiceException e) {
+				throw e;
+			} catch (Exception e) {
+				throw new ServiceException(e);
 			}
 		}
-
 	}
-	private static int isValidUrl(String Url, boolean isFromUrl){
+
+	private void validateScema(String schema) throws ServiceException {
+		Validator validator = Validator.forLanguage(Languages.W3C_XML_SCHEMA_NS_URI);
+
+		logger.debug("Validating schema");
+
+		validator.setSchemaSource(Input.fromURI("https://www.w3.org/2001/XMLSchema.xsd").build());
+		ValidationResult result = validator.validateInstance(new StreamSource( new StringReader(schema)));
+
+		if (!result.isValid()) {
+			throw new ServiceException("Invalid xsd: " + result.getProblems());
+		}
+
+		logger.debug("Schema is valid");
+	}
+
+	private static int isValidUrl(String Url, boolean isFromUrl) {
 		URI u;
 		try {
 			u = new URI(Url);
@@ -246,12 +277,12 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 			return 0;
 		}
 
-		if(u.isAbsolute()){
+		if (u.isAbsolute()) {
 			return 1;
-		}else{
-			if(isFromUrl){
+		} else {
+			if (isFromUrl) {
 				return 2;
-			}else{
+			} else {
 				return 0;
 			}
 		}
@@ -259,22 +290,22 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
 	protected static String getBaseEnvLinkURL() {
 
-		String baseEnvLinkURL=null;
+		String baseEnvLinkURL = null;
 		HttpServletRequest currentRequest =
 				((ServletRequestAttributes) RequestContextHolder.
 						currentRequestAttributes()).getRequest();
 		// lazy about determining protocol but can be done too
 		baseEnvLinkURL = "http://" + currentRequest.getServerName();
-		if(currentRequest.getLocalPort() != 80) {
+		if (currentRequest.getLocalPort() != 80) {
 			baseEnvLinkURL += ":" + currentRequest.getLocalPort();
 		}
-		if(!StringUtils.isEmpty(currentRequest.getContextPath())) {
+		if (!StringUtils.isEmpty(currentRequest.getContextPath())) {
 			baseEnvLinkURL += currentRequest.getContextPath();
 		}
 		return baseEnvLinkURL;
 	}
 
-	private String documentToString(Document document){
+	private String documentToString(Document document) {
 		try {
 			StringWriter sw = new StringWriter();
 			TransformerFactory tf = TransformerFactory.newInstance();
