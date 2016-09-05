@@ -134,7 +134,7 @@ public class ResourceController {
 	    			try {
 						resource.setPayload(Utils.getText(resource.getPayloadUrl()));
 					} catch (Exception e) {
-						e.printStackTrace();
+						return new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
 					}
 	    		}
 
