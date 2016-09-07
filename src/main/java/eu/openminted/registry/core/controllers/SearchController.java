@@ -22,7 +22,7 @@ public class SearchController {
 		ResponseEntity<String> responseEntity;
 		
 		try {
-			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,0,0,"")), HttpStatus.OK);
+			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,0,0,new String[0])), HttpStatus.OK);
 			return responseEntity;
 		} catch (ServiceException e) {
 			responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -38,7 +38,7 @@ public class SearchController {
 		ResponseEntity<String> responseEntity;
 		
 		try {
-			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,from,0,"")), HttpStatus.OK);
+			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,from,0,new String[0])), HttpStatus.OK);
 			return responseEntity;
 		} catch (ServiceException e) {
 			responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -52,7 +52,7 @@ public class SearchController {
 		ResponseEntity<String> responseEntity;
 		
 		try {
-			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,0,to,"")), HttpStatus.OK);
+			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,0,to,new String[0])), HttpStatus.OK);
 			return responseEntity;
 		} catch (ServiceException e) {
 			responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -66,7 +66,7 @@ public class SearchController {
 		ResponseEntity<String> responseEntity;
 		
 		try {
-			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,from,to,"")), HttpStatus.OK);
+			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,from,to,new String[0])), HttpStatus.OK);
 			return responseEntity;
 		} catch (ServiceException e) {
 			responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -77,7 +77,7 @@ public class SearchController {
 	}
 	
 	@RequestMapping(value = "/search/{name}/{query}/",params = {"browseBy"} ,method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity<String> getResourceTypeByName(@PathVariable("query") String query, @PathVariable("name") String name, @RequestParam(value="browseBy") String browseBy) {
+	public ResponseEntity<String> getResourceTypeByName(@PathVariable("query") String query, @PathVariable("name") String name, @RequestParam(value="browseBy") String[] browseBy) {
 		ResponseEntity<String> responseEntity;
 		
 		try {
@@ -92,7 +92,7 @@ public class SearchController {
 	
 	
 	@RequestMapping(value = "/search/{name}/{query}/", params = {"from","browseBy"}, method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity<String> getResourceTypeByName1(@PathVariable("query") String query, @PathVariable("name") String name, @RequestParam(value = "from") int from, @RequestParam(value = "browseBy") String browseBy) {
+	public ResponseEntity<String> getResourceTypeByName1(@PathVariable("query") String query, @PathVariable("name") String name, @RequestParam(value = "from") int from, @RequestParam(value = "browseBy") String[] browseBy) {
 		ResponseEntity<String> responseEntity;
 		
 		try {
@@ -106,7 +106,7 @@ public class SearchController {
 	}
 	
 	@RequestMapping(value = "/search/{name}/{query}/", params = {"to","browseBy"}, method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity<String> getResourceTypeByName2(@PathVariable("query") String query, @PathVariable("name") String name, @RequestParam(value = "to") int to, @RequestParam(value = "browseBy") String browseBy ) {
+	public ResponseEntity<String> getResourceTypeByName2(@PathVariable("query") String query, @PathVariable("name") String name, @RequestParam(value = "to") int to, @RequestParam(value = "browseBy") String[] browseBy ) {
 		ResponseEntity<String> responseEntity;
 		
 		try {
@@ -120,7 +120,7 @@ public class SearchController {
 	}
 	
 	@RequestMapping(value = "/search/{name}/{query}/", params = {"from","to","browseBy"}, method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity<String> getResourceTypeByName3(@PathVariable("query") String query, @PathVariable("name") String name, @RequestParam(value="from") int from ,@RequestParam(value = "to") int to, @RequestParam(value="browseBy") String browseBy  ) {
+	public ResponseEntity<String> getResourceTypeByName3(@PathVariable("query") String query, @PathVariable("name") String name, @RequestParam(value="from") int from ,@RequestParam(value = "to") int to, @RequestParam(value="browseBy") String[] browseBy  ) {
 		ResponseEntity<String> responseEntity;
 		
 		try {
