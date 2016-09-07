@@ -30,9 +30,8 @@ public class ResourceType {
 	@Size(min=3, max=50)
     @Column(name = "name", nullable = false)
 	private String name;
-	
-	@Size(max=100000)
-    @Column(name = "schema", nullable = false)
+
+    @Column(name = "schema", nullable = false, columnDefinition = "text")
 	private String schema;
 	
 	@Transient

@@ -1,9 +1,6 @@
 package eu.openminted.registry.core.domain;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 import javax.validation.constraints.Size;
 
 @Entity
@@ -14,13 +11,11 @@ public class Schema {
 	@Size(min=3, max=400)
     @Column(name = "id", nullable = false)
 	private String id;
-	
-	@Size(max=100000)
-    @Column(name = "schema", nullable = false)
+
+	@Column(name = "schema", nullable = false, columnDefinition = "text")
 	private String schema;
-	
-	@Size(max=40000)
-	@Column(name="originalURL")
+
+	@Column(name="originalURL", length = 1000)
 	private String originalUrl;
 	
 
@@ -49,4 +44,7 @@ public class Schema {
 	}
 	
 
+	public String toString() {
+		return "[" + id + ", " + originalUrl + "]";
+	}
 }

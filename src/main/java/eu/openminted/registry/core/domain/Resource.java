@@ -37,8 +37,7 @@ public class Resource {
     @Column(name = "version", nullable = true)
 	private String version;
 	
-	@Size(min=3, max=10000)
-    @Column(name = "payload", nullable = false)
+	@Column(name = "payload", nullable = false, columnDefinition = "text")
 	private String payload;
 	
 	@Transient
