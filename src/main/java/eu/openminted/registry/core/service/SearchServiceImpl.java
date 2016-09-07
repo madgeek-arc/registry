@@ -2,7 +2,9 @@ package eu.openminted.registry.core.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.PostConstruct;
 
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.z3950.zing.cql.CQLParseException;
 
 import eu.dnetlib.functionality.index.cql.CqlTranslator;
+import eu.openminted.registry.core.domain.Occurencies;
 import eu.openminted.registry.core.domain.Paging;
 
 /**
@@ -84,16 +87,22 @@ public class SearchServiceImpl implements SearchService {
 		}
 		SolrDocumentList docs = rsp.getResults();
 		List<FacetField> facetFields = rsp.getFacetFields();
-		ArrayList<String> values = new ArrayList<String>();
+//		ArrayList<String> values = new ArrayList<String>();
+		Map<String,Map<String,Integer>> values = new HashMap<String,Map<String,Integer>>();
+		Occurencies occurencies = new Occurencies();
 		if(browseBy.length!=0){
 			for(int j=0;j<facetFields.size();j++){
+				Map<String,Integer> subMap = new HashMap<String,Integer>();
 				for(int i=0;i<facetFields.get(j).getValueCount();i++){
-					JSONObject attr = new JSONObject();
-					attr.put("value", facetFields.get(j).getValues().get(i).getName());
-					attr.put("count", facetFields.get(j).getValues().get(i).getCount());
-					values.add(attr.toString());
+					subMap.put(facetFields.get(j).getValues().get(i).getName(), Integer.parseInt(facetFields.get(j).getValues().get(i).getCount()+""));
+//					JSONObject attr = new JSONObject();
+//					attr.put("value", facetFields.get(j).getValues().get(i).getName());
+//					attr.put("count", facetFields.get(j).getValues().get(i).getCount());
+//					values.add(attr.toString());
 				}
+				values.put(facetFields.get(j).getName(), subMap);
 			}
+			occurencies.setValues(values);
 		}
 		if(docs==null || docs.size()==0){
 			paging = new Paging(0, 0, 0, null,null);
@@ -111,7 +120,7 @@ public class SearchServiceImpl implements SearchService {
 
 //				results.add(docs.get(i));
 			}
-			paging = new Paging(docs.size(),from,docs.size(),results,values);
+			paging = new Paging(docs.size(),from,docs.size(),results,occurencies);
 		}
 		
 		return paging;
