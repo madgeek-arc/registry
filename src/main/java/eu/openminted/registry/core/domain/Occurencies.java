@@ -4,23 +4,13 @@ import java.util.Map;
 
 public class Occurencies {
 	
-	private String resourceType;
-	
-	private Map<String, Map<String,String>> values;
+	private Map<String, Map<String,Integer>> values;
 
-	public String getResourceType() {
-		return resourceType;
-	}
-
-	public void setResourceType(String resourceType) {
-		this.resourceType = resourceType;
-	}
-
-	public Map<String, Map<String, String>> getValues() {
+	public Map<String, Map<String, Integer>> getValues() {
 		return values;
 	}
 
-	public void setValues(Map<String, Map<String, String>> values) {
+	public void setValues(Map<String, Map<String, Integer>> values) {
 		this.values = values;
 	}
 	

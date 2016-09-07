@@ -7,9 +7,9 @@ public class Paging {
 	 int from;
 	 int to;
 	 List<?> results;
-	 List<?> occurencies;
+	 Occurencies occurencies;
 
-	 public Paging(int total, int from, int to, List<?> results, List<?> occurencies) {
+	 public Paging(int total, int from, int to, List<?> results, Occurencies occurencies) {
 		 this.total = total;
 		 this.from = from;
 		 this.to = to;
@@ -42,11 +42,11 @@ public class Paging {
 		this.results = results;
 	}
 
-	public List<?> getOccurencies() {
+	public Occurencies getOccurencies() {
 		return occurencies;
 	}
 
-	public void setOccurencies(List<?> occurencies) {
+	public void setOccurencies(Occurencies occurencies) {
 		this.occurencies = occurencies;
 	}
 	
