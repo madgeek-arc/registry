@@ -2,6 +2,7 @@ package eu.openminted.registry.core.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.annotation.PostConstruct;
 
@@ -45,7 +46,7 @@ public class SearchServiceImpl implements SearchService {
 	}
 
 	@Override
-	public Paging search(String resourceType, String cqlQuery, int from, int to, String browseBy) throws ServiceException {
+	public Paging search(String resourceType, String cqlQuery, int from, int to, String[] browseBy) throws ServiceException {
 		Paging paging;
 
 		String url = this.url.concat("/"+resourceType+"/");
@@ -62,10 +63,13 @@ public class SearchServiceImpl implements SearchService {
 		}
 
 		sq.setQuery(solrQuery);
-		if(!browseBy.equals("")){
+		if(browseBy.length!=0){
 			sq.setFacet(true);
 			sq.setFacetMinCount(1);
-			sq.addFacetField(browseBy);
+			for(int i=0;i<browseBy.length;i++){
+				sq.addFacetField(browseBy[i]);
+			}
+//			sq.addFacetField(browseBy);
 			sq.setFacetLimit(-1);
 			sq.setFacetMinCount(1);
 			sq.setFacetSort("count");
@@ -79,14 +83,16 @@ public class SearchServiceImpl implements SearchService {
 			throw new ServiceException(e);
 		}
 		SolrDocumentList docs = rsp.getResults();
-		FacetField facetField = rsp.getFacetField(browseBy);
+		List<FacetField> facetFields = rsp.getFacetFields();
 		ArrayList<String> values = new ArrayList<String>();
-		if(!browseBy.equals("")){
-			for(int i=0;i<facetField.getValueCount();i++){
-				JSONObject attr = new JSONObject();
-				attr.put("value", facetField.getValues().get(i).getName());
-				attr.put("count", facetField.getValues().get(i).getCount());
-				values.add(attr.toString());
+		if(browseBy.length!=0){
+			for(int j=0;j<facetFields.size();j++){
+				for(int i=0;i<facetFields.get(j).getValueCount();i++){
+					JSONObject attr = new JSONObject();
+					attr.put("value", facetFields.get(j).getValues().get(i).getName());
+					attr.put("count", facetFields.get(j).getValues().get(i).getCount());
+					values.add(attr.toString());
+				}
 			}
 		}
 		if(docs==null || docs.size()==0){
