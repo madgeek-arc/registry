@@ -109,6 +109,7 @@ public class ResourceTypeController {
 		try {
 			resourceTypeService.addResourceType(resourceType);
 		} catch (ServiceException e) {
+			logger.error("Error saving resource type", e);
 			responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		return responseEntity;
