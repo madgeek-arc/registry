@@ -56,7 +56,7 @@ public class Resource {
     @Column(name = "modification_date", nullable = false)
 	private Date modificationDate;
 
-	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.REMOVE)
 	@Column
 	@JsonManagedReference
 	private List<IndexedField> indexedFields;

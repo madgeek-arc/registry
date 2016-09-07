@@ -5,9 +5,7 @@ import eu.openminted.registry.core.domain.Paging;
 import java.io.IOException;
 import java.util.ArrayList;
 
-/**
- * Created by antleb on 7/15/16.
- */
+
 public interface SearchService {
-	Paging search(String resourceType, String cqlQuery, int from, int to, String browseBy) throws ServiceException;
+	Paging search(String resourceType, String cqlQuery, int from, int to, String[] browseBy) throws ServiceException;
 }
