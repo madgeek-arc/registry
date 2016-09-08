@@ -20,4 +20,15 @@ public class TestComponentRegistryService extends TestCase {
 		assertEquals(16, descriptions.size());
 		
 	}
+	
+	public void testUimaFITJar() throws IOException {
+		ComponentRegistryService crs = new ComponentRegistryService();
+		
+		URL jarURL = this.getClass().getClassLoader().getResource("uimaFIT-component-test.jar");
+		
+		List<Document> descriptions = crs.describe(jarURL);
+		
+		assertEquals(8, descriptions.size());
+		
+	}
 }
