@@ -61,29 +61,29 @@ public class Tools {
 	    
 	    
 	    public static String validateXMLSchema(String xsdContent, String xmlContent){
-  	      try {
-  	    	  
-  	         SchemaFactory factory = 
-  	            SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-  	         java.io.FileWriter fwXML = new java.io.FileWriter("testXML.xml");
-  	         fwXML.write(xmlContent);
-  	         fwXML.close();
-  	         
-  	         java.io.FileWriter fwXSD = new java.io.FileWriter("testXSD.xsd");
-  	         fwXSD.write(xsdContent);
-  	         fwXSD.close();
-  	         
-  	         
-  	         Schema schema = factory.newSchema(new File("testXSD.xsd"));
-  	            Validator validator = schema.newValidator();
-  	            validator.validate(new StreamSource(new File("testXML.xml")));
-  	      } catch (IOException e){    
-  	         return e.getMessage();
-  	      }catch(SAXException e1){
-  	         return e1.getMessage();
-  	      } catch (Exception e) {
-				return e.getMessage();
-			}
+//  	      try {
+//
+//  	         SchemaFactory factory =
+//  	            SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+//  	         java.io.FileWriter fwXML = new java.io.FileWriter("testXML.xml");
+//  	         fwXML.write(xmlContent);
+//  	         fwXML.close();
+//
+//  	         java.io.FileWriter fwXSD = new java.io.FileWriter("testXSD.xsd");
+//  	         fwXSD.write(xsdContent);
+//  	         fwXSD.close();
+//
+//
+//  	         Schema schema = factory.newSchema(new File("testXSD.xsd"));
+//  	            Validator validator = schema.newValidator();
+//  	            validator.validate(new StreamSource(new File("testXML.xml")));
+//  	      } catch (IOException e){
+//  	         return e.getMessage();
+//  	      }catch(SAXException e1){
+//  	         return e1.getMessage();
+//  	      } catch (Exception e) {
+//				return e.getMessage();
+//			}
   	      return "true";
   	   }
 	    

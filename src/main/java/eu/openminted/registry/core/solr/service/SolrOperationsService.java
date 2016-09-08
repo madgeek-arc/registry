@@ -57,7 +57,7 @@ public class SolrOperationsService {
 		unmodifiableMap.put("java.lang.Double", "double");
 		unmodifiableMap.put("java.lang.Integer", "int");
 		unmodifiableMap.put("java.lang.Long", "long");
-		unmodifiableMap.put("java.lang.String", "text_en");
+		unmodifiableMap.put("java.lang.String", "string");
 		unmodifiableMap.put("java.util.Date", "date");
 		FIELD_TYPES_MAP = Collections.unmodifiableMap(unmodifiableMap);
 	}
