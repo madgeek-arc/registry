@@ -2,11 +2,15 @@ package eu.openminted.registry.component.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.jar.JarFile;
+import java.util.zip.ZipEntry;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
 import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.RepositorySystem;
@@ -25,10 +29,15 @@ import org.eclipse.aether.spi.connector.transport.TransporterFactory;
 import org.eclipse.aether.transport.file.FileTransporterFactory;
 import org.eclipse.aether.transport.http.HttpTransporterFactory;
 import org.jdom.Document;
+import org.jdom.JDOMException;
+import org.jdom.input.SAXBuilder;
 
+import eu.openminted.interop.componentoverview.exporter.MetaShareExporter;
 import eu.openminted.interop.componentoverview.importer.CreoleImporter;
 import eu.openminted.interop.componentoverview.importer.Importer;
+import eu.openminted.interop.componentoverview.importer.UimaImporter;
 import eu.openminted.interop.componentoverview.model.ComponentMetaData;
+import groovy.lang.Writable;
 
 public class ComponentRegistryService {
 
@@ -84,24 +93,55 @@ public class ComponentRegistryService {
 		JarURLConnection connection = (JarURLConnection) baseURL.openConnection();
 
 		Importer<ComponentMetaData> importer = null;
+		
+		JarFile jarFile = connection.getJarFile();
+		ZipEntry entry = null;
 
-		if (connection.getJarFile().getEntry("creole.xml") != null) {
+		if (jarFile.getEntry("creole.xml") != null) {
 			// if it has a creole.xml at the root then this is a GATE component
 			importer = new CreoleImporter();
 
 			URL directoryXmlFileUrl = new URL(baseURL, "creole.xml");
 			metadata = importer.process(directoryXmlFileUrl);
 
-		} else {
+		} else if ((entry = jarFile.getEntry("META-INF/org.apache.uima.fit/components.txt")) != null) {
+			//WARNING, you are entering the mad world of UIMA, abandon all hope!
+			
+			List<String> lines = IOUtils.readLines(jarFile.getInputStream(entry));
+			metadata = new ArrayList<ComponentMetaData>();
+			for (String line : lines) {
+				if (line.startsWith("classpath")) {
+					line = line.split(":")[1];
+					
+					importer = new UimaImporter("uimaFIT");
+					
+					metadata.addAll(importer.process(new URL(baseURL,line)));
+				}
+			}
+			
+		}
+		else {			
 			throw new IOException("URL points to unknown component type:" + jarURL);
 		}
 		
 		for (ComponentMetaData item : metadata) {
-			Document itemMetadata = (Document)openmintedComponentXML.clone();
+			//Document itemMetadata = (Document)openmintedComponentXML.clone();
 			
 			//TODO copy useful info from the found metadata into the base OpenMinTeD document
 			
-			descriptions.add(itemMetadata);
+			//descriptions.add(itemMetadata);
+			MetaShareExporter mse = new MetaShareExporter();
+			Writable w = mse.process(item);
+			
+			Document itemMetadata = null;
+			
+			try {
+				itemMetadata = new SAXBuilder().build(new StringReader(w.toString()));			
+				descriptions.add(itemMetadata);
+			} catch (JDOMException e) {
+				// this should be impossible
+			}
+
 		}
 
 		return descriptions;
