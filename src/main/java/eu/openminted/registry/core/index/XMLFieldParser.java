@@ -16,6 +16,7 @@ import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -27,9 +28,11 @@ import org.xml.sax.SAXException;
  * Created by antleb on 5/21/16.
  */
 public class XMLFieldParser implements FieldParser {
+
+	private static Logger logger = Logger.getLogger(XMLFieldParser.class);
+
 	public Set<Object> parse(String payload, String fieldType, String path, boolean isMultiValued) {
-		
-		
+
 		Set<Object> objects = new HashSet<Object>();
 		
 		try {
@@ -47,6 +50,9 @@ public class XMLFieldParser implements FieldParser {
 	         String expression = path;        
 	        if(isMultiValued){
 		         NodeList nodeList = (NodeList) xPath.compile(expression).evaluate(doc, XPathConstants.NODESET);
+
+				logger.debug("found " + nodeList.getLength() + " values for" + expression);
+
 		         for (int i = 0; i < nodeList.getLength(); i++) {
 		            Node nNode = nodeList.item(i);
 		            String response = "";
