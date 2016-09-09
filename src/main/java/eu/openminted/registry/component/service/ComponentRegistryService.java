@@ -129,7 +129,7 @@ public class ComponentRegistryService {
 			
 			//TODO copy useful info from the found metadata into the base OpenMinTeD document
 			
-			//descriptions.add(itemMetadata);
+			//This should be an OpenMinTeD exporter rather than the metashare one
 			MetaShareExporter mse = new MetaShareExporter();
 			Writable w = mse.process(item);
 			
