@@ -31,4 +31,13 @@ public class TestComponentRegistryService extends TestCase {
 		assertEquals(8, descriptions.size());
 		
 	}
+	
+	public void testUimaFITMaven() throws IOException {
+		ComponentRegistryService crs = new ComponentRegistryService();
+		
+		List<Document> descriptions = crs.describe("de.tudarmstadt.ukp.dkpro.core","de.tudarmstadt.ukp.dkpro.core.stanfordnlp-gpl","1.8.0");
+		
+		assertEquals(8, descriptions.size());
+		
+	}
 }
