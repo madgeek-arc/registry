@@ -55,6 +55,8 @@ public class SearchServiceImpl implements SearchService {
 		String url = this.url.concat("/"+resourceType+"/");
 		solrClient = new HttpSolrClient(url);
 		SolrQuery sq = new SolrQuery();
+		sq.setStart(from);
+		sq.set("df", "payload");
 
 		String solrQuery = null;
 		try {
@@ -72,7 +74,6 @@ public class SearchServiceImpl implements SearchService {
 			for(int i=0;i<browseBy.length;i++){
 				sq.addFacetField(browseBy[i]);
 			}
-//			sq.addFacetField(browseBy);
 			sq.setFacetLimit(-1);
 			sq.setFacetMinCount(1);
 			sq.setFacetSort("count");
@@ -87,7 +88,6 @@ public class SearchServiceImpl implements SearchService {
 		}
 		SolrDocumentList docs = rsp.getResults();
 		List<FacetField> facetFields = rsp.getFacetFields();
-//		ArrayList<String> values = new ArrayList<String>();
 		Map<String,Map<String,Integer>> values = new HashMap<String,Map<String,Integer>>();
 		Occurencies occurencies = new Occurencies();
 		if(browseBy.length!=0){
@@ -95,10 +95,6 @@ public class SearchServiceImpl implements SearchService {
 				Map<String,Integer> subMap = new HashMap<String,Integer>();
 				for(int i=0;i<facetFields.get(j).getValueCount();i++){
 					subMap.put(facetFields.get(j).getValues().get(i).getName(), Integer.parseInt(facetFields.get(j).getValues().get(i).getCount()+""));
-//					JSONObject attr = new JSONObject();
-//					attr.put("value", facetFields.get(j).getValues().get(i).getName());
-//					attr.put("count", facetFields.get(j).getValues().get(i).getCount());
-//					values.add(attr.toString());
 				}
 				values.put(facetFields.get(j).getName(), subMap);
 			}
@@ -110,17 +106,16 @@ public class SearchServiceImpl implements SearchService {
 			if(to==0){
 				to=docs.size();
 			}
-//			ArrayList<SolrDocument> results = new ArrayList<SolrDocument>();
 			ArrayList<Resource> results = new ArrayList<>();
 
-			for(int i=from;i<to;i++){
+			for(int i=0;i<10;i++){
 
 				// TODO load from db when caching is ready or add fields to index
-				results.add(new Resource((String) docs.get(i).get("id"), "resourceType", null, (String) docs.get(i).get("payload"), null));
+				results.add(new Resource((String) docs.get(i).get("id"), "resourcetype", null, (String) docs.get(i).get("payload"), null));
 
 //				results.add(docs.get(i));
 			}
-			paging = new Paging(docs.size(),from,docs.size(),results,occurencies);
+			paging = new Paging(Integer.parseInt(docs.getNumFound()+""),from,from+10,results,occurencies);
 		}
 		
 		return paging;

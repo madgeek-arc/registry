@@ -159,7 +159,7 @@ public class SolrOperationsService {
 		SolrInputDocument document = new SolrInputDocument();
 
 		document.addField("id", resource.getId());
-		document.addField("resourceType", type);
+		document.addField("resourcetype", type);
 		document.addField("payload", resource.getPayload());
 		document.addField("version", resource.getVersion());
 		document.addField("creation_date", resource.getCreationDate());

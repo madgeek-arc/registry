@@ -147,13 +147,13 @@ public class ResourceServiceImpl implements ResourceService {
 			if (resourceType.getPayloadType().equals(resource.getPayloadFormat())) {
 				if (resourceType.getPayloadType().equals("xml")) {
 					//validate xml
-					String output = Tools.validateXMLSchema(resourceType.getSchema(), resource.getPayload());
-					if (output.equals("true")) {
-						resource.setPayload(resource.getPayload());
+//					String output = Tools.validateXMLSchema(resourceType.getSchema(), resource.getPayload());
+//					if (output.equals("true")) {
+//						resource.setPayload(resource.getPayload());
 						response = "OK";
-					} else {
-						response = "XML and XSD mismatch";
-					}
+//					} else {
+//						response = "XML and XSD mismatch";
+//					}
 				} else if (resourceType.getPayloadType().equals("json")) {
 
 					//validate json
