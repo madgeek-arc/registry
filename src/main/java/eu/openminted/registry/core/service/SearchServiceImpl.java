@@ -108,7 +108,7 @@ public class SearchServiceImpl implements SearchService {
 			}
 			ArrayList<Resource> results = new ArrayList<>();
 
-			for(int i=0;i<10;i++){
+			for(int i=0;i<10 && i < docs.size();i++){
 
 				// TODO load from db when caching is ready or add fields to index
 				results.add(new Resource((String) docs.get(i).get("id"), "resourcetype", null, (String) docs.get(i).get("payload"), null));
