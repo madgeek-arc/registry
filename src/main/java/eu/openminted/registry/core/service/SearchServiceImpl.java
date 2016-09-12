@@ -101,7 +101,7 @@ public class SearchServiceImpl implements SearchService {
 			occurencies.setValues(values);
 		}
 		if(docs==null || docs.size()==0){
-			paging = new Paging(0, 0, 0, null,null);
+			paging = new Paging(0, 0, 0, new ArrayList<>(), new Occurencies());
 		}else{
 			if(to==0){
 				to=docs.size();
@@ -115,7 +115,8 @@ public class SearchServiceImpl implements SearchService {
 
 //				results.add(docs.get(i));
 			}
-			paging = new Paging(Integer.parseInt(docs.getNumFound()+""),from,from+10,results,occurencies);
+
+			paging = new Paging(Integer.parseInt(docs.getNumFound()+""), from, from + results.size() - 1, results, occurencies);
 		}
 		
 		return paging;
