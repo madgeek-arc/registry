@@ -32,7 +32,8 @@ import org.jdom.Document;
 import org.jdom.JDOMException;
 import org.jdom.input.SAXBuilder;
 
-import eu.openminted.interop.componentoverview.exporter.MetaShareExporter;
+import eu.openminted.interop.componentoverview.exporter.Exporter;
+import eu.openminted.interop.componentoverview.exporter.OpenMinTeDExporter;
 import eu.openminted.interop.componentoverview.importer.CreoleImporter;
 import eu.openminted.interop.componentoverview.importer.Importer;
 import eu.openminted.interop.componentoverview.importer.UimaImporter;
@@ -130,7 +131,7 @@ public class ComponentRegistryService {
 			//TODO copy useful info from the found metadata into the base OpenMinTeD document
 			
 			//This should be an OpenMinTeD exporter rather than the metashare one
-			MetaShareExporter mse = new MetaShareExporter();
+			Exporter<Writable> mse = new OpenMinTeDExporter();
 			Writable w = mse.process(item);
 			
 			Document itemMetadata = null;
