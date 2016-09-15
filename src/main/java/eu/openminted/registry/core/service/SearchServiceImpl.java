@@ -1,13 +1,8 @@
 package eu.openminted.registry.core.service;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.PostConstruct;
-
+import eu.dnetlib.functionality.index.cql.CqlTranslator;
+import eu.openminted.registry.core.domain.Occurencies;
+import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -17,15 +12,17 @@ import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.z3950.zing.cql.CQLParseException;
 
-import eu.dnetlib.functionality.index.cql.CqlTranslator;
-import eu.openminted.registry.core.domain.Occurencies;
-import eu.openminted.registry.core.domain.Paging;
+import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by antleb on 6/30/16.
@@ -35,7 +32,7 @@ public class SearchServiceImpl implements SearchService {
 
 	private String url;
 	private SolrClient solrClient;
-	
+
 
 	@Autowired
 	Environment environment;
@@ -52,7 +49,7 @@ public class SearchServiceImpl implements SearchService {
 	public Paging search(String resourceType, String cqlQuery, int from, int to, String[] browseBy) throws ServiceException {
 		Paging paging;
 
-		String url = this.url.concat("/"+resourceType+"/");
+		String url = this.url.concat("/" + resourceType + "/");
 		solrClient = new HttpSolrClient(url);
 		SolrQuery sq = new SolrQuery();
 		sq.setStart(from);
@@ -68,10 +65,11 @@ public class SearchServiceImpl implements SearchService {
 		}
 
 		sq.setQuery(solrQuery);
-		if(browseBy.length!=0){
+
+		if (browseBy.length != 0) {
 			sq.setFacet(true);
 			sq.setFacetMinCount(1);
-			for(int i=0;i<browseBy.length;i++){
+			for (int i = 0; i < browseBy.length; i++) {
 				sq.addFacetField(browseBy[i]);
 			}
 			sq.setFacetLimit(-1);
@@ -88,37 +86,41 @@ public class SearchServiceImpl implements SearchService {
 		}
 		SolrDocumentList docs = rsp.getResults();
 		List<FacetField> facetFields = rsp.getFacetFields();
-		Map<String,Map<String,Integer>> values = new HashMap<String,Map<String,Integer>>();
+		Map<String, Map<String, Integer>> values = new HashMap<String, Map<String, Integer>>();
 		Occurencies occurencies = new Occurencies();
-		if(browseBy.length!=0){
-			for(int j=0;j<facetFields.size();j++){
-				Map<String,Integer> subMap = new HashMap<String,Integer>();
-				for(int i=0;i<facetFields.get(j).getValueCount();i++){
-					subMap.put(facetFields.get(j).getValues().get(i).getName(), Integer.parseInt(facetFields.get(j).getValues().get(i).getCount()+""));
+		if (browseBy.length != 0) {
+			for (int j = 0; j < facetFields.size(); j++) {
+				Map<String, Integer> subMap = new HashMap<String, Integer>();
+				for (int i = 0; i < facetFields.get(j).getValueCount(); i++) {
+					subMap.put(facetFields.get(j).getValues().get(i).getName(), Integer.parseInt(facetFields.get(j).getValues().get(i).getCount() + ""));
 				}
 				values.put(facetFields.get(j).getName(), subMap);
 			}
 			occurencies.setValues(values);
 		}
-		if(docs==null || docs.size()==0){
+		if (docs == null || docs.size() == 0) {
 			paging = new Paging(0, 0, 0, new ArrayList<>(), new Occurencies());
-		}else{
-			if(to==0){
-				to=docs.size();
+		} else {
+			if (to == 0) {
+				to = docs.size();
 			}
 			ArrayList<Resource> results = new ArrayList<>();
 
-			for(int i=0;i<10 && i < docs.size();i++){
-
-				// TODO load from db when caching is ready or add fields to index
-				results.add(new Resource((String) docs.get(i).get("id"), "resourcetype", null, (String) docs.get(i).get("payload"), null));
-
-//				results.add(docs.get(i));
+			for (SolrDocument doc : docs.subList(0, 10)) {
+				results.add(new Resource((String) doc.get("id"), (String) doc.get("resourcetype"), null, (String) doc.get("payload"), null));
 			}
 
-			paging = new Paging(Integer.parseInt(docs.getNumFound()+""), from, from + results.size() - 1, results, occurencies);
+//			for(int i=0;i<10 && i < docs.size();i++){
+//
+//				// TODO load from db when caching is ready or add fields to index
+//				results.add(new Resource((String) docs.get(i).get("id"), "resourcetype", null, (String) docs.get(i).get("payload"), null));
+//
+////				results.add(docs.get(i));
+//			}
+
+			paging = new Paging((int) docs.getNumFound(), from, from + results.size() - 1, results, occurencies);
 		}
-		
+
 		return paging;
 	}
 }
