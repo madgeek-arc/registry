@@ -106,7 +106,7 @@ public class SearchServiceImpl implements SearchService {
 			}
 			ArrayList<Resource> results = new ArrayList<>();
 
-			for (SolrDocument doc : docs.subList(0, 10)) {
+			for (SolrDocument doc : docs.subList(0, Math.min(10, docs.size()))) {
 				results.add(new Resource((String) doc.get("id"), (String) doc.get("resourcetype"), null, (String) doc.get("payload"), null));
 			}
 
