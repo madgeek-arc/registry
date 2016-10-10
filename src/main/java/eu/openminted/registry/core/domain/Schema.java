@@ -15,7 +15,7 @@ public class Schema {
 	@Column(name = "schema", nullable = false, columnDefinition = "text")
 	private String schema;
 
-	@Column(name="originalURL", length = 1000)
+	@Column(name="originalurl", length = 1000)
 	private String originalUrl;
 	
 
