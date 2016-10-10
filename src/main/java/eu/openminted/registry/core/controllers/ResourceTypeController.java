@@ -88,23 +88,7 @@ public class ResourceTypeController {
 	@RequestMapping(value = "/resourceType", method = RequestMethod.POST, headers = "Accept=application/json")
 	public ResponseEntity<String> addResourceType(@RequestBody ResourceType resourceType) {
 		ResponseEntity<String> responseEntity;
-		if (resourceType.getSchemaUrl() == null && resourceType.getSchema() == null) {
-			responseEntity = new ResponseEntity<String>("{\"error\":\"Neither SchemaUrl nor Schema have been set.\"}", HttpStatus.INTERNAL_SERVER_ERROR);
-		} else if (resourceType.getSchemaUrl() != null && resourceType.getSchema() != null) {
-			responseEntity = new ResponseEntity<String>("{\"error\":\"Both Schema and SchemaUrl are set\"}", HttpStatus.INTERNAL_SERVER_ERROR);
-		} else {
-			if (resourceType.getSchemaUrl() == null) {
-				resourceType.setSchemaUrl("not_set");
-			} else {
-				try {
-					String output = "";
-					output = Utils.getText(resourceType.getSchemaUrl());
-					resourceType.setSchema(output);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
+		
 		resourceType.setCreationDate(new Date());
 		resourceType.setModificationDate(new Date());
 		responseEntity = new ResponseEntity<String>(Utils.objToJson(resourceType), HttpStatus.CREATED);
@@ -112,7 +96,7 @@ public class ResourceTypeController {
 			resourceTypeService.addResourceType(resourceType);
 		} catch (ServiceException e) {
 			logger.error("Error saving resource type", e);
-			responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
+			responseEntity = new ResponseEntity<String>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		return responseEntity;
 	}

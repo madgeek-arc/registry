@@ -54,7 +54,7 @@ public class ResourceController {
 	    public ResponseEntity<String> getResourceByResourceType(@PathVariable("resourceType") String resourceType ,@RequestParam(value = "from") int from) {  
 	    	List<Resource> results = resourceService.getResource(resourceType,from,0);
 	    	int total = resourceService.getResource(resourceType).size();
-	    	Paging paging = new Paging(total, from, total-1, results,null);
+	    	Paging paging = new Paging(results.size(), from, total-1, results,null);
 	    	ResponseEntity<String> responseEntity;
 	    	if(total==0){
 	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
@@ -68,7 +68,21 @@ public class ResourceController {
 	    public ResponseEntity<String> getResourceByResourceType(@PathVariable("resourceType") String resourceType ,@RequestParam(value = "from") int from , @RequestParam(value = "to") int to ) {  
 	    	List<Resource> results = resourceService.getResource(resourceType,from,to);
 	    	int total = resourceService.getResource(resourceType).size();
-	    	Paging paging = new Paging(total, from, to, results,null);
+	    	Paging paging = new Paging(results.size(), from, to, results,null);
+	    	ResponseEntity<String> responseEntity;
+	    	if(total==0){
+	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
+	    	}else{
+	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.OK);
+	    	}
+	    	return responseEntity;
+	    } 
+	    
+	    @RequestMapping(value = "/resources/{resourceType}", params = {"to"}, method = RequestMethod.GET, headers = "Accept=application/json")  
+	    public ResponseEntity<String> getResourceByResourceTypeTo(@PathVariable("resourceType") String resourceType , @RequestParam(value = "to") int to ) {  
+	    	List<Resource> results = resourceService.getResource(resourceType,0,to);
+	    	int total = resourceService.getResource(resourceType).size();
+	    	Paging paging = new Paging(results.size(), 0, to, results,null);
 	    	ResponseEntity<String> responseEntity;
 	    	if(total==0){
 	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
@@ -125,33 +139,12 @@ public class ResourceController {
 	    public ResponseEntity<String> addResource(@RequestBody Resource resource) {  
 	    	ResponseEntity<String> responseEntity;
 	    	
-	    	if(resource.getPayloadUrl()==null && resource.getPayload()==null){
-	    		responseEntity = new ResponseEntity<String>("{\"error\":\"Neither PayloadUrl nor Payload have been set.\"}", HttpStatus.INTERNAL_SERVER_ERROR);
-	    	}else if(resource.getPayloadUrl()!=null && resource.getPayload()!=null){
-	    		responseEntity = new ResponseEntity<String>("{\"error\":\"Both Payload and PayloadUrl are set\"}", HttpStatus.INTERNAL_SERVER_ERROR);
-	    	}else{
-	    		if(resource.getPayloadUrl()==null){
-	    			resource.setPayloadUrl("not_set");
-	    		}else{
-	    			try {
-						resource.setPayload(Utils.getText(resource.getPayloadUrl()));
-					} catch (Exception e) {
-						return new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
-					}
-	    		}
-
-				resource.setCreationDate(new Date());
-				resource.setModificationDate(new Date());
-				
-				
-				try{
-					resource = resourceService.addResource(resource);
-					responseEntity = new ResponseEntity<String>(Utils.objToJson(resource), HttpStatus.CREATED);
-				}catch(ServiceException ex){
-					responseEntity = new ResponseEntity<String>("{\"error\":\""+ex.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
-				}
+	    	try{
+				resource = resourceService.addResource(resource);
+				responseEntity = new ResponseEntity<String>(Utils.objToJson(resource), HttpStatus.CREATED);
+			}catch(ServiceException ex){
+				responseEntity = new ResponseEntity<String>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 			}
-
 	        return responseEntity;  
 	    }  
 	  
