@@ -81,6 +81,7 @@ public class ComponentRegistryService {
 //		// TODO extra information from the GATE/UIMA component at the URL (might
 //		// need to be in a loop if a single jar can define multiple components)
 		List<Document> descriptions = new ArrayList<Document>();
+<<<<<<< HEAD
 //		
 //		List<ComponentMetaData> metadata = null;
 //
@@ -144,6 +145,70 @@ public class ComponentRegistryService {
 //			}
 //
 //		}
+=======
+		
+		List<ComponentMetaData> metadata = null;
+
+		// TODO how do we determine if a JAR is a GATE or UIMA (and which
+		// framework) so we can use the correct importer to extract the relevant
+		// metadata?
+
+		URL baseURL = new URL("jar:" + jarURL + "!/");
+		// System.out.println(baseURL);
+
+		JarURLConnection connection = (JarURLConnection) baseURL.openConnection();
+
+		Importer<ComponentMetaData> importer = null;
+		
+		JarFile jarFile = connection.getJarFile();
+		ZipEntry entry = null;
+
+		if (jarFile.getEntry("creole.xml") != null) {
+			// if it has a creole.xml at the root then this is a GATE component
+			importer = new CreoleImporter();
+
+			URL directoryXmlFileUrl = new URL(baseURL, "creole.xml");
+			metadata = importer.process(directoryXmlFileUrl);
+
+		} else if ((entry = jarFile.getEntry("META-INF/org.apache.uima.fit/components.txt")) != null) {
+			//WARNING, you are entering the mad world of UIMA, abandon all hope!
+			
+			List<String> lines = IOUtils.readLines(jarFile.getInputStream(entry));
+			metadata = new ArrayList<ComponentMetaData>();
+			for (String line : lines) {
+				if (line.startsWith("classpath")) {
+					line = line.split(":")[1];
+					
+					importer = new UimaImporter("uimaFIT");
+					
+					metadata.addAll(importer.process(new URL(baseURL,line)));
+				}
+			}
+			
+		}
+		else {			
+			throw new IOException("URL points to unknown component type:" + jarURL);
+		}
+		
+		for (ComponentMetaData item : metadata) {
+			//Document itemMetadata = (Document)openmintedComponentXML.clone();
+			
+			//TODO copy useful info from the found metadata into the base OpenMinTeD document
+			
+			Exporter<Writable> mse = new OpenMinTeDExporter();
+			Writable w = mse.process(item);
+			
+			Document itemMetadata = null;
+			
+			try {
+				itemMetadata = new SAXBuilder().build(new StringReader(w.toString()));			
+				descriptions.add(itemMetadata);
+			} catch (JDOMException e) {
+				// this should be impossible
+			}
+
+		}
+>>>>>>> 8c382ceaf5b75b5597ee17310e5fda025df258b8
 
 		return descriptions;
 	}
