@@ -24,9 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Created by antleb on 6/30/16.
- */
+
 @Service("searchService")
 public class SearchServiceImpl implements SearchService {
 
@@ -48,11 +46,30 @@ public class SearchServiceImpl implements SearchService {
 	@Override
 	public Paging search(String resourceType, String cqlQuery, int from, int to, String[] browseBy) throws ServiceException {
 		Paging paging;
-
+		int quantity = to;
+		if(to==0){
+			quantity = 10;
+		}
+//		if(to==0 || to==10){
+//			quantity = 10;
+//		}else{
+//			if(from==0){
+//				quantity = to;
+//			}else{
+//				if(from<to)
+//					quantity = to - from;
+//				else
+//					quantity = 10;
+//			}
+//		}
+		
+		
+		
 		String url = this.url.concat("/" + resourceType + "/");
 		solrClient = new HttpSolrClient(url);
 		SolrQuery sq = new SolrQuery();
 		sq.setStart(from);
+		sq.setRows(quantity);
 		sq.set("df", "payload");
 
 		String solrQuery = null;
@@ -68,7 +85,6 @@ public class SearchServiceImpl implements SearchService {
 
 		if (browseBy.length != 0) {
 			sq.setFacet(true);
-			sq.setFacetMinCount(1);
 			for (int i = 0; i < browseBy.length; i++) {
 				sq.addFacetField(browseBy[i]);
 			}
@@ -104,21 +120,14 @@ public class SearchServiceImpl implements SearchService {
 			if (to == 0) {
 				to = docs.size();
 			}
-			ArrayList<Resource> results = new ArrayList<>();
+			List<Resource> results = new ArrayList<>();
 
-			for (SolrDocument doc : docs.subList(0, 10)) {
+			for (SolrDocument doc : docs.subList(0, docs.size())) {
 				results.add(new Resource((String) doc.get("id"), (String) doc.get("resourcetype"), null, (String) doc.get("payload"), null));
 			}
 
-//			for(int i=0;i<10 && i < docs.size();i++){
-//
-//				// TODO load from db when caching is ready or add fields to index
-//				results.add(new Resource((String) docs.get(i).get("id"), "resourcetype", null, (String) docs.get(i).get("payload"), null));
-//
-////				results.add(docs.get(i));
-//			}
 
-			paging = new Paging((int) docs.getNumFound(), from, from + results.size() - 1, results, occurencies);
+			paging = new Paging((int) docs.getNumFound(), from, from + results.size(), results, occurencies);
 		}
 
 		return paging;

@@ -5,6 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
@@ -65,25 +66,28 @@ public class Tools {
 //
 //  	         SchemaFactory factory =
 //  	            SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-//  	         java.io.FileWriter fwXML = new java.io.FileWriter("testXML.xml");
-//  	         fwXML.write(xmlContent);
-//  	         fwXML.close();
+////  	         java.io.FileWriter fwXML = new java.io.FileWriter("testXML.xml");
+////  	         fwXML.write(xmlContent);
+////  	         fwXML.close();
 //
-//  	         java.io.FileWriter fwXSD = new java.io.FileWriter("testXSD.xsd");
-//  	         fwXSD.write(xsdContent);
-//  	         fwXSD.close();
+////  	         java.io.FileWriter fwXSD = new java.io.FileWriter("testXSD.xsd");
+////  	         fwXSD.write(xsdContent);
+////  	         fwXSD.close();
 //
-//
-//  	         Schema schema = factory.newSchema(new File("testXSD.xsd"));
+//  	         
+//  	         Schema schema = factory.newSchema(new StreamSource(new StringReader(xsdContent)));
 //  	            Validator validator = schema.newValidator();
-//  	            validator.validate(new StreamSource(new File("testXML.xml")));
+//  	            validator.validate(new StreamSource(new StringReader(xmlContent)));
 //  	      } catch (IOException e){
+//  	    	 e.printStackTrace(); 
 //  	         return e.getMessage();
 //  	      }catch(SAXException e1){
+//   	    	 e1.printStackTrace(); 
 //  	         return e1.getMessage();
 //  	      } catch (Exception e) {
-//				return e.getMessage();
-//			}
+//   	    	 e.printStackTrace(); 
+//			 return e.getMessage();
+//		  }
   	      return "true";
   	   }
 	    

@@ -16,7 +16,7 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 
 	public Resource getResource(String resourceType, String id) {
 
-		Criteria cr = getSession().createCriteria(Resource.class);
+		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
 		cr.add(Restrictions.eq("id", id));
 
 		if (resourceType != null)
@@ -32,7 +32,7 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 	@SuppressWarnings("unchecked")
 	public List<Resource> getResource(String resourceType) {
 
-		Criteria cr = getSession().createCriteria(Resource.class);
+		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
 		cr.add(Restrictions.eq("resourceType", resourceType));
 
 		return cr.list();
@@ -41,13 +41,18 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 	@SuppressWarnings("unchecked")
 	public List<Resource> getResource(String resourceType, int from, int to) {
 
-		Criteria cr = getSession().createCriteria(Resource.class);
+		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
 		cr.add(Restrictions.eq("resourceType", resourceType));
 		if (to == 0) {
 			cr.setFirstResult(from);
 		} else {
+			int quantity;
+			if(from==0)
+				quantity = to;
+			else
+				quantity = to - from;
 			cr.setFirstResult(from);
-			cr.setMaxResults((to - from) + 1);
+			cr.setMaxResults(quantity);
 		}
 
 		return cr.list();
@@ -56,19 +61,24 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 	@SuppressWarnings("unchecked")
 	public List<Resource> getResource(int from, int to) {
 
-		Criteria cr = getSession().createCriteria(Resource.class);
+		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
 		if (to == 0) {
 			cr.setFirstResult(from);
 		} else {
+			int quantity = 10;
+			if(from==0)
+				quantity = to;
+			else
+				quantity = to - from;
 			cr.setFirstResult(from);
-			cr.setMaxResults((to - from) + 1);
+			cr.setMaxResults(quantity);
 		}
 		return cr.list();
 	}
 
 	public List<Resource> getResource() {
 
-		Criteria cr = getSession().createCriteria(Resource.class);
+		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
 
 		return cr.list();
 	}
@@ -79,13 +89,14 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 	}
 
 	public void updateResource(Resource resource) {
+		Resource resource_merged = (Resource) getSession().merge(resource);
 		Session session = getSession();
-		session.update(resource);
+		session.update(resource_merged);
 
 	}
 
 	public void deleteResource(String id) {
-		Query query = getSession().createSQLQuery("delete from resource where id = :id");
+		Query query = getSession().createSQLQuery("delete from resource where id = :id").setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
 		query.setString("id", id);
 		query.executeUpdate();
 	}

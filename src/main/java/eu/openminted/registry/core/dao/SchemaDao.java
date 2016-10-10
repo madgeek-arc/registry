@@ -6,6 +6,8 @@ public interface SchemaDao {
 
 	Schema getSchema(String id);
 	
+	Schema getSchemaByUrl(String originalURL);
+	
 	void addSchema(Schema schema);
 	
 }

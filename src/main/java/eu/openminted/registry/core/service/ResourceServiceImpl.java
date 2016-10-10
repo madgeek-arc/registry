@@ -1,4 +1,4 @@
-package eu.openminted.registry.core.service;
+	package eu.openminted.registry.core.service;
 
 import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
@@ -10,11 +10,16 @@ import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+
+import javax.management.ServiceNotFoundException;
 
 @Service("resourceService")
 @Transactional
@@ -60,6 +65,27 @@ public class ResourceServiceImpl implements ResourceService {
 
 	@Override public Resource addResource(Resource resource) throws ServiceException {
 //		if(resource.getIndexedFields()!=null)
+		
+		if(resource.getPayloadUrl()==null && resource.getPayload()==null){
+    		throw new ServiceException("{\"error\":\"Neither PayloadUrl nor Payload have been set.\"}");
+    	}else if(resource.getPayloadUrl()!=null && resource.getPayload()!=null){
+    		throw new ServiceException("{\"error\":\"Both Payload and PayloadUrl are set\"}");
+    	}else{
+    		if(resource.getPayloadUrl()==null){
+    			resource.setPayloadUrl("not_set");
+    		}else{
+    			try {
+					resource.setPayload(Tools.getText(resource.getPayloadUrl()));
+				} catch (Exception e) {
+					throw new ServiceException("{\"error\":\""+e.getMessage()+"\"}");
+				}
+    		}
+
+			resource.setCreationDate(new Date());
+			resource.setModificationDate(new Date());
+			
+		}
+		
 		
 		resource.setIndexedFields(getIndexedFields(resource));
 		
@@ -147,13 +173,14 @@ public class ResourceServiceImpl implements ResourceService {
 			if (resourceType.getPayloadType().equals(resource.getPayloadFormat())) {
 				if (resourceType.getPayloadType().equals("xml")) {
 					//validate xml
-//					String output = Tools.validateXMLSchema(resourceType.getSchema(), resource.getPayload());
-//					if (output.equals("true")) {
-//						resource.setPayload(resource.getPayload());
+					String output = Tools.validateXMLSchema(resourceType.getSchema(), resource.getPayload());
+					if (output.equals("true")) {
+						resource.setPayload(resource.getPayload());
 						response = "OK";
-//					} else {
-//						response = "XML and XSD mismatch";
-//					}
+					} else {
+						response = "XML and XSD mismatch";
+//						response = output;
+					}
 				} else if (resourceType.getPayloadType().equals("json")) {
 
 					//validate json

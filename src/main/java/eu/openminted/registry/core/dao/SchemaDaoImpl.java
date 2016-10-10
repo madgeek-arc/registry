@@ -20,6 +20,19 @@ public class SchemaDaoImpl extends AbstractDao<String, Schema> implements Schema
 			return (Schema) cr.list().get(0);
 		}
 	}
+	
+	@Override
+	public Schema getSchemaByUrl(String originalURL) {
+		// TODO Auto-generated method stub
+		Criteria cr = getSession().createCriteria(Schema.class);
+		cr.add(Restrictions.eq("originalUrl", originalURL));
+		if(cr.list().size()==0){
+			return null;
+		}else{
+			return (Schema) cr.list().get(0);
+		}
+	}
+	
 
 	@Override
 	public void addSchema(Schema schema) {
