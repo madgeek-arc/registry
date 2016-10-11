@@ -33,7 +33,7 @@ import org.jdom.JDOMException;
 import org.jdom.input.SAXBuilder;
 
 import eu.openminted.interop.componentoverview.exporter.Exporter;
-//import eu.openminted.interop.componentoverview.exporter.OpenMinTeDExporter;
+import eu.openminted.interop.componentoverview.exporter.OpenMinTeDExporter;
 import eu.openminted.interop.componentoverview.importer.CreoleImporter;
 import eu.openminted.interop.componentoverview.importer.Importer;
 import eu.openminted.interop.componentoverview.importer.UimaImporter;
