@@ -38,7 +38,8 @@ import eu.openminted.interop.componentoverview.importer.CreoleImporter;
 import eu.openminted.interop.componentoverview.importer.Importer;
 import eu.openminted.interop.componentoverview.importer.UimaImporter;
 import eu.openminted.interop.componentoverview.model.ComponentMetaData;
-import groovy.lang.Writable;
+import groovy.util.Node;
+import groovy.xml.XmlUtil;
 
 public class ComponentRegistryService {
 
@@ -130,13 +131,13 @@ public class ComponentRegistryService {
 			
 			//TODO copy useful info from the found metadata into the base OpenMinTeD document
 			
-			Exporter<Writable> mse = new OpenMinTeDExporter();
-			Writable w = mse.process(item);
-			
+			Exporter<Node> mse = new OpenMinTeDExporter();
+			Node w = mse.process(item);
+						
 			Document itemMetadata = null;
 			
 			try {
-				itemMetadata = new SAXBuilder().build(new StringReader(w.toString()));			
+				itemMetadata = new SAXBuilder().build(new StringReader(XmlUtil.serialize(w)));			
 				descriptions.add(itemMetadata);
 			} catch (JDOMException e) {
 				// this should be impossible
