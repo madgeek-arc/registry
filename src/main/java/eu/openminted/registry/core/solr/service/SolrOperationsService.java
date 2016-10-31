@@ -1,15 +1,33 @@
 package eu.openminted.registry.core.solr.service;
 
-import eu.openminted.registry.core.domain.Resource;
-import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.domain.index.IndexField;
-import eu.openminted.registry.core.domain.index.IndexedField;
-import eu.openminted.registry.core.index.IndexMapper;
-import eu.openminted.registry.core.index.IndexMapperFactory;
-import eu.openminted.registry.core.index.IndexedFieldFactory;
-import eu.openminted.registry.core.service.ResourceTypeService;
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.persistence.PersistenceException;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -27,19 +45,13 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import javax.persistence.PersistenceException;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.*;
+import eu.openminted.registry.core.domain.Resource;
+import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.index.IndexField;
+import eu.openminted.registry.core.domain.index.IndexedField;
+import eu.openminted.registry.core.index.IndexMapperFactory;
+import eu.openminted.registry.core.index.IndexedFieldFactory;
+import eu.openminted.registry.core.service.ResourceTypeService;
 
 @Service("solrOperationsService")
 @Transactional
@@ -84,22 +96,75 @@ public class SolrOperationsService {
 	}
 
 	public void createCore(ResourceType resourceType) throws IOException, URISyntaxException, SolrServerException, ParserConfigurationException, SAXException, TransformerException, InterruptedException {
-		String core = resourceType.getName();
-		String dataPath = DEFAULT_SOLR_DATA_PARENT_DIR + core + "/data";
-		String confPath = DEFAULT_SOLR_DATA_PARENT_DIR + core + "/conf";
-		createDirs(dataPath, confPath);
-		createSolrConfig(confPath);
-		createSolrSchema(resourceType.getIndexFields(), confPath);
-		SolrClient solrClient = getSolrClient();
-		CoreAdminRequest.Create createCore = new CoreAdminRequest.Create();
-		createCore.setDataDir(dataPath);
-		createCore.setInstanceDir(DEFAULT_SOLR_DATA_PARENT_DIR + core);
-		createCore.setCoreName(core);
-		createCore.setSchemaName(DEFAULT_SCHEMA_XML);
-		createCore.setConfigName(DEFAULT_SOLRCONFIG_XML);
-		solrClient.request(createCore);
+//		String core = resourceType.getName();
+//		String dataPath = DEFAULT_SOLR_DATA_PARENT_DIR + core + "/data";
+//		String confPath = DEFAULT_SOLR_DATA_PARENT_DIR + core + "/conf";
+//		createDirs(dataPath, confPath);
+//		createSolrConfig(confPath);
+//		createSolrSchema(resourceType.getIndexFields(), confPath);
+//		SolrClient solrClient = getSolrClient();
+//		CoreAdminRequest.Create createCore = new CoreAdminRequest.Create();
+//		createCore.setDataDir(dataPath);
+//		createCore.setInstanceDir(DEFAULT_SOLR_DATA_PARENT_DIR + core);
+//		createCore.setCoreName(core);
+//		createCore.setSchemaName(DEFAULT_SCHEMA_XML);
+//		createCore.setConfigName(DEFAULT_SOLRCONFIG_XML);
+//		solrClient.request(createCore);
+		
+		  String core = resourceType.getName();
+		  SolrClient solrClient = getSolrClient();
+		  CoreAdminRequest.Create createCore = new CoreAdminRequest.Create();
+
+		  String dataPath = DEFAULT_SOLR_DATA_PARENT_DIR + core + "/data";
+		  String confPath = DEFAULT_SOLR_DATA_PARENT_DIR + core + "/conf";
+//		  createDirs(dataPath, confPath);
+		  createSolrConfig(confPath);
+//		  createSolrSchema(resourceType.getIndexFields(), confPath);
+
+
+		  createCore.setCoreName(core);
+		  createCore.setConfigSet("omtd_registry");
+		  solrClient.request(createCore);
+//		  coreSchema(resourceType.getName(),resourceType.getIndexFields());
 	}
 
+	
+	public void coreSchema(String core_name,List<IndexField> indexFields){
+		
+		String JSON_STRING = "{\"add-field\":[";
+		if (indexFields != null) {
+			for (int i=0;i<indexFields.size();i++) {
+				IndexField indexField = new IndexField();
+				indexField = indexFields.get(i);
+				JSON_STRING = JSON_STRING.concat("{\"name\":\""+indexField.getName()+"\",\"type\":\""+FIELD_TYPES_MAP.get(indexField.getType())+"\",\"multiValued\":"+indexField.isMultivalued()+",\"indexed\":true,\"stored\":true}");
+				if(i!=indexFields.size()-1){
+					JSON_STRING = JSON_STRING.concat(",");
+				}
+			}
+		}
+		JSON_STRING = JSON_STRING.concat("]}");
+		CloseableHttpClient httpclient = HttpClients.createDefault();
+		StringEntity requestEntity = new StringEntity(
+			    JSON_STRING,
+			    ContentType.APPLICATION_JSON);
+			logger.debug(JSON_STRING);
+			HttpPost postMethod = new HttpPost(DEFAULT_HTTP_ADDRESS + "/" + core_name +"/schema");
+			postMethod.setEntity(requestEntity);
+
+			try {
+				HttpResponse rawResponse = httpclient.execute(postMethod);
+			} catch (ClientProtocolException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		
+	}
+	
+	
+	
 	public void createDirs(String dataPath, String confPath) {
 		File dataDir = new File(dataPath);
 		File dir = new File(DEFAULT_SOLR_DATA_PARENT_DIR);

@@ -12,6 +12,19 @@ import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
+import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchType;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.node.NodeBuilder;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.aggregations.Aggregation;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.Aggregations;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms.Bucket;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
@@ -50,18 +63,7 @@ public class SearchServiceImpl implements SearchService {
 		if(to==0){
 			quantity = 10;
 		}
-//		if(to==0 || to==10){
-//			quantity = 10;
-//		}else{
-//			if(from==0){
-//				quantity = to;
-//			}else{
-//				if(from<to)
-//					quantity = to - from;
-//				else
-//					quantity = 10;
-//			}
-//		}
+
 		
 		
 		
@@ -129,6 +131,67 @@ public class SearchServiceImpl implements SearchService {
 
 
 			paging = new Paging((int) docs.getNumFound(), from, from + results.size(), results, occurencies);
+		}
+
+		return paging;
+	}
+
+	@Override
+	public Paging searchElastic(String resourceType, BoolQueryBuilder qBuilder, int from, int to, String[] browseBy) throws ServiceException {
+		
+		Client client = NodeBuilder.nodeBuilder().settings(Settings.builder().put("path.home", "/usr/share/elasticsearch/"))
+                .client(true)
+                .node()
+                .client();
+		
+		Paging paging = paging = new Paging(0, 0, 0, new ArrayList<>(), new Occurencies());
+		int quantity = to;
+		if(to==0){
+			quantity = 10;
+		}
+
+		
+		SearchRequestBuilder search = client.prepareSearch(resourceType).setSearchType(SearchType.DFS_QUERY_AND_FETCH)
+				.setQuery(qBuilder)
+				.setFrom(from).setSize(quantity).setExplain(false);
+
+//		SearchRequestBuilder search = client.prepareSearch("resourceTypes").setQuery(qBuilder).setSize(1);
+		
+		for(int i=0;i<browseBy.length;i++){
+			 search.addAggregation(AggregationBuilders.terms("by_"+browseBy[i]).field(browseBy[i]));
+		}
+		
+		SearchResponse response = search.execute().actionGet();
+		
+		List<Resource> results = new ArrayList<Resource>();
+		
+		for (SearchHit hit : response.getHits().getHits()) {
+			results.add(new Resource(hit.getSource().get("id").toString(), hit.getSource().get("resourceType").toString(), null, hit.getSource().get("payload").toString(), null));
+		}
+		
+		Map<String, Map<String, Integer>> values = new HashMap<String, Map<String, Integer>>();
+		Occurencies occurencies = new Occurencies();
+		if (browseBy.length != 0) {
+			
+			for(int j=0;j<browseBy.length;j++){
+				Map<String, Integer> subMap = new HashMap<String, Integer>();
+				Terms terms = response.getAggregations().get("by_"+browseBy[j]);
+				for (Bucket bucket : terms.getBuckets()) {
+					subMap.put(bucket.getKeyAsString(), Integer.parseInt(bucket.getDocCount()+""));
+				}
+				values.put(browseBy[j], subMap);
+			}
+			occurencies.setValues(values);
+
+		}
+		if (response == null || response.getHits().getTotalHits() == 0) {
+			paging = new Paging(0, 0, 0, new ArrayList<>(), new Occurencies());
+		} else {
+			if (to == 0) {
+				to = from + quantity;
+			}
+
+			paging = new Paging((int) response.getHits().getTotalHits(), from, from + results.size(), results, occurencies);
 		}
 
 		return paging;
