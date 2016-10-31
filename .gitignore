@@ -13,3 +13,6 @@ hs_err_pid*
 
 *.iml
 target
+.settings/
+.classpath
+.project
