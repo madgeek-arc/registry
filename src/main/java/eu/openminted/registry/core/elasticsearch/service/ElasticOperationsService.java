@@ -1,15 +1,11 @@
 package eu.openminted.registry.core.elasticsearch.service;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-
-import org.apache.log4j.Logger;
+import eu.openminted.registry.core.domain.Resource;
+import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.index.IndexField;
+import eu.openminted.registry.core.domain.index.IndexedField;
+import eu.openminted.registry.core.service.ResourceTypeService;
+import eu.openminted.registry.core.service.ServiceException;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexResponse;
@@ -19,7 +15,7 @@ import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.node.NodeBuilder;
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.XML;
@@ -27,15 +23,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import eu.openminted.registry.core.domain.Resource;
-import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.domain.index.IndexField;
-import eu.openminted.registry.core.domain.index.IndexedField;
-import eu.openminted.registry.core.service.ResourceTypeService;
-import eu.openminted.registry.core.service.ServiceException;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 @Service("elasticOperationsService")
 @Transactional
@@ -60,11 +55,14 @@ public class ElasticOperationsService {
 	
 	
 	public void add(Resource resource) {
-		
-		Client client = NodeBuilder.nodeBuilder().settings(Settings.builder().put("path.home", "/usr/share/elasticsearch/"))
-                .client(true)
-                .node()
-                .client();
+
+		TransportClient client = null;
+		try {
+			client = new PreBuiltTransportClient(Settings.EMPTY)
+					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("elastic"), 9300));
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
 
 		
 		IndexResponse response;
@@ -73,10 +71,13 @@ public class ElasticOperationsService {
 	}
 
 	public void update(Resource previousResource, Resource newResource) {
-		Client client = NodeBuilder.nodeBuilder().settings(Settings.builder().put("path.home", "/usr/share/elasticsearch/"))
-                .client(true)
-                .node()
-                .client();
+		TransportClient client = null;
+		try {
+			client = new PreBuiltTransportClient(Settings.EMPTY)
+					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("elastic"), 9300));
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
 
 		UpdateRequest updateRequest = new UpdateRequest();
 		updateRequest.index(newResource.getResourceType());
@@ -95,21 +96,27 @@ public class ElasticOperationsService {
 	}
 
 	public void delete(Resource resource) {
-		Client client = NodeBuilder.nodeBuilder().settings(Settings.builder().put("path.home", "/usr/share/elasticsearch/"))
-                .client(true)
-                .node()
-                .client();
+		TransportClient client = null;
+		try {
+			client = new PreBuiltTransportClient(Settings.EMPTY)
+					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("elastic"), 9300));
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
 		
 		DeleteResponse response = client.prepareDelete(resource.getResourceType(), "general", resource.getId()).get();
 		
 	}
 
 	public void createIndex(ResourceType resourceType) {
-		
-		Client client = NodeBuilder.nodeBuilder().settings(Settings.builder().put("path.home", "/usr/share/elasticsearch/"))
-                .client(true)
-                .node()
-                .client();
+
+		TransportClient client = null;
+		try {
+			client = new PreBuiltTransportClient(Settings.EMPTY)
+					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("elastic"), 9300));
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
 
 		
 		client.admin().indices().prepareCreate(resourceType.getName()).execute().actionGet();

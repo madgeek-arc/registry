@@ -15,16 +15,15 @@ import org.apache.solr.common.SolrDocumentList;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.node.NodeBuilder;
 import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.aggregations.Aggregation;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.aggregations.Aggregations;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms.Bucket;
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
@@ -32,6 +31,8 @@ import org.z3950.zing.cql.CQLParseException;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -138,11 +139,13 @@ public class SearchServiceImpl implements SearchService {
 
 	@Override
 	public Paging searchElastic(String resourceType, BoolQueryBuilder qBuilder, int from, int to, String[] browseBy) throws ServiceException {
-		
-		Client client = NodeBuilder.nodeBuilder().settings(Settings.builder().put("path.home", "/usr/share/elasticsearch/"))
-                .client(true)
-                .node()
-                .client();
+		TransportClient client = null;
+		try {
+			client = new PreBuiltTransportClient(Settings.EMPTY)
+					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("elastic"), 9300));
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
 		
 		Paging paging = paging = new Paging(0, 0, 0, new ArrayList<>(), new Occurencies());
 		int quantity = to;
