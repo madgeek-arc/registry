@@ -19,7 +19,7 @@ public class ElasticResourceTypeListener implements ResourceTypeListener {
 	
 	@Override
 	public void resourceTypeAdded(ResourceType resourceType) {
-//		elasticOperationsService.createIndex(resourceType);
+		elasticOperationsService.createIndex(resourceType);
 	}
 
 }

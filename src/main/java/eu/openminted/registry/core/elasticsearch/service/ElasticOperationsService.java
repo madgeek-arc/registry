@@ -20,6 +20,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.XML;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,7 +40,10 @@ public class ElasticOperationsService {
 
 	@Autowired
 	ResourceTypeService resourceTypeService;
-	
+
+	@Autowired
+	private Environment environment;
+
 	
 	private static final Map<String, String> FIELD_TYPES_MAP;
 	
@@ -59,7 +64,12 @@ public class ElasticOperationsService {
 		TransportClient client = null;
 		try {
 			client = new PreBuiltTransportClient(Settings.EMPTY)
-					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("elastic"), 9300));
+					.addTransportAddress(new InetSocketTransportAddress(
+							InetAddress.getByName(
+									environment.getRequiredProperty("elasticsearch.url")),
+									Integer.parseInt(environment.getRequiredProperty("elasticsearch.port"))
+							)
+					);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
@@ -74,7 +84,10 @@ public class ElasticOperationsService {
 		TransportClient client = null;
 		try {
 			client = new PreBuiltTransportClient(Settings.EMPTY)
-					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("elastic"), 9300));
+					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(
+							environment.getRequiredProperty("elasticsearch.url")),
+							Integer.parseInt(environment.getRequiredProperty("elasticsearch.port"))
+					));
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
@@ -99,7 +112,10 @@ public class ElasticOperationsService {
 		TransportClient client = null;
 		try {
 			client = new PreBuiltTransportClient(Settings.EMPTY)
-					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("elastic"), 9300));
+					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(
+							environment.getRequiredProperty("elasticsearch.url")),
+							Integer.parseInt(environment.getRequiredProperty("elasticsearch.port"))
+					));
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
@@ -113,7 +129,10 @@ public class ElasticOperationsService {
 		TransportClient client = null;
 		try {
 			client = new PreBuiltTransportClient(Settings.EMPTY)
-					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("elastic"), 9300));
+					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(
+							environment.getRequiredProperty("elasticsearch.url")),
+							Integer.parseInt(environment.getRequiredProperty("elasticsearch.port"))
+					));
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}

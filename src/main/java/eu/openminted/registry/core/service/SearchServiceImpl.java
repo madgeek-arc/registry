@@ -142,7 +142,10 @@ public class SearchServiceImpl implements SearchService {
 		TransportClient client = null;
 		try {
 			client = new PreBuiltTransportClient(Settings.EMPTY)
-					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("elastic"), 9300));
+					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(
+							environment.getRequiredProperty("elasticsearch.url")),
+							Integer.parseInt(environment.getRequiredProperty("elasticsearch.port"))
+					));
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
