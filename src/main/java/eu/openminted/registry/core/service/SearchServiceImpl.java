@@ -1,6 +1,7 @@
 package eu.openminted.registry.core.service;
 
 import eu.dnetlib.functionality.index.cql.CqlTranslator;
+import eu.openminted.registry.core.configuration.ElasticConfiguration;
 import eu.openminted.registry.core.domain.Occurencies;
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
@@ -15,6 +16,7 @@ import org.apache.solr.common.SolrDocumentList;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -51,6 +53,9 @@ public class SearchServiceImpl implements SearchService {
 
 	@Autowired
 	private CqlTranslator translator;
+
+	@Autowired
+	private ElasticConfiguration elastic;
 
 	@PostConstruct
 	public void init() {
@@ -139,18 +144,9 @@ public class SearchServiceImpl implements SearchService {
 
 	@Override
 	public Paging searchElastic(String resourceType, BoolQueryBuilder qBuilder, int from, int to, String[] browseBy) throws ServiceException {
-		TransportClient client = null;
-		try {
-			client = new PreBuiltTransportClient(Settings.EMPTY)
-					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(
-							environment.getRequiredProperty("elasticsearch.url")),
-							Integer.parseInt(environment.getRequiredProperty("elasticsearch.port"))
-					));
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		}
+		Client client = elastic.client();
 		
-		Paging paging = paging = new Paging(0, 0, 0, new ArrayList<>(), new Occurencies());
+		Paging paging;
 		int quantity = to;
 		if(to==0){
 			quantity = 10;

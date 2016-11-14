@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.elasticsearch.service;
 
+import eu.openminted.registry.core.configuration.ElasticConfiguration;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
@@ -7,6 +8,7 @@ import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
 import org.apache.commons.collections.map.HashedMap;
+import org.elasticsearch.ElasticsearchCorruptionException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
@@ -48,7 +50,9 @@ public class ElasticOperationsService {
 	@Autowired
 	private Environment environment;
 
-	
+	@Autowired
+	private ElasticConfiguration elastic;
+
 	private static final Map<String, String> FIELD_TYPES_MAP;
 	private static final String COMMON_ALIAS = "resourceTypes";
 	
@@ -61,23 +65,10 @@ public class ElasticOperationsService {
 		unmodifiableMap.put("java.util.Date", "date");
 		FIELD_TYPES_MAP = Collections.unmodifiableMap(unmodifiableMap);
 	}
-	
-	
-	
+
 	public void add(Resource resource) {
 
-		TransportClient client = null;
-		try {
-			client = new PreBuiltTransportClient(Settings.EMPTY)
-					.addTransportAddress(new InetSocketTransportAddress(
-							InetAddress.getByName(
-									environment.getRequiredProperty("elasticsearch.url")),
-									Integer.parseInt(environment.getRequiredProperty("elasticsearch.port"))
-							)
-					);
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		}
+		Client client = elastic.client();
 
 		
 		IndexResponse response;
@@ -86,16 +77,7 @@ public class ElasticOperationsService {
 	}
 
 	public void update(Resource previousResource, Resource newResource) {
-		TransportClient client = null;
-		try {
-			client = new PreBuiltTransportClient(Settings.EMPTY)
-					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(
-							environment.getRequiredProperty("elasticsearch.url")),
-							Integer.parseInt(environment.getRequiredProperty("elasticsearch.port"))
-					));
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		}
+		Client client = elastic.client();
 
 		UpdateRequest updateRequest = new UpdateRequest();
 		updateRequest.index(newResource.getResourceType());
@@ -114,16 +96,7 @@ public class ElasticOperationsService {
 	}
 
 	public void delete(Resource resource) {
-		TransportClient client = null;
-		try {
-			client = new PreBuiltTransportClient(Settings.EMPTY)
-					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(
-							environment.getRequiredProperty("elasticsearch.url")),
-							Integer.parseInt(environment.getRequiredProperty("elasticsearch.port"))
-					));
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		}
+		Client client = elastic.client();
 		
 		DeleteResponse response = client.prepareDelete(resource.getResourceType(), "general", resource.getId()).get();
 		
@@ -131,25 +104,13 @@ public class ElasticOperationsService {
 
 	public void createIndex(ResourceType resourceType) {
 
-		TransportClient client = null;
-		try {
-			client = new PreBuiltTransportClient(Settings.EMPTY)
-					.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(
-							environment.getRequiredProperty("elasticsearch.url")),
-							Integer.parseInt(environment.getRequiredProperty("elasticsearch.port"))
-					));
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		}
+		Client client = elastic.client();
 
 
 		CreateIndexRequestBuilder createIndexRequestBuilder = client.admin().indices().prepareCreate(resourceType.getName());
 		createIndexRequestBuilder.addAlias(new Alias(COMMON_ALIAS));
 		
-		//TO PARAKATW FTIAXNEI TO MAPPING(SCHEMA) GIA TO INDEX
-		//PROS TO PARON SXOLIAZETAI 
-		
-		Map<String,Object> jsonObjectForMapping = createMapping(resourceType.getName(),resourceType.getIndexFields());
+		Map<String,Object> jsonObjectForMapping = createMapping(resourceType.getIndexFields());
 
 		JSONObject parameters = new JSONObject(jsonObjectForMapping);
 		System.err.println(parameters.toString(2));
@@ -167,9 +128,8 @@ public class ElasticOperationsService {
 		
 	}
 
-	public Map<String,Object> createMapping(String type, List<IndexField> indexFields){
+	public Map<String,Object> createMapping(List<IndexField> indexFields){
 
-		Map<String,Object> jsonObjectRoot = new HashMap<>();
 		Map<String,Object> jsonObjectGeneral = new HashMap<>();
 		Map<String,Object> jsonObjectProperties = new HashMap<>();
 		
@@ -182,7 +142,6 @@ public class ElasticOperationsService {
 		}
 
 		jsonObjectGeneral.put("properties", jsonObjectProperties);
-		jsonObjectRoot.put(type,jsonObjectGeneral);
 		return jsonObjectGeneral;
 		
 	}
