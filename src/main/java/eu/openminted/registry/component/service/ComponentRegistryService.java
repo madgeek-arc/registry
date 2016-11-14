@@ -43,8 +43,8 @@ import groovy.xml.XmlUtil;
 
 public class ComponentRegistryService {
 
-	public List<Document> describe(String groupID, String artifactID, String version) throws IOException {
-		Document description = createComponentXML();
+	public List<ComponentMetaData> describe(String groupID, String artifactID, String version) throws IOException {
+		ComponentMetaData metadata = new ComponentMetaData();
 
 		Artifact artifactObj = new DefaultArtifact(groupID, artifactID, "jar", version);
 
@@ -60,7 +60,7 @@ public class ComponentRegistryService {
 			ArtifactResult artifactResult = getRepositorySystem().resolveArtifact(getRepositorySession(),
 					artifactRequest);
 
-			return describe(artifactResult.getArtifact().getFile().toURI().toURL(), description);
+			return describe(artifactResult.getArtifact().getFile().toURI().toURL(), metadata);
 		} catch (ArtifactResolutionException e) {
 			throw new IOException("unable to retrieve plugin from maven", e);
 		}
@@ -69,20 +69,16 @@ public class ComponentRegistryService {
 	/**
 	 * describes the components available in the jar at the given URL
 	 */
-	public List<Document> describe(URL jarURL) throws IOException {
-		return describe(jarURL, createComponentXML());
+	public List<ComponentMetaData> describe(URL jarURL) throws IOException {
+		return describe(jarURL, new ComponentMetaData());
 	}
 
 	/**
 	 * describes the components available in the jar at the given URL mixing in
 	 * any other information that may already have been provided
 	 */
-	public List<Document> describe(URL jarURL, Document openmintedComponentXML) throws IOException {
+	public List<ComponentMetaData> describe(URL jarURL, ComponentMetaData existingMetadata) throws IOException {
 
-		// TODO extra information from the GATE/UIMA component at the URL (might
-		// need to be in a loop if a single jar can define multiple components)
-		List<Document> descriptions = new ArrayList<Document>();
-		
 		List<ComponentMetaData> metadata = null;
 
 		// TODO how do we determine if a JAR is a GATE or UIMA (and which
@@ -95,7 +91,7 @@ public class ComponentRegistryService {
 		JarURLConnection connection = (JarURLConnection) baseURL.openConnection();
 
 		Importer<ComponentMetaData> importer = null;
-		
+
 		JarFile jarFile = connection.getJarFile();
 		ZipEntry entry = null;
 
@@ -104,48 +100,29 @@ public class ComponentRegistryService {
 			importer = new CreoleImporter();
 
 			URL directoryXmlFileUrl = new URL(baseURL, "creole.xml");
-			metadata = importer.process(directoryXmlFileUrl);
+			metadata = importer.process(directoryXmlFileUrl, existingMetadata);
 
 		} else if ((entry = jarFile.getEntry("META-INF/org.apache.uima.fit/components.txt")) != null) {
-			//WARNING, you are entering the mad world of UIMA, abandon all hope!
-			
+			// WARNING, you are entering the mad world of UIMA, abandon all
+			// hope!
+
 			List<String> lines = IOUtils.readLines(jarFile.getInputStream(entry));
 			metadata = new ArrayList<ComponentMetaData>();
 			for (String line : lines) {
 				if (line.startsWith("classpath")) {
 					line = line.split(":")[1];
-					
+
 					importer = new UimaImporter("uimaFIT");
-					
-					metadata.addAll(importer.process(new URL(baseURL,line)));
+
+					metadata.addAll(importer.process(new URL(baseURL, line), existingMetadata));
 				}
 			}
-			
-		}
-		else {			
+
+		} else {
 			throw new IOException("URL points to unknown component type:" + jarURL);
 		}
-		
-		for (ComponentMetaData item : metadata) {
-			//Document itemMetadata = (Document)openmintedComponentXML.clone();
-			
-			//TODO copy useful info from the found metadata into the base OpenMinTeD document
-			
-			Exporter<Node> mse = new OpenMinTeDExporter();
-			Node w = mse.process(item);
-						
-			Document itemMetadata = null;
-			
-			try {
-				itemMetadata = new SAXBuilder().build(new StringReader(XmlUtil.serialize(w)));			
-				descriptions.add(itemMetadata);
-			} catch (JDOMException e) {
-				// this should be impossible
-			}
 
-		}
-
-		return descriptions;
+		return metadata;
 	}
 
 	/**
@@ -153,16 +130,20 @@ public class ComponentRegistryService {
 	 * one that actually registers the component with the metadata service all
 	 * the other methods end up calling this one eventually
 	 */
-	public void register(Document openmintedComponentXML) {
-		// TODO wrap the component XML and store it as a pending registration
-	}
+	public void register(ComponentMetaData metadata) {
 
-	public Document createComponentXML() {
-		Document doc = new Document();
+		Document itemMetadata = null;
+		Exporter<Node> mse = new OpenMinTeDExporter();
+		Node w = mse.process(metadata);
 
-		// TODO add the basic elements to the document before returning it
+		try {
+			itemMetadata = new SAXBuilder().build(new StringReader(XmlUtil.serialize(w)));
 
-		return doc;
+			// TODO save the XML into the actual registry store
+
+		} catch (IOException | JDOMException e) {
+			// this should be impossible
+		}
 	}
 
 	/**

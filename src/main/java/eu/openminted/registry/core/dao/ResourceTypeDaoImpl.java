@@ -2,6 +2,7 @@ package eu.openminted.registry.core.dao;
 
 import java.util.List;
 
+import eu.openminted.registry.core.service.ServiceException;
 import org.hibernate.Criteria;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.stereotype.Repository;
@@ -41,8 +42,12 @@ public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> imple
 		return cr.list();
 	}
 
-	public void addResourceType(ResourceType resourceType) {
-		persist(resourceType);
+	public void addResourceType(ResourceType resourceType) throws ServiceException {
+		if(getResourceType(resourceType.getName()) != null) {
+			throw new ServiceException("{\"error\":\"resourceType already exists\"}");
+		} else {
+			persist(resourceType);
+		}
 	}
 
 }

@@ -6,6 +6,10 @@ import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
+import org.apache.commons.collections.map.HashedMap;
+import org.elasticsearch.action.admin.indices.alias.Alias;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexResponse;
@@ -46,13 +50,14 @@ public class ElasticOperationsService {
 
 	
 	private static final Map<String, String> FIELD_TYPES_MAP;
+	private static final String COMMON_ALIAS = "resourceTypes";
 	
 	static {
 		Map<String, String> unmodifiableMap = new HashMap<String, String>();
 		unmodifiableMap.put("java.lang.Double", "double");
 		unmodifiableMap.put("java.lang.Integer", "int");
 		unmodifiableMap.put("java.lang.Long", "long");
-		unmodifiableMap.put("java.lang.String", "string");
+		unmodifiableMap.put("java.lang.String", "keyword");
 		unmodifiableMap.put("java.util.Date", "date");
 		FIELD_TYPES_MAP = Collections.unmodifiableMap(unmodifiableMap);
 	}
@@ -137,49 +142,48 @@ public class ElasticOperationsService {
 			e.printStackTrace();
 		}
 
-		
-		client.admin().indices().prepareCreate(resourceType.getName()).execute().actionGet();
-		
+
+		CreateIndexRequestBuilder createIndexRequestBuilder = client.admin().indices().prepareCreate(resourceType.getName());
+		createIndexRequestBuilder.addAlias(new Alias(COMMON_ALIAS));
 		
 		//TO PARAKATW FTIAXNEI TO MAPPING(SCHEMA) GIA TO INDEX
 		//PROS TO PARON SXOLIAZETAI 
 		
-		JSONObject jsonObjectForMapping = createMapping(resourceType.getIndexFields());
-		XContentBuilder mapping = null;
-		try {
-			mapping.startObject(jsonObjectForMapping.toString());
-		} catch (IOException e) {
-//			new ServiceException(e.getMessage());
-			e.printStackTrace();
-		}
+		Map<String,Object> jsonObjectForMapping = createMapping(resourceType.getName(),resourceType.getIndexFields());
 
-		PutMappingResponse putMappingResponse = client.admin().indices()
-		  .preparePutMapping(resourceType.getName())
-		  .setType("general")
-		  .setSource(mapping)
-		  .execute().actionGet();
+		JSONObject parameters = new JSONObject(jsonObjectForMapping);
+		System.err.println(parameters.toString(2));
+
+		createIndexRequestBuilder.addMapping("general",jsonObjectForMapping);
+
+		CreateIndexResponse putMappingResponse = createIndexRequestBuilder.get();
+
+
+		if(!putMappingResponse.isAcknowledged()) {
+			System.err.println("Error creating result");
+		}
 		
 		client.close();
 		
 	}
 
-	public JSONObject createMapping(List<IndexField> indexFields){
-		
-		JSONObject jsonObjectRoot = new JSONObject();
-		JSONObject jsonObjectGeneral = new JSONObject();
-		JSONObject jsonObjectProperties = new JSONObject();
+	public Map<String,Object> createMapping(String type, List<IndexField> indexFields){
+
+		Map<String,Object> jsonObjectRoot = new HashMap<>();
+		Map<String,Object> jsonObjectGeneral = new HashMap<>();
+		Map<String,Object> jsonObjectProperties = new HashMap<>();
 		
 		if (indexFields != null) {
 			for (IndexField indexField : indexFields) {
-				JSONObject jsonObjectField = new JSONObject();
-				jsonObjectField.put("type", FIELD_TYPES_MAP.get(indexField.getType()));
-				jsonObjectProperties.put(indexField.getName(), jsonObjectField);
+				Map<String,Object> typeMap = new HashMap<>();
+				typeMap.put("type", FIELD_TYPES_MAP.get(indexField.getType()));
+				jsonObjectProperties.put(indexField.getName(), typeMap);
 			}
 		}
+
 		jsonObjectGeneral.put("properties", jsonObjectProperties);
-		jsonObjectRoot.put("general", jsonObjectGeneral);
-		
-		return jsonObjectRoot;
+		jsonObjectRoot.put(type,jsonObjectGeneral);
+		return jsonObjectGeneral;
 		
 	}
 	
