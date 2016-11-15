@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
 import eu.openminted.registry.core.monitor.ResourceTypeListener;
-import eu.openminted.registry.core.solr.listeners.SolrResourceTypeListener;
 
 @Component
 public class ElasticResourceTypeListener implements ResourceTypeListener {
