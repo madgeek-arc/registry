@@ -3,7 +3,7 @@ package eu.openminted.registry.core.service;
 /**
  * Created by antleb on 5/26/16.
  */
-public class ServiceException extends Exception {
+public class ServiceException extends RuntimeException {
 
 	public ServiceException() {
 	}
