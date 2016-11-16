@@ -124,7 +124,7 @@ public class ElasticOperationsService {
 			System.err.println("Error creating result");
 		}
 		
-		client.close();
+		//client.close();
 		
 	}
 
