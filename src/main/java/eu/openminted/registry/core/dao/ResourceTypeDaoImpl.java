@@ -42,12 +42,8 @@ public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> imple
 		return cr.list();
 	}
 
-	public void addResourceType(ResourceType resourceType) throws ServiceException {
-		if(getResourceType(resourceType.getName()) != null) {
-			throw new ServiceException("{\"error\":\"resourceType already exists\"}");
-		} else {
-			persist(resourceType);
-		}
+	public void addResourceType(ResourceType resourceType) {
+		persist(resourceType);
 	}
 
 }

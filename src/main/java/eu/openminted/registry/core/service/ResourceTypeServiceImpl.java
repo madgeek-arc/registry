@@ -28,6 +28,7 @@ import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.hibernate.HibernateException;
 import org.hibernate.NonUniqueObjectException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -129,7 +130,11 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 		
 		exportIncludes(resourceType, resourceType.getSchemaUrl(),recursionPaths);
 
-		resourceTypeDao.addResourceType(resourceType);
+		try {
+			resourceTypeDao.addResourceType(resourceType);
+		} catch (HibernateException e) {
+			throw new ServiceException(e);
+		}
 
 		schema.setId(stringToMd5(resourceType.getSchema()));
 
