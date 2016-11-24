@@ -30,9 +30,9 @@ public class ResourceController {
 	    	Resource resource = resourceService.getResource(resourceType,id);
 	    	ResponseEntity<String> responseEntity;
 	    	if(resource==null){
-	    		responseEntity = new ResponseEntity<String>(HttpStatus.NOT_FOUND);
+	    		responseEntity = new ResponseEntity<>(HttpStatus.NOT_FOUND);
 	    	}else{
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(resource), HttpStatus.OK);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(resource), HttpStatus.OK);
 	    	}
 	    	return responseEntity;
 	    } 
@@ -43,9 +43,9 @@ public class ResourceController {
 	    	Paging paging = new Paging(results.size(), 0, results.size()-1, results,null);
 	    	ResponseEntity<String> responseEntity;
 	    	if(results.size()==0){
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
 	    	}else{
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.OK);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(paging), HttpStatus.OK);
 	    	}
 	    	return responseEntity;
 	    } 
@@ -57,9 +57,9 @@ public class ResourceController {
 	    	Paging paging = new Paging(results.size(), from, total-1, results,null);
 	    	ResponseEntity<String> responseEntity;
 	    	if(total==0){
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
 	    	}else{
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.OK);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(paging), HttpStatus.OK);
 	    	}
 	    	return responseEntity;
 	    }
@@ -71,9 +71,9 @@ public class ResourceController {
 	    	Paging paging = new Paging(results.size(), from, to, results,null);
 	    	ResponseEntity<String> responseEntity;
 	    	if(total==0){
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
 	    	}else{
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.OK);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(paging), HttpStatus.OK);
 	    	}
 	    	return responseEntity;
 	    } 
@@ -85,9 +85,9 @@ public class ResourceController {
 	    	Paging paging = new Paging(results.size(), 0, to, results,null);
 	    	ResponseEntity<String> responseEntity;
 	    	if(total==0){
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
 	    	}else{
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.OK);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(paging), HttpStatus.OK);
 	    	}
 	    	return responseEntity;
 	    } 
@@ -99,9 +99,9 @@ public class ResourceController {
 	    	Paging paging = new Paging(total, from, total-1, results,null);
 	    	ResponseEntity<String> responseEntity;
 	    	if(total==0){
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
 	    	}else{
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.OK);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(paging), HttpStatus.OK);
 	    	}
 	    	return responseEntity;
 	    }
@@ -113,9 +113,9 @@ public class ResourceController {
 	    	Paging paging = new Paging(total, from, to, results,null);
 	    	ResponseEntity<String> responseEntity;
 	    	if(total==0){
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
 	    	}else{
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.OK);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(paging), HttpStatus.OK);
 	    	}
 	    	return responseEntity;
 	    }
@@ -127,9 +127,9 @@ public class ResourceController {
 	    	Paging paging = new Paging(total, 0, total-1, results,null);
 	    	ResponseEntity<String> responseEntity;
 	    	if(total==0){
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(paging), HttpStatus.NO_CONTENT);
 	    	}else{
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(paging), HttpStatus.OK);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(paging), HttpStatus.OK);
 	    	}
 	    	
 	    	return responseEntity;
@@ -141,9 +141,9 @@ public class ResourceController {
 	    	
 	    	try{
 				resource = resourceService.addResource(resource);
-				responseEntity = new ResponseEntity<String>(Utils.objToJson(resource), HttpStatus.CREATED);
+				responseEntity = new ResponseEntity<>(Utils.objToJson(resource), HttpStatus.CREATED);
 			}catch(ServiceException ex){
-				responseEntity = new ResponseEntity<String>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+				responseEntity = new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 	        return responseEntity;  
 	    }  
@@ -156,12 +156,12 @@ public class ResourceController {
 			try {
 				resourceFinal = resourceService.updateResource(resource);
 			} catch (ServiceException e) {
-				responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
+				responseEntity = new ResponseEntity<>("{\"error\":\"" + e.getMessage() + "\"}", HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 	    	
 	    	
 	    	if(resourceFinal==null){
-	    		responseEntity = new ResponseEntity<String>(Utils.objToJson(resourceFinal), HttpStatus.NO_CONTENT);
+	    		responseEntity = new ResponseEntity<>(Utils.objToJson(resourceFinal), HttpStatus.NO_CONTENT);
 	    	}
 	    	
 	        return   responseEntity;
