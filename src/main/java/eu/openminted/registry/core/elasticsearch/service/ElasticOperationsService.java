@@ -141,6 +141,11 @@ public class ElasticOperationsService {
 			}
 		}
 
+		final Map<String,Object> typeMap = new HashMap<>();
+		typeMap.put("type","keyword");
+		jsonObjectProperties.put("resourceType",typeMap);
+
+
 		jsonObjectGeneral.put("properties", jsonObjectProperties);
 		return jsonObjectGeneral;
 		

@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.service;
 
+import com.fasterxml.jackson.dataformat.yaml.UTF8Reader;
 import eu.openminted.registry.core.configuration.ElasticConfiguration;
 import eu.openminted.registry.core.domain.Occurencies;
 import eu.openminted.registry.core.domain.Paging;
@@ -19,6 +20,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -57,18 +59,21 @@ public class SearchServiceImpl implements SearchService {
 
         SearchResponse response = search.execute().actionGet();
 
-        List<Resource> results = new ArrayList<Resource>();
+        List<Resource> results = new ArrayList<>();
 
         for (SearchHit hit : response.getHits().getHits()) {
-            results.add(new Resource(hit.getSource().get("id").toString(), hit.getSource().get("resourceType").toString(), null, hit.getSource().get("payload").toString(), null));
+            String idTmp = hit.getSource().get("id").toString();
+            String resourceTypeTmp = hit.getSource().get("resourceType").toString();
+            String payloadTmp = (String) hit.getSource().get("payload");
+            results.add(new Resource(idTmp, resourceTypeTmp, null, (String) payloadTmp , null));
         }
 
-        Map<String, Map<String, Integer>> values = new HashMap<String, Map<String, Integer>>();
+        Map<String, Map<String, Integer>> values = new HashMap<>();
         Occurencies occurencies = new Occurencies();
         if (browseBy.length != 0) {
 
             for (int j = 0; j < browseBy.length; j++) {
-                Map<String, Integer> subMap = new HashMap<String, Integer>();
+                Map<String, Integer> subMap = new HashMap<>();
                 Terms terms = response.getAggregations().get("by_" + browseBy[j]);
                 for (Bucket bucket : terms.getBuckets()) {
                     subMap.put(bucket.getKeyAsString(), Integer.parseInt(bucket.getDocCount() + ""));
