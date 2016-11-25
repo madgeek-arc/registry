@@ -34,9 +34,9 @@ public class SearchServiceImpl implements SearchService {
     @Autowired
     private ElasticConfiguration elastic;
 
-    @Override
-    public Paging search(String resourceType, BoolQueryBuilder qBuilder, int from, int to,
-                         String[] browseBy) throws ServiceException {
+
+    private Paging buildSearch(String resourceType, BoolQueryBuilder qBuilder, int from, int to,
+                        String[] browseBy) {
         Client client = elastic.client();
 
         Paging paging;
@@ -89,6 +89,23 @@ public class SearchServiceImpl implements SearchService {
         }
 
         return paging;
+    }
+
+    @Override
+    public Paging search(String resourceType, BoolQueryBuilder qBuilder, int from, int to,
+                         String[] browseBy) throws ServiceException {
+        return buildSearch(resourceType,qBuilder,from,to,browseBy);
+    }
+
+    @Override
+    public Paging searchKeyword(String resourceType, String keyword, int from, int to, String[] browseBy) throws ServiceException, UnknownHostException {
+        BoolQueryBuilder qBuilder = new BoolQueryBuilder();
+        if (!keyword.equals("")) {
+            qBuilder.must(QueryBuilders.matchQuery("payload", keyword));
+        } else {
+            qBuilder.must(QueryBuilders.matchAllQuery());
+        }
+        return buildSearch(resourceType,qBuilder,from,to,browseBy);
     }
 
     @Override
