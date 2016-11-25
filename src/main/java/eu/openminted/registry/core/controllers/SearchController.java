@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.UnknownHostException;
+
 @RestController
 public class SearchController {
 
@@ -22,10 +24,10 @@ public class SearchController {
 		ResponseEntity<String> responseEntity;
 		
 		try {
-			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,0,0,new String[0])), HttpStatus.OK);
+			responseEntity = new ResponseEntity<>(Utils.objToJson(searchService.searchKeyword(name, query, 0, 0, new String[0])), HttpStatus.OK);
 			return responseEntity;
-		} catch (ServiceException e) {
-			responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (ServiceException | UnknownHostException e) {
+			responseEntity = new ResponseEntity<>("{\"error\":\"" + e.getMessage() + "\"}", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 
@@ -38,10 +40,10 @@ public class SearchController {
 		ResponseEntity<String> responseEntity;
 		
 		try {
-			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,from,0,new String[0])), HttpStatus.OK);
+			responseEntity = new ResponseEntity<>(Utils.objToJson(searchService.searchKeyword(name, query, from, 0, new String[0])), HttpStatus.OK);
 			return responseEntity;
-		} catch (ServiceException e) {
-			responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (ServiceException | UnknownHostException e) {
+			responseEntity = new ResponseEntity<>("{\"error\":\"" + e.getMessage() + "\"}", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		return responseEntity;
@@ -52,10 +54,10 @@ public class SearchController {
 		ResponseEntity<String> responseEntity;
 		
 		try {
-			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,0,to,new String[0])), HttpStatus.OK);
+			responseEntity = new ResponseEntity<>(Utils.objToJson(searchService.searchKeyword(name, query, 0, to, new String[0])), HttpStatus.OK);
 			return responseEntity;
-		} catch (ServiceException e) {
-			responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (ServiceException | UnknownHostException e) {
+			responseEntity = new ResponseEntity<>("{\"error\":\"" + e.getMessage() + "\"}", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		return responseEntity;
@@ -66,10 +68,10 @@ public class SearchController {
 		ResponseEntity<String> responseEntity;
 		
 		try {
-			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,from,to,new String[0])), HttpStatus.OK);
+			responseEntity = new ResponseEntity<>(Utils.objToJson(searchService.searchKeyword(name, query, from, to, new String[0])), HttpStatus.OK);
 			return responseEntity;
-		} catch (ServiceException e) {
-			responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (ServiceException | UnknownHostException e) {
+			responseEntity = new ResponseEntity<>("{\"error\":\"" + e.getMessage() + "\"}", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		return responseEntity;
@@ -81,10 +83,10 @@ public class SearchController {
 		ResponseEntity<String> responseEntity;
 		
 		try {
-			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,0,0,browseBy)), HttpStatus.OK);
+			responseEntity = new ResponseEntity<>(Utils.objToJson(searchService.searchKeyword(name, query, 0, 0, browseBy)), HttpStatus.OK);
 			return responseEntity;
-		} catch (ServiceException e) {
-			responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (ServiceException | UnknownHostException e) {
+			responseEntity = new ResponseEntity<>("{\"error\":\"" + e.getMessage() + "\"}", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		return responseEntity;
@@ -96,10 +98,10 @@ public class SearchController {
 		ResponseEntity<String> responseEntity;
 		
 		try {
-			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,from,0,browseBy)), HttpStatus.OK);
+			responseEntity = new ResponseEntity<>(Utils.objToJson(searchService.searchKeyword(name, query, from, 0, browseBy)), HttpStatus.OK);
 			return responseEntity;
-		} catch (ServiceException e) {
-			responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (ServiceException | UnknownHostException e) {
+			responseEntity = new ResponseEntity<>("{\"error\":\"" + e.getMessage() + "\"}", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		return responseEntity;
@@ -110,10 +112,10 @@ public class SearchController {
 		ResponseEntity<String> responseEntity;
 		
 		try {
-			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,0,to,browseBy)), HttpStatus.OK);
+			responseEntity = new ResponseEntity<>(Utils.objToJson(searchService.searchKeyword(name, query, 0, to, browseBy)), HttpStatus.OK);
 			return responseEntity;
-		} catch (ServiceException e) {
-			responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (ServiceException | UnknownHostException e) {
+			responseEntity = new ResponseEntity<>("{\"error\":\"" + e.getMessage() + "\"}", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		return responseEntity;
@@ -124,10 +126,10 @@ public class SearchController {
 		ResponseEntity<String> responseEntity;
 		
 		try {
-			responseEntity = new ResponseEntity<String>(Utils.objToJson(searchService.search(name, query,from,to,browseBy)), HttpStatus.OK);
+			responseEntity = new ResponseEntity<>(Utils.objToJson(searchService.searchKeyword(name, query, from, to, browseBy)), HttpStatus.OK);
 			return responseEntity;
-		} catch (ServiceException e) {
-			responseEntity = new ResponseEntity<String>("{\"error\":\""+e.getMessage()+"\"}", HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (ServiceException | UnknownHostException e) {
+			responseEntity = new ResponseEntity<>("{\"error\":\"" + e.getMessage() + "\"}", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		return responseEntity;
