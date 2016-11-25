@@ -14,5 +14,7 @@ public interface SearchService {
 
 	Paging search(String resourceType, BoolQueryBuilder qBuilder, int from, int to, String[] browseBy) throws ServiceException, UnknownHostException;
 
+	Paging searchKeyword(String resourceType, String keyword, int from, int to, String[] browseBy) throws ServiceException, UnknownHostException;
+
 	Resource searchId(String resourceType, String id) throws ServiceException, UnknownHostException;
 }
