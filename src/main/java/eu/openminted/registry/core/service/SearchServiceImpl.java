@@ -1,6 +1,5 @@
 package eu.openminted.registry.core.service;
 
-import com.fasterxml.jackson.dataformat.yaml.UTF8Reader;
 import eu.openminted.registry.core.configuration.ElasticConfiguration;
 import eu.openminted.registry.core.domain.Occurencies;
 import eu.openminted.registry.core.domain.Paging;
@@ -20,7 +19,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import java.net.UnknownHostException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -61,10 +59,11 @@ public class SearchServiceImpl implements SearchService {
 
         List<Resource> results = new ArrayList<>();
 
-        for (SearchHit hit : response.getHits().getHits()) {
-            String idTmp = hit.getSource().get("id").toString();
-            String resourceTypeTmp = hit.getSource().get("resourceType").toString();
-            String payloadTmp = (String) hit.getSource().get("payload");
+        for(int i = 0 ; i < quantity; ++i) {
+
+            String idTmp = response.getHits().getAt(i).getSource().get("id").toString();
+            String resourceTypeTmp = response.getHits().getAt(i).getSource().get("resourceType").toString();
+            String payloadTmp = (String) response.getHits().getAt(i).getSource().get("payload");
             results.add(new Resource(idTmp, resourceTypeTmp, null, (String) payloadTmp , null));
         }
 
