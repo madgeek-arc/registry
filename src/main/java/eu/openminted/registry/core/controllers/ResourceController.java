@@ -140,7 +140,7 @@ public class ResourceController {
 	    	ResponseEntity<String> responseEntity;
 	    	
 	    	try{
-				resource = resourceService.addResource(resource);
+				resourceService.addResource(resource);
 				responseEntity = new ResponseEntity<>(Utils.objToJson(resource), HttpStatus.CREATED);
 			}catch(ServiceException ex){
 				responseEntity = new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
