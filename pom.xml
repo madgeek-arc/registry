@@ -3,15 +3,14 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>eu.openminted</groupId>
     <artifactId>registry-core</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring.version>4.2.1.RELEASE</spring.version>
-        <hibernate.version>5.1.0.Final</hibernate.version>
-        <joda-time.version>2.3</joda-time.version>
-    </properties>
+    <parent>
+        <groupId>eu.openminted</groupId>
+        <artifactId>registry-parent</artifactId>
+        <version>1.0.0</version>
+    </parent>
 
     <dependencies>
 
@@ -29,7 +28,7 @@
         <dependency>
             <groupId>eu.openminted</groupId>
             <artifactId>registry-core-api</artifactId>
-            <version>0.0.3-SNAPSHOT</version>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>eu.openminted.interop</groupId>
@@ -226,17 +225,33 @@
             <version>9.1-901.jdbc4</version>
         </dependency>
     </dependencies>
+
+    <distributionManagement>
+        <repository>
+            <id>omtd-releases</id>
+            <layout>default</layout>
+            <url>https://repo.openminted.eu/content/repositories/releases</url>
+        </repository>
+    </distributionManagement>
+
     <repositories>
         <repository>
             <id>omtd-snapshots</id>
             <name>OpenMinTeD snapshots</name>
             <snapshots>
                 <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
+                <updatePolicy>daily</updatePolicy>
                 <checksumPolicy>fail</checksumPolicy>
             </snapshots>
             <url>https://repo.openminted.eu/content/repositories/snapshots/</url>
             <layout>default</layout>
+        </repository>
+        <repository>
+            <id>omtd-releases</id>
+            <layout>default</layout>
+            <url>https://repo.openminted.eu/content/repositories/releases</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
         </repository>
         <repository>
             <id>dnet4-bootstrap-snapshot</id>
