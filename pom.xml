@@ -12,6 +12,18 @@
 		<version>1.0.0</version>
 	</parent>
 
+	<licenses>
+		<license>
+			<name>Apache License, Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+		</license>
+	</licenses>
+
+	<scm>
+		<connection>scm:git:git://github.com/openminted/registry-core-rest.git</connection>
+		<developerConnection>scm:git:ssh://github.com/openminted/registry-core-rest.git</developerConnection>
+		<url>https://github.com/openminted/registry-core-rest</url>
+	</scm>
 
 	<dependencies>
 		<dependency>
