@@ -44,8 +44,9 @@ public class DefaultIndexMapper implements IndexMapper {
 				logger.debug("Indexing field " + fieldName + " (" + fieldType + ") with path " + path);
 				
 				Set<Object> value = getValue(payload, fieldType, path, resourceType.getPayloadType(),indexField.isMultivalued());
-				res.add(indexedFieldFactory.getIndexedField(fieldName, value, fieldType));
-
+				if(!value.isEmpty()) {
+					res.add(indexedFieldFactory.getIndexedField(fieldName, value, fieldType));
+				}
 			} catch (Exception e) {
 				logger.error("Errororor", e);
 //				logger.error(indexedFieldFactory);

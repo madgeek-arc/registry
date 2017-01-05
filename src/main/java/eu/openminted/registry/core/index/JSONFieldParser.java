@@ -24,7 +24,9 @@ public class JSONFieldParser implements FieldParser {
 	            	response.add(Float.parseFloat(answer));
 	            }else if(fieldType.equals("java.lang.Date")){
 	            	response.add(Date.valueOf(answer));
-	            }
+	            }else if (fieldType.equals("java.lang.Boolean")){
+					response.add(Boolean.parseBoolean(answer));
+				}
 			}
 		}else{
 			if(fieldType.equals("java.lang.String")){
@@ -35,7 +37,9 @@ public class JSONFieldParser implements FieldParser {
             	response.add(Float.parseFloat(JsonPath.read(payload, path)));
             }else if(fieldType.equals("java.util.Date")){
             	response.add(Date.valueOf((String)JsonPath.read(payload, path)));
-            }
+            }else if (fieldType.equals("java.lang.Boolean")){
+				response.add(Boolean.parseBoolean(JsonPath.read(payload, path)));
+			}
 		}
 		return response;
 	}
