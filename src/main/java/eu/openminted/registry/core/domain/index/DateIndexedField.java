@@ -1,18 +1,12 @@
 package eu.openminted.registry.core.domain.index;
 
-import java.util.Date;
-import java.util.Set;
+import org.hibernate.Hibernate;
 
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.Id;
-
-import org.hibernate.Hibernate;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import java.util.Date;
+import java.util.Set;
 
 
 @Entity

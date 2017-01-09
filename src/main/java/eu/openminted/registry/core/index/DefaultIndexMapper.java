@@ -55,7 +55,7 @@ public class DefaultIndexMapper implements IndexMapper {
 				} else {
 					//there is an xpath
 					values = getValue(payload, fieldType, path, resourceType.getPayloadType(), indexField.isMultivalued());
-					if (!value.isEmpty()) {
+					if (values != null) {
 						res.add(indexedFieldFactory.getIndexedField(fieldName, values, fieldType));
 					} else {
 						if(value == null) {
