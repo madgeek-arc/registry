@@ -7,6 +7,7 @@ import org.hibernate.Hibernate;
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -26,8 +27,11 @@ public class BooleanIndexedField extends IndexedField<Boolean> {
 
     public BooleanIndexedField(String name, Set<Object> values) {
         setName(name);
-        setValues(values.stream().map(Boolean.class::cast)
-                .map(Boolean::booleanValue).collect(Collectors.toSet()));
+        Set<Boolean> tmp = new HashSet<>();
+        for(Object v : values) {
+            tmp.add(Boolean.parseBoolean(v.toString()));
+        }
+        setValues(tmp);
         setType(String.class.getName());
     }
 
