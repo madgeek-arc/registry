@@ -1,6 +1,7 @@
 package eu.openminted.registry.core.index;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -9,7 +10,6 @@ import org.apache.log4j.Logger;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.domain.index.IndexedField;
-import eu.openminted.registry.core.service.ResourceService;
 
 public class DefaultIndexMapper implements IndexMapper {
 
@@ -40,16 +40,34 @@ public class DefaultIndexMapper implements IndexMapper {
 				String fieldName = indexField.getName();
 				String fieldType = indexField.getType();
 				String path = indexField.getPath();
-				
+				String value = indexField.getDefaultValue();
+				Set<Object> values;
 				logger.debug("Indexing field " + fieldName + " (" + fieldType + ") with path " + path);
-				
-				Set<Object> value = getValue(payload, fieldType, path, resourceType.getPayloadType(),indexField.isMultivalued());
-				if(!value.isEmpty()) {
-					res.add(indexedFieldFactory.getIndexedField(fieldName, value, fieldType));
+
+				//if there is no xpath add default value
+				if(path == null) {
+					values = new HashSet<>();
+					if(value == null) {
+						throw new Exception("Indexfield"  + fieldName +" with no xpath must supply a default value");
+					}
+					values.add(value);
+					res.add(indexedFieldFactory.getIndexedField(fieldName,values,fieldType));
+				} else {
+					//there is an xpath
+					values = getValue(payload, fieldType, path, resourceType.getPayloadType(), indexField.isMultivalued());
+					if (!value.isEmpty()) {
+						res.add(indexedFieldFactory.getIndexedField(fieldName, values, fieldType));
+					} else {
+						if(value == null) {
+							throw new Exception("Indexfield"  + fieldName +" with no xpath must supply a default value");
+						}
+						values = new HashSet<>();
+						values.add(value);
+						res.add(indexedFieldFactory.getIndexedField(fieldName,values,fieldType));
+					}
 				}
 			} catch (Exception e) {
-				logger.error("Errororor", e);
-//				logger.error(indexedFieldFactory);
+				logger.error(e.getMessage());
 			}
 		}
 		

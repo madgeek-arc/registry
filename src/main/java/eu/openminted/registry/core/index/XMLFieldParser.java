@@ -57,29 +57,13 @@ public class XMLFieldParser implements FieldParser {
 		            Node nNode = nodeList.item(i);
 		            String response = "";
 		            response = nNode.getTextContent();
-		            if(fieldType.equals("java.lang.String")){
-		            	objects.add((String)response);
-		            }else if(fieldType.equals("java.lang.Integer")){
-		            	objects.add(Integer.parseInt(response));
-		            }else if(fieldType.equals("java.lang.Float")){
-		            	objects.add(Float.parseFloat(response));
-		            }else if(fieldType.equals("java.util.Date")){
-		            	objects.add(Date.valueOf(response));
-		            }
+		            FieldParser.parseField(fieldType,response,objects);
 		         }
 		      
 	        }else{
 	        	String response = "";
 	        	response = (String) xPath.compile(expression).evaluate(doc,	XPathConstants.STRING);
-	        	if(fieldType.equals("java.lang.String")){
-	            	objects.add((String)response);
-	            }else if(fieldType.equals("java.lang.Integer")){
-	            	objects.add(Integer.parseInt(response));
-	            }else if(fieldType.equals("java.lang.Float")){
-	            	objects.add(Float.parseFloat(response));
-	            }else if(fieldType.equals("java.lang.Date")){
-	            	objects.add(Date.valueOf(response));
-	            }
+				FieldParser.parseField(fieldType,response,objects);
 	        }
 	      } catch (ParserConfigurationException e) {
 	    	  objects.add(e.getMessage());
