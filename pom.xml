@@ -1,31 +1,25 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-
 	<parent>
 		<groupId>eu.openminted</groupId>
 		<artifactId>registry-parent</artifactId>
 		<version>1.0.0</version>
 	</parent>
-
 	<groupId>eu.openminted</groupId>
 	<artifactId>registry-core-api</artifactId>
 	<version>1.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
-
 	<scm>
 		<connection>scm:git:git@github.com:openminted/registry-core-api.git</connection>
 		<developerConnection>scm:git:git@github.com:openminted/registry-core-api.git</developerConnection>
 		<url>http://github.com/openminted/registry-core-api</url>
-		<tag>HEAD</tag>
 	</scm>
-
 	<licenses>
 		<license>
 			<name>Apache License, Version 2.0</name>
 			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
 		</license>
 	</licenses>
-
 	<dependencies>
 		<!-- https://mvnrepository.com/artifact/org.elasticsearch/elasticsearch -->
 		<dependency>
@@ -33,29 +27,22 @@
 			<artifactId>elasticsearch</artifactId>
 			<version>5.0.0</version>
 		</dependency>
-
 		<dependency>
 			<groupId>org.hibernate.javax.persistence</groupId>
 			<artifactId>hibernate-jpa-2.1-api</artifactId>
 			<version>1.0.0.Final</version>
 		</dependency>
-
 		<dependency>
 			<groupId>javax.validation</groupId>
 			<artifactId>validation-api</artifactId>
 			<version>1.1.0.Final</version>
 		</dependency>
-
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-annotations</artifactId>
 			<version>2.4.0</version>
 		</dependency>
-
-
-    </dependencies>
-
-
+	</dependencies>
 	<distributionManagement>
 		<repository>
 			<id>omtd-releases</id>
@@ -63,25 +50,30 @@
 			<url>https://repo.openminted.eu/content/repositories/releases</url>
 		</repository>
 	</distributionManagement>
-
-
 	<repositories>
 		<repository>
 			<id>omtd-snapshots</id>
 			<layout>default</layout>
 			<url>https://repo.openminted.eu/content/repositories/snapshots/</url>
-			<releases><enabled>false</enabled></releases>
-			<snapshots><enabled>true</enabled></snapshots>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
 		</repository>
 		<repository>
 			<id>omtd-releases</id>
 			<layout>default</layout>
 			<url>https://repo.openminted.eu/content/repositories/releases</url>
-			<releases><enabled>true</enabled></releases>
-			<snapshots><enabled>false</enabled></snapshots>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
 		</repository>
 	</repositories>
-
 	<build>
 		<pluginManagement>
 			<plugins>
@@ -92,6 +84,17 @@
 					<configuration>
 						<source>1.8</source>
 						<target>1.8</target>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>external.atlassian.jgitflow</groupId>
+					<artifactId>jgitflow-maven-plugin</artifactId>
+					<version>1.0-m5.1</version>
+					<configuration>
+						<flowInitContext>
+							<developBranchName>develop</developBranchName>
+							<versionTagPrefix>v</versionTagPrefix>
+						</flowInitContext>
 					</configuration>
 				</plugin>
 			</plugins>
