@@ -95,6 +95,10 @@
 							<developBranchName>develop</developBranchName>
 							<versionTagPrefix>v</versionTagPrefix>
 						</flowInitContext>
+						<username>USERNAME_FOR_A_GIT_USER</username>
+						<password>PASSWORD_FOR_A_GIT_USER</password>
+						<noDeploy>true</noDeploy>
+						<squash>true</squash>
 					</configuration>
 				</plugin>
 			</plugins>
