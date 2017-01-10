@@ -46,7 +46,7 @@
         <dependency>
             <groupId>eu.openminted.interop</groupId>
             <artifactId>mapping-conversion</artifactId>
-            <version>${project.version}</version>
+            <version>1.1.0-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.asciidoctor</groupId>
