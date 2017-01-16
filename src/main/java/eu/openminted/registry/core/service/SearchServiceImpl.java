@@ -46,7 +46,7 @@ public class SearchServiceImpl implements SearchService {
         }
 
 
-        SearchRequestBuilder search = client.prepareSearch(resourceType).setSearchType(SearchType.DFS_QUERY_AND_FETCH)
+        SearchRequestBuilder search = client.prepareSearch(resourceType).setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
                 .setQuery(qBuilder)
                 .setFrom(from).setSize(quantity).setExplain(false);
 
@@ -58,7 +58,7 @@ public class SearchServiceImpl implements SearchService {
         SearchResponse response = search.execute().actionGet();
 
         List<Resource> results = new ArrayList<>();
-        quantity = Math.min(quantity,(int)response.getHits().getTotalHits());
+        quantity = Math.min(quantity,(int)response.getHits().getHits().length);
         for(int i = 0 ; i < quantity; ++i) {
 
             String idTmp = response.getHits().getAt(i).getSource().get("id").toString();
