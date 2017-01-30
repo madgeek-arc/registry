@@ -1,31 +1,12 @@
 package eu.openminted.registry.core.service;
 
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.xml.XMLConstants;
-import javax.xml.namespace.NamespaceContext;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
-
+import eu.openminted.registry.core.dao.ResourceTypeDao;
+import eu.openminted.registry.core.dao.SchemaDao;
+import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.Schema;
+import eu.openminted.registry.core.domain.Tools;
+import eu.openminted.registry.core.domain.index.IndexField;
+import eu.openminted.registry.core.index.DefaultIndexMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.hibernate.HibernateException;
@@ -43,13 +24,29 @@ import org.xmlunit.validation.Languages;
 import org.xmlunit.validation.ValidationResult;
 import org.xmlunit.validation.Validator;
 
-import eu.openminted.registry.core.dao.ResourceTypeDao;
-import eu.openminted.registry.core.dao.SchemaDao;
-import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.domain.Schema;
-import eu.openminted.registry.core.domain.Tools;
-import eu.openminted.registry.core.domain.index.IndexField;
-import eu.openminted.registry.core.index.DefaultIndexMapper;
+import javax.servlet.http.HttpServletRequest;
+import javax.xml.XMLConstants;
+import javax.xml.namespace.NamespaceContext;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Created by antleb on 7/14/16.
@@ -98,6 +95,11 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 	@Override
 	public ResourceType addResourceType(ResourceType resourceType) throws ServiceException {
 		Schema schema = new Schema();
+
+
+		if (resourceTypeDao.getResourceType(resourceType.getName()) != null) {
+			throw new ServiceException("{\"error\":\"Schema already created\"}");
+		}
 
 		if (resourceType.getSchemaUrl() == null && resourceType.getSchema() == null) {
 			throw new ServiceException("{\"error\":\"Neither SchemaUrl nor Schema have been set.\"}");

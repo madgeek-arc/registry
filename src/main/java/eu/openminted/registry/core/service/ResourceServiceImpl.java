@@ -8,6 +8,7 @@ import eu.openminted.registry.core.domain.Tools;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
+import eu.openminted.registry.core.validation.ResourceValidator;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,8 @@ public class ResourceServiceImpl implements ResourceService {
 	private ResourceTypeDao resourceTypeDao;
 	@Autowired
 	private IndexMapperFactory indexMapperFactory;
+	@Autowired
+	private ResourceValidator resourceValidator;
 
 	public ResourceServiceImpl() {
 
@@ -85,22 +88,21 @@ public class ResourceServiceImpl implements ResourceService {
 			resource.setModificationDate(new Date());
 			
 		}
-		
-		
-		resource.setIndexedFields(getIndexedFields(resource));
-		
-		logger.debug("indexed fields: " + resource.getIndexedFields().size());
-		System.out.println("indexed fields: " + resource.getIndexedFields().size());
 
-		if (resource.getIndexedFields() != null)
-			for (IndexedField indexedField:resource.getIndexedFields())
-				indexedField.setResource(resource);
-		
+
 		String response = checkValid(resource);
 		if(response.equals("OK")){
 			resource.setId(UUID.randomUUID().toString());
 
 			try {
+				resource.setIndexedFields(getIndexedFields(resource));
+
+				logger.debug("indexed fields: " + resource.getIndexedFields().size());
+
+				if (resource.getIndexedFields() != null)
+					for (IndexedField indexedField:resource.getIndexedFields())
+						indexedField.setResource(resource);
+
 				resourceDao.addResource(resource);
 			} catch (Exception e) {
 				logger.error("Error saving resource", e);
@@ -173,8 +175,8 @@ public class ResourceServiceImpl implements ResourceService {
 			if (resourceType.getPayloadType().equals(resource.getPayloadFormat())) {
 				if (resourceType.getPayloadType().equals("xml")) {
 					//validate xml
-					String output = Tools.validateXMLSchema(resourceType.getSchema(), resource.getPayload());
-					if (output.equals("true")) {
+					Boolean output = resourceValidator.validate(resource.getResourceType(), resource.getPayload());
+					if (output) {
 						resource.setPayload(resource.getPayload());
 						response = "OK";
 					} else {
