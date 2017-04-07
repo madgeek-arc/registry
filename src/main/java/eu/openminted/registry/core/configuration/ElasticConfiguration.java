@@ -34,11 +34,17 @@ public class ElasticConfiguration {
     @Value("${elasticsearch.url}")
     String hostname;
 
+    @Value("${elasticsearch.cluster}")
+    String clusterName;
+
     @Bean
     public Client client(){
         TransportClient client = null;
+        Settings settings = Settings.builder()
+            .put("cluster.name", environment.getRequiredProperty("elasticsearch.cluster"))
+            .build();
         try {
-            client = new PreBuiltTransportClient(Settings.EMPTY)
+            client = new PreBuiltTransportClient(settings)
                     .addTransportAddress(new InetSocketTransportAddress(
                                     InetAddress.getByName(
                                             environment.getRequiredProperty("elasticsearch.url")),
