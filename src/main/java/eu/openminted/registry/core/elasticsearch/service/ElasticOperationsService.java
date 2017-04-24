@@ -41,7 +41,7 @@ public class ElasticOperationsService {
 	private ElasticConfiguration elastic;
 
 	private static final Map<String, String> FIELD_TYPES_MAP;
-	private static final String COMMON_ALIAS = "resourceTypes";
+	//private static final String COMMON_ALIAS = "resourceTypes";
 	
 	static {
 		Map<String, String> unmodifiableMap = new HashMap<String, String>();
@@ -58,7 +58,6 @@ public class ElasticOperationsService {
 
 		Client client = elastic.client();
 
-		
 		IndexResponse response;
 		response = client.prepareIndex(resource.getResourceType(),"general").setSource(createDocumentForInsert(resource).toString()).setId(resource.getId()).get();
 		
@@ -74,12 +73,8 @@ public class ElasticOperationsService {
 		updateRequest.doc(createDocumentForInsert(newResource).toString());
 		try {
 			client.update(updateRequest).get();
-		} catch (InterruptedException e) {
-			new ServiceException(e.getMessage());
-			return;
-		} catch (ExecutionException e) {
-			new ServiceException(e.getMessage());
-			return;
+		} catch (InterruptedException | ExecutionException e) {
+			throw new ServiceException(e.getMessage());
 		}
 	}
 
@@ -94,9 +89,10 @@ public class ElasticOperationsService {
 
 		Client client = elastic.client();
 
-
 		CreateIndexRequestBuilder createIndexRequestBuilder = client.admin().indices().prepareCreate(resourceType.getName());
-		createIndexRequestBuilder.addAlias(new Alias(COMMON_ALIAS));
+		if(resourceType.getAliasGroup() != null) {
+			createIndexRequestBuilder.addAlias(new Alias(resourceType.getAliasGroup()));
+		}
 		
 		Map<String,Object> jsonObjectForMapping = createMapping(resourceType.getIndexFields());
 
@@ -107,12 +103,9 @@ public class ElasticOperationsService {
 
 		CreateIndexResponse putMappingResponse = createIndexRequestBuilder.get();
 
-
 		if(!putMappingResponse.isAcknowledged()) {
 			System.err.println("Error creating result");
 		}
-		
-		//client.close();
 		
 	}
 
@@ -149,6 +142,7 @@ public class ElasticOperationsService {
 		jsonObjectField.put("resourceType", type);
 		jsonObjectField.put("payload", resource.getPayload());
 		jsonObjectField.put("version", resource.getVersion());
+		jsonObjectField.put("searchableArea",resource.getPayload().replaceAll("<[^>]+>", " ").replaceAll("\\s+",""));
 		jsonObjectField.put("creation_date", resource.getCreationDate());
 		jsonObjectField.put("modification_date", resource.getModificationDate());
 		

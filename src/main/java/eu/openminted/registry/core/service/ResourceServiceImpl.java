@@ -90,8 +90,8 @@ public class ResourceServiceImpl implements ResourceService {
 		}
 
 
-		String response = checkValid(resource);
-		if(response.equals("OK")){
+		Boolean response = checkValid(resource);
+		if(response){
 			resource.setId(UUID.randomUUID().toString());
 
 			try {
@@ -108,8 +108,6 @@ public class ResourceServiceImpl implements ResourceService {
 				logger.error("Error saving resource", e);
 				throw new ServiceException(e);
 			}
-		}else{
-			throw new ServiceException(response);
 		}
 		
 		return resource;
@@ -123,11 +121,9 @@ public class ResourceServiceImpl implements ResourceService {
 			for (IndexedField indexedField:resource.getIndexedFields()){
 				indexedField.setResource(resource);
 			}
-		String response = checkValid(resource);
-		if(response.equals("OK")){
+		Boolean response = checkValid(resource);
+		if(response){
 			resourceDao.updateResource(resource);
-		}else{
-			throw new ServiceException(response);
 		}
 
 		return resource;
@@ -167,47 +163,42 @@ public class ResourceServiceImpl implements ResourceService {
 		this.resourceTypeDao = resourceTypeDao;
 	}
 
-	private String checkValid(Resource resource) {
-		String response = "";
+	private Boolean checkValid(Resource resource) {
 		ResourceType resourceType = resourceTypeDao.getResourceType(resource.getResourceType());
 
 		if (resourceType != null) {
 			if (resourceType.getPayloadType().equals(resource.getPayloadFormat())) {
 				if (resourceType.getPayloadType().equals("xml")) {
 					//validate xml
-					Boolean output = resourceValidator.validate(resource.getResourceType(), resource.getPayload());
+					Boolean output = resourceValidator.validateXML(resource.getResourceType(), resource.getPayload());
 					if (output) {
 						resource.setPayload(resource.getPayload());
-						response = "OK";
 					} else {
-						response = "XML and XSD mismatch";
-//						response = output;
+						throw new ServiceException("XML and XSD mismatch");
 					}
 				} else if (resourceType.getPayloadType().equals("json")) {
 
-					//validate json
-					String jsonResponse = Tools.validateJSONSchema(resourceType.getSchema(), resource.getPayload());
-//					String jsonResponse = "true";
-					if (jsonResponse.equals("true")) {
+					Boolean output = resourceValidator.validateJSON(resourceType.getSchema(), resource.getPayload());
+
+					if (output) {
 						resource.setPayload(resource.getPayload());
-						response = "OK";
 					} else {
-						response = "JSON and Schema missmatch";
+						throw new ServiceException("JSON and Schema mismatch");
 					}
 				} else {
 					//payload type not supported
-					response = "type not supported";
+					throw new ServiceException("type not supported");
 				}
 			} else {
 				//payload and schema format do not match, we cant validate
-				response = "payload and schema format are different";
+				throw new ServiceException("payload and schema format are different");
 			}
 		} else {
 			//resource type not found
-			response = "resource type not found";
+			throw new ServiceException("resource type not found");
 		}
 
-		return response;
+		return true;
 	}
 }
 
