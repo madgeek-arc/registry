@@ -21,12 +21,6 @@
 		</license>
 	</licenses>
 	<dependencies>
-		<!-- https://mvnrepository.com/artifact/org.elasticsearch/elasticsearch -->
-		<dependency>
-			<groupId>org.elasticsearch</groupId>
-			<artifactId>elasticsearch</artifactId>
-			<version>5.0.0</version>
-		</dependency>
 		<dependency>
 			<groupId>org.hibernate.javax.persistence</groupId>
 			<artifactId>hibernate-jpa-2.1-api</artifactId>
