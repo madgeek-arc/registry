@@ -5,7 +5,18 @@ package eu.openminted.registry.core.service;
  */
 public class ServiceException extends RuntimeException {
 
+	private String error;
+
+	private String errorDescription;
+
 	public ServiceException() {
+	}
+
+	public ServiceException(String error, String errorDescription) {
+		super(error + " : " + errorDescription);
+		this.error = error;
+		this.errorDescription = errorDescription;
+
 	}
 
 	public ServiceException(String message) {
@@ -18,5 +29,13 @@ public class ServiceException extends RuntimeException {
 
 	public ServiceException(Throwable cause) {
 		super(cause);
+	}
+
+	public String getError() {
+		return error;
+	}
+
+	public String getErrorDescription() {
+		return errorDescription;
 	}
 }
