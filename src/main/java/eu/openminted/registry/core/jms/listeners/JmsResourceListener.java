@@ -29,7 +29,9 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
 		String topic = getTopic(resource, "create");
 		JSONObject jsonObject = new JSONObject();
 
-		jsonObject.put("message", "New resource added to " + topic);
+		jsonObject.put("message", "New resource");
+		jsonObject.put("resourceId", resource.getId());
+		jsonObject.put("resourceType", resource.getResourceType());
 		jsonObject.put("resource", resource.getPayload());
 
 		try {
@@ -45,6 +47,8 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
 		JSONObject jsonObject = new JSONObject();
 
 		jsonObject.put("message", "Resource updated");
+		jsonObject.put("resourceId", newResource.getId());
+		jsonObject.put("resourceType", newResource.getResourceType());
 		jsonObject.put("previous", previousResource.getPayload());
 		jsonObject.put("new", newResource.getPayload());
 
@@ -62,6 +66,8 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
 
 		jsonObject.put("message", "Resource deleted.");
 		jsonObject.put("resourceId", resource.getId());
+		jsonObject.put("resourceType", resource.getResourceType());
+
 
 		try {
 			jmsService.publishMessage(topic, jsonObject.toString());

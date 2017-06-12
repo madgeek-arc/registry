@@ -1,6 +1,7 @@
 package eu.openminted.registry.core.service;
 
 import eu.openminted.registry.core.configuration.ElasticConfiguration;
+import eu.openminted.registry.core.domain.FacetFilter;
 import eu.openminted.registry.core.domain.Occurencies;
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
@@ -35,24 +36,34 @@ public class SearchServiceImpl implements SearchService {
     private ElasticConfiguration elastic;
 
 
-    private Paging buildSearch(String resourceType, BoolQueryBuilder qBuilder, int from, int to,
-                        String[] browseBy) {
+    private static BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
+        BoolQueryBuilder qBuilder = new BoolQueryBuilder();
+        if (!filter.getKeyword().equals("")) {
+            qBuilder.must(QueryBuilders.matchQuery("payload", filter.getKeyword()));
+        } else {
+            qBuilder.must(QueryBuilders.matchAllQuery());
+        }
+        for (Map.Entry<String, Object> filterSet : filter.getFilter().entrySet()) {
+            qBuilder.must(QueryBuilders.termQuery(filterSet.getKey(), filterSet.getValue()));
+        }
+        return qBuilder;
+    }
+
+    private Paging buildSearch(FacetFilter filter) {
         Client client = elastic.client();
 
         Paging paging;
-        int quantity = to;
-        if (to == 0) {
-            quantity = 10;
-        }
+        int quantity = filter.getQuantity();
+        BoolQueryBuilder qBuilder = createQueryBuilder(filter);
 
-
-        SearchRequestBuilder search = client.prepareSearch(resourceType).setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
+        SearchRequestBuilder search = client.prepareSearch(filter.getResourceType()).
+                setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
                 .setQuery(qBuilder)
-                .setFrom(from).setSize(quantity).setExplain(false);
+                .setFrom(filter.getFrom()).setSize(quantity).setExplain(false);
 
 
-        for (int i = 0; i < browseBy.length; i++) {
-            search.addAggregation(AggregationBuilders.terms("by_" + browseBy[i]).field(browseBy[i]));
+        for (String browseBy : filter.getBrowseBy()) {
+            search.addAggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy));
         }
 
         SearchResponse response = search.execute().actionGet();
@@ -69,15 +80,15 @@ public class SearchServiceImpl implements SearchService {
 
         Map<String, Map<String, Integer>> values = new HashMap<>();
         Occurencies occurencies = new Occurencies();
-        if (browseBy.length != 0) {
+        if (!filter.getBrowseBy().isEmpty()) {
 
-            for (int j = 0; j < browseBy.length; j++) {
+            for (String browseBy : filter.getBrowseBy()) {
                 Map<String, Integer> subMap = new HashMap<>();
-                Terms terms = response.getAggregations().get("by_" + browseBy[j]);
+                Terms terms = response.getAggregations().get("by_" + browseBy);
                 for (Bucket bucket : terms.getBuckets()) {
                     subMap.put(bucket.getKeyAsString(), Integer.parseInt(bucket.getDocCount() + ""));
                 }
-                values.put(browseBy[j], subMap);
+                values.put(browseBy, subMap);
             }
             occurencies.setValues(values);
 
@@ -85,31 +96,29 @@ public class SearchServiceImpl implements SearchService {
         if (response == null || response.getHits().getTotalHits() == 0) {
             paging = new Paging(0, 0, 0, new ArrayList<>(), new Occurencies());
         } else {
-            if (to == 0) {
-                to = from + quantity;
+            if (filter.getQuantity() == 0) {
+                filter.setQuantity(filter.getFrom() + quantity);
             }
 
-            paging = new Paging((int) response.getHits().getTotalHits(), from, from + results.size(), results, occurencies);
+            paging = new Paging((int) response.getHits().getTotalHits(), filter.getFrom(),
+                    filter.getFrom() + results.size(), results, occurencies);
         }
 
         return paging;
     }
 
     @Override
-    public Paging search(String resourceType, BoolQueryBuilder qBuilder, int from, int to,
-                         String[] browseBy) throws ServiceException {
-        return buildSearch(resourceType,qBuilder,from,to,browseBy);
+    public Paging search(FacetFilter filter) throws ServiceException {
+        return buildSearch(filter);
     }
 
     @Override
-    public Paging searchKeyword(String resourceType, String keyword, int from, int to, String[] browseBy) throws ServiceException, UnknownHostException {
+    public Paging searchKeyword(String resourceType, String keyword) throws ServiceException, UnknownHostException {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
-        if (!keyword.equals("")) {
-            qBuilder.must(QueryBuilders.matchQuery("payload", keyword));
-        } else {
-            qBuilder.must(QueryBuilders.matchAllQuery());
-        }
-        return buildSearch(resourceType,qBuilder,from,to,browseBy);
+        FacetFilter filter = new FacetFilter();
+        filter.setResourceType(resourceType);
+        filter.setKeyword(keyword);
+        return buildSearch(filter);
     }
 
     @Override
