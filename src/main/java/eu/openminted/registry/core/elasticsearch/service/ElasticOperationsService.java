@@ -142,7 +142,7 @@ public class ElasticOperationsService {
 		jsonObjectField.put("resourceType", type);
 		jsonObjectField.put("payload", resource.getPayload());
 		jsonObjectField.put("version", resource.getVersion());
-		jsonObjectField.put("searchableArea",resource.getPayload().replaceAll("<[^>]+>", " ").replaceAll("\\s+",""));
+		jsonObjectField.put("searchableArea",resource.getPayload().replaceAll("<[^>]+>", " ").replaceAll("\\s+"," "));
 		jsonObjectField.put("creation_date", resource.getCreationDate());
 		jsonObjectField.put("modification_date", resource.getModificationDate());
 		
