@@ -2,19 +2,20 @@ package eu.openminted.registry.core.domain;
 
 import java.util.List;
 
-public class Paging<T> {
+public class Browsing<T> {
+
     int total;
     int from;
     int to;
-    List<T> results;
-    Occurrences occurrences;
+    List<Order<T>> results;
+    List<Facet> facets;
 
-    public Paging(int total, int from, int to, List<T> results, Occurrences occurrences) {
+    public Browsing(int total, int from, int to, List<Order<T>> results, List<Facet> facets) {
         this.total = total;
         this.from = from;
         this.to = to;
         this.results = results;
-        this.occurrences = occurrences;
+        this.facets = facets;
     }
 
     public int getTotal() {
@@ -41,20 +42,21 @@ public class Paging<T> {
         this.to = to;
     }
 
-    public List<T> getResults() {
+    public List<Order<T>> getResults() {
         return results;
     }
 
-    public void setResults(List<T> results) {
+    public void setResults(List<Order<T>> results) {
         this.results = results;
     }
 
-    public Occurrences getOccurrences() {
-        return occurrences;
+    public List<Facet> getFacets() {
+        return facets;
     }
 
-    public void setOccurrences(Occurrences occurrences) {
-        this.occurrences = occurrences;
+    public void setFacets(List<Facet> facets) {
+        this.facets = facets;
     }
+
 
 }

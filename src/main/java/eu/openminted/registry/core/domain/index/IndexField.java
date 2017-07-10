@@ -27,18 +27,24 @@ public class IndexField implements Serializable{
 	@Column
 	@Id
 	private String name;
+
 	@Column
 	private String path;
+
 	@Column
 	private String type;
 
-
+	@Column
+	private String label;
 
 	@Column
 	private String defaultValue;
 
 	@Column
 	private boolean multivalued;
+
+	@Column
+	private boolean primaryKey = false;
 
 	public IndexField() {
 	}
@@ -91,6 +97,22 @@ public class IndexField implements Serializable{
 		this.defaultValue = defaultValue;
 	}
 
+	public String getLabel() {
+		return label;
+	}
+
+	public void setLabel(String label) {
+		this.label = label;
+	}
+
+	public boolean isPrimaryKey() {
+		return primaryKey;
+	}
+
+	public void setPrimaryKey(boolean primaryKey) {
+		this.primaryKey = primaryKey;
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
@@ -99,10 +121,12 @@ public class IndexField implements Serializable{
 		IndexField that = (IndexField) o;
 
 		if (multivalued != that.multivalued) return false;
+		if (primaryKey != that.primaryKey) return false;
 		if (resourceType != null ? !resourceType.equals(that.resourceType) : that.resourceType != null) return false;
 		if (name != null ? !name.equals(that.name) : that.name != null) return false;
 		if (path != null ? !path.equals(that.path) : that.path != null) return false;
 		if (type != null ? !type.equals(that.type) : that.type != null) return false;
+		if (label != null ? !label.equals(that.label) : that.label != null) return false;
 		return defaultValue != null ? defaultValue.equals(that.defaultValue) : that.defaultValue == null;
 
 	}
@@ -113,8 +137,10 @@ public class IndexField implements Serializable{
 		result = 31 * result + (name != null ? name.hashCode() : 0);
 		result = 31 * result + (path != null ? path.hashCode() : 0);
 		result = 31 * result + (type != null ? type.hashCode() : 0);
+		result = 31 * result + (label != null ? label.hashCode() : 0);
 		result = 31 * result + (defaultValue != null ? defaultValue.hashCode() : 0);
 		result = 31 * result + (multivalued ? 1 : 0);
+		result = 31 * result + (primaryKey ? 1 : 0);
 		return result;
 	}
 }

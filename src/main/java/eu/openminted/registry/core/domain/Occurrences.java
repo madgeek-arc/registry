@@ -3,7 +3,7 @@ package eu.openminted.registry.core.domain;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Occurencies {
+public class Occurrences {
 	
 	private Map<String, Map<String,Integer>> values = new HashMap<String, Map<String,Integer>>();
 
