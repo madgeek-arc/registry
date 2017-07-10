@@ -1,11 +1,8 @@
 package eu.openminted.registry.core.index;
 
-import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import eu.openminted.registry.core.domain.index.BooleanIndexedField;
-import org.apache.log4j.Logger;
 import org.springframework.stereotype.Repository;
 
 import eu.openminted.registry.core.domain.index.IndexedField;
@@ -20,14 +17,13 @@ public class IndexedFieldFactory {
 
 	public <T> IndexedField<T> getIndexedField(String fieldName, Set<Object> value, String fieldType) {
 
-		Set<String> set = value.stream().map(Object::toString).collect(Collectors.toSet());
-
+		// Set<String> set = value.stream().map(Object::toString).collect(Collectors.toSet());
+		IndexedField field = null;
 		if (String.class.getName().equals(fieldType)) {
-			return (IndexedField<T>) new StringIndexedField(fieldName, set);
+			field = new StringIndexedField(fieldName,value);
 		} else if (Boolean.class.getName().equals(fieldType)) {
-			return (IndexedField<T>) new BooleanIndexedField(fieldName, value);
+			field = new BooleanIndexedField(fieldName,value);
 		}
-
-		return null;
+		return field;
 	}
 }

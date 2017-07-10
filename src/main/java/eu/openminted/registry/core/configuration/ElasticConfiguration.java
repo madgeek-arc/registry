@@ -34,8 +34,8 @@ public class ElasticConfiguration {
     @Value("${elasticsearch.url}")
     String hostname;
 
-    @Value("${elasticsearch.cluster}")
-    String clusterName;
+//    @Value("${elasticsearch.cluster}")
+//    String clusterName;
 
     @Bean
     public Client client(){
@@ -43,7 +43,7 @@ public class ElasticConfiguration {
         Settings.Builder settings = Settings.builder();
 
         //check if part of a cluster and add it
-        if(environment.getProperty("elasticsearch.cluster") != null) {
+        if(environment.getProperty("elasticsearch.cluster","") != "") {
             settings.put("cluster.name", environment.getRequiredProperty("elasticsearch.cluster"));
         }
 

@@ -1,7 +1,11 @@
 package eu.openminted.registry.core.dao;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
+import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.service.ServiceException;
 import org.hibernate.Criteria;
 import org.hibernate.criterion.Restrictions;
@@ -44,6 +48,17 @@ public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> imple
 
 	public void addResourceType(ResourceType resourceType) {
 		persist(resourceType);
+	}
+
+	@Override
+	public Set<IndexField> getResourceTypeIndexFields(String name) {
+		Set<IndexField> indexFields = new HashSet<>();
+		Criteria cr = getSession().createCriteria(ResourceType.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
+		cr.add(Restrictions.or(Restrictions.eq("name", name),Restrictions.eq("aliasGroup", name)));
+		for(Object type : cr.list()) {
+			indexFields.addAll(((ResourceType) type).getIndexFields());
+		}
+		return indexFields;
 	}
 
 }

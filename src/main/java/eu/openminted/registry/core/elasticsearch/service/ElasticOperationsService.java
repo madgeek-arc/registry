@@ -10,17 +10,13 @@ import eu.openminted.registry.core.service.ServiceException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
-import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.XML;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -31,148 +27,130 @@ import java.util.concurrent.ExecutionException;
 @Transactional
 public class ElasticOperationsService {
 
-	@Autowired
-	ResourceTypeService resourceTypeService;
+    @Autowired
+    ResourceTypeService resourceTypeService;
 
-	@Autowired
-	private Environment environment;
+    @Autowired
+    private ElasticConfiguration elastic;
 
-	@Autowired
-	private ElasticConfiguration elastic;
+    private static final Map<String, String> FIELD_TYPES_MAP;
 
-	private static final Map<String, String> FIELD_TYPES_MAP;
-	//private static final String COMMON_ALIAS = "resourceTypes";
-	
-	static {
-		Map<String, String> unmodifiableMap = new HashMap<String, String>();
-		unmodifiableMap.put("java.lang.Double", "double");
-		unmodifiableMap.put("java.lang.Integer", "int");
-		unmodifiableMap.put("java.lang.Boolean", "boolean");
-		unmodifiableMap.put("java.lang.Long", "long");
-		unmodifiableMap.put("java.lang.String", "keyword");
-		unmodifiableMap.put("java.util.Date", "date");
-		FIELD_TYPES_MAP = Collections.unmodifiableMap(unmodifiableMap);
-	}
+    static {
+        Map<String, String> unmodifiableMap = new HashMap<>();
+        unmodifiableMap.put("java.lang.Double", "double");
+        unmodifiableMap.put("java.lang.Integer", "int");
+        unmodifiableMap.put("java.lang.Boolean", "boolean");
+        unmodifiableMap.put("java.lang.Long", "long");
+        unmodifiableMap.put("java.lang.String", "keyword");
+        unmodifiableMap.put("java.util.Date", "date");
+        FIELD_TYPES_MAP = Collections.unmodifiableMap(unmodifiableMap);
+    }
 
-	public void add(Resource resource) {
+    public void add(Resource resource) {
 
-		Client client = elastic.client();
+        Client client = elastic.client();
+        String payload = createDocumentForInsert(resource);
+        client.prepareIndex(resource.getResourceType(), "general")
+                .setSource(payload)
+                .setId(resource.getId()).get();
+    }
 
-		IndexResponse response;
-		response = client.prepareIndex(resource.getResourceType(),"general").setSource(createDocumentForInsert(resource).toString()).setId(resource.getId()).get();
-		
-	}
+    public void update(Resource previousResource, Resource newResource) {
+        Client client = elastic.client();
 
-	public void update(Resource previousResource, Resource newResource) {
-		Client client = elastic.client();
+        UpdateRequest updateRequest = new UpdateRequest();
+        updateRequest.index(newResource.getResourceType());
+        updateRequest.type("general");
+        updateRequest.id(previousResource.getId());
+        updateRequest.doc(createDocumentForInsert(newResource));
+        try {
+            client.update(updateRequest).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new ServiceException(e.getMessage());
+        }
+    }
 
-		UpdateRequest updateRequest = new UpdateRequest();
-		updateRequest.index(newResource.getResourceType());
-		updateRequest.type("general");
-		updateRequest.id(previousResource.getId());
-		updateRequest.doc(createDocumentForInsert(newResource).toString());
-		try {
-			client.update(updateRequest).get();
-		} catch (InterruptedException | ExecutionException e) {
-			throw new ServiceException(e.getMessage());
-		}
-	}
+    public void delete(Resource resource) {
+        Client client = elastic.client();
+        client.prepareDelete(resource.getResourceType(), "general", resource.getId()).get();
+    }
 
-	public void delete(Resource resource) {
-		Client client = elastic.client();
-		
-		DeleteResponse response = client.prepareDelete(resource.getResourceType(), "general", resource.getId()).get();
-		
-	}
+    public void createIndex(ResourceType resourceType) {
 
-	public void createIndex(ResourceType resourceType) {
+        Client client = elastic.client();
 
-		Client client = elastic.client();
+        CreateIndexRequestBuilder createIndexRequestBuilder = client.admin().indices().prepareCreate(resourceType.getName());
+        if (resourceType.getAliasGroup() != null) {
+            createIndexRequestBuilder.addAlias(new Alias(resourceType.getAliasGroup()));
+        }
 
-		CreateIndexRequestBuilder createIndexRequestBuilder = client.admin().indices().prepareCreate(resourceType.getName());
-		if(resourceType.getAliasGroup() != null) {
-			createIndexRequestBuilder.addAlias(new Alias(resourceType.getAliasGroup()));
-		}
-		
-		Map<String,Object> jsonObjectForMapping = createMapping(resourceType.getIndexFields());
+        Map<String, Object> jsonObjectForMapping = createMapping(resourceType.getIndexFields());
 
-		JSONObject parameters = new JSONObject(jsonObjectForMapping);
-		System.err.println(parameters.toString(2));
+        JSONObject parameters = new JSONObject(jsonObjectForMapping);
+        System.err.println(parameters.toString(2));
 
-		createIndexRequestBuilder.addMapping("general",jsonObjectForMapping);
+        createIndexRequestBuilder.addMapping("general", jsonObjectForMapping);
 
-		CreateIndexResponse putMappingResponse = createIndexRequestBuilder.get();
+        CreateIndexResponse putMappingResponse = createIndexRequestBuilder.get();
 
-		if(!putMappingResponse.isAcknowledged()) {
-			System.err.println("Error creating result");
-		}
-		
-	}
+        if (!putMappingResponse.isAcknowledged()) {
+            System.err.println("Error creating result");
+        }
 
-	public Map<String,Object> createMapping(List<IndexField> indexFields){
+    }
 
-		Map<String,Object> jsonObjectGeneral = new HashMap<>();
-		Map<String,Object> jsonObjectProperties = new HashMap<>();
-		
-		if (indexFields != null) {
-			for (IndexField indexField : indexFields) {
-				Map<String,Object> typeMap = new HashMap<>();
-				typeMap.put("type", FIELD_TYPES_MAP.get(indexField.getType()));
-				jsonObjectProperties.put(indexField.getName(), typeMap);
-			}
-		}
+    public Map<String, Object> createMapping(List<IndexField> indexFields) {
 
-		final Map<String,Object> typeMap = new HashMap<>();
-		typeMap.put("type","keyword");
-		jsonObjectProperties.put("resourceType",typeMap);
+        Map<String, Object> jsonObjectGeneral = new HashMap<>();
+        Map<String, Object> jsonObjectProperties = new HashMap<>();
+
+        if (indexFields != null) {
+            for (IndexField indexField : indexFields) {
+                Map<String, Object> typeMap = new HashMap<>();
+                typeMap.put("type", FIELD_TYPES_MAP.get(indexField.getType()));
+                jsonObjectProperties.put(indexField.getName(), typeMap);
+            }
+        }
+
+        final Map<String, Object> typeMap = new HashMap<>();
+        typeMap.put("type", "keyword");
+        jsonObjectProperties.put("resourceType", typeMap);
 
 
-		jsonObjectGeneral.put("properties", jsonObjectProperties);
-		return jsonObjectGeneral;
-		
-	}
-	
-	public JSONObject createDocumentForInsert(Resource resource){
-		
-		String type = resource.getResourceType();
-		ResourceType resourceType = resourceTypeService.getResourceType(type);
-		
-		JSONObject jsonObjectField = new JSONObject();
-		jsonObjectField.put("id", resource.getId());
-		jsonObjectField.put("resourceType", type);
-		jsonObjectField.put("payload", resource.getPayload());
-		jsonObjectField.put("version", resource.getVersion());
-		jsonObjectField.put("searchableArea",resource.getPayload().replaceAll("<[^>]+>", " ").replaceAll("\\s+"," "));
-		jsonObjectField.put("creation_date", resource.getCreationDate());
-		jsonObjectField.put("modification_date", resource.getModificationDate());
-		
-		if (resource.getIndexedFields() != null) {
-			for (IndexedField<?> field:resource.getIndexedFields()) {
-				for (Object value:field.getValues()) {
-					jsonObjectField.put(field.getName(), getValue(field.getType(), value));
-				}
-			}
-		}
-		
-		return jsonObjectField;
-		
-	}
-	
-	private Object getValue(String type, Object value) {
+        jsonObjectGeneral.put("properties", jsonObjectProperties);
+        return jsonObjectGeneral;
 
-		// TODO return value properly formatted
-		return value;
-	}
-	
-	public String XMLtoJSON(String xmlContent){
-		 try {
-	            JSONObject xmlJSONObj = XML.toJSONObject(xmlContent);
-	            String jsonPrettyPrintString = xmlJSONObj.toString(4);
-	            System.out.println(jsonPrettyPrintString);
-	            return jsonPrettyPrintString;
-	        } catch (JSONException je) {
-	            System.out.println(je.toString());
-	            return null;
-	        }
-	}
+    }
+
+    private String createDocumentForInsert(Resource resource) {
+
+        JSONObject jsonObjectField = new JSONObject();
+        jsonObjectField.put("id", resource.getId());
+        jsonObjectField.put("resourceType", resource.getResourceType());
+        jsonObjectField.put("payload", resource.getPayload());
+        jsonObjectField.put("payloadFormat", resource.getPayloadFormat());
+        jsonObjectField.put("version", resource.getVersion());
+        jsonObjectField.put("searchableArea", strip(resource.getPayload(),resource.getPayloadFormat()));
+        jsonObjectField.put("creation_date", resource.getCreationDate());
+        jsonObjectField.put("modification_date", resource.getModificationDate());
+
+        if (resource.getIndexedFields() != null) {
+            for (IndexedField<?> field : resource.getIndexedFields()) {
+                for (Object value : field.getValues()) {
+                    jsonObjectField.put(field.getName(), value);
+                }
+            }
+        }
+        return jsonObjectField.toString();
+    }
+
+    static private String strip(String input, String format) {
+        if ( "xml".equals(format)) {
+            return input.replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ");
+        } else if ("json".equals(format)) {
+            return input;
+        } else {
+            throw new ServiceException("Invalid format type, supported are json and xml");
+        }
+    }
 }

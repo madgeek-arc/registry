@@ -1,7 +1,10 @@
 package eu.openminted.registry.core.dao;
 
+import java.util.Date;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.hibernate.Criteria;
 import org.hibernate.Query;
 import org.hibernate.Session;
@@ -12,7 +15,6 @@ import eu.openminted.registry.core.domain.Resource;
 
 @Repository("resourceDao")
 public class ResourceDaoImpl extends AbstractDao<String, Resource> implements ResourceDao {
-
 
 	public Resource getResource(String resourceType, String id) {
 
@@ -77,28 +79,25 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 	}
 
 	public List<Resource> getResource() {
-
 		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-
 		return cr.list();
 	}
 
 
 	public void addResource(Resource resource){
 		persist(resource);
+		getSession().flush();
 	}
 
 	public void updateResource(Resource resource) {
-		Resource resource_merged = (Resource) getSession().merge(resource);
-		Session session = getSession();
-		session.update(resource_merged);
-
+		resource.setModificationDate(new Date());
+		getSession().merge(resource);
+		getSession().flush();
 	}
 
 	public void deleteResource(String id) {
-		Query query = getSession().createSQLQuery("delete from resource where id = :id").setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		query.setString("id", id);
-		query.executeUpdate();
+		Resource resource = getSession().get(Resource.class,id);
+		getSession().delete(resource);
 	}
 
 }

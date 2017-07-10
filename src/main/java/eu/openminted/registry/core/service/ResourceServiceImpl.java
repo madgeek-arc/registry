@@ -4,15 +4,13 @@ import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.domain.Tools;
+import eu.openminted.registry.core.domain.UrlResolver;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
 import eu.openminted.registry.core.validation.ResourceValidator;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,9 +18,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import javax.management.ServiceNotFoundException;
-
-@Service("resourceService")
+	@Service("resourceService")
 @Transactional
 public class ResourceServiceImpl implements ResourceService {
 
@@ -78,7 +74,7 @@ public class ResourceServiceImpl implements ResourceService {
     			resource.setPayloadUrl("not_set");
     		}else{
     			try {
-					resource.setPayload(Tools.getText(resource.getPayloadUrl()));
+					resource.setPayload(UrlResolver.getText(resource.getPayloadUrl()));
 				} catch (Exception e) {
 					throw new ServiceException("{\"error\":\""+e.getMessage()+"\"}");
 				}

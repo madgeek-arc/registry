@@ -4,7 +4,7 @@ import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.dao.SchemaDao;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.Schema;
-import eu.openminted.registry.core.domain.Tools;
+import eu.openminted.registry.core.domain.UrlResolver;
 import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.index.DefaultIndexMapper;
 import org.apache.commons.lang3.StringUtils;
@@ -47,6 +47,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by antleb on 7/14/16.
@@ -93,28 +94,32 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 	}
 
 	@Override
+	public Set<IndexField> getResourceTypeIndexFields(String name) {
+		Set<IndexField> indexFields = resourceTypeDao.getResourceTypeIndexFields(name);
+		return indexFields;
+	}
+
+	@Override
 	public ResourceType addResourceType(ResourceType resourceType) throws ServiceException {
 		Schema schema = new Schema();
 
 
 		if (resourceTypeDao.getResourceType(resourceType.getName()) != null) {
-			throw new ServiceException("{\"error\":\"Schema already created\"}");
+			throw new ServiceException("Schema already created");
 		}
 
 		if (resourceType.getSchemaUrl() == null && resourceType.getSchema() == null) {
-			throw new ServiceException("{\"error\":\"Neither SchemaUrl nor Schema have been set.\"}");
+			throw new ServiceException("Neither SchemaUrl nor Schema have been set");
 		} else if (resourceType.getSchemaUrl() != null && resourceType.getSchema() != null) {
-			throw new ServiceException("{\"error\":\"Both Schema and SchemaUrl are set\"}");
+			throw new ServiceException("Both Schema and SchemaUrl are set");
 		} else {
 			if (resourceType.getSchemaUrl() == null) {
 				resourceType.setSchemaUrl("not_set");
 			} else {
 				try {
-					String output = "";
-					output = Tools.getText(resourceType.getSchemaUrl());
-					resourceType.setSchema(output);
+					resourceType.setSchema(UrlResolver.getText(resourceType.getSchemaUrl()));
 				} catch (Exception e) {
-					throw new ServiceException("{\"error\":\""+e.getMessage()+"\"}");
+					throw new ServiceException(e.getMessage());
 				}
 			}
 		}
@@ -128,7 +133,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 				field.setResourceType(resourceType);
 		}
 
-		ArrayList<String> recursionPaths = new ArrayList<String>();
+		ArrayList<String> recursionPaths = new ArrayList<>();
 		
 		exportIncludes(resourceType, resourceType.getSchemaUrl(),recursionPaths);
 
@@ -174,110 +179,6 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 			return null;
 		}
 	}
-
-//	private void exportIncludes(ResourceType resourceType, String baseUrl, ArrayList<String> recursionPaths) throws ServiceException {
-//		String type = resourceType.getPayloadType();
-//		boolean isFromUrl;
-//
-//		if (resourceType.getSchemaUrl().equals("not_set")) {
-//			isFromUrl = false;
-//		} else {
-//			isFromUrl = true;
-//		}
-//
-//		if (type.equals("xml")) {
-//			try {
-//				validateScema(resourceType.getSchema());
-//				DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-//				dbFactory.setNamespaceAware(true);
-////				dbFactory.setValidating(true);
-//				DocumentBuilder dBuilder;
-//
-//				dBuilder = dbFactory.newDocumentBuilder();
-//
-//				Document doc = dBuilder.parse(new InputSource(new StringReader(resourceType.getSchema())));
-//				doc.getDocumentElement().normalize();
-//
-//
-//				XPathFactory factory = XPathFactory.newInstance();
-//				XPath xpath = factory.newXPath();
-//				final String prefixFinal = "";
-//
-//				// there's no default implementation for NamespaceContext...seems kind of silly, no?
-//				xpath.setNamespaceContext(new NamespaceContext() {
-//					public String getNamespaceURI(String prefix) {
-//						if (prefix == null) return "http://www.w3.org/2001/XMLSchema";
-//						else if ("xml".equals(prefix)) return XMLConstants.XML_NS_URI;
-//						else if ("xs".equals(prefix)) return "http://www.w3.org/2001/XMLSchema";
-//						else if ("xsd".equals(prefix)) return "http://www.w3.org/2001/XMLSchema";
-//						return XMLConstants.NULL_NS_URI;
-//					}
-//
-//					// This method isn't necessary for XPath processing.
-//					public String getPrefix(String uri) {
-//						throw new UnsupportedOperationException();
-//					}
-//
-//					// This method isn't necessary for XPath processing either.
-//					public Iterator getPrefixes(String uri) {
-//						throw new UnsupportedOperationException();
-//					}
-//				});
-//				String expression = "//xs:include/attribute::schemaLocation";
-//				NodeList nodeList = (NodeList) xpath.compile(expression).evaluate(doc, XPathConstants.NODESET);
-//				for (int i = 0; i < nodeList.getLength(); i++) {
-//					String schemaUrl = nodeList.item(i).getTextContent();
-//
-//					logger.debug("Checking schema: " + schemaUrl);
-//
-//					int validation = isValidUrl(schemaUrl, isFromUrl);
-//					if (validation != 0) {
-//						String schemaContent;
-//						
-//						Schema schema = schemaDao.getSchemaByUrl(schemaUrl);
-//						if(schema==null){
-//							schema = new Schema();
-//							schema.setOriginalUrl(schemaUrl);
-//							String originalUrl = schemaUrl;
-//							if (validation == 2) {
-//								schemaUrl = baseUrl.replace(baseUrl.substring(baseUrl.lastIndexOf("/") + 1), schemaUrl);
-//							}
-//							try {
-//								schemaContent = Tools.getText(schemaUrl);
-//							} catch (Exception e) {
-//								throw new ServiceException("failed to download file(s)", e);
-//							}
-//							
-//							resourceType.setSchema(schemaContent);
-//							
-//							if(recursionPaths.contains(originalUrl)){
-//								nodeList.item(i).setNodeValue(getBaseEnvLinkURL() + "/schemaService/" + schema.getId() + "");
-//							}else{
-//								schema.setId(stringToMd5(resourceType.getSchema()));
-//								recursionPaths.add(schemaUrl);
-//								exportIncludes(resourceType,baseUrl,recursionPaths);
-//								
-//								schema.setSchema(resourceType.getSchema());
-//								nodeList.item(i).setNodeValue(getBaseEnvLinkURL() + "/schemaService/" + schema.getId() + "");
-//								schemaDao.addSchema(schema);
-//							}
-//							
-//						}else{
-//							nodeList.item(i).setNodeValue(getBaseEnvLinkURL() + "/schemaService/" + schema.getId());
-//						}
-//						
-//					} else {
-//						throw new ServiceException("includes contain relative paths that cannot be resolved");
-//					}
-//				}
-//				resourceType.setSchema(documentToString(doc));
-//			} catch (ServiceException e) {
-//				throw e;
-//			} catch (Exception e) {
-//				throw new ServiceException(e);
-//			}
-//		}
-//	}
 	
 	private void exportIncludes(ResourceType resourceType, String baseUrl, ArrayList<String> recursionPaths) throws ServiceException {
 		String type = resourceType.getPayloadType();
@@ -343,7 +244,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 						}
 
 						try {
-							schemaContent = Tools.getText(schemaUrl);
+							schemaContent = UrlResolver.getText(schemaUrl);
 						} catch (Exception e) {
 							throw new ServiceException("failed to download file(s)", e);
 						}

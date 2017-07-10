@@ -33,12 +33,18 @@ public class ResourceMonitor {
 	@Around("execution (* eu.openminted.registry.core.service.ResourceService.addResource(eu.openminted.registry.core.domain.Resource)) && args(resource)")
 	public void resourceAdded(ProceedingJoinPoint pjp, Resource resource) throws Throwable {
 
-		resource = (Resource) pjp.proceed();
+		try {
+			resource = (Resource) pjp.proceed();
+		} catch( Exception e) {
+			logger.fatal("fatal error in monitor",e);
+			throw e;
+		}
 
 		if (resourceListeners != null)
 			for (ResourceListener listener : resourceListeners) {
 				try {
 					listener.resourceAdded(resource);
+					logger.info("Notified listener : " + listener.getClass().getSimpleName());
 				} catch (Exception e) {
 					logger.error("Error notifying listener", e);
 				}
