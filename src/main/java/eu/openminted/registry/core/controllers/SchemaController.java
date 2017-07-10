@@ -21,20 +21,11 @@ public class SchemaController {
 
 	@RequestMapping(value = "/schemaService/{id}", method = RequestMethod.GET, headers = "Accept=application/json")
 	public String getResourceTypeByName(@PathVariable("id") String id) {
-		ResponseEntity<String> responseEntity;
 		Schema schema = resourceTypeService.getSchema(id);
-		if (schema == null) {
-			responseEntity = new ResponseEntity<String>(HttpStatus.NOT_FOUND);
-		} else {
-			responseEntity = new ResponseEntity<String>(Utils.objToJson(schema), HttpStatus.OK);
-		}
-//		return responseEntity;
 		if(schema==null){
 			return "";
 		}else{
 			return schema.getSchema();
 		}
-//		SolrClass solrClass = new SolrClass();
-//		return solrClass.SolrClass().toString();
 	}
 }
