@@ -10,10 +10,7 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.w3c.dom.Document;
 import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
@@ -37,15 +34,7 @@ public class ResourceValidator {
     private ResourceTypeResolver resourceTypeResolver;
 
     public boolean validateXML(String resourceType, String xmlContent) {
-        DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
-        builderFactory.setNamespaceAware(true);
         try {
-            DocumentBuilder parser = builderFactory
-                    .newDocumentBuilder();
-
-            // parse the XML into a document object
-            Document document = parser.parse(IOUtils.toInputStream(xmlContent));
-
             SchemaFactory factory = SchemaFactory
                     .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 
