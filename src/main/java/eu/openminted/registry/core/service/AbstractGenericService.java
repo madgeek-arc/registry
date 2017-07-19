@@ -97,6 +97,7 @@ abstract public class AbstractGenericService<T> {
         for (IndexField f : resourceTypeService.getResourceTypeIndexFields(getResourceType())) {
             labels.put(f.getName(),f.getLabel());
         }
+        labels.put("resourceType","Resource Type");
         for (Map.Entry<String,String> label : labels.entrySet()) {
             Facet singleFacet = new Facet();
 
