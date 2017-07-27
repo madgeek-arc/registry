@@ -4,8 +4,6 @@ import java.util.Properties;
 
 import javax.sql.DataSource;
 
-import eu.dnetlib.functionality.index.cql.CqlTranslator;
-import eu.dnetlib.functionality.index.cql.CqlTranslatorImpl;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -63,10 +61,5 @@ public class HibernateConfiguration {
 		HibernateTransactionManager txManager = new HibernateTransactionManager();
 		txManager.setSessionFactory(s);
 		return txManager;
-	}
-
-	@Bean
-	public CqlTranslator newCQLTranslator() {
-		return new CqlTranslatorImpl();
 	}
 }
