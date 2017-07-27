@@ -59,11 +59,6 @@
             <version>5.14.4</version>
         </dependency>
         <dependency>
-            <groupId>eu.dnetlib</groupId>
-            <artifactId>cnr-cql-utils</artifactId>
-            <version>1.0.1</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.3.2</version>
@@ -264,42 +259,6 @@
             <url>https://repo.openminted.eu/content/repositories/releases</url>
             <releases><enabled>true</enabled></releases>
             <snapshots><enabled>false</enabled></snapshots>
-        </repository>
-        <repository>
-            <id>dnet4-bootstrap-snapshot</id>
-            <name>D-Net 4 Bootstrap Snapshot</name>
-            <url>http://maven.research-infrastructures.eu/nexus/content/repositories/dnet4-bootstrap</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <layout>default</layout>
-        </repository>
-        <repository>
-            <id>dnet4-releases</id>
-            <name>D-Net 4 Releases</name>
-            <url>http://maven.research-infrastructures.eu/nexus/content/repositories/dnet4-releases</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <layout>default</layout>
-        </repository>
-        <repository>
-            <id>dnet4-bootstrap-release</id>
-            <name>D-Net 4 Bootstrap Release</name>
-            <url>http://maven.research-infrastructures.eu/nexus/content/repositories/dnet4-bootstrap-release</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <layout>default</layout>
         </repository>
         <repository>
             <id>indexdata</id>
