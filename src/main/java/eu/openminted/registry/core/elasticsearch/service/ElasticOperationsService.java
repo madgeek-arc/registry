@@ -99,7 +99,7 @@ public class ElasticOperationsService {
 
     }
 
-    public Map<String, Object> createMapping(List<IndexField> indexFields) {
+    private Map<String, Object> createMapping(List<IndexField> indexFields) {
 
         Map<String, Object> jsonObjectGeneral = new HashMap<>();
         Map<String, Object> jsonObjectProperties = new HashMap<>();
@@ -114,8 +114,20 @@ public class ElasticOperationsService {
 
         final Map<String, Object> typeMap = new HashMap<>();
         typeMap.put("type", "keyword");
-        jsonObjectProperties.put("resourceType", typeMap);
+        final Map<String, Object> dateMap = new HashMap<>();
+        dateMap.put("type", "date");
+        dateMap.put("format", "epoch_millis");
+        final Map<String, Object> textMap = new HashMap<>();
+        textMap.put("type", "text");
 
+        jsonObjectProperties.put("id", typeMap);
+        jsonObjectProperties.put("version", typeMap);
+        jsonObjectProperties.put("payload", textMap);
+        jsonObjectProperties.put("searchableArea", textMap);
+        jsonObjectProperties.put("payloadFormat", typeMap);
+        jsonObjectProperties.put("resourceType", typeMap);
+        jsonObjectProperties.put("creation_date",dateMap);
+        jsonObjectProperties.put("modification_date",dateMap);
 
         jsonObjectGeneral.put("properties", jsonObjectProperties);
         return jsonObjectGeneral;
@@ -131,8 +143,8 @@ public class ElasticOperationsService {
         jsonObjectField.put("payloadFormat", resource.getPayloadFormat());
         jsonObjectField.put("version", resource.getVersion());
         jsonObjectField.put("searchableArea", strip(resource.getPayload(),resource.getPayloadFormat()));
-        jsonObjectField.put("creation_date", resource.getCreationDate());
-        jsonObjectField.put("modification_date", resource.getModificationDate());
+        jsonObjectField.put("creation_date", resource.getCreationDate().getTime());
+        jsonObjectField.put("modification_date", resource.getModificationDate().getTime());
 
         if (resource.getIndexedFields() != null) {
             for (IndexedField<?> field : resource.getIndexedFields()) {

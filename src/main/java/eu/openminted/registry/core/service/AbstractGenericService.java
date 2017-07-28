@@ -84,6 +84,27 @@ abstract public class AbstractGenericService<T> {
         return browsing;
     }
 
+
+    public Map<String,List<T>> getResultsGrouped(FacetFilter filter, String category) {
+        Map<String,List<T>> result = new HashMap<>();
+
+        filter.setResourceType(getResourceType());
+        Map<String,List<Resource>> resources;
+        try {
+            resources = searchService.searchByCategory(filter,category);
+            for(Map.Entry<String,List<Resource>> bucket : resources.entrySet()) {
+                List<T> bucketResults = new ArrayList<>();
+                for(Resource res : bucket.getValue()) {
+                    bucketResults.add(parserPool.serialize(res,typeParameterClass).get());
+                }
+                result.put(bucket.getKey(),bucketResults);
+            }
+            return result;
+        } catch (Exception e) {
+            logger.fatal(e);
+            throw new ServiceException(e);
+        }
+    }
     /**
      * Counts the total number of Documents per Facet
      * @param overall

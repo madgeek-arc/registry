@@ -15,6 +15,10 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms.Bucket;
+import org.elasticsearch.search.aggregations.metrics.tophits.InternalTopHits;
+import org.elasticsearch.search.sort.SortBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
@@ -49,6 +53,42 @@ public class SearchServiceImpl implements SearchService {
         return qBuilder;
     }
 
+
+    private Map<String,List<Resource>> buildTopHitAggregation(FacetFilter filter,String category) {
+        Map<String,List<Resource>> results = new HashMap<>();
+        Client client = elastic.client();
+        int quantity = filter.getQuantity();
+        BoolQueryBuilder qBuilder = createQueryBuilder(filter);
+        SearchRequestBuilder search = client.prepareSearch(filter.getResourceType()).
+                setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
+                .setQuery(qBuilder)
+                .setFrom(filter.getFrom()).setSize(0).setExplain(false);
+        search.addAggregation(
+                AggregationBuilders.terms("agg_category").field(category)
+                        .subAggregation(AggregationBuilders.topHits("documents").size(100)
+                        ));
+        SearchResponse response = search.execute().actionGet();
+
+        Terms terms = response.getAggregations().get("agg_category");
+        for (Bucket bucket : terms.getBuckets()) {
+            InternalTopHits hits = bucket.getAggregations().get("documents");
+
+            List<Resource> bucketResults = new ArrayList<>();
+            quantity = Math.min(quantity,hits.getHits().getHits().length);
+            for(int i = 0 ; i < quantity; ++i) {
+                String idTmp = hits.getHits().getAt(i).getSource().get("id").toString();
+                String resourceTypeTmp = hits.getHits().getAt(i).getSource().get("resourceType").toString();
+                String payloadTmp = (String) hits.getHits().getAt(i).getSource().get("payload");
+                String formatTmp = (String) hits.getHits().getAt(i).getSource().get("payloadFormat");
+                String versionTmp = (String) hits.getHits().getAt(i).getSource().get("version");
+                bucketResults.add(new Resource(idTmp, resourceTypeTmp, versionTmp, payloadTmp , formatTmp));
+            }
+            results.put(bucket.getKeyAsString(), bucketResults);
+        }
+
+        return results;
+    }
+
     private Paging buildSearch(FacetFilter filter) {
         Client client = elastic.client();
 
@@ -61,11 +101,12 @@ public class SearchServiceImpl implements SearchService {
                 .setQuery(qBuilder)
                 .setFrom(filter.getFrom()).setSize(quantity).setExplain(false);
 
-
+        for (Map.Entry<String,Object> order : filter.getOrderBy().entrySet()) {
+            search.addSort(order.getKey(), SortOrder.fromString(order.getValue().toString()));
+        }
         for (String browseBy : filter.getBrowseBy()) {
             search.addAggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy));
         }
-
         SearchResponse response = search.execute().actionGet();
 
         List<Resource> results = new ArrayList<>();
@@ -94,7 +135,7 @@ public class SearchServiceImpl implements SearchService {
             occurrences.setValues(values);
 
         }
-        if (response == null || response.getHits().getTotalHits() == 0) {
+        if (response.getHits().getTotalHits() == 0) {
             paging = new Paging(0, 0, 0, new ArrayList<>(), new Occurrences());
         } else {
             if (filter.getQuantity() == 0) {
@@ -115,7 +156,6 @@ public class SearchServiceImpl implements SearchService {
 
     @Override
     public Paging searchKeyword(String resourceType, String keyword) throws ServiceException, UnknownHostException {
-        BoolQueryBuilder qBuilder = new BoolQueryBuilder();
         FacetFilter filter = new FacetFilter();
         filter.setResourceType(resourceType);
         filter.setKeyword(keyword);
@@ -146,5 +186,10 @@ public class SearchServiceImpl implements SearchService {
             SearchHit hit = response.getHits().getAt(0);
             return new Resource(hit.getSource().get("id").toString(), hit.getSource().get("resourceType").toString(), hit.getSource().get("version").toString(), hit.getSource().get("payload").toString(), hit.getSource().get("payloadFormat").toString());
         }
+    }
+
+    @Override
+    public Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category) {
+        return buildTopHitAggregation(filter,category);
     }
 }

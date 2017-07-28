@@ -36,7 +36,7 @@ public class SchemaDaoImpl extends AbstractDao<String, Schema> implements Schema
 
 	@Override
 	public void addSchema(Schema schema) {
-		persist(schema);
+		getSession().saveOrUpdate(schema);
 	}
 
 }

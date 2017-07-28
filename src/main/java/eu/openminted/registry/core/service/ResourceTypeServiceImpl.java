@@ -70,33 +70,28 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
 	@Override
 	public Schema getSchema(String id) {
-		Schema schema = schemaDao.getSchema(id);
-		return schema;
+		return schemaDao.getSchema(id);
 	}
 
 	@Override
 	public ResourceType getResourceType(String name) {
-		ResourceType resourceType = resourceTypeDao.getResourceType(name);
-		return resourceType;
+		return resourceTypeDao.getResourceType(name);
 	}
 
 	@Override
 	public List<ResourceType> getAllResourceType() {
-		List<ResourceType> resourceType = resourceTypeDao.getAllResourceType();
 
-		return resourceType;
+		return resourceTypeDao.getAllResourceType();
 	}
 
 	@Override
 	public List<ResourceType> getAllResourceType(int from, int to) {
-		List<ResourceType> resourceType = resourceTypeDao.getAllResourceType(from, to);
-		return resourceType;
+		return resourceTypeDao.getAllResourceType(from, to);
 	}
 
 	@Override
 	public Set<IndexField> getResourceTypeIndexFields(String name) {
-		Set<IndexField> indexFields = resourceTypeDao.getResourceTypeIndexFields(name);
-		return indexFields;
+		return resourceTypeDao.getResourceTypeIndexFields(name);
 	}
 
 	@Override
