@@ -31,7 +31,7 @@ public class SearchController {
 			@RequestParam(value = "quantity", required = false, defaultValue = "10") int quantity,
 			@RequestParam(value = "browseBy", required = false, defaultValue = "") String[] browseBy
 	) throws ServiceException {
-		FacetFilter filter = new FacetFilter(keyword,name,from,quantity,new HashMap<>(), Arrays.asList(browseBy));
+		FacetFilter filter = new FacetFilter(keyword,name,from,quantity,new HashMap<>(), Arrays.asList(browseBy), null);
 		try {
 			return new ResponseEntity<>(searchService.search(filter), HttpStatus.OK);
 		} catch (UnknownHostException e) {
