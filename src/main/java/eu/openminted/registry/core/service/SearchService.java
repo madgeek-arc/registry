@@ -3,6 +3,9 @@ package eu.openminted.registry.core.service;
 import eu.openminted.registry.core.domain.FacetFilter;
 import eu.openminted.registry.core.domain.Paging;
 import java.net.UnknownHostException;
+import java.util.List;
+import java.util.Map;
+
 import eu.openminted.registry.core.domain.Resource;
 
 
@@ -14,6 +17,8 @@ public interface SearchService {
 	Paging searchKeyword(String resourceType, String keyword) throws ServiceException, UnknownHostException;
 
 	Resource searchId(String resourceType, KeyValue... ids) throws ServiceException, UnknownHostException;
+
+	Map<String,List<Resource>> searchByCategory(FacetFilter filter, String category);
 
 	class KeyValue {
 

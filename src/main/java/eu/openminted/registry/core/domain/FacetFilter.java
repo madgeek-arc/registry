@@ -18,12 +18,15 @@ public class FacetFilter {
 
     private List<String> browseBy;
 
+    private Map<String, Object> orderBy;
+
     public FacetFilter() {
         this.filter = new HashMap<>();
         this.browseBy = new ArrayList<>();
         this.keyword = "";
         this.from = 0;
         this.quantity = 10;
+        this.orderBy = null;
     }
 
     public FacetFilter(List<String> browseBy) {
@@ -32,15 +35,19 @@ public class FacetFilter {
         this.keyword = "";
         this.from = 0;
         this.quantity = 10;
+        this.orderBy = null;
     }
 
-    public FacetFilter(String keyword, String resourceType, int from, int quantity, Map<String, Object> filter, List<String> browseBy) {
+    public FacetFilter(String keyword, String resourceType, int from, int quantity,
+                       Map<String, Object> filter, List<String> browseBy,
+                       Map<String, Object> orderBy) {
         this.keyword = keyword;
         this.resourceType = resourceType;
         this.from = from;
         this.quantity = quantity;
         this.filter = filter;
         this.browseBy = browseBy;
+        this.orderBy = orderBy;
     }
 
     public String getKeyword() {
@@ -84,7 +91,7 @@ public class FacetFilter {
     }
 
     public void addFilter(String key, Object value) {
-        if(!Objects.equals(value,""))
+        if (!Objects.equals(value, ""))
             this.filter.put(key, value);
     }
 
@@ -94,5 +101,13 @@ public class FacetFilter {
 
     public void setBrowseBy(List<String> browseBy) {
         this.browseBy = browseBy;
+    }
+
+    public Map<String, Object> getOrderBy() {
+        return orderBy;
+    }
+
+    public void setOrderBy(Map<String, Object> orderBy) {
+        this.orderBy = orderBy;
     }
 }
