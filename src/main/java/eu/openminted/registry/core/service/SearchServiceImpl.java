@@ -100,10 +100,13 @@ public class SearchServiceImpl implements SearchService {
                 setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
                 .setQuery(qBuilder)
                 .setFrom(filter.getFrom()).setSize(quantity).setExplain(false);
-
-        for (Map.Entry<String,Object> order : filter.getOrderBy().entrySet()) {
-            search.addSort(order.getKey(), SortOrder.fromString(order.getValue().toString()));
+        System.out.println("eeeeeeeeeeeeeeeeeee" + filter.getOrderBy());
+        if(filter.getOrderBy() != null) {
+            for (Map.Entry<String, Object> order : filter.getOrderBy().entrySet()) {
+                search.addSort(order.getKey(), SortOrder.fromString(order.getValue().toString()));
+            }
         }
+
         for (String browseBy : filter.getBrowseBy()) {
             search.addAggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy));
         }
