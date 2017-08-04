@@ -113,7 +113,8 @@ public class SearchServiceImpl implements SearchService {
 
         if(filter.getOrderBy() != null) {
             for (Map.Entry<String, Object> order : filter.getOrderBy().entrySet()) {
-                search.addSort(order.getKey(), SortOrder.fromString(order.getValue().toString()));
+                Map op = (Map) order.getValue();
+                search.addSort(order.getKey(), SortOrder.fromString(op.get("order").toString()));
             }
         }
 
