@@ -5,6 +5,7 @@ import eu.openminted.registry.core.domain.FacetFilter;
 import eu.openminted.registry.core.domain.Occurrences;
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
+import org.apache.commons.beanutils.PropertyUtils;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
@@ -20,17 +21,18 @@ import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
+import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 @Service("searchService")
+@PropertySource({"classpath:application.properties","classpath:registry.properties"})
 public class SearchServiceImpl implements SearchService {
 
     @Autowired
@@ -39,6 +41,11 @@ public class SearchServiceImpl implements SearchService {
     @Autowired
     private ElasticConfiguration elastic;
 
+    @Value("${elastic.aggregation.topHitsSize : 100}")
+    private int topHitsSize;
+
+    @Value("${elastic.aggregation.bucketSize : 100}")
+    private int bucketSize;
 
     private static BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
@@ -64,8 +71,8 @@ public class SearchServiceImpl implements SearchService {
                 .setQuery(qBuilder)
                 .setFrom(filter.getFrom()).setSize(0).setExplain(false);
         search.addAggregation(
-                AggregationBuilders.terms("agg_category").field(category)
-                        .subAggregation(AggregationBuilders.topHits("documents").size(100)
+                AggregationBuilders.terms("agg_category").field(category).size(bucketSize)
+                        .subAggregation(AggregationBuilders.topHits("documents").size(topHitsSize)
                         ));
         SearchResponse response = search.execute().actionGet();
 
@@ -76,12 +83,15 @@ public class SearchServiceImpl implements SearchService {
             List<Resource> bucketResults = new ArrayList<>();
             quantity = Math.min(quantity,hits.getHits().getHits().length);
             for(int i = 0 ; i < quantity; ++i) {
-                String idTmp = hits.getHits().getAt(i).getSource().get("id").toString();
-                String resourceTypeTmp = hits.getHits().getAt(i).getSource().get("resourceType").toString();
-                String payloadTmp = (String) hits.getHits().getAt(i).getSource().get("payload");
-                String formatTmp = (String) hits.getHits().getAt(i).getSource().get("payloadFormat");
-                String versionTmp = (String) hits.getHits().getAt(i).getSource().get("version");
-                bucketResults.add(new Resource(idTmp, resourceTypeTmp, versionTmp, payloadTmp , formatTmp));
+                Resource res = new Resource();
+                for(String value : Arrays.asList("id","resourceType","payload", "payloadFormat", "version")) {
+                    try {
+                        PropertyUtils.setProperty(res, value, hits.getHits().getAt(i).getSource().get(value).toString());
+                    } catch(Exception e) {
+                        break;
+                    }
+                }
+                bucketResults.add(res);
             }
             results.put(bucket.getKeyAsString(), bucketResults);
         }
@@ -115,12 +125,15 @@ public class SearchServiceImpl implements SearchService {
         List<Resource> results = new ArrayList<>();
         quantity = Math.min(quantity,(int)response.getHits().getHits().length);
         for(int i = 0 ; i < quantity; ++i) {
-            String idTmp = response.getHits().getAt(i).getSource().get("id").toString();
-            String resourceTypeTmp = response.getHits().getAt(i).getSource().get("resourceType").toString();
-            String payloadTmp = (String) response.getHits().getAt(i).getSource().get("payload");
-            String formatTmp = (String) response.getHits().getAt(i).getSource().get("payloadFormat");
-            String versionTmp = (String) response.getHits().getAt(i).getSource().get("version");
-            results.add(new Resource(idTmp, resourceTypeTmp, versionTmp, payloadTmp , formatTmp));
+            Resource res = new Resource();
+            for(String value : Arrays.asList("id","resourceType","payload", "payloadFormat", "version")) {
+                try {
+                    PropertyUtils.setProperty(res, value, response.getHits().getAt(i).getSource().get(value).toString());
+                } catch(Exception e) {
+                    break;
+                }
+            }
+            results.add(res);
         }
 
         Map<String, Map<String, Integer>> values = new HashMap<>();
