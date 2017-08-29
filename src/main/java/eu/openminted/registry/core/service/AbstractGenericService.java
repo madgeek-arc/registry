@@ -46,8 +46,23 @@ abstract public class AbstractGenericService<T> {
     @PostConstruct
     void init() {
         Set<String> browseSet = new HashSet<>();
+        Map<String,Set<String>> sets = new HashMap<>();
         for (IndexField f : resourceTypeService.getResourceTypeIndexFields(getResourceType())) {
-            if(f.getLabel() != null) browseSet.add(f.getName());
+            sets.putIfAbsent(f.getResourceType().getName(), new HashSet<>());
+            if(f.getLabel() != null) {
+                sets.get(f.getResourceType().getName()).add(f.getName());
+            }
+            //if(f.getLabel() != null) browseSet.add(f.getName());
+            //System.out.println(f.getName() + " " + f.getResourceType().getName());
+        }
+        boolean flag = true;
+        for(Map.Entry<String,Set<String>> entry : sets.entrySet()) {
+            if(flag) {
+                browseSet.addAll(entry.getValue());
+                flag = false;
+            } else {
+                browseSet.retainAll(entry.getValue());
+            }
         }
         browseBy = new ArrayList<>();
         browseBy.addAll(browseSet);
