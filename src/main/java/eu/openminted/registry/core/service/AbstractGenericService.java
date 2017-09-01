@@ -51,6 +51,7 @@ abstract public class AbstractGenericService<T> {
         }
         browseBy = new ArrayList<>();
         browseBy.addAll(browseSet);
+        browseBy.add("resourceType");
     }
 
     @SuppressWarnings("unchecked")
