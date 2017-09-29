@@ -2,7 +2,7 @@ package eu.openminted.registry.core.domain;
 
 public class Value implements Comparable<Value> {
 	private String value;
-	pirvate String id;
+	private String id;
 	private int count;
 
 	public Value() {
