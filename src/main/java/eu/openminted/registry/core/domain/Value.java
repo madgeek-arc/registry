@@ -1,8 +1,9 @@
 package eu.openminted.registry.core.domain;
 
 public class Value implements Comparable<Value> {
-	 private String value;
-	 private int count;
+	private String value;
+	pirvate String id;
+	private int count;
 
 	public Value() {
 	}
@@ -24,9 +25,17 @@ public class Value implements Comparable<Value> {
 	public void setCount(int count) {
 		this.count = count;
 	}
-	
+
+	public void getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
 	@Override
 	public int compareTo(Value o) {
 		return Integer.compare(count, o.count);
-	}	 
+	}
 }
