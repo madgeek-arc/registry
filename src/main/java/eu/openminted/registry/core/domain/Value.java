@@ -26,7 +26,7 @@ public class Value implements Comparable<Value> {
 		this.count = count;
 	}
 
-	public void getId() {
+	public String getId() {
 		return id;
 	}
 
