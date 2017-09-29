@@ -2,7 +2,7 @@ package eu.openminted.registry.core.domain;
 
 public class Value implements Comparable<Value> {
 	private String value;
-	private String id;
+	private String label;
 	private int count;
 
 	public Value() {
@@ -26,12 +26,12 @@ public class Value implements Comparable<Value> {
 		this.count = count;
 	}
 
-	public String getId() {
-		return id;
+	public String getLabel() {
+		return label;
 	}
 
-	public void setId(String id) {
-		this.id = id;
+	public void setLabel(String label) {
+		this.label = label;
 	}
 
 	@Override
