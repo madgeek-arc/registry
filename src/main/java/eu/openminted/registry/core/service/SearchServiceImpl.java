@@ -119,7 +119,7 @@ public class SearchServiceImpl implements SearchService {
         }
 
         for (String browseBy : filter.getBrowseBy()) {
-            search.addAggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy));
+            search.addAggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy).size(bucketSize));
         }
         SearchResponse response = search.execute().actionGet();
 
