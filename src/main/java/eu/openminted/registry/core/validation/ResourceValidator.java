@@ -10,6 +10,8 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import javax.xml.XMLConstants;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
@@ -25,6 +27,7 @@ import java.nio.charset.StandardCharsets;
  * Created by stefanos on 30/1/2017.
  */
 @Service("resourceValidator")
+@Transactional
 public class ResourceValidator {
 
     @Autowired
