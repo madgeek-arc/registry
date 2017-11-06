@@ -12,4 +12,12 @@ public class ServerError {
         this.url = url;
         this.error = ex.getMessage();
     }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public String getError() {
+        return error;
+    }
 }

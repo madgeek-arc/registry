@@ -7,10 +7,10 @@ public class Browsing<T> {
     int total;
     int from;
     int to;
-    List<Order<T>> results;
+    List<T> results;
     List<Facet> facets;
 
-    public Browsing(int total, int from, int to, List<Order<T>> results, List<Facet> facets) {
+    public Browsing(int total, int from, int to, List<T> results, List<Facet> facets) {
         this.total = total;
         this.from = from;
         this.to = to;
@@ -42,11 +42,11 @@ public class Browsing<T> {
         this.to = to;
     }
 
-    public List<Order<T>> getResults() {
+    public List<T> getResults() {
         return results;
     }
 
-    public void setResults(List<Order<T>> results) {
+    public void setResults(List<T> results) {
         this.results = results;
     }
 
