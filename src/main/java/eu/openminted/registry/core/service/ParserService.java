@@ -1,6 +1,9 @@
 package eu.openminted.registry.core.service;
 
 import eu.openminted.registry.core.domain.Resource;
+
+import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.Future;
 
 /**
@@ -9,6 +12,10 @@ import java.util.concurrent.Future;
 public interface ParserService {
 
     <T> Future<T> serialize(Resource resource, Class<T> returnType);
+
+    <T> T deserialize(String json, Class<T> returnType) throws IOException;
+
+    Resource deserializeResource(File file, ParserServiceTypes mediaType);
 
     Future<String> deserialize(Object resource, ParserServiceTypes mediaType);
 

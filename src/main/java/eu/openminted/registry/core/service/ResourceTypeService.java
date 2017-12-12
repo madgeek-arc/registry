@@ -19,4 +19,6 @@ public interface ResourceTypeService {
 	ResourceType addResourceType(ResourceType resourceType) throws ServiceException;
 
 	Set<IndexField> getResourceTypeIndexFields(String name);
+
+	void deleteResourceType(String name);
 }
