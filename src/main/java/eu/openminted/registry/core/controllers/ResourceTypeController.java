@@ -86,6 +86,18 @@ public class ResourceTypeController {
 			throw new ServiceException(e);
 		}
 	}
+
+	@RequestMapping(value = "/resourceType/{name}", method = RequestMethod.DELETE, headers = "Accept=application/json")
+	public ResponseEntity<ResourceType> deleteResourceType(@PathVariable("name") String name) {
+
+		try {
+			resourceTypeService.deleteResourceType(name);
+			return new ResponseEntity<>(HttpStatus.GONE);
+		} catch (ServiceException e) {
+			logger.error("Error deleting resource type", e);
+			throw new ServiceException(e);
+		}
+	}
 	
 
 }
