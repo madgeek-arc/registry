@@ -9,7 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@RestController("schemaService")
+@RestController
 public class SchemaController {
 
 	private static Logger logger = Logger.getLogger(ResourceTypeController.class);
@@ -17,7 +17,7 @@ public class SchemaController {
 	@Autowired
 	ResourceTypeService resourceTypeService;
 
-	@RequestMapping(value = "{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_XML_VALUE)
+	@RequestMapping(value = "/schemaService/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_XML_VALUE)
 	@ResponseBody public ResponseEntity getResourceTypeByName(@PathVariable("id") String id) {
 		Schema schema = resourceTypeService.getSchema(id);
 		if(schema==null){
