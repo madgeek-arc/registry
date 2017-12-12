@@ -9,5 +9,7 @@ public interface SchemaDao {
 	Schema getSchemaByUrl(String originalURL);
 	
 	void addSchema(Schema schema);
+
+	void deleteSchema(Schema schema);
 	
 }

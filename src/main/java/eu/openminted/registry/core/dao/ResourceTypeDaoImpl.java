@@ -1,17 +1,14 @@
 package eu.openminted.registry.core.dao;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import com.google.common.collect.Sets;
+import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
-import eu.openminted.registry.core.service.ServiceException;
 import org.hibernate.Criteria;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.stereotype.Repository;
 
-import eu.openminted.registry.core.domain.ResourceType;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Repository("resourceTypeDao")
 public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> implements ResourceTypeDao {
@@ -59,6 +56,11 @@ public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> imple
 			indexFields.addAll(((ResourceType) type).getIndexFields());
 		}
 		return indexFields;
+	}
+
+	@Override
+	public void deleteResourceType(ResourceType resourceType) {
+		getSession().delete(resourceType);
 	}
 
 }

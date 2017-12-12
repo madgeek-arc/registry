@@ -39,4 +39,9 @@ public class SchemaDaoImpl extends AbstractDao<String, Schema> implements Schema
 		getSession().saveOrUpdate(schema);
 	}
 
+	@Override
+	public void deleteSchema(Schema schema) {
+		getSession().delete(schema);
+	}
+
 }

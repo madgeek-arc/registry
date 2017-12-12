@@ -2,6 +2,7 @@ package eu.openminted.registry.core.service;
 
 import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.dao.SchemaDao;
+import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.Schema;
 import eu.openminted.registry.core.domain.UrlResolver;
@@ -62,6 +63,9 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 	ResourceTypeDao resourceTypeDao;
 
 	@Autowired
+	ResourceService resourceService;
+
+	@Autowired
 	SchemaDao schemaDao;
 
 	public ResourceTypeServiceImpl() {
@@ -95,6 +99,24 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 	}
 
 	@Override
+	public void deleteResourceType(String name){
+		ResourceType resourceType = resourceTypeDao.getResourceType(name);
+
+		if(resourceType!=null){
+
+			List<Resource> resources = resourceService.getResource(name);
+			for(Resource resource : resources){
+				resourceService.deleteResource(resource.getId());
+			}
+
+			Schema schema = schemaDao.getSchema(stringToMd5(resourceType.getSchema()));
+			schemaDao.deleteSchema(schema);
+
+			resourceTypeDao.deleteResourceType(resourceType);
+		}
+	}
+
+	@Override
 	public ResourceType addResourceType(ResourceType resourceType) throws ServiceException {
 		Schema schema = new Schema();
 
@@ -118,8 +140,8 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 				}
 			}
 		}
-		
-		
+
+
 		if (resourceType.getIndexMapperClass() == null)
 			resourceType.setIndexMapperClass(DefaultIndexMapper.class.getName());
 
@@ -129,7 +151,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 		}
 
 		ArrayList<String> recursionPaths = new ArrayList<>();
-		
+
 		exportIncludes(resourceType, resourceType.getSchemaUrl(),recursionPaths);
 
 		try {
@@ -243,7 +265,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 						} catch (Exception e) {
 							throw new ServiceException("failed to download file(s)", e);
 						}
-
+						System.out.println(schemaContent);
 						Schema schema = schemaDao.getSchema(stringToMd5(schemaContent));
 
 						if (schema != null) {
@@ -251,7 +273,6 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 							nodeList.item(i).setNodeValue(getBaseEnvLinkURL() + "/schemaService/" + schema.getId());
 						} else {
 							//add schema in db and call the "exportIncludes" function again
-							
 							if(recursionPaths.contains(stringToMd5(schemaContent))){
 								nodeList.item(i).setNodeValue(getBaseEnvLinkURL() + "/schemaService/" + stringToMd5(schemaContent));
 							}else{
