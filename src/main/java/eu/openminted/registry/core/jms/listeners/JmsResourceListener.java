@@ -94,7 +94,7 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
 	}
 
 	@Override
-	public void resourceTypeDelete(ResourceType resourceType) {
+	public void resourceTypeDelete(String name) {
 //		JSONObject jsonObject = new JSONObject();
 //		jsonObject.put("message", "A resource type has been deleted");
 //		jsonObject.put("resourceType", resourceType.getName());

@@ -100,4 +100,20 @@ public class ResourceMonitor {
 				}
 			}
 	}
+
+	@Around("execution (* eu.openminted.registry.core.service.ResourceTypeService.deleteResourceType(String)) && args(name)")
+	public void resourceTypeDeleted(ProceedingJoinPoint pjp, String name) throws Throwable {
+
+		pjp.proceed();
+
+		if (resourceTypeListeners != null)
+			for (ResourceTypeListener listener : resourceTypeListeners) {
+				try {
+					listener.resourceTypeDelete(name);
+				} catch (Exception e) {
+					logger.error("Error notifying listener", e);
+				}
+			}
+	}
+
 }

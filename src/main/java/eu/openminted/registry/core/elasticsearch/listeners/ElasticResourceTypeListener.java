@@ -22,8 +22,8 @@ public class ElasticResourceTypeListener implements ResourceTypeListener {
 	}
 
 	@Override
-	public void resourceTypeDelete(ResourceType resourceType) {
-		elasticOperationsService.deleteIndex(resourceType);
+	public void resourceTypeDelete(String name) {
+		elasticOperationsService.deleteIndex(name);
 	}
 
 }

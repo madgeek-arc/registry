@@ -10,7 +10,7 @@ import eu.openminted.registry.core.service.ServiceException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
@@ -101,17 +101,16 @@ public class ElasticOperationsService {
 
     }
 
-    public void deleteIndex(ResourceType resourceType) {
+    public void deleteIndex(String name) {
+
+        System.out.println("Deleting index");
 
         Client client = elastic.client();
-        DeleteIndexRequestBuilder deleteIndexRequestBuilder = client.admin().indices().prepareDelete(resourceType.getName());
+        DeleteIndexResponse deleteResponse = client.admin().indices().delete(new DeleteIndexRequest(name)).actionGet();
 
-        DeleteIndexResponse deleteIndexResponse = deleteIndexRequestBuilder.get();
-
-        if(!deleteIndexResponse.isAcknowledged()){
-            System.err.println("Error deleting index \""+resourceType.getName()+"\"");
+        if(!deleteResponse.isAcknowledged()){
+            System.err.println("Error deleting index \""+name+"\"");
         }
-
     }
 
     private Map<String, Object> createMapping(List<IndexField> indexFields) {
