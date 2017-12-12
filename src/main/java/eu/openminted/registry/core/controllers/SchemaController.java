@@ -1,17 +1,15 @@
 package eu.openminted.registry.core.controllers;
 
 import eu.openminted.registry.core.domain.Schema;
+import eu.openminted.registry.core.exception.ResourceNotFoundException;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-@RestController
+@RestController("schemaService")
 public class SchemaController {
 
 	private static Logger logger = Logger.getLogger(ResourceTypeController.class);
@@ -19,13 +17,14 @@ public class SchemaController {
 	@Autowired
 	ResourceTypeService resourceTypeService;
 
-	@RequestMapping(value = "/schemaService/{id}", method = RequestMethod.GET, headers = "Accept=application/json")
-	public String getResourceTypeByName(@PathVariable("id") String id) {
+	@RequestMapping(value = "{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_XML_VALUE)
+	@ResponseBody public ResponseEntity getResourceTypeByName(@PathVariable("id") String id) {
 		Schema schema = resourceTypeService.getSchema(id);
 		if(schema==null){
-			return "";
+			throw new ResourceNotFoundException();
 		}else{
-			return schema.getSchema();
+			return ResponseEntity.ok(schema.getSchema());
 		}
 	}
+
 }
