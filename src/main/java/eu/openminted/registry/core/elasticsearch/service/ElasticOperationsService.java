@@ -19,11 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 @Service("elasticOperationsService")
 @Transactional
@@ -158,11 +156,20 @@ public class ElasticOperationsService {
         jsonObjectField.put("version", resource.getVersion());
         jsonObjectField.put("searchableArea", strip(resource.getPayload(),resource.getPayloadFormat()));
         jsonObjectField.put("modification_date", resource.getModificationDate().getTime());
-
+        Map<String,IndexField> indexMap = resourceTypeService.getResourceTypeIndexFields(
+                resource.getResourceType()).
+                stream().collect(Collectors.toMap(IndexField::getName, p->p)
+        );
         if (resource.getIndexedFields() != null) {
             for (IndexedField<?> field : resource.getIndexedFields()) {
-                for (Object value : field.getValues()) {
-                    jsonObjectField.put(field.getName(), value);
+                if(!indexMap.get(field.getName()).isMultivalued()) {
+                    for (Object value : field.getValues()) {
+                        jsonObjectField.put(field.getName(), value);
+                    }
+                } else {
+                    List<String> values = new ArrayList<>();
+                    values.addAll(field.getValues());
+                    jsonObjectField.put(field.getName(),values);
                 }
             }
         }
