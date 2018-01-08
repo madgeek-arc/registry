@@ -129,7 +129,10 @@ public class SearchServiceImpl implements SearchService {
             Resource res = new Resource();
             for(String value : Arrays.asList("id","resourceType","payload", "payloadFormat", "version")) {
                 try {
-                    PropertyUtils.setProperty(res, value, response.getHits().getAt(i).getSource().get(value).toString());
+                    if(!value.equals("resourceType"))
+                        PropertyUtils.setProperty(res, value, response.getHits().getAt(i).getSource().get(value).toString());
+                    else
+                        res.setResourceType(resourceTypeService.getResourceType(response.getHits().getAt(i).getSource().get(value).toString()));
                 } catch(Exception e) {
                     break;
                 }
