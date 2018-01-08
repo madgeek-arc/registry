@@ -13,7 +13,7 @@ public interface ParserService {
 
     <T> Future<T> serialize(Resource resource, Class<T> returnType);
 
-    <T> T deserialize(String json, Class<T> returnType) throws IOException;
+    <T> Future<T> deserialize(String json, Class<T> returnType) throws IOException;
 
     Resource deserializeResource(File file, ParserServiceTypes mediaType);
 

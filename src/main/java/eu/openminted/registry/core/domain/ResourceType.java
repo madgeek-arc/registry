@@ -47,6 +47,9 @@ public class ResourceType {
     @Column
     private String aliasGroup;
 
+    @OneToMany(mappedBy = "resourceType")
+    private List<Resource> resources;
+
     public ResourceType() {
 
     }
@@ -132,5 +135,13 @@ public class ResourceType {
 
     public void setAliasGroup(String aliasGroup) {
         this.aliasGroup = aliasGroup;
+    }
+
+    public List<Resource> getResources() {
+        return resources;
+    }
+
+    public void setResources(List<Resource> resources) {
+        this.resources = resources;
     }
 }

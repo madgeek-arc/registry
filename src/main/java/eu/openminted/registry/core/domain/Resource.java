@@ -1,25 +1,12 @@
 package eu.openminted.registry.core.domain;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import eu.openminted.registry.core.domain.index.IndexedField;
+
+import javax.persistence.*;
+import javax.validation.constraints.Size;
 import java.util.Date;
 import java.util.List;
-
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.Id;
-import javax.persistence.OneToMany;
-import javax.persistence.PrePersist;
-import javax.persistence.PreUpdate;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-import javax.persistence.Transient;
-import javax.validation.constraints.Size;
-
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-
-import eu.openminted.registry.core.domain.index.IndexedField;
 
 @Entity
 @Table(name="Resource")
@@ -29,9 +16,9 @@ public class Resource {
 	@Column(name = "id", nullable = false)
 	private String id;
 
-	@Size(min=3, max=50)
-	@Column(name = "resourceType", nullable = false)
-	private String resourceType;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name="name", nullable = false)
+	private ResourceType resourceType;
 
 	@Size(min=3, max=50)
 	@Column(name = "version", nullable = true)
@@ -63,7 +50,7 @@ public class Resource {
 	private List<IndexedField> indexedFields;
 
 
-	public Resource(String id, String resourceType,String version,String payload,String payloadFormat) {
+	public Resource(String id, ResourceType resourceType,String version,String payload,String payloadFormat) {
 		this.id = id;
 		this.resourceType = resourceType;
 		this.version = version;
@@ -83,11 +70,11 @@ public class Resource {
 		this.id = string;
 	}
 
-	public String getResourceType() {
+	public ResourceType getResourceType() {
 		return resourceType;
 	}
 
-	public void setResourceType(String resourceType) {
+	public void setResourceType(ResourceType resourceType) {
 		this.resourceType = resourceType;
 	}
 
