@@ -104,7 +104,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
 		if(resourceType!=null){
 
-			List<Resource> resources = resourceService.getResource(name);
+			List<Resource> resources = resourceService.getResource(resourceType);
 
 			long start_time = 0;
 			long end_time = 0;

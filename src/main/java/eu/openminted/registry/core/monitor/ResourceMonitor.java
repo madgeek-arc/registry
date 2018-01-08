@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by antleb on 5/26/16.
@@ -30,6 +32,8 @@ public class ResourceMonitor {
 	@Autowired
 	private ResourceDao resourceDao;
 
+	private ExecutorService executorService = Executors.newFixedThreadPool(5);
+
 	@Around("execution (* eu.openminted.registry.core.service.ResourceService.addResource(eu.openminted.registry.core.domain.Resource)) && args(resource)")
 	public void resourceAdded(ProceedingJoinPoint pjp, Resource resource) throws Throwable {
 
@@ -40,15 +44,7 @@ public class ResourceMonitor {
 			throw e;
 		}
 
-		if (resourceListeners != null)
-			for (ResourceListener listener : resourceListeners) {
-				try {
-					listener.resourceAdded(resource);
-					logger.info("Notified listener : " + listener.getClass().getSimpleName());
-				} catch (Exception e) {
-					logger.error("Error notifying listener", e);
-				}
-			}
+		executorService.submit(new ResourceCreateHandler(resource,1));
 	}
 
 	@Around("execution (* eu.openminted.registry.core.service.ResourceService.updateResource(eu.openminted.registry.core.domain.Resource)) && args(resource)")
@@ -75,14 +71,7 @@ public class ResourceMonitor {
 
 		pjp.proceed();
 
-		if (resourceListeners != null)
-			for (ResourceListener listener : resourceListeners) {
-				try {
-					listener.resourceDeleted(previous);
-				} catch (Exception e) {
-					logger.error("Error notifying listener", e);
-				}
-			}
+		executorService.submit(new ResourceCreateHandler(previous,2));
 
 	}
 
@@ -116,4 +105,47 @@ public class ResourceMonitor {
 			}
 	}
 
+	private class ResourceCreateHandler implements Runnable {
+		private Resource resource = null;
+		private int state = 0;
+
+
+		public ResourceCreateHandler(Resource resource, int state) {
+			this.resource = resource;
+			this.state = state;
+		}
+
+		public Resource getResource() {
+			return resource;
+		}
+
+		public void setResource(Resource resource) {
+			this.resource = resource;
+		}
+
+		@Override
+		public void run() {
+			if (state == 1) {
+				if (resourceListeners != null)
+					for (ResourceListener listener : resourceListeners) {
+						try {
+							listener.resourceAdded(resource);
+							logger.info("Notified listener : " + listener.getClass().getSimpleName());
+						} catch (Exception e) {
+							logger.error("Error notifying listener", e);
+						}
+					}
+			}else if(state==2){
+				if (resourceListeners != null)
+					for (ResourceListener listener : resourceListeners) {
+						try {
+							listener.resourceDeleted(resource);
+						} catch (Exception e) {
+							logger.error("Error notifying listener", e);
+						}
+					}
+			}
+
+		}
+	}
 }
