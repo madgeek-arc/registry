@@ -4,17 +4,12 @@ import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.exception.ResourceNotFoundException;
 import eu.openminted.registry.core.service.ResourceService;
-import eu.openminted.registry.core.service.ServiceException;
+import eu.openminted.registry.core.service.ResourceTypeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
 import java.util.List;
@@ -25,10 +20,13 @@ public class ResourceController {
 
 	   @Autowired
 	   ResourceService resourceService;
+
+	   @Autowired
+	   ResourceTypeService resourceTypeService;
 	  
 	    @RequestMapping(value = "/resources/{resourceType}/{id}", method = RequestMethod.GET, headers = "Accept=application/json")  
 	    public ResponseEntity<Resource> getResourceById(@PathVariable("resourceType") String resourceType,@PathVariable("id") String id) {  
-	    	Resource resource = resourceService.getResource(resourceType,id);
+	    	Resource resource = resourceService.getResource(resourceTypeService.getResourceType(resourceType),id);
 	    	if(resource==null){
 				throw new ResourceNotFoundException();
 	    	}else{
@@ -39,7 +37,7 @@ public class ResourceController {
 	    
 	    @RequestMapping(value = "/resources/{resourceType}", method = RequestMethod.GET, headers = "Accept=application/json")  
 	    public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType) {
-	        List<Resource> results = resourceService.getResource(resourceType);
+	        List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType));
 	    	Paging paging = new Paging(results.size(), 0, results.size()-1, results,null);
 	    	if(results.size()==0){
 	    		throw new ResourceNotFoundException();
@@ -51,8 +49,8 @@ public class ResourceController {
 	    
 	    @RequestMapping(value = "/resources/{resourceType}", params = {"from"},method = RequestMethod.GET, headers = "Accept=application/json")  
 	    public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType ,@RequestParam(value = "from") int from) {
-	    	List<Resource> results = resourceService.getResource(resourceType,from,0);
-	    	int total = resourceService.getResource(resourceType).size();
+	    	List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType),from,0);
+	    	int total = resourceService.getResource(resourceTypeService.getResourceType(resourceType)).size();
 	    	Paging paging = new Paging(results.size(), from, total-1, results,null);
 	    	ResponseEntity<String> responseEntity;
 	    	if(total==0){
@@ -65,8 +63,8 @@ public class ResourceController {
 	    
 	    @RequestMapping(value = "/resources/{resourceType}", params = {"from","to"}, method = RequestMethod.GET, headers = "Accept=application/json")  
 	    public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType ,@RequestParam(value = "from") int from , @RequestParam(value = "to") int to ) {
-	    	List<Resource> results = resourceService.getResource(resourceType,from,to);
-	    	int total = resourceService.getResource(resourceType).size();
+	    	List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType),from,to);
+	    	int total = resourceService.getResource(resourceTypeService.getResourceType(resourceType)).size();
 	    	Paging paging = new Paging(results.size(), from, to, results,null);
 	    	ResponseEntity<String> responseEntity;
 	    	if(total==0){
@@ -79,8 +77,8 @@ public class ResourceController {
 	    
 	    @RequestMapping(value = "/resources/{resourceType}", params = {"to"}, method = RequestMethod.GET, headers = "Accept=application/json")  
 	    public ResponseEntity<Paging> getResourceByResourceTypeTo(@PathVariable("resourceType") String resourceType , @RequestParam(value = "to") int to ) {
-	    	List<Resource> results = resourceService.getResource(resourceType,0,to);
-	    	int total = resourceService.getResource(resourceType).size();
+	    	List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType),0,to);
+	    	int total = resourceService.getResource(resourceTypeService.getResourceType(resourceType)).size();
 	    	Paging paging = new Paging(results.size(), 0, to, results,null);
 	    	ResponseEntity<String> responseEntity;
 	    	if(total==0){
