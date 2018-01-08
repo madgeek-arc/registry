@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import eu.openminted.registry.core.domain.index.IndexedField;
 
@@ -16,8 +17,9 @@ public class Resource {
 	@Column(name = "id", nullable = false)
 	private String id;
 
-	@ManyToOne(fetch = FetchType.LAZY)
+	@ManyToOne(fetch = FetchType.LAZY, cascade = {CascadeType.ALL})
 	@JoinColumn(name="name", nullable = false)
+	@JsonIgnore
 	private ResourceType resourceType;
 
 	@Size(min=3, max=50)

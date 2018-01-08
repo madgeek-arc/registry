@@ -47,7 +47,7 @@ public class ResourceType {
     @Column
     private String aliasGroup;
 
-    @OneToMany(mappedBy = "resourceType")
+    @OneToMany(mappedBy = "resourceType", cascade = {CascadeType.ALL} )
     private List<Resource> resources;
 
     public ResourceType() {
