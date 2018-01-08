@@ -2,7 +2,6 @@ package eu.openminted.registry.core.service;
 
 import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.dao.SchemaDao;
-import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.Schema;
 import eu.openminted.registry.core.domain.UrlResolver;
@@ -100,37 +99,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
 	@Override
 	public void deleteResourceType(String name){
-		ResourceType resourceType = resourceTypeDao.getResourceType(name);
-
-		if(resourceType!=null){
-
-			List<Resource> resources = resourceService.getResource(name);
-
-			long start_time = 0;
-			long end_time = 0;
-			double difference = 0;
-			int size = resources.size();
-			int i=0;
-			for(Resource resource : resources){
-				start_time = System.nanoTime();
-				resourceService.deleteResource(resource.getId());
-				end_time = System.nanoTime();
-				difference+=((end_time - start_time) / 1e6);
-				i++;
-				logger.info("Processing "+i+"/"+size);
-			}
-
-			logger.info("Average resource deletion time: \""+difference/resources.size());
-
-			Schema schema = schemaDao.getSchema(stringToMd5(resourceType.getSchema()));
-			if(schema!=null)
-				schemaDao.deleteSchema(schema);
-
-			start_time = System.nanoTime();
-			resourceTypeDao.deleteResourceType(resourceType);
-			end_time = System.nanoTime();
-			logger.info("Deleted resource type "+name+ " from DB in "+ ((end_time - start_time) / 1e6)+"ms");
-		}
+		resourceTypeDao.deleteResourceType(resourceTypeDao.getResourceType(name));
 	}
 
 	@Override
