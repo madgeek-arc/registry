@@ -4,6 +4,7 @@ import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -18,6 +19,7 @@ import java.util.zip.ZipOutputStream;
 
 
 @Service("dumpService")
+@Transactional
 public class DumpServiceImpl implements DumpService {
 
     private static final FileAttribute PERMISSIONS = PosixFilePermissions.asFileAttribute(EnumSet.of
@@ -112,7 +114,8 @@ public class DumpServiceImpl implements DumpService {
         List<File> fileList = new ArrayList<>();
         for(ResourceType resourceType: resourceTypesList){
             if (!resourceType.getName().equals("user")) {
-                resources = resourceService.getResource(resourceType.getName());
+
+                resources = resourceType.getResources();
                 createDirectory(masterDirectory.toAbsolutePath().toString() + "/" + resourceType.getName(), resources, isRaw);
                 try {
                     if(wantSchema) { //skip schema creation

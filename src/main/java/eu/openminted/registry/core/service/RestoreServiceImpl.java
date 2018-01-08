@@ -7,6 +7,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
@@ -15,11 +16,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 
 @Service("restoreService")
+@Transactional
 public class RestoreServiceImpl implements RestoreService {
 
 
@@ -77,10 +80,12 @@ public class RestoreServiceImpl implements RestoreService {
 
                     ResourceType resourceType = new ResourceType();
                     try {
-                        resourceType = parserPool.deserialize(FileUtils.readFileToString(file).replaceAll("^\t$", "").replaceAll("^\n$",""),ResourceType.class);
+                        resourceType = parserPool.deserialize(FileUtils.readFileToString(file).replaceAll("^\t$", "").replaceAll("^\n$",""),ResourceType.class).get();
                         resourceTypeService.addResourceType(resourceType);
                     } catch (IOException e) {
                         new ServiceException("Failed to read schema file");
+                    } catch (InterruptedException | ExecutionException e) {
+                        new ServiceException(e.getMessage());
                     }
 
 
@@ -116,7 +121,7 @@ public class RestoreServiceImpl implements RestoreService {
                             resource = new Resource();
                             resource.setPayload(FileUtils.readFileToString(file));
                             resource.setPayloadFormat(extension);
-                            resource.setResourceType(file.getParentFile().getName());
+                            resource.setResourceType(resourceTypeService.getResourceType(file.getParentFile().getName()));
                             resourceService.addResource(resource);
                         }else{
                             resourceService.addResource(resource);
@@ -156,14 +161,23 @@ public class RestoreServiceImpl implements RestoreService {
             while (entry != null) {
                 String filePath = destDirectory + File.separator + entry.getName();
 //                System.out.println(entry.getName());
-
+                boolean isDir = false;
 
                 String[] splitInto = entry.getName().split("/");
-                File tmpFile = new File(destDirectory+File.separator+splitInto[splitInto.length-2]);
+
+
+                File tmpFile = null;
+                if(splitInto.length<2) {//it's a dir
+                    tmpFile = new File(destDirectory + File.separator + splitInto[0]);
+                    isDir = true;
+                }else
+                    tmpFile = new File(destDirectory+File.separator+splitInto[splitInto.length-2]);
+
                 if(!tmpFile.exists())
                     tmpFile.mkdir();
 
-                extractFile(zipIn, filePath);
+                if(!isDir)
+                    extractFile(zipIn, filePath);
 
                 zipIn.closeEntry();
                 entry = zipIn.getNextEntry();
