@@ -7,6 +7,7 @@ import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
+import org.apache.log4j.Logger;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
@@ -26,6 +27,8 @@ import java.util.stream.Collectors;
 @Service("elasticOperationsService")
 @Transactional
 public class ElasticOperationsService {
+
+    private static Logger logger = Logger.getLogger(ElasticOperationsService.class);
 
     @Autowired
     ResourceTypeService resourceTypeService;
@@ -48,18 +51,22 @@ public class ElasticOperationsService {
 
     public void add(Resource resource) {
 
+        long start_time = System.nanoTime();
         Client client = elastic.client();
         String payload = createDocumentForInsert(resource);
-        client.prepareIndex(resource.getResourceType(), "general")
+        client.prepareIndex(resource.getResourceType().getName(), "general")
                 .setSource(payload)
                 .setId(resource.getId()).get();
+        long end_time = System.nanoTime();
+        double difference = (end_time - start_time) / 1e6;
+        logger.info("Resource added in "+difference+"ms to Elastic");
     }
 
     public void update(Resource previousResource, Resource newResource) {
         Client client = elastic.client();
 
         UpdateRequest updateRequest = new UpdateRequest();
-        updateRequest.index(newResource.getResourceType());
+        updateRequest.index(newResource.getResourceType().getName());
         updateRequest.type("general");
         updateRequest.id(previousResource.getId());
         updateRequest.doc(createDocumentForInsert(newResource));
@@ -71,12 +78,18 @@ public class ElasticOperationsService {
     }
 
     public void delete(Resource resource) {
+        long start_time = System.nanoTime();
         Client client = elastic.client();
-        client.prepareDelete(resource.getResourceType(), "general", resource.getId()).get();
+        client.prepareDelete(resource.getResourceType().getName(), "general", resource.getId()).get();
+        long end_time = System.nanoTime();
+        double difference = (end_time - start_time) / 1e6;
+
+        logger.info("Resource deleted in "+difference+"ms from Elastic");
+
     }
 
     public void createIndex(ResourceType resourceType) {
-
+        long start_time = System.nanoTime();
         Client client = elastic.client();
 
         CreateIndexRequestBuilder createIndexRequestBuilder = client.admin().indices().prepareCreate(resourceType.getName());
@@ -96,11 +109,13 @@ public class ElasticOperationsService {
         if (!putMappingResponse.isAcknowledged()) {
             System.err.println("Error creating result");
         }
-
+        long end_time = System.nanoTime();
+        double difference = (end_time - start_time) / 1e6;
+        logger.info("Resource type "+resourceType.getName()+" added in "+difference+"ms to Elastic");
     }
 
     public void deleteIndex(String name) {
-
+        long start_time = System.nanoTime();
         System.out.println("Deleting index");
 
         Client client = elastic.client();
@@ -109,6 +124,9 @@ public class ElasticOperationsService {
         if(!deleteResponse.isAcknowledged()){
             System.err.println("Error deleting index \""+name+"\"");
         }
+        long end_time = System.nanoTime();
+        double difference = (end_time - start_time) / 1e6;
+        logger.info("Resource type "+name+" deleted in "+difference+"ms from Elastic");
     }
 
     private Map<String, Object> createMapping(List<IndexField> indexFields) {
@@ -150,14 +168,14 @@ public class ElasticOperationsService {
 
         JSONObject jsonObjectField = new JSONObject();
         jsonObjectField.put("id", resource.getId());
-        jsonObjectField.put("resourceType", resource.getResourceType());
+        jsonObjectField.put("resourceType", resource.getResourceType().getName());
         jsonObjectField.put("payload", resource.getPayload());
         jsonObjectField.put("payloadFormat", resource.getPayloadFormat());
         jsonObjectField.put("version", resource.getVersion());
         jsonObjectField.put("searchableArea", strip(resource.getPayload(),resource.getPayloadFormat()));
         jsonObjectField.put("modification_date", resource.getModificationDate().getTime());
         Map<String,IndexField> indexMap = resourceTypeService.getResourceTypeIndexFields(
-                resource.getResourceType()).
+                resource.getResourceType().getName()).
                 stream().collect(Collectors.toMap(IndexField::getName, p->p)
         );
         if (resource.getIndexedFields() != null) {

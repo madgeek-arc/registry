@@ -17,8 +17,6 @@ import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms.Bucket;
 import org.elasticsearch.search.aggregations.metrics.tophits.InternalTopHits;
-import org.elasticsearch.search.sort.SortBuilder;
-import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +24,6 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
-import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.util.*;
 
@@ -37,6 +34,9 @@ public class SearchServiceImpl implements SearchService {
 
     @Autowired
     Environment environment;
+
+    @Autowired
+    ResourceTypeService resourceTypeService;
 
     @Autowired
     private ElasticConfiguration elastic;
@@ -129,7 +129,10 @@ public class SearchServiceImpl implements SearchService {
             Resource res = new Resource();
             for(String value : Arrays.asList("id","resourceType","payload", "payloadFormat", "version")) {
                 try {
-                    PropertyUtils.setProperty(res, value, response.getHits().getAt(i).getSource().get(value).toString());
+                    if(!value.equals("resourceType"))
+                        PropertyUtils.setProperty(res, value, response.getHits().getAt(i).getSource().get(value).toString());
+                    else
+                        res.setResourceType(resourceTypeService.getResourceType(response.getHits().getAt(i).getSource().get(value).toString()));
                 } catch(Exception e) {
                     break;
                 }
@@ -201,7 +204,7 @@ public class SearchServiceImpl implements SearchService {
             return null;
         } else {
             SearchHit hit = response.getHits().getAt(0);
-            return new Resource(hit.getSource().get("id").toString(), hit.getSource().get("resourceType").toString(), hit.getSource().get("version").toString(), hit.getSource().get("payload").toString(), hit.getSource().get("payloadFormat").toString());
+            return new Resource(hit.getSource().get("id").toString(), resourceTypeService.getResourceType(hit.getSource().get("resourceType").toString()), hit.getSource().get("version").toString(), hit.getSource().get("payload").toString(), hit.getSource().get("payloadFormat").toString());
         }
     }
 

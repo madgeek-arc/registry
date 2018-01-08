@@ -28,7 +28,9 @@ abstract public class AbstractGenericService<T> {
     public ResourceService resourceService;
 
     @Autowired
-    ResourceTypeService resourceTypeService;
+    public ResourceTypeService resourceTypeService;
+
+    protected ResourceType resourceType;
 
     @Autowired
     public ParserService parserPool;
@@ -45,6 +47,7 @@ abstract public class AbstractGenericService<T> {
 
     @PostConstruct
     void init() {
+        resourceType = resourceTypeService.getResourceType(getResourceType());
         Set<String> browseSet = new HashSet<>();
         Map<String,Set<String>> sets = new HashMap<>();
         for (IndexField f : resourceTypeService.getResourceTypeIndexFields(getResourceType())) {
@@ -94,6 +97,7 @@ abstract public class AbstractGenericService<T> {
             }
         } catch (UnknownHostException | InterruptedException | ExecutionException e ) {
             logger.fatal(e);
+            e.printStackTrace();
             throw new ServiceException(e);
         }
         browsing = new Browsing(paging.getTotal(), filter.getFrom(), filter.getFrom() + result.size(), result, facetsCollection);

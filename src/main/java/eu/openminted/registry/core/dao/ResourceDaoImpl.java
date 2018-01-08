@@ -1,28 +1,24 @@
 package eu.openminted.registry.core.dao;
 
-import java.util.Date;
-import java.util.List;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.openminted.registry.core.domain.Resource;
+import eu.openminted.registry.core.domain.ResourceType;
 import org.hibernate.Criteria;
-import org.hibernate.Query;
-import org.hibernate.Session;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.stereotype.Repository;
 
-import eu.openminted.registry.core.domain.Resource;
+import java.util.Date;
+import java.util.List;
 
 @Repository("resourceDao")
 public class ResourceDaoImpl extends AbstractDao<String, Resource> implements ResourceDao {
 
-	public Resource getResource(String resourceType, String id) {
+	public Resource getResource(ResourceType resourceType, String id) {
 
 		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
 		cr.add(Restrictions.eq("id", id));
 
 		if (resourceType != null)
-			cr.add(Restrictions.eq("resourceType", resourceType));
+			cr.add(Restrictions.eq("resourceType", resourceType.getName()));
 
 		if (cr.list().size() == 0)
 			return null;
@@ -32,19 +28,19 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 	}
 
 	@SuppressWarnings("unchecked")
-	public List<Resource> getResource(String resourceType) {
+	public List<Resource> getResource(ResourceType resourceType) {
 
 		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		cr.add(Restrictions.eq("resourceType", resourceType));
+		cr.add(Restrictions.eq("resourceType", resourceType.getName()));
 
 		return cr.list();
 	}
 
 	@SuppressWarnings("unchecked")
-	public List<Resource> getResource(String resourceType, int from, int to) {
+	public List<Resource> getResource(ResourceType resourceType, int from, int to) {
 
 		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		cr.add(Restrictions.eq("resourceType", resourceType));
+		cr.add(Restrictions.eq("resourceType", resourceType.getName()));
 		if (to == 0) {
 			cr.setFirstResult(from);
 		} else {
