@@ -6,7 +6,7 @@ import eu.openminted.registry.core.domain.ResourceType;
 import java.util.List;
 
 public interface ResourceService {
-	Resource getResource(ResourceType resourceType, String id);
+	Resource getResource(String resourceType, String id);
 
 	List<Resource> getResource(ResourceType resourceType);
 
