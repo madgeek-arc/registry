@@ -54,7 +54,7 @@ public class ElasticOperationsService {
         long start_time = System.nanoTime();
         Client client = elastic.client();
         String payload = createDocumentForInsert(resource);
-        client.prepareIndex(resource.getResourceType().getName(), "general")
+        client.prepareIndex(resource.getResourceType(), "general")
                 .setSource(payload)
                 .setId(resource.getId()).get();
         long end_time = System.nanoTime();
@@ -66,7 +66,7 @@ public class ElasticOperationsService {
         Client client = elastic.client();
 
         UpdateRequest updateRequest = new UpdateRequest();
-        updateRequest.index(newResource.getResourceType().getName());
+        updateRequest.index(newResource.getResourceType());
         updateRequest.type("general");
         updateRequest.id(previousResource.getId());
         updateRequest.doc(createDocumentForInsert(newResource));
@@ -80,7 +80,7 @@ public class ElasticOperationsService {
     public void delete(Resource resource) {
         long start_time = System.nanoTime();
         Client client = elastic.client();
-        client.prepareDelete(resource.getResourceType().getName(), "general", resource.getId()).get();
+        client.prepareDelete(resource.getResourceType(), "general", resource.getId()).get();
         long end_time = System.nanoTime();
         double difference = (end_time - start_time) / 1e6;
 
@@ -168,14 +168,14 @@ public class ElasticOperationsService {
 
         JSONObject jsonObjectField = new JSONObject();
         jsonObjectField.put("id", resource.getId());
-        jsonObjectField.put("resourceType", resource.getResourceType().getName());
+        jsonObjectField.put("resourceType", resource.getResourceType());
         jsonObjectField.put("payload", resource.getPayload());
         jsonObjectField.put("payloadFormat", resource.getPayloadFormat());
         jsonObjectField.put("version", resource.getVersion());
         jsonObjectField.put("searchableArea", strip(resource.getPayload(),resource.getPayloadFormat()));
         jsonObjectField.put("modification_date", resource.getModificationDate().getTime());
         Map<String,IndexField> indexMap = resourceTypeService.getResourceTypeIndexFields(
-                resource.getResourceType().getName()).
+                resource.getResourceType()).
                 stream().collect(Collectors.toMap(IndexField::getName, p->p)
         );
         if (resource.getIndexedFields() != null) {

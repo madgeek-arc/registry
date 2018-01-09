@@ -132,7 +132,7 @@ public class SearchServiceImpl implements SearchService {
                     if(!value.equals("resourceType"))
                         PropertyUtils.setProperty(res, value, response.getHits().getAt(i).getSource().get(value).toString());
                     else
-                        res.setResourceType(resourceTypeService.getResourceType(response.getHits().getAt(i).getSource().get(value).toString()));
+                        res.setResourceType(response.getHits().getAt(i).getSource().get(value).toString());
                 } catch(Exception e) {
                     break;
                 }
@@ -204,7 +204,7 @@ public class SearchServiceImpl implements SearchService {
             return null;
         } else {
             SearchHit hit = response.getHits().getAt(0);
-            return new Resource(hit.getSource().get("id").toString(), resourceTypeService.getResourceType(hit.getSource().get("resourceType").toString()), hit.getSource().get("version").toString(), hit.getSource().get("payload").toString(), hit.getSource().get("payloadFormat").toString());
+            return new Resource(hit.getSource().get("id").toString(), hit.getSource().get("resourceType").toString(), hit.getSource().get("version").toString(), hit.getSource().get("payload").toString(), hit.getSource().get("payloadFormat").toString());
         }
     }
 

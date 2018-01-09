@@ -12,13 +12,13 @@ import java.util.List;
 @Repository("resourceDao")
 public class ResourceDaoImpl extends AbstractDao<String, Resource> implements ResourceDao {
 
-	public Resource getResource(ResourceType resourceType, String id) {
+	public Resource getResource(String resourceType, String id) {
 
 		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
 		cr.add(Restrictions.eq("id", id));
 
 		if (resourceType != null)
-			cr.add(Restrictions.eq("resourceType", resourceType.getName()));
+			cr.add(Restrictions.eq("resourceType", resourceType));
 
 		if (cr.list().size() == 0)
 			return null;

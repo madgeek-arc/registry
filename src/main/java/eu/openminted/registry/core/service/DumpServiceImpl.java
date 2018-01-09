@@ -115,7 +115,7 @@ public class DumpServiceImpl implements DumpService {
         for(ResourceType resourceType: resourceTypesList){
             if (!resourceType.getName().equals("user")) {
 
-                resources = resourceType.getResources();
+                resources = resourceService.getResource(resourceType);
                 createDirectory(masterDirectory.toAbsolutePath().toString() + "/" + resourceType.getName(), resources, isRaw);
                 try {
                     if(wantSchema) { //skip schema creation

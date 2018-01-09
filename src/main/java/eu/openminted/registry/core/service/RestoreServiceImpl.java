@@ -121,7 +121,7 @@ public class RestoreServiceImpl implements RestoreService {
                             resource = new Resource();
                             resource.setPayload(FileUtils.readFileToString(file));
                             resource.setPayloadFormat(extension);
-                            resource.setResourceType(resourceTypeService.getResourceType(file.getParentFile().getName()));
+                            resource.setResourceType(file.getParentFile().getName());
                             resourceService.addResource(resource);
                         }else{
                             resourceService.addResource(resource);

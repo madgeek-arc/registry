@@ -36,7 +36,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public Resource getResource(ResourceType resourceType, String id) {
+    public Resource getResource(String resourceType, String id) {
         return resourceDao.getResource(resourceType, id);
     }
 
@@ -65,7 +65,7 @@ public class ResourceServiceImpl implements ResourceService {
         if (resource.getPayloadUrl() != null ^ resource.getPayload() != null) {
             resource.setCreationDate(new Date());
             resource.setModificationDate(new Date());
-            resource.setPayloadFormat(resource.getResourceType().getPayloadType());
+            resource.setPayloadFormat(resourceTypeDao.getResourceType(resource.getResourceType()).getPayloadType());
         } else {
             throw new ServiceException("Payload and PayloadUrl conflict : neither set or both set");
         }
@@ -124,7 +124,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     private List<IndexedField> getIndexedFields(Resource resource) {
 
-        ResourceType resourceType = resourceTypeDao.getResourceType(resource.getResourceType().getName());
+        ResourceType resourceType = resourceTypeDao.getResourceType(resource.getResourceType());
         IndexMapper indexMapper = null;
         try {
             indexMapper = indexMapperFactory.createIndexMapper(resourceType);
@@ -153,13 +153,13 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     private Boolean checkValid(Resource resource) {
-        ResourceType resourceType = resourceTypeDao.getResourceType(resource.getResourceType().getName());
+        ResourceType resourceType = resourceTypeDao.getResourceType(resource.getResourceType());
 
         if (resourceType != null) {
             if (resourceType.getPayloadType().equals(resource.getPayloadFormat())) {
                 if (resourceType.getPayloadType().equals("xml")) {
                     //validate xml
-                    Boolean output = resourceValidator.validateXML(resource.getResourceType().getName(), resource.getPayload());
+                    Boolean output = resourceValidator.validateXML(resource.getResourceType(), resource.getPayload());
                     if (output) {
                         resource.setPayload(resource.getPayload());
                     } else {
