@@ -26,7 +26,7 @@ public class ResourceController {
 	  
 	    @RequestMapping(value = "/resources/{resourceType}/{id}", method = RequestMethod.GET, headers = "Accept=application/json")  
 	    public ResponseEntity<Resource> getResourceById(@PathVariable("resourceType") String resourceType,@PathVariable("id") String id) {  
-	    	Resource resource = resourceService.getResource(resourceTypeService.getResourceType(resourceType),id);
+	    	Resource resource = resourceService.getResource(resourceType,id);
 	    	if(resource==null){
 				throw new ResourceNotFoundException();
 	    	}else{
