@@ -153,8 +153,8 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 		}
 
 		schema.setSchema(resourceType.getSchema());
-
-		schemaDao.addSchema(schema);
+		if(schemaDao.getSchema(schema.getId())!=null)
+			schemaDao.addSchema(schema);
 
 		return resourceType;
 	}
