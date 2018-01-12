@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import org.apache.commons.io.FileUtils;
@@ -10,15 +11,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+
+import static javax.xml.bind.JAXBContext.newInstance;
 
 
 @Service("restoreService")
@@ -32,8 +37,7 @@ public class RestoreServiceImpl implements RestoreService {
     @Autowired
     ResourceService resourceService;
 
-    @Autowired
-    public ParserService parserPool;
+    private JAXBContext jaxbContext = null;
 
     @Override
     public void restoreDataFromZip(MultipartFile file) {
@@ -79,20 +83,23 @@ public class RestoreServiceImpl implements RestoreService {
                         resourceTypeService.deleteResourceType(resourceTypeName);
 
                     ResourceType resourceType = new ResourceType();
+                    ObjectMapper mapper = new ObjectMapper();
                     try {
-                        resourceType = parserPool.deserialize(FileUtils.readFileToString(file).replaceAll("^\t$", "").replaceAll("^\n$",""),ResourceType.class).get();
+                        resourceType = mapper.readValue(FileUtils.readFileToString(file).replaceAll("^\t$", "").replaceAll("^\n$",""), ResourceType.class);
                         resourceTypeService.addResourceType(resourceType);
                     } catch (IOException e) {
                         new ServiceException("Failed to read schema file");
-                    } catch (InterruptedException | ExecutionException e) {
-                        new ServiceException(e.getMessage());
                     }
 
 
                 }
             }
         }
-
+        try {
+            jaxbContext =  newInstance(Resource.class);
+        } catch (JAXBException e) {
+            new ServiceException(e.getMessage());
+        }
         for(File file : files){
             try {
                 if(!file.isDirectory()) {
@@ -106,13 +113,13 @@ public class RestoreServiceImpl implements RestoreService {
                         String extension = FilenameUtils.getExtension(file.getName());
                         Resource resource = new Resource();
                         if(extension.equals("json")) {
-                            resource = parserPool.deserializeResource(file, ParserService.ParserServiceTypes.JSON);
+                            resource = deserializeResource(file, extension);
                             if(resource==null)
-                                resource = parserPool.deserializeResource(file, ParserService.ParserServiceTypes.XML);
+                                resource = deserializeResource(file, "xml");
                         }else if(extension.equals("xml")){
-                            resource = parserPool.deserializeResource(file, ParserService.ParserServiceTypes.XML);
+                            resource = deserializeResource(file, extension);
                             if(resource==null)
-                                resource = parserPool.deserializeResource(file, ParserService.ParserServiceTypes.JSON);
+                                resource = deserializeResource(file, "json");
                         }else{
                             new ServiceException("Unsupported file format");
                         }
@@ -135,6 +142,23 @@ public class RestoreServiceImpl implements RestoreService {
                 e.printStackTrace();
             }
 
+        }
+    }
+
+    private Resource deserializeResource(File file, String mediaType) {
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            if (mediaType.equals("json"))
+                return mapper.readValue(file, Resource.class);
+            else if (mediaType.equals("xml")) {
+                Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+                return (Resource) unmarshaller.unmarshal(file);
+            }else
+                return null;
+        } catch (IOException | ClassCastException e) {
+            return null;
+        } catch (JAXBException e) {
+            return null;
         }
     }
 
@@ -202,4 +226,6 @@ public class RestoreServiceImpl implements RestoreService {
 
 
     }
+
+
 }

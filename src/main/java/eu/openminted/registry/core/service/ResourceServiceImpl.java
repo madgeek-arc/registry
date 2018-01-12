@@ -4,6 +4,7 @@ import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.Version;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
@@ -13,6 +14,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -30,6 +34,8 @@ public class ResourceServiceImpl implements ResourceService {
     private IndexMapperFactory indexMapperFactory;
     @Autowired
     private ResourceValidator resourceValidator;
+    @Autowired
+    private VersionService versionService;
 
     public ResourceServiceImpl() {
 
@@ -62,6 +68,8 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public Resource addResource(Resource resource) throws ServiceException {
+
+
         if (resource.getPayloadUrl() != null ^ resource.getPayload() != null) {
             resource.setCreationDate(new Date());
             resource.setModificationDate(new Date());
@@ -69,25 +77,29 @@ public class ResourceServiceImpl implements ResourceService {
         } else {
             throw new ServiceException("Payload and PayloadUrl conflict : neither set or both set");
         }
-        long start_time = System.nanoTime();
         Boolean response = checkValid(resource);
-        long end_time = System.nanoTime();
-        double difference = (end_time - start_time) / 1e6;
-        logger.info("Checking validy of xml in "+difference+"ms");
         if (response) {
             resource.setId(UUID.randomUUID().toString());
-
+            resource.setVersion(generateVersion());
             try {
-                start_time = System.nanoTime();
                 resource.setIndexedFields(getIndexedFields(resource));
-                end_time = System.nanoTime();
-                difference = (end_time - start_time) / 1e6;
-                logger.info("Indexed fields exported in "+ difference+"ms");
-                logger.debug("indexed fields: " + resource.getIndexedFields().size());
+
+
                 for (IndexedField indexedField : resource.getIndexedFields())
                     indexedField.setResource(resource);
 
-                resourceDao.addResource(resource);
+                Version version = new Version();
+                version.setCreationDate(new Date());
+                version.setId(UUID.randomUUID().toString());
+                version.setPayload(resource.getPayload());
+                version.setResource(resource);
+                version.setResourceType(resource.getResourceType());
+                version.setVersion(resource.getVersion());
+
+                resourceDao.addResource(resource);// resource needs to be saved first in order for the version to correctly reference to it
+
+
+                versionService.addVersion(version);
             } catch (Exception e) {
                 logger.error("Error saving resource", e);
                 throw new ServiceException(e);
@@ -99,6 +111,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public Resource updateResource(Resource resource) throws ServiceException {
+
         resource.setIndexedFields(getIndexedFields(resource));
         resource.setModificationDate(new Date());
         for (IndexedField indexedField : resource.getIndexedFields()) {
@@ -106,20 +119,27 @@ public class ResourceServiceImpl implements ResourceService {
         }
         Boolean response = checkValid(resource);
         if (response) {
+            resource.setVersion(generateVersion());
+
+            Version version = new Version();
+            version.setCreationDate(new Date());
+            version.setId(UUID.randomUUID().toString());
+            version.setPayload(resource.getPayload());
+            version.setResource(resource);
+            version.setResourceType(resource.getResourceType());
+            version.setVersion(resource.getVersion());
+            versionService.addVersion(version);
+
             resourceDao.updateResource(resource);
         }
+
         return resource;
     }
 
     @Override
     public void deleteResource(String id) {
-        long start_time = System.nanoTime();
-        resourceDao.deleteResource(id);
-        long end_time = System.nanoTime();
-        double difference = (end_time - start_time) / 1e6;
-
-        logger.info("Resource deleted in: "+difference + "ms from DB");
-
+        Resource resource = resourceDao.getResource(null,id);
+        resourceDao.deleteResource(resource);
     }
 
     private List<IndexedField> getIndexedFields(Resource resource) {
@@ -188,6 +208,11 @@ public class ResourceServiceImpl implements ResourceService {
         }
 
         return true;
+    }
+
+    private String generateVersion(){
+        DateFormat df = new SimpleDateFormat("MMddyyyyHHmmss");
+        return df.format(Calendar.getInstance().getTime());
     }
 }
 

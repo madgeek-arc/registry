@@ -18,7 +18,7 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 		cr.add(Restrictions.eq("id", id));
 
 		if (resourceType != null)
-			cr.add(Restrictions.eq("resourceType", resourceType.getName()));
+			cr.add(Restrictions.eq("resourceType", resourceType));
 
 		if (cr.list().size() == 0)
 			return null;
@@ -31,7 +31,7 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 	public List<Resource> getResource(ResourceType resourceType) {
 
 		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		cr.add(Restrictions.eq("resourceType", resourceType.getName()));
+		cr.add(Restrictions.eq("resourceType", resourceType));
 
 		return cr.list();
 	}
@@ -40,7 +40,7 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 	public List<Resource> getResource(ResourceType resourceType, int from, int to) {
 
 		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		cr.add(Restrictions.eq("resourceType", resourceType.getName()));
+		cr.add(Restrictions.eq("resourceType", resourceType));
 		if (to == 0) {
 			cr.setFirstResult(from);
 		} else {
@@ -81,6 +81,7 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 
 
 	public void addResource(Resource resource){
+//		resource.setResourceType(getSession().load(ResourceType.class,resource.getResourceType().getName()));
 		persist(resource);
 		getSession().flush();
 	}
@@ -91,9 +92,9 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 		getSession().flush();
 	}
 
-	public void deleteResource(String id) {
-		Resource resource = getSession().get(Resource.class,id);
+	public void deleteResource(Resource resource) {
 		getSession().delete(resource);
+		getSession().flush();
 	}
 
 }

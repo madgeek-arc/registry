@@ -61,6 +61,7 @@ public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> imple
 	@Override
 	public void deleteResourceType(ResourceType resourceType) {
 		getSession().delete(resourceType);
+		getSession().flush();
 	}
 
 }

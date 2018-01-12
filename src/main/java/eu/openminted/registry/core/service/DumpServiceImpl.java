@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,9 +34,6 @@ public class DumpServiceImpl implements DumpService {
 
     @Autowired
     ResourceTypeService resourceTypeService;
-
-    @Autowired
-    public ParserService parserPool;
 
     static void writeZipFile(File directoryToZip, List<File> fileList) {
 
@@ -115,14 +113,16 @@ public class DumpServiceImpl implements DumpService {
         for(ResourceType resourceType: resourceTypesList){
             if (!resourceType.getName().equals("user")) {
 
-                resources = resourceService.getResource(resourceType);
+                // TODO: stream it! Use a custom iterator...
+                resources = resourceType.getResources();
                 createDirectory(masterDirectory.toAbsolutePath().toString() + "/" + resourceType.getName(), resources, isRaw);
                 try {
                     if(wantSchema) { //skip schema creation
                         File tempFile = new File(masterDirectory + "/"+resourceType.getName()+"/" + resourceType.getName() + ".json");
                         Path filePath = Files.createFile(tempFile.toPath(), PERMISSIONS);
                         FileWriter file = new FileWriter(filePath.toFile());
-                        file.write(parserPool.deserialize(resourceType, ParserService.ParserServiceTypes.JSON).get());
+                        ObjectMapper mapper = new ObjectMapper();
+                        file.write(mapper.writeValueAsString(resourceType));
                         file.flush();
                         file.close();
                     }
@@ -159,10 +159,30 @@ public class DumpServiceImpl implements DumpService {
                 if(isRaw){
                     file.write(resources.get(i).getPayload());
                 }else{
-                    file.write(parserPool.deserialize(resources.get(i), ParserService.ParserServiceTypes.JSON).get());
+                    ObjectMapper mapper = new ObjectMapper();
+                    file.write(mapper.writeValueAsString(resources.get(i)));
                 }
                 file.flush();
                 file.close();
+
+
+//                for(Version version : resources.get(i).getVersions()){
+//                    File versionDir = new File(name+"/versions/");
+//                    if(!versionDir.exists()){
+//                        System.out.println(versionDir.getAbsolutePath());
+//                        Files.createDirectory(versionDir.toPath(), PERMISSIONS);
+//                    }
+//                    File openFileVersion = new File(name + "/versions/" + version.getId()+ ".json");
+//                    System.out.println(openFileVersion.getAbsolutePath());
+//                    Path filePathVersion = Files.createFile(openFileVersion.toPath(), PERMISSIONS);
+//                    FileWriter fileVersion = new FileWriter(filePathVersion.toFile());
+//                    ObjectMapper mapperVersion = new ObjectMapper();
+//                    fileVersion.write(mapperVersion.writeValueAsString(version));
+//                    fileVersion.flush();
+//                    fileVersion.close();
+//
+//                }
+
             } catch (Exception e) {
                 e.printStackTrace();
 				throw new ServiceException("Failed to create file(s) for "+ name);

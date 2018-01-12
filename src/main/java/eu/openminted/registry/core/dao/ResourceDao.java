@@ -21,6 +21,6 @@ public interface ResourceDao {
 
     void updateResource(Resource resource);
 
-    void deleteResource(String id);
+    void deleteResource(Resource id);
 
 }
