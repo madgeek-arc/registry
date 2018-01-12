@@ -38,7 +38,7 @@ public class ResourceType {
     @Column
     private String indexMapperClass;
 
-    @OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL})
+    @OneToMany(fetch = FetchType.LAZY, cascade = {CascadeType.ALL})
 //	@ElementCollection(targetClass = IndexField.class)
     @Column
     @JsonManagedReference
@@ -47,8 +47,11 @@ public class ResourceType {
     @Column
     private String aliasGroup;
 
-    @OneToMany(mappedBy = "resourceType", cascade = {CascadeType.ALL} )
+    @OneToMany(mappedBy = "resourceType", fetch = FetchType.LAZY, cascade = {CascadeType.ALL})
     private List<Resource> resources;
+
+    @OneToMany(mappedBy = "resourceType", fetch = FetchType.LAZY)
+    private List<Version> versions;
 
     public ResourceType() {
 
@@ -143,5 +146,13 @@ public class ResourceType {
 
     public void setResources(List<Resource> resources) {
         this.resources = resources;
+    }
+
+    public List<Version> getVersions() {
+        return versions;
+    }
+
+    public void setVersions(List<Version> versions) {
+        this.versions = versions;
     }
 }

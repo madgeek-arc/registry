@@ -1,11 +1,13 @@
 package eu.openminted.registry.core.domain;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import eu.openminted.registry.core.domain.index.IndexedField;
 
 import javax.persistence.*;
 import javax.validation.constraints.Size;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -17,13 +19,12 @@ public class Resource {
 	@Column(name = "id", nullable = false)
 	private String id;
 
-	@ManyToOne(fetch = FetchType.LAZY, cascade = {CascadeType.ALL})
-	@JoinColumn(name="name", nullable = false)
-	@JsonIgnore
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name="fk_name", nullable = false)
 	private ResourceType resourceType;
 
 	@Size(min=3, max=50)
-	@Column(name = "version", nullable = true)
+	@Column(name = "version", nullable = false)
 	private String version;
 
 	@Column(name = "payload", nullable = false, columnDefinition = "text")
@@ -50,6 +51,9 @@ public class Resource {
 	@OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL}, mappedBy = "resource")
 	@JsonManagedReference
 	private List<IndexedField> indexedFields;
+
+	@OneToMany(mappedBy = "resource", fetch = FetchType.LAZY, cascade = {CascadeType.ALL})
+	private List<Version> versions;
 
 
 	public Resource(String id, ResourceType resourceType,String version,String payload,String payloadFormat) {
@@ -147,11 +151,26 @@ public class Resource {
 	@PrePersist
 	protected void onCreate() {
 		modificationDate = creationDate = new Date();
+		version = generateVersion();
 	}
 
 	@PreUpdate
 	protected void onUpdate() {
+
 		modificationDate = new Date();
+		version = generateVersion();
 	}
 
+	public List<Version> getVersions() {
+		return versions;
+	}
+
+	public void setVersions(List<Version> versions) {
+		this.versions = versions;
+	}
+
+	private String generateVersion(){
+		DateFormat df = new SimpleDateFormat("MMddyyyyHHmmss");
+		return df.format(Calendar.getInstance().getTime());
+	}
 }
