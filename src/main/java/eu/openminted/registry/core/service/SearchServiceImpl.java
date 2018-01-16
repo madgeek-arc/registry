@@ -204,7 +204,13 @@ public class SearchServiceImpl implements SearchService {
             return null;
         } else {
             SearchHit hit = response.getHits().getAt(0);
-            return new Resource(hit.getSource().get("id").toString(), resourceTypeService.getResourceType(hit.getSource().get("resourceType").toString()), hit.getSource().get("version").toString(), hit.getSource().get("payload").toString(), hit.getSource().get("payloadFormat").toString());
+            String version = hit.getSource().get("version") == null ? "not_set" : hit.getSource().get("version").toString();
+            return new Resource(
+                    hit.getSource().get("id").toString(),
+                    resourceTypeService.getResourceType(hit.getSource().get("resourceType").toString()),
+                    version,
+                    hit.getSource().get("payload").toString(),
+                    hit.getSource().get("payloadFormat").toString());
         }
     }
 
