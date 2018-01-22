@@ -30,7 +30,7 @@ public class VersionController {
 	@Autowired
 	ResourceService resourceService;
 
-	@RequestMapping(value = "/version/{resourceType}/", method = RequestMethod.GET, headers = "Accept=application/json")
+	@RequestMapping(value = "/version/{resourceType}", method = RequestMethod.GET, headers = "Accept=application/json")
 	public ResponseEntity<List<Version>> getVersionsByResourceType(@PathVariable("resourceType") String resourceType) {
 
 	   	List<Version> versions = versionService.getVersionsByResourceType(resourceType);
@@ -43,7 +43,7 @@ public class VersionController {
 
 	}
 
-	@RequestMapping(value = "/version/{resourceType}/{resource}/", method = RequestMethod.GET, headers = "Accept=application/json")
+	@RequestMapping(value = "/version/{resourceType}/{resource}", method = RequestMethod.GET, headers = "Accept=application/json")
 	public ResponseEntity<List<Version>> getVersionsByResource(@PathVariable("resourceType") String resourceType,
 															   @PathVariable("resource") String resource) {
 		List<Version> versions = versionService.getVersionsByResource(resource);
@@ -57,7 +57,7 @@ public class VersionController {
 
 	}
 
-	@RequestMapping(value = "/version/{resourceType}/{resource}/{version}/", method = RequestMethod.GET, headers = "Accept=application/json")
+	@RequestMapping(value = "/version/{resourceType}/{resource}/{version}", method = RequestMethod.GET, headers = "Accept=application/json")
 	public ResponseEntity<Version> getVersion(@PathVariable("resourceType") String resourceType,
 											  @PathVariable("resource") String resource,
 											  @PathVariable("version") String versionNumber) {
@@ -72,7 +72,7 @@ public class VersionController {
 
 	}
 
-	@RequestMapping(value = "/version/", method = RequestMethod.GET, headers = "Accept=application/json")
+	@RequestMapping(value = "/version", method = RequestMethod.GET, headers = "Accept=application/json")
 	public ResponseEntity<List<Version>> getVersions() {
 
 		List<Version> versions = versionService.getAllVersions();
