@@ -41,10 +41,10 @@ public class SearchServiceImpl implements SearchService {
     @Autowired
     private ElasticConfiguration elastic;
 
-    @Value("${elastic.aggregation.topHitsSize : 100}")
+    @Value("${elastic.aggregation.topHitsSize : #{100}}")
     private int topHitsSize;
 
-    @Value("${elastic.aggregation.bucketSize : 100}")
+    @Value("${elastic.aggregation.bucketSize : #{100}}")
     private int bucketSize;
 
     private static BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
