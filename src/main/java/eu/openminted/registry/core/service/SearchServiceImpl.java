@@ -42,10 +42,10 @@ public class SearchServiceImpl implements SearchService {
     private ElasticConfiguration elastic;
 
     @Value("${elastic.aggregation.topHitsSize : #{100}}")
-    private String topHitsSize;
+    private int topHitsSize;
 
     @Value("${elastic.aggregation.bucketSize : #{100}}")
-    private String bucketSize;
+    private int bucketSize;
 
     private static BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
@@ -71,8 +71,8 @@ public class SearchServiceImpl implements SearchService {
                 .setQuery(qBuilder)
                 .setFrom(filter.getFrom()).setSize(0).setExplain(false);
         search.addAggregation(
-                AggregationBuilders.terms("agg_category").field(category).size(Integer.parseInt(bucketSize))
-                        .subAggregation(AggregationBuilders.topHits("documents").size(Integer.parseInt(topHitsSize))
+                AggregationBuilders.terms("agg_category").field(category).size(bucketSize)
+                        .subAggregation(AggregationBuilders.topHits("documents").size(topHitsSize)
                         ));
         SearchResponse response = search.execute().actionGet();
 
@@ -119,7 +119,7 @@ public class SearchServiceImpl implements SearchService {
         }
 
         for (String browseBy : filter.getBrowseBy()) {
-            search.addAggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy).size(Integer.parseInt(bucketSize)));
+            search.addAggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy).size(bucketSize));
         }
         SearchResponse response = search.execute().actionGet();
 
