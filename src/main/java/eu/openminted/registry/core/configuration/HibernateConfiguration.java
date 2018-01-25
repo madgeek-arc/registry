@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @Configuration
 @EnableTransactionManagement
-@ComponentScan({ "eu.openminted.registry.core.configuration" })
+@ComponentScan({ "eu.openminted.registry.core.dao" })
 @PropertySource(value = { "classpath:application.properties", "classpath:registry.properties"} )
 @EnableAspectJAutoProxy
 public class HibernateConfiguration {

@@ -21,7 +21,7 @@ import java.net.UnknownHostException;
  * Created by stefanos on 14/11/2016.
  */
 @Configuration
-@ComponentScan({ "eu.openminted.registry.core.configuration" })
+@ComponentScan({ "eu.openminted.registry.core.elasticsearch" })
 @PropertySource(value = { "classpath:application.properties", "classpath:registry.properties"} )
 public class ElasticConfiguration {
 

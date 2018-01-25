@@ -5,6 +5,7 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.jms.annotation.EnableJms;
@@ -17,6 +18,7 @@ import org.springframework.jms.support.converter.MessageType;
 @Configuration
 @EnableJms
 @PropertySource(value = { "classpath:application.properties", "classpath:registry.properties"} )
+@ComponentScan({"eu.openminted.registry.core.jms"})
 public class JmsConfiguration {
 
     private static Logger logger = Logger.getLogger(JmsConfiguration.class);
