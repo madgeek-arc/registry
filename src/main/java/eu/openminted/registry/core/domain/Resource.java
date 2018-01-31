@@ -49,11 +49,11 @@ public class Resource {
 	@Column(name = "modification_date", nullable = false)
 	private Date modificationDate;
 
-	@OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL}, mappedBy = "resource")
+	@OneToMany(cascade = {CascadeType.ALL}, mappedBy = "resource")
 	@JsonManagedReference
 	private List<IndexedField> indexedFields;
 
-	@OneToMany(mappedBy = "resource", fetch = FetchType.EAGER, cascade = {CascadeType.ALL})
+	@OneToMany(mappedBy = "resource", cascade = {CascadeType.ALL})
 	@JsonManagedReference
 	private List<Version> versions;
 
