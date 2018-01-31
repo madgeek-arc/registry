@@ -53,7 +53,7 @@ public class ResourceType {
     @JsonIgnore
     private List<Resource> resources;
 
-    @OneToMany(mappedBy = "resourceType", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "resourceType")
 //    @JsonBackReference TODO
 //    @JsonIgnore TODO
     @JsonIgnore
