@@ -56,6 +56,7 @@ public class ResourceType {
     @OneToMany(mappedBy = "resourceType", fetch = FetchType.EAGER)
 //    @JsonBackReference TODO
 //    @JsonIgnore TODO
+    @JsonIgnore
     private List<Version> versions;
 
     public ResourceType() {
