@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.domain;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import eu.openminted.registry.core.domain.index.IndexedField;
 
@@ -49,8 +50,8 @@ public class Resource {
 	@Column(name = "modification_date", nullable = false)
 	private Date modificationDate;
 
-	@OneToMany(cascade = {CascadeType.ALL}, mappedBy = "resource")
-	@JsonManagedReference
+	@OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL}, mappedBy = "resource")
+	@JsonBackReference
 	private List<IndexedField> indexedFields;
 
 	@OneToMany(mappedBy = "resource", cascade = {CascadeType.ALL})
