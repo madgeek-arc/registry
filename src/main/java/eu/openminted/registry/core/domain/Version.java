@@ -18,6 +18,7 @@ public class Version {
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name="parent_id", nullable = false)
 	@JsonIgnore
+	@JsonBackReference
 	private Resource resource;
 
 	@ManyToOne(fetch = FetchType.EAGER)

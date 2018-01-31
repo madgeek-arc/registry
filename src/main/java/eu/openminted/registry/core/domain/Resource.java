@@ -53,7 +53,8 @@ public class Resource {
 	@JsonManagedReference
 	private List<IndexedField> indexedFields;
 
-	@OneToMany(mappedBy = "resource", fetch = FetchType.LAZY, cascade = {CascadeType.ALL})
+	@OneToMany(mappedBy = "resource", fetch = FetchType.EAGER, cascade = {CascadeType.ALL})
+	@JsonManagedReference
 	private List<Version> versions;
 
 
