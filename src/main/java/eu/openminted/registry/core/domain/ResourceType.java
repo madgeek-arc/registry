@@ -53,7 +53,7 @@ public class ResourceType {
     @JsonIgnore
     private List<Resource> resources;
 
-    @OneToMany(mappedBy = "resourceType", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "resourceType", fetch = FetchType.EAGER)
 //    @JsonBackReference TODO
 //    @JsonIgnore TODO
     private List<Version> versions;
