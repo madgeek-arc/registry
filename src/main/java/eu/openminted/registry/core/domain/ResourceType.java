@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.domain;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import eu.openminted.registry.core.domain.index.IndexField;
 
@@ -38,7 +39,7 @@ public class ResourceType {
     @Column
     private String indexMapperClass;
 
-    @OneToMany(fetch = FetchType.LAZY, cascade = {CascadeType.ALL})
+    @OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL})
 //	@ElementCollection(targetClass = IndexField.class)
     @Column
     @JsonManagedReference
@@ -48,9 +49,11 @@ public class ResourceType {
     private String aliasGroup;
 
     @OneToMany(mappedBy = "resourceType", fetch = FetchType.LAZY, cascade = {CascadeType.ALL})
+    @JsonBackReference
     private List<Resource> resources;
 
     @OneToMany(mappedBy = "resourceType", fetch = FetchType.LAZY)
+    @JsonBackReference
     private List<Version> versions;
 
     public ResourceType() {

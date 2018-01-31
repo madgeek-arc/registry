@@ -21,6 +21,7 @@ public class Resource {
 
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name="fk_name", nullable = false)
+	@JsonManagedReference
 	private ResourceType resourceType;
 
 	@Size(min=3, max=50)
