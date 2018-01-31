@@ -1,6 +1,5 @@
 package eu.openminted.registry.core.domain;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.persistence.*;
@@ -18,13 +17,13 @@ public class Version {
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name="parent_id", nullable = false)
 	@JsonIgnore
-	@JsonBackReference
+//	@JsonBackReference TODO
 	private Resource resource;
 
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name="fk_name_version", nullable = false)
 	@JsonIgnore
-	@JsonBackReference
+//	@JsonBackReference TODO
 	private ResourceType resourceType;
 
 	@Size(min=3, max=50)
