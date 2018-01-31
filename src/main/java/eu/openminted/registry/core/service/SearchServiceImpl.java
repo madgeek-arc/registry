@@ -41,11 +41,11 @@ public class SearchServiceImpl implements SearchService {
     @Autowired
     private ElasticConfiguration elastic;
 
-    @Value("${elastic.aggregation.topHitsSize:100}")
-    private Integer topHitsSize;
+    @Value("${elastic.aggregation.topHitsSize : 100}")
+    private int topHitsSize;
 
-    @Value("${elastic.aggregation.bucketSize:100}")
-    private Integer bucketSize;
+    @Value("${elastic.aggregation.bucketSize : 100}")
+    private int bucketSize;
 
     private static BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
@@ -204,13 +204,7 @@ public class SearchServiceImpl implements SearchService {
             return null;
         } else {
             SearchHit hit = response.getHits().getAt(0);
-            String version = hit.getSource().get("version") == null ? "not_set" : hit.getSource().get("version").toString();
-            return new Resource(
-                    hit.getSource().get("id").toString(),
-                    resourceTypeService.getResourceType(hit.getSource().get("resourceType").toString()),
-                    version,
-                    hit.getSource().get("payload").toString(),
-                    hit.getSource().get("payloadFormat").toString());
+            return new Resource(hit.getSource().get("id").toString(), resourceTypeService.getResourceType(hit.getSource().get("resourceType").toString()), hit.getSource().get("version").toString(), hit.getSource().get("payload").toString(), hit.getSource().get("payloadFormat").toString());
         }
     }
 
