@@ -202,7 +202,7 @@ public class SearchServiceImpl implements SearchService {
                 .setQuery(qBuilder)
                 .setSize(1).setExplain(false);
 
-        logger.debug("Search query: " + qBuilder);
+        logger.debug("Search query: " + qBuilder + "in index " + resourceType);
 
         SearchResponse response = search.execute().actionGet();
         if (response == null || response.getHits().totalHits() == 0) {
