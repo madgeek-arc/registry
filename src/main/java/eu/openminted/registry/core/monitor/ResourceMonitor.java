@@ -39,12 +39,20 @@ public class ResourceMonitor {
 
 		try {
 			resource = (Resource) pjp.proceed();
+			for (ResourceListener listener : resourceListeners) {
+				try {
+					listener.resourceAdded(resource);
+					logger.info("Notified listener : " + listener.getClass().getSimpleName());
+				} catch (Exception e) {
+					logger.error("Error notifying listener", e);
+				}
+			}
 		} catch( Exception e) {
 			logger.fatal("fatal error in monitor",e);
 			throw e;
 		}
 
-		executorService.submit(new ResourceCreateHandler(resource,1));
+
 	}
 
 	@Around("execution (* eu.openminted.registry.core.service.ResourceService.updateResource(eu.openminted.registry.core.domain.Resource)) && args(resource)")
@@ -71,7 +79,13 @@ public class ResourceMonitor {
 
 		pjp.proceed();
 
-		executorService.submit(new ResourceCreateHandler(previous,2));
+		for (ResourceListener listener : resourceListeners) {
+			try {
+				listener.resourceDeleted(previous);
+			} catch (Exception e) {
+				logger.error("Error notifying listener", e);
+			}
+		}
 
 	}
 
@@ -103,49 +117,5 @@ public class ResourceMonitor {
 					logger.error("Error notifying listener", e);
 				}
 			}
-	}
-
-	private class ResourceCreateHandler implements Runnable {
-		private Resource resource = null;
-		private int state = 0;
-
-
-		public ResourceCreateHandler(Resource resource, int state) {
-			this.resource = resource;
-			this.state = state;
-		}
-
-		public Resource getResource() {
-			return resource;
-		}
-
-		public void setResource(Resource resource) {
-			this.resource = resource;
-		}
-
-		@Override
-		public void run() {
-			if (state == 1) {
-				if (resourceListeners != null)
-					for (ResourceListener listener : resourceListeners) {
-						try {
-							listener.resourceAdded(resource);
-							logger.info("Notified listener : " + listener.getClass().getSimpleName());
-						} catch (Exception e) {
-							logger.error("Error notifying listener", e);
-						}
-					}
-			}else if(state==2){
-				if (resourceListeners != null)
-					for (ResourceListener listener : resourceListeners) {
-						try {
-							listener.resourceDeleted(resource);
-						} catch (Exception e) {
-							logger.error("Error notifying listener", e);
-						}
-					}
-			}
-
-		}
 	}
 }
