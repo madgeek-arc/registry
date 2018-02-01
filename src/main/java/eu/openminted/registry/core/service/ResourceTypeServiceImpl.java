@@ -106,9 +106,9 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 	public ResourceType addResourceType(ResourceType resourceType) throws ServiceException {
 		Schema schema = new Schema();
 
-
-		if (resourceTypeDao.getResourceType(resourceType.getName()) != null) {
-			throw new ServiceException("Schema already created");
+		ResourceType existing = resourceTypeDao.getResourceType(resourceType.getName());
+		if (existing != null) {
+			return existing;
 		}
 
 		if (resourceType.getSchemaUrl() == null && resourceType.getSchema() == null) {
