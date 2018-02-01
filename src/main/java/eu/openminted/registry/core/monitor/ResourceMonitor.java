@@ -42,7 +42,7 @@ public class ResourceMonitor {
 			for (ResourceListener listener : resourceListeners) {
 				try {
 					listener.resourceAdded(resource);
-					logger.info("Notified listener : " + listener.getClass().getSimpleName());
+					logger.info("Notified listener : " + listener.getClass().getSimpleName() + " for create");
 				} catch (Exception e) {
 					logger.error("Error notifying listener", e);
 				}
@@ -58,18 +58,25 @@ public class ResourceMonitor {
 	@Around("execution (* eu.openminted.registry.core.service.ResourceService.updateResource(eu.openminted.registry.core.domain.Resource)) && args(resource)")
 	public void resourceUpdated(ProceedingJoinPoint pjp, Resource resource) throws Throwable {
 
-		Resource previous = resourceDao.getResource(resource.getResourceType(), resource.getId());
+		try {
 
-		pjp.proceed();
+			Resource previous = resourceDao.getResource(resource.getResourceType(), resource.getId());
 
-		if (resourceListeners != null)
-			for (ResourceListener listener : resourceListeners) {
-				try {
-					listener.resourceUpdated(previous, resource);
-				} catch (Exception e) {
-					logger.error("Error notifying listener", e);
+			pjp.proceed();
+
+			if (resourceListeners != null)
+				for (ResourceListener listener : resourceListeners) {
+					try {
+						listener.resourceUpdated(previous, resource);
+						logger.info("Notified listener : " + listener.getClass().getSimpleName() + " for update");
+					} catch (Exception e) {
+						logger.error("Error notifying listener", e);
+					}
 				}
-			}
+		} catch( Exception e) {
+		logger.fatal("fatal error in monitor",e);
+		throw e;
+	}
 	}
 
 	@Around(("execution (* eu.openminted.registry.core.service.ResourceService.deleteResource(java.lang.String)) && args(resourceId)"))
