@@ -190,7 +190,6 @@ public class SearchServiceImpl implements SearchService {
 
         //iterate all key values and add them to the elastic query
         for(KeyValue kv : ids) {
-            System.out.println("Search service key:"+kv.getField() + " ---- value: "+ kv.getValue() + " -------- " + resourceType);
             qBuilder.must(QueryBuilders.termsQuery(kv.getField(), kv.getValue()));
         }
 
@@ -202,7 +201,6 @@ public class SearchServiceImpl implements SearchService {
 
         SearchResponse response = search.execute().actionGet();
         if (response == null || response.getHits().totalHits() == 0) {
-            System.out.println("--------" + response.getHits().totalHits() + " -------- "+ resourceType);
             return null;
         } else {
             SearchHit hit = response.getHits().getAt(0);

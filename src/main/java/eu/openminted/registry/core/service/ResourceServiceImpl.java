@@ -96,7 +96,8 @@ public class ResourceServiceImpl implements ResourceService {
                 version.setResourceType(resource.getResourceType());
                 version.setVersion(resource.getVersion());
 
-                resourceDao.addResource(resource);// resource needs to be saved first in order for the version to correctly reference to it
+                // resource needs to be saved first in order for the version to correctly reference to it
+                resourceDao.addResource(resource);
 
 
                 versionService.addVersion(version);
