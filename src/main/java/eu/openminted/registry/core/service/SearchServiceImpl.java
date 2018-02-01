@@ -202,6 +202,7 @@ public class SearchServiceImpl implements SearchService {
 
         SearchResponse response = search.execute().actionGet();
         if (response == null || response.getHits().totalHits() == 0) {
+            System.out.println("--------" + response.getHits().totalHits() + " -------- "+ resourceType);
             return null;
         } else {
             SearchHit hit = response.getHits().getAt(0);
