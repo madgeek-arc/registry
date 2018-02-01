@@ -6,6 +6,7 @@ import eu.openminted.registry.core.domain.Occurrences;
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
 import org.apache.commons.beanutils.PropertyUtils;
+import org.apache.log4j.Logger;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
@@ -31,6 +32,8 @@ import java.util.*;
 @Service("searchService")
 @PropertySource({"classpath:application.properties","classpath:registry.properties"})
 public class SearchServiceImpl implements SearchService {
+
+    private static Logger logger = Logger.getLogger(SearchServiceImpl.class);
 
     @Autowired
     Environment environment;
@@ -198,6 +201,8 @@ public class SearchServiceImpl implements SearchService {
         SearchRequestBuilder search = client.prepareSearch(resourceType).setSearchType(SearchType.DFS_QUERY_AND_FETCH)
                 .setQuery(qBuilder)
                 .setSize(1).setExplain(false);
+
+        logger.debug("Search query: " + qBuilder);
 
         SearchResponse response = search.execute().actionGet();
         if (response == null || response.getHits().totalHits() == 0) {
