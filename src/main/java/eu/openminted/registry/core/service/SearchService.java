@@ -9,7 +9,6 @@ import java.util.Map;
 import eu.openminted.registry.core.domain.Resource;
 
 
-
 public interface SearchService {
 
 	Paging search(FacetFilter filter) throws ServiceException, UnknownHostException;
