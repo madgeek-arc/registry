@@ -10,12 +10,7 @@ import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
 import java.util.List;
@@ -29,7 +24,7 @@ public class ResourceTypeController {
 	ResourceTypeService resourceTypeService;
 
 	@RequestMapping(value = "/resourceType/{name}", method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity<ResourceType> getResourceTypeByName(@PathVariable("name") String name) {
+	public ResponseEntity<ResourceType> getResourceTypeByName(@PathVariable("name") String name) throws ResourceNotFoundException {
 		ResourceType resourceType = resourceTypeService.getResourceType(name);
 		if (resourceType == null) {
 			throw new ResourceNotFoundException();
@@ -39,7 +34,7 @@ public class ResourceTypeController {
 	}
 
 	@RequestMapping(value = "/resourceType/", params = {"from"}, method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity<Paging> getResourceTypes(@RequestParam(value = "from") int from) {
+	public ResponseEntity<Paging> getResourceTypes(@RequestParam(value = "from") int from) throws ResourceNotFoundException {
 		List<ResourceType> results = resourceTypeService.getAllResourceType(from, 0);
 		Paging paging = new Paging(results.size(), 0, results.size() - 1, results,new Occurrences());
 		if (results.size() == 0) {
@@ -50,7 +45,7 @@ public class ResourceTypeController {
 	}
 
 	@RequestMapping(value = "/resourceType/", params = {"from", "to"}, method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity<Paging> getResourceTypes(@RequestParam(value = "from") int from, @RequestParam(value = "from") int to) {
+	public ResponseEntity<Paging> getResourceTypes(@RequestParam(value = "from") int from, @RequestParam(value = "from") int to) throws ResourceNotFoundException {
 		List<ResourceType> results = resourceTypeService.getAllResourceType(from, to);
 		int total = resourceTypeService.getAllResourceType().size();
 		Paging paging = new Paging(total, from, to, results,new Occurrences());
@@ -63,7 +58,7 @@ public class ResourceTypeController {
 	}
 
 	@RequestMapping(value = "/resourceType/", method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity<Paging> getResourceTypes() {
+	public ResponseEntity<Paging> getResourceTypes() throws ResourceNotFoundException {
 		List<ResourceType> results = resourceTypeService.getAllResourceType();
 		Paging paging = new Paging(results.size(), 0, results.size() - 1, results,new Occurrences());
 
