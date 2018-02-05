@@ -4,7 +4,8 @@ import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.service.ServiceException;
 import org.apache.commons.io.IOUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.everit.json.schema.ValidationException;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONObject;
@@ -35,7 +36,7 @@ import java.util.Map;
 @Transactional
 public class ResourceValidator {
 
-    private static Logger logger = Logger.getLogger(ResourceValidator.class);
+    private static Logger logger = LogManager.getLogger(ResourceValidator.class);
 
     @Autowired
     private ResourceTypeDao resourceTypeDao;

@@ -6,7 +6,8 @@ import eu.openminted.registry.core.domain.Occurrences;
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
 import org.apache.commons.beanutils.PropertyUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
@@ -33,7 +34,7 @@ import java.util.*;
 @PropertySource({"classpath:application.properties","classpath:registry.properties"})
 public class SearchServiceImpl implements SearchService {
 
-    private static Logger logger = Logger.getLogger(SearchServiceImpl.class);
+    private static Logger logger = LogManager.getLogger(SearchServiceImpl.class);
 
     @Autowired
     Environment environment;

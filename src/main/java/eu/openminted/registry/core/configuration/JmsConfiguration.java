@@ -2,7 +2,8 @@ package eu.openminted.registry.core.configuration;
 
 
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -21,7 +22,7 @@ import org.springframework.jms.support.converter.MessageType;
 @ComponentScan({"eu.openminted.registry.core.jms"})
 public class JmsConfiguration {
 
-    private static Logger logger = Logger.getLogger(JmsConfiguration.class);
+    private static Logger logger = LogManager.getLogger(JmsConfiguration.class);
 
     @Value("${jms.host}")
     private String jmsHost;

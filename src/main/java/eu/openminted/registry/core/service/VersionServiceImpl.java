@@ -4,7 +4,8 @@ import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.Version;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +16,7 @@ import java.util.List;
 @Transactional
 public class VersionServiceImpl implements VersionService {
 
-    private static Logger logger = Logger.getLogger(VersionServiceImpl.class);
+    private static Logger logger = LogManager.getLogger(VersionServiceImpl.class);
 
     @Autowired
     VersionDao versionDao;

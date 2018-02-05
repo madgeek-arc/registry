@@ -7,7 +7,8 @@ import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
@@ -28,7 +29,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class ElasticOperationsService {
 
-    private static Logger logger = Logger.getLogger(ElasticOperationsService.class);
+    private static Logger logger = LogManager.getLogger(ElasticOperationsService.class);
 
     @Autowired
     ResourceTypeService resourceTypeService;

@@ -9,7 +9,8 @@ import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
 import eu.openminted.registry.core.validation.ResourceValidator;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +26,7 @@ import java.util.UUID;
 @Transactional
 public class ResourceServiceImpl implements ResourceService {
 
-    private static Logger logger = Logger.getLogger(ResourceServiceImpl.class);
+    private static Logger logger = LogManager.getLogger(ResourceServiceImpl.class);
     @Autowired
     private ResourceDao resourceDao;
     @Autowired

@@ -8,7 +8,8 @@ import eu.openminted.registry.core.domain.UrlResolver;
 import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.index.DefaultIndexMapper;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.hibernate.HibernateException;
 import org.hibernate.NonUniqueObjectException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +57,7 @@ import java.util.Set;
 @Transactional
 public class ResourceTypeServiceImpl implements ResourceTypeService {
 
-	private static Logger logger = Logger.getLogger(ResourceTypeService.class);
+	private static Logger logger = LogManager.getLogger(ResourceTypeService.class);
 
 	@Autowired
 	ResourceTypeDao resourceTypeDao;

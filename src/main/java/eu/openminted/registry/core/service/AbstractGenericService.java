@@ -2,7 +2,9 @@ package eu.openminted.registry.core.service;
 
 import eu.openminted.registry.core.domain.*;
 import eu.openminted.registry.core.domain.index.IndexField;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.LogManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +21,7 @@ import java.util.concurrent.Future;
 @Service("genericService")
 abstract public class AbstractGenericService<T> {
 
-    private Logger logger = Logger.getLogger(AbstractGenericService.class);
+    private Logger logger = LogManager.getLogger(AbstractGenericService.class);
 
     @Autowired
     public SearchService searchService;
@@ -87,7 +89,7 @@ abstract public class AbstractGenericService<T> {
             int index = 0;
             for(Object res : paging.getResults()) {
                 Resource resource = (Resource) res;
-                futureResults.add(index,parserPool.serialize(resource,typeParameterClass));
+                futureResults.add(index,parserPool.deserialize(resource,typeParameterClass));
                 index++;
             }
             overall = paging.getOccurrences();
@@ -115,7 +117,7 @@ abstract public class AbstractGenericService<T> {
             for(Map.Entry<String,List<Resource>> bucket : resources.entrySet()) {
                 List<T> bucketResults = new ArrayList<>();
                 for(Resource res : bucket.getValue()) {
-                    bucketResults.add(parserPool.serialize(res,typeParameterClass).get());
+                    bucketResults.add(parserPool.deserialize(res,typeParameterClass).get());
                 }
                 result.put(bucket.getKey(),bucketResults);
             }

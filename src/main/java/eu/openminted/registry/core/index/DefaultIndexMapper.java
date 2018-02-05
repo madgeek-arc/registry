@@ -5,7 +5,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
@@ -13,7 +14,7 @@ import eu.openminted.registry.core.domain.index.IndexedField;
 
 public class DefaultIndexMapper implements IndexMapper {
 
-	private static Logger logger = Logger.getLogger(DefaultIndexMapper.class);
+	private static Logger logger = LogManager.getLogger(DefaultIndexMapper.class);
 
 	private List<IndexField> indexFields;
 
