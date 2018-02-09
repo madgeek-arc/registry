@@ -74,9 +74,8 @@ abstract public class AbstractGenericService<T> {
         browseBy.add("resourceType");
     }
 
-    @SuppressWarnings("unchecked")
     public Browsing<T> getResults(FacetFilter filter) {
-        List<Order<T>> result = new ArrayList<>();
+        List<T> result = new ArrayList<>();
         List<Future<T>> futureResults;
         Paging paging;
         filter.setResourceType(getResourceType());
@@ -86,23 +85,21 @@ abstract public class AbstractGenericService<T> {
         try {
             paging = searchService.search(filter);
             futureResults = new ArrayList<>(paging.getResults().size());
-            int index = 0;
             for(Object res : paging.getResults()) {
                 Resource resource = (Resource) res;
-                futureResults.add(index,parserPool.deserialize(resource,typeParameterClass));
-                index++;
+                futureResults.add(parserPool.deserialize(resource,typeParameterClass));
             }
             overall = paging.getOccurrences();
             facetsCollection = createFacetCollection(overall);
             for(Future<T> res : futureResults) {
-                result.add(new Order(index,res.get()));
+                result.add(res.get());
             }
         } catch (UnknownHostException | InterruptedException | ExecutionException e ) {
             logger.fatal(e);
             e.printStackTrace();
             throw new ServiceException(e);
         }
-        browsing = new Browsing(paging.getTotal(), filter.getFrom(), filter.getFrom() + result.size(), result, facetsCollection);
+        browsing = new Browsing<>(paging.getTotal(), filter.getFrom(), filter.getFrom() + result.size(), result, facetsCollection);
         return browsing;
     }
 
