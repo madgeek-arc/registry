@@ -14,7 +14,7 @@ public interface ResourceCRUDService<T> {
      * @param id of the resource in the index.
      * @return the resource.
      */
-    T get(String id) throws ResourceNotFoundException;
+    T get(String id);
 
     /**
      * Returns all resource.

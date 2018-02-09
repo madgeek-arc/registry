@@ -4,11 +4,11 @@ import java.util.List;
 
 public class Browsing<T> {
 
-    int total;
-    int from;
-    int to;
-    List<T> results;
-    List<Facet> facets;
+    private int total;
+    private int from;
+    private int to;
+    private List<T> results;
+    private List<Facet> facets;
 
     public Browsing(int total, int from, int to, List<T> results, List<Facet> facets) {
         this.total = total;
