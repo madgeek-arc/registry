@@ -8,7 +8,9 @@ package eu.openminted.registry.core.controllers;
 import eu.openminted.registry.core.exception.ResourceNotFoundException;
 import eu.openminted.registry.core.exception.ServerError;
 import eu.openminted.registry.core.service.ServiceException;
-import org.apache.log4j.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -25,7 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 public class GenericController {
 
 
-    private Logger logger = Logger.getLogger(GenericController.class);
+    private Logger logger = LogManager.getLogger(GenericController.class);
 
 
     @ResponseStatus(HttpStatus.NOT_FOUND)
