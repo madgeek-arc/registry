@@ -2,6 +2,8 @@ package eu.openminted.registry.core.domain;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import eu.openminted.registry.core.domain.index.IndexedField;
+import org.hibernate.annotations.LazyCollection;
+import org.hibernate.annotations.LazyCollectionOption;
 
 import javax.persistence.*;
 import javax.validation.constraints.Size;
@@ -51,10 +53,11 @@ public class Resource {
 
 	@OneToMany(cascade = {CascadeType.ALL}, mappedBy = "resource")
     @JsonManagedReference
+	@LazyCollection(LazyCollectionOption.FALSE)
 	private List<IndexedField> indexedFields;
 
 	@OneToMany(mappedBy = "resource", cascade = {CascadeType.ALL})
-//	@JsonBackReference TODO
+	@LazyCollection(LazyCollectionOption.FALSE)
 	private List<Version> versions;
 
 

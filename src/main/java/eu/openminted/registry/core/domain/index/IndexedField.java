@@ -8,6 +8,8 @@ import javax.persistence.*;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import eu.openminted.registry.core.domain.Resource;
+import org.hibernate.annotations.LazyCollection;
+import org.hibernate.annotations.LazyCollectionOption;
 
 /**
  * Created by antleb on 5/20/16.
@@ -29,6 +31,7 @@ public abstract class IndexedField<T extends Object> implements Serializable {
 
 	@Column
 	@ElementCollection
+	@LazyCollection(LazyCollectionOption.FALSE)
 	private Set<String> values;
 
 	public IndexedField() {
