@@ -25,7 +25,7 @@ public class ResourceController {
 	   @Autowired
 	   ResourceTypeService resourceTypeService;
 	  
-	    @RequestMapping(value = "/resources/{resourceType}/{id}", method = RequestMethod.GET, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	    @RequestMapping(value = "/resources/{resourceType}/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE )
 	    public ResponseEntity<Resource> getResourceById(@PathVariable("resourceType") String resourceType,@PathVariable("id") String id) throws ResourceNotFoundException {
 	    	Resource resource = resourceService.getResource(resourceTypeService.getResourceType(resourceType),id);
 	    	if(resource==null){
@@ -36,7 +36,7 @@ public class ResourceController {
 	    	
 	    } 
 	    
-	    @RequestMapping(value = "/resources/{resourceType}", method = RequestMethod.GET, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	    @RequestMapping(value = "/resources/{resourceType}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
 	    public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType) throws ResourceNotFoundException {
 	        List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType));
 	    	Paging paging = new Paging(results.size(), 0, results.size()-1, results,null);
@@ -48,7 +48,7 @@ public class ResourceController {
 	    	
 	    } 
 	    
-	    @RequestMapping(value = "/resources/{resourceType}", params = {"from"},method = RequestMethod.GET, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	    @RequestMapping(value = "/resources/{resourceType}", params = {"from"},method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
 	    public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType ,@RequestParam(value = "from") int from) throws ResourceNotFoundException {
 	    	List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType),from,0);
 	    	int total = resourceService.getResource(resourceTypeService.getResourceType(resourceType)).size();
@@ -62,7 +62,7 @@ public class ResourceController {
 	    	
 	    }
 	    
-	    @RequestMapping(value = "/resources/{resourceType}", params = {"from","to"}, method = RequestMethod.GET, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	    @RequestMapping(value = "/resources/{resourceType}", params = {"from","to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
 	    public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType ,@RequestParam(value = "from") int from , @RequestParam(value = "to") int to ) throws ResourceNotFoundException {
 	    	List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType),from,to);
 	    	int total = resourceService.getResource(resourceTypeService.getResourceType(resourceType)).size();
@@ -76,7 +76,7 @@ public class ResourceController {
 	    	
 	    } 
 	    
-	    @RequestMapping(value = "/resources/{resourceType}", params = {"to"}, method = RequestMethod.GET, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	    @RequestMapping(value = "/resources/{resourceType}", params = {"to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
 	    public ResponseEntity<Paging> getResourceByResourceTypeTo(@PathVariable("resourceType") String resourceType , @RequestParam(value = "to") int to ) throws ResourceNotFoundException {
 	    	List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType),0,to);
 	    	int total = resourceService.getResource(resourceTypeService.getResourceType(resourceType)).size();
@@ -90,7 +90,7 @@ public class ResourceController {
 	    	
 	    } 
 	    
-	    @RequestMapping(value = "/resources/",params = {"from"}, method = RequestMethod.GET, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	    @RequestMapping(value = "/resources/",params = {"from"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
 	    public ResponseEntity<Paging> getResourceByResourceType(@RequestParam(value = "from") int from ) throws ResourceNotFoundException {
 	    	List<Resource> results = resourceService.getResource(from,0);
 	    	int total = resourceService.getResource().size();
@@ -104,7 +104,7 @@ public class ResourceController {
 	    	
 	    }
 	    
-	    @RequestMapping(value = "/resources/",params = {"from","to"}, method = RequestMethod.GET, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	    @RequestMapping(value = "/resources/",params = {"from","to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
 	    public ResponseEntity<Paging> getResourceByResourceType(@RequestParam(value = "from") int from , @RequestParam(value = "to") int to) throws ResourceNotFoundException {
 	    	List<Resource> results = resourceService.getResource(from,to);
 	    	int total = resourceService.getResource().size();
@@ -118,7 +118,7 @@ public class ResourceController {
 	    	
 	    }
 	    
-	    @RequestMapping(value = "/resources/", method = RequestMethod.GET, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	    @RequestMapping(value = "/resources/", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
 	    public ResponseEntity<Paging> getResourceByResourceType() throws ResourceNotFoundException {
 	    	List<Resource> results = resourceService.getResource();
 	    	int total = resourceService.getResource().size();
