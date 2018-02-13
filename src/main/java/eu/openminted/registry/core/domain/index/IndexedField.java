@@ -1,16 +1,13 @@
 package eu.openminted.registry.core.domain.index;
 
-import java.io.Serializable;
-import java.util.Set;
-
-import javax.persistence.*;
-
-import com.fasterxml.jackson.annotation.JsonBackReference;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import eu.openminted.registry.core.domain.Resource;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
+
+import javax.persistence.*;
+import java.io.Serializable;
+import java.util.Set;
 
 /**
  * Created by antleb on 5/20/16.
@@ -24,7 +21,6 @@ public abstract class IndexedField<T extends Object> implements Serializable {
 	private Integer id;
 
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JsonBackReference
 	@JsonIgnore
 	private Resource resource;
 
