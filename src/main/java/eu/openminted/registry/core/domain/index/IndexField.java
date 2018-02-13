@@ -1,17 +1,10 @@
 package eu.openminted.registry.core.domain.index;
 
-import java.io.Serializable;
-
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.Id;
-import javax.persistence.ManyToOne;
-
-import com.fasterxml.jackson.annotation.JsonBackReference;
-
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import eu.openminted.registry.core.domain.ResourceType;
+
+import javax.persistence.*;
+import java.io.Serializable;
 
 /**
  * Created by antleb on 5/20/16.
@@ -22,7 +15,7 @@ public class IndexField implements Serializable{
 
 	@ManyToOne(fetch = FetchType.EAGER)
 	@Id
-	@JsonBackReference
+	@JsonIgnore
 	private ResourceType resourceType;
 
 	@Column
