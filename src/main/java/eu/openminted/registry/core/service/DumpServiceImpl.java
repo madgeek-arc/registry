@@ -145,22 +145,23 @@ public class DumpServiceImpl implements DumpService {
                 e.printStackTrace();
             }
         }
-        for (int i = 0; i < resources.size(); i++) {
+        for (Resource resource : resources) {
             try {
                 String extension = ".json";
-                if(isRaw)
-                    extension = "."+resources.get(i).getPayloadFormat();
+                if (isRaw)
+                    extension = "." + resource.getPayloadFormat();
 
-                File openFile = new File(name + "/" + resources.get(i).getId() + extension);
+                File openFile = new File(name + "/" + resource.getId() + extension);
 
                 Path filePath = Files.createFile(openFile.toPath(), PERMISSIONS);
                 FileWriter file = new FileWriter(filePath.toFile());
-                resources.get(i).setIndexedFields(new ArrayList<>());
-                if(isRaw){
-                    file.write(resources.get(i).getPayload());
-                }else{
+                resource.setIndexedFields(new ArrayList<>());
+                resource.setResourceTypeName(resource.getResourceType().getName());
+                if (isRaw) {
+                    file.write(resource.getPayload());
+                } else {
                     ObjectMapper mapper = new ObjectMapper();
-                    file.write(mapper.writeValueAsString(resources.get(i)));
+                    file.write(mapper.writeValueAsString(resource));
                 }
                 file.flush();
                 file.close();
@@ -185,7 +186,7 @@ public class DumpServiceImpl implements DumpService {
 
             } catch (Exception e) {
                 e.printStackTrace();
-				throw new ServiceException("Failed to create file(s) for "+ name);
+                throw new ServiceException("Failed to create file(s) for " + name);
 
             }
         }

@@ -14,6 +14,8 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
+import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
 import org.json.JSONObject;
@@ -51,16 +53,12 @@ public class ElasticOperationsService {
     }
 
     public void add(Resource resource) {
-
-        long start_time = System.nanoTime();
         Client client = elastic.client();
         String payload = createDocumentForInsert(resource);
-        client.prepareIndex(resource.getResourceType().getName(), "general")
+        IndexResponse response = client.prepareIndex(resource.getResourceType().getName(), "general")
                 .setSource(payload)
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .setId(resource.getId()).get();
-        long end_time = System.nanoTime();
-        double difference = (end_time - start_time) / 1e6;
-        logger.info("Resource added in "+difference+"ms to Elastic");
     }
 
     public void update(Resource previousResource, Resource newResource) {
@@ -79,14 +77,8 @@ public class ElasticOperationsService {
     }
 
     public void delete(Resource resource) {
-        long start_time = System.nanoTime();
         Client client = elastic.client();
         client.prepareDelete(resource.getResourceType().getName(), "general", resource.getId()).get();
-        long end_time = System.nanoTime();
-        double difference = (end_time - start_time) / 1e6;
-
-        logger.info("Resource deleted in "+difference+"ms from Elastic");
-
     }
 
     public void createIndex(ResourceType resourceType) {
@@ -116,18 +108,14 @@ public class ElasticOperationsService {
     }
 
     public void deleteIndex(String name) {
-        long start_time = System.nanoTime();
-        System.out.println("Deleting index");
+        logger.info("Deleting index");
 
         Client client = elastic.client();
         DeleteIndexResponse deleteResponse = client.admin().indices().delete(new DeleteIndexRequest(name)).actionGet();
 
         if(!deleteResponse.isAcknowledged()){
-            System.err.println("Error deleting index \""+name+"\"");
+            logger.fatal("Error deleting index \""+name+"\"");
         }
-        long end_time = System.nanoTime();
-        double difference = (end_time - start_time) / 1e6;
-        logger.info("Resource type "+name+" deleted in "+difference+"ms from Elastic");
     }
 
     private Map<String, Object> createMapping(List<IndexField> indexFields) {

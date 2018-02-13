@@ -71,6 +71,12 @@ public class ResourceServiceImpl implements ResourceService {
     public Resource addResource(Resource resource) throws ServiceException {
 
 
+        if(resource.getResourceTypeName() != null && resource.getResourceType() == null) {
+            resource.setResourceType(resourceTypeDao.getResourceType(resource.getResourceTypeName()));
+        }
+        if(resource.getResourceType() == null) {
+            throw new ServiceException("Resource type does not exist");
+        }
         if (resource.getPayloadUrl() != null ^ resource.getPayload() != null) {
             resource.setCreationDate(new Date());
             resource.setModificationDate(new Date());
@@ -114,6 +120,12 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     public Resource updateResource(Resource resource) throws ServiceException {
 
+        if(resource.getResourceTypeName() != null  && resource.getResourceType() == null) {
+            resource.setResourceType(resourceTypeDao.getResourceType(resource.getResourceTypeName()));
+        }
+        if(resource.getResourceType() == null) {
+            throw new ServiceException("Resource type does not exist");
+        }
         resource.setIndexedFields(getIndexedFields(resource));
         resource.setModificationDate(new Date());
         for (IndexedField indexedField : resource.getIndexedFields()) {

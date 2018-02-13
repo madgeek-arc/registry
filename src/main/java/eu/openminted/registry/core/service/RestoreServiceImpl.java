@@ -6,6 +6,8 @@ import eu.openminted.registry.core.domain.ResourceType;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,7 @@ import static javax.xml.bind.JAXBContext.newInstance;
 @Transactional
 public class RestoreServiceImpl implements RestoreService {
 
+    private static final Logger logger = LogManager.getLogger(RestoreServiceImpl.class);
 
     @Autowired
     ResourceTypeService resourceTypeService;
@@ -78,7 +81,7 @@ public class RestoreServiceImpl implements RestoreService {
                 if (FilenameUtils.removeExtension(file.getName()).equals(file.getParentFile().getName())) {
                     //if there is a file with the same name as the directory then it's the schema of the resource type. Drop resource type and reimport
                     String resourceTypeName = file.getParentFile().getName();
-                    System.out.println("Adding resource type:"+resourceTypeName);
+                    logger.info("Adding resource type:"+resourceTypeName);
                     if(resourceTypeService.getResourceType(resourceTypeName)!=null)
                         resourceTypeService.deleteResourceType(resourceTypeName);
 
@@ -88,7 +91,7 @@ public class RestoreServiceImpl implements RestoreService {
                         resourceType = mapper.readValue(FileUtils.readFileToString(file).replaceAll("^\t$", "").replaceAll("^\n$",""), ResourceType.class);
                         resourceTypeService.addResourceType(resourceType);
                     } catch (IOException e) {
-                        new ServiceException("Failed to read schema file");
+                        throw new ServiceException("Failed to read schema file");
                     }
 
 
@@ -109,7 +112,7 @@ public class RestoreServiceImpl implements RestoreService {
                     ResourceType resourceType = resourceTypeService.getResourceType(splitInto[splitInto.length - 1]);
                     if(!FilenameUtils.removeExtension(file.getName()).equals(file.getParentFile().getName())){
                         //if it's not the schema file then add it as a resource
-                        System.out.println("Adding resource:"+file.getName());
+                        logger.info("Adding resource:"+file.getName());
                         String extension = FilenameUtils.getExtension(file.getName());
                         Resource resource = new Resource();
                         if(extension.equals("json")) {
@@ -121,7 +124,7 @@ public class RestoreServiceImpl implements RestoreService {
                             if(resource==null)
                                 resource = deserializeResource(file, "json");
                         }else{
-                            new ServiceException("Unsupported file format");
+                            throw new ServiceException("Unsupported file format");
                         }
 
                         if(resource==null) {//if it's still null that means that the file contains just the payload
