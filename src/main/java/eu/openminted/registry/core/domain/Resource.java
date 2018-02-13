@@ -1,5 +1,7 @@
 package eu.openminted.registry.core.domain;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
@@ -13,167 +15,180 @@ import java.util.Date;
 import java.util.List;
 
 @Entity
-@Table(name="Resource")
+@Table(name = "Resource")
 public class Resource {
 
-	@Id
-	@Column(name = "id", nullable = false)
-	private String id;
+    @Id
+    @Column(name = "id", nullable = false)
+    private String id;
 
-	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name="fk_name", nullable = false)
-//	@JsonManagedReference
-	private ResourceType resourceType;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "fk_name", nullable = false)
+    @JsonBackReference
+//	@JsonIgnore
+    private ResourceType resourceType;
 
-	@Size(min=3, max=50)
-	@Column(name = "version", nullable = false)
-	private String version;
+    @Transient
+    private String resourceTypeName;
 
-	@Column(name = "payload", nullable = false, columnDefinition = "text")
-	private String payload;
+    @Size(min = 3, max = 50)
+    @Column(name = "version", nullable = false)
+    private String version;
 
-	@Transient
-	private String payloadUrl;
+    @Column(name = "payload", nullable = false, columnDefinition = "text")
+    private String payload;
 
-	@Transient
-	private String searchableArea;
+    @Transient
+    private String payloadUrl;
 
-	@Size(min=3, max=30)
-	@Column(name = "payloadFormat", nullable = false)
-	private String payloadFormat;
+    @Transient
+    private String searchableArea;
 
-	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name = "creation_date", nullable = false, updatable=false)
-	private Date creationDate;
+    @Size(min = 3, max = 30)
+    @Column(name = "payloadFormat", nullable = false)
+    private String payloadFormat;
 
-	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name = "modification_date", nullable = false)
-	private Date modificationDate;
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "creation_date", nullable = false, updatable = false)
+    private Date creationDate;
 
-	@OneToMany(cascade = {CascadeType.ALL},mappedBy = "resource")
-	@LazyCollection(LazyCollectionOption.FALSE)
-	private List<IndexedField> indexedFields;
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "modification_date", nullable = false)
+    private Date modificationDate;
 
-	@OneToMany(mappedBy = "resource", cascade = {CascadeType.ALL})
-	@LazyCollection(LazyCollectionOption.FALSE)
-	private List<Version> versions;
+    @OneToMany(cascade = {CascadeType.ALL}, mappedBy = "resource")
+    @LazyCollection(LazyCollectionOption.FALSE)
+    @JsonManagedReference
+    private List<IndexedField> indexedFields;
+
+    @OneToMany(mappedBy = "resource", cascade = {CascadeType.ALL})
+    @LazyCollection(LazyCollectionOption.FALSE)
+    private List<Version> versions;
 
 
-	public Resource(String id, ResourceType resourceType,String version,String payload,String payloadFormat) {
-		this.id = id;
-		this.resourceType = resourceType;
-		this.version = version;
-		this.payload = payload;
-		this.payloadFormat = payloadFormat;
-	}
+    public Resource(String id, ResourceType resourceType, String version, String payload, String payloadFormat) {
+        this.id = id;
+        this.resourceType = resourceType;
+        this.version = version;
+        this.payload = payload;
+        this.payloadFormat = payloadFormat;
+    }
 
-	public Resource(){
+    public Resource() {
 
-	}
+    }
 
-	public String getId() {
-		return id;
-	}
+    public String getId() {
+        return id;
+    }
 
-	public void setId(String string) {
-		this.id = string;
-	}
+    public void setId(String string) {
+        this.id = string;
+    }
 
-	public ResourceType getResourceType() {
-		return resourceType;
-	}
+    public ResourceType getResourceType() {
+        return resourceType;
+    }
 
-	public void setResourceType(ResourceType resourceType) {
-		this.resourceType = resourceType;
-	}
+    public void setResourceType(ResourceType resourceType) {
+        this.resourceType = resourceType;
+    }
 
-	public String getVersion() {
-		return version;
-	}
+    public String getVersion() {
+        return version;
+    }
 
-	public void setVersion(String version) {
-		this.version = version;
-	}
+    public void setVersion(String version) {
+        this.version = version;
+    }
 
-	public String getPayload() {
-		return payload;
-	}
+    public String getPayload() {
+        return payload;
+    }
 
-	public void setPayload(String payload) {
-		this.payload = payload;
-	}
+    public void setPayload(String payload) {
+        this.payload = payload;
+    }
 
-	public String getPayloadFormat() {
-		return payloadFormat;
-	}
+    public String getPayloadFormat() {
+        return payloadFormat;
+    }
 
-	public void setPayloadFormat(String payloadFormat) {
-		this.payloadFormat = payloadFormat;
-	}
+    public void setPayloadFormat(String payloadFormat) {
+        this.payloadFormat = payloadFormat;
+    }
 
-	public Date getCreationDate() {
-		return creationDate;
-	}
+    public Date getCreationDate() {
+        return creationDate;
+    }
 
-	public void setCreationDate(Date creationDate) {
-		this.creationDate = creationDate;
-	}
+    public void setCreationDate(Date creationDate) {
+        this.creationDate = creationDate;
+    }
 
-	public Date getModificationDate() {
-		return modificationDate;
-	}
+    public Date getModificationDate() {
+        return modificationDate;
+    }
 
-	public void setModificationDate(Date modificationDate) {
-		this.modificationDate = modificationDate;
-	}
+    public void setModificationDate(Date modificationDate) {
+        this.modificationDate = modificationDate;
+    }
 
-	public String getPayloadUrl() {
-		return payloadUrl;
-	}
+    public String getPayloadUrl() {
+        return payloadUrl;
+    }
 
-	public void setPayloadUrl(String payloadUrl) {
-		this.payloadUrl = payloadUrl;
-	}
+    public void setPayloadUrl(String payloadUrl) {
+        this.payloadUrl = payloadUrl;
+    }
 
-	public List<IndexedField> getIndexedFields() {
-		return indexedFields;
-	}
+    public List<IndexedField> getIndexedFields() {
+        return indexedFields;
+    }
 
-	public void setIndexedFields(List<IndexedField> indexedFields) {
-		this.indexedFields = indexedFields;
-	}
+    public void setIndexedFields(List<IndexedField> indexedFields) {
+        this.indexedFields = indexedFields;
+    }
 
-	public String getSearchableArea() {
-		return searchableArea;
-	}
+    public String getSearchableArea() {
+        return searchableArea;
+    }
 
-	public void setSearchableArea(String searchableArea) {
-		this.searchableArea = searchableArea;
-	}
+    public void setSearchableArea(String searchableArea) {
+        this.searchableArea = searchableArea;
+    }
 
-	@PrePersist
-	protected void onCreate() {
-		modificationDate = creationDate = new Date();
-		version = generateVersion();
-	}
+    @PrePersist
+    protected void onCreate() {
+        modificationDate = creationDate = new Date();
+        version = generateVersion();
+    }
 
-	@PreUpdate
-	protected void onUpdate() {
+    @PreUpdate
+    protected void onUpdate() {
 
-		modificationDate = new Date();
-		version = generateVersion();
-	}
+        modificationDate = new Date();
+        version = generateVersion();
+    }
 
-	public List<Version> getVersions() {
-		return versions;
-	}
+    public List<Version> getVersions() {
+        return versions;
+    }
 
-	public void setVersions(List<Version> versions) {
-		this.versions = versions;
-	}
+    public void setVersions(List<Version> versions) {
+        this.versions = versions;
+    }
 
-	private String generateVersion(){
-		DateFormat df = new SimpleDateFormat("MMddyyyyHHmmss");
-		return df.format(Calendar.getInstance().getTime());
-	}
+    private String generateVersion() {
+        DateFormat df = new SimpleDateFormat("MMddyyyyHHmmss");
+        return df.format(Calendar.getInstance().getTime());
+    }
+
+    public String getResourceTypeName() {
+        return resourceTypeName;
+    }
+
+    public void setResourceTypeName(String resourceTypeName) {
+        this.resourceTypeName = resourceTypeName;
+    }
 }

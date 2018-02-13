@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.domain.index;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import eu.openminted.registry.core.domain.Resource;
 import org.hibernate.annotations.LazyCollection;
@@ -21,7 +22,7 @@ public abstract class IndexedField<T extends Object> implements Serializable {
 	private Integer id;
 
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JsonIgnore
+	@JsonBackReference
 	private Resource resource;
 
 	@Column

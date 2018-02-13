@@ -41,16 +41,15 @@ public class ResourceType {
 
     @OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL})
 //	@ElementCollection(targetClass = IndexField.class)
-    @Column
     @JsonManagedReference
+    @Column
     private List<IndexField> indexFields;
 
     @Column
     private String aliasGroup;
 
     @OneToMany(mappedBy = "resourceType", fetch = FetchType.LAZY, cascade = {CascadeType.ALL})
-//    @JsonBackReference TODO
-    @JsonIgnore
+    @JsonManagedReference
     private List<Resource> resources;
 
     @OneToMany(mappedBy = "resourceType")

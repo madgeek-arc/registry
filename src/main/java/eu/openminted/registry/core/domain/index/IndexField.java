@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.domain.index;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import eu.openminted.registry.core.domain.ResourceType;
 
@@ -15,7 +16,7 @@ public class IndexField implements Serializable{
 
 	@ManyToOne(fetch = FetchType.EAGER)
 	@Id
-	@JsonIgnore
+	@JsonBackReference
 	private ResourceType resourceType;
 
 	@Column
