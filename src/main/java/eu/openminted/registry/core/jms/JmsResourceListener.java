@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.jms;
 
+import eu.openminted.registry.core.configuration.JmsConfiguration;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.jms.BaseResourceJms;
@@ -20,11 +21,14 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
     @Autowired
     JmsTemplate jmsTopicTemplate;
 
+    @Autowired
+    JmsConfiguration jmsConfiguration;
+
     private static Logger logger = LogManager.getLogger(JmsResourceListener.class);
 
     @Override
     public void resourceAdded(Resource resource) {
-        String destination = resource.getResourceType().getName() + ".create";
+        String destination = String.format("%s.%s.create",jmsConfiguration.getJmsPrefix(),resource.getResourceType().getName());
         BaseResourceJms jmsResource = new ResourceJmsCreated(resource);
         jmsTopicTemplate.convertAndSend(destination, jmsResource);
         logger.info("Added new resource at " + destination);
@@ -32,7 +36,7 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
 
     @Override
     public void resourceUpdated(Resource previousResource, Resource newResource) {
-        String destination = newResource.getResourceType().getName() + ".update";
+        String destination = String.format("%s.%s.update",jmsConfiguration.getJmsPrefix(),newResource.getResourceType().getName());
         BaseResourceJms jmsResource = new ResourceJmsUpdated(newResource,previousResource);
         jmsTopicTemplate.convertAndSend(destination, jmsResource);
         logger.info("Updated resource at " + destination);
@@ -40,7 +44,7 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
 
     @Override
     public void resourceDeleted(Resource resource) {
-        String destination = resource.getResourceType().getName() + ".delete";
+        String destination = String.format("%s.%s.delete",jmsConfiguration.getJmsPrefix(),resource.getResourceType().getName());
         BaseResourceJms jmsResource = new ResourceJmsDeleted(resource);
         jmsTopicTemplate.convertAndSend(destination, jmsResource);
         logger.info("Deleted resource at " + destination);

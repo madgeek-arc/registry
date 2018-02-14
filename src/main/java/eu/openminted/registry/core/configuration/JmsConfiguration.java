@@ -83,4 +83,8 @@ public class JmsConfiguration {
     public JmsTemplate jmsTopicTemplate(){
         return getJmsTemplate(true);
     }
+
+    public String getJmsPrefix() {
+        return jmsPrefix;
+    }
 }
