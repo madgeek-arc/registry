@@ -158,9 +158,8 @@ public class RestoreServiceImpl implements RestoreService {
                 return (Resource) unmarshaller.unmarshal(file);
             }else
                 return null;
-        } catch (IOException | ClassCastException e) {
-            return null;
-        } catch (JAXBException e) {
+        } catch (IOException | ClassCastException | JAXBException e) {
+            logger.error("Error deserializing object",e);
             return null;
         }
     }

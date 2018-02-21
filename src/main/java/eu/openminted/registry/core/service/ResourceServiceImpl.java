@@ -4,13 +4,12 @@ import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.domain.Version;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
 import eu.openminted.registry.core.validation.ResourceValidator;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,8 +34,6 @@ public class ResourceServiceImpl implements ResourceService {
     private IndexMapperFactory indexMapperFactory;
     @Autowired
     private ResourceValidator resourceValidator;
-    @Autowired
-    private VersionService versionService;
 
     public ResourceServiceImpl() {
 
@@ -95,19 +92,11 @@ public class ResourceServiceImpl implements ResourceService {
                 for (IndexedField indexedField : resource.getIndexedFields())
                     indexedField.setResource(resource);
 
-                Version version = new Version();
-                version.setCreationDate(new Date());
-                version.setId(UUID.randomUUID().toString());
-                version.setPayload(resource.getPayload());
-                version.setResource(resource);
-                version.setResourceType(resource.getResourceType());
-                version.setVersion(resource.getVersion());
+
 
                 // resource needs to be saved first in order for the version to correctly reference to it
                 resourceDao.addResource(resource);
 
-
-                versionService.addVersion(version);
             } catch (Exception e) {
                 logger.error("Error saving resource", e);
                 throw new ServiceException(e);
@@ -134,16 +123,6 @@ public class ResourceServiceImpl implements ResourceService {
         Boolean response = checkValid(resource);
         if (response) {
             resource.setVersion(generateVersion());
-
-            Version version = new Version();
-            version.setCreationDate(new Date());
-            version.setId(UUID.randomUUID().toString());
-            version.setPayload(resource.getPayload());
-            version.setResource(resource);
-            version.setResourceType(resource.getResourceType());
-            version.setVersion(resource.getVersion());
-            versionService.addVersion(version);
-
             resourceDao.updateResource(resource);
         }
 
