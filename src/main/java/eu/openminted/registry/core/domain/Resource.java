@@ -24,8 +24,7 @@ public class Resource {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "fk_name", nullable = false)
-    @JsonBackReference
-//	@JsonIgnore
+    @JsonBackReference(value = "resourcetype-resource")
     private ResourceType resourceType;
 
     @Transient
@@ -58,11 +57,12 @@ public class Resource {
 
     @OneToMany(cascade = {CascadeType.ALL}, mappedBy = "resource")
     @LazyCollection(LazyCollectionOption.FALSE)
-    @JsonManagedReference
+    @JsonManagedReference(value = "resource-indexedfields")
     private List<IndexedField> indexedFields;
 
     @OneToMany(mappedBy = "resource", cascade = {CascadeType.ALL})
     @LazyCollection(LazyCollectionOption.FALSE)
+    @JsonManagedReference(value = "resource-versions")
     private List<Version> versions;
 
 
