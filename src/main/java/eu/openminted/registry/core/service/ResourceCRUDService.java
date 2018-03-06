@@ -21,14 +21,14 @@ public interface ResourceCRUDService<T> {
      * @param filter parameters for the indexer.
      * @return the results paged.
      */
-    Browsing getAll(FacetFilter filter);
+    Browsing<T> getAll(FacetFilter filter);
 
     /**
      * Returns all resource of a user.
      * @param filter parameters for the indexer.
      * @return the results paged.
      */
-    Browsing getMy(FacetFilter filter);
+    Browsing<T> getMy(FacetFilter filter);
 
     /**
      * Add a new resource.
