@@ -19,7 +19,7 @@ public class SchemaController {
 	ResourceTypeService resourceTypeService;
 
 	@RequestMapping(value = "/schemaService/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_XML_VALUE)
-	@ResponseBody public ResponseEntity getResourceTypeByName(@PathVariable("id") String id) throws ResourceNotFoundException {
+	@ResponseBody public ResponseEntity getSchemaByName(@PathVariable("id") String id) throws ResourceNotFoundException {
 		Schema schema = resourceTypeService.getSchema(id);
 		if(schema==null){
 			throw new ResourceNotFoundException();

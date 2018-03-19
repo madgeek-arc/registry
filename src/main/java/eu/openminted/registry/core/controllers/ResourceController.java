@@ -91,7 +91,7 @@ public class ResourceController {
 	    } 
 	    
 	    @RequestMapping(value = "/resources/",params = {"from"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-	    public ResponseEntity<Paging> getResourceByResourceType(@RequestParam(value = "from") int from ) throws ResourceNotFoundException {
+	    public ResponseEntity<Paging> getAllResource(@RequestParam(value = "from") int from ) throws ResourceNotFoundException {
 	    	List<Resource> results = resourceService.getResource(from,0);
 	    	int total = resourceService.getResource().size();
 	    	Paging paging = new Paging(total, from, total-1, results,null);
@@ -105,7 +105,7 @@ public class ResourceController {
 	    }
 	    
 	    @RequestMapping(value = "/resources/",params = {"from","to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-	    public ResponseEntity<Paging> getResourceByResourceType(@RequestParam(value = "from") int from , @RequestParam(value = "to") int to) throws ResourceNotFoundException {
+	    public ResponseEntity<Paging> getAllResources(@RequestParam(value = "from") int from , @RequestParam(value = "to") int to) throws ResourceNotFoundException {
 	    	List<Resource> results = resourceService.getResource(from,to);
 	    	int total = resourceService.getResource().size();
 	    	Paging paging = new Paging(total, from, to, results,null);
@@ -119,7 +119,7 @@ public class ResourceController {
 	    }
 	    
 	    @RequestMapping(value = "/resources/", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-	    public ResponseEntity<Paging> getResourceByResourceType() throws ResourceNotFoundException {
+	    public ResponseEntity<Paging> getAllResources() throws ResourceNotFoundException {
 	    	List<Resource> results = resourceService.getResource();
 	    	int total = resourceService.getResource().size();
 	    	Paging paging = new Paging(total, 0, total-1, results,null);

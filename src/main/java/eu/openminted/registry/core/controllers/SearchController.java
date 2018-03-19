@@ -24,7 +24,7 @@ public class SearchController {
 	private SearchService searchService;
 	
 	@RequestMapping(value = "/search/{name}/{query}", method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity<Paging> getResourceTypeByName(
+	public ResponseEntity<Paging> search(
 			@PathVariable("name") String name,
 			@RequestParam(value = "keyword", required = false, defaultValue = "") String keyword,
 			@RequestParam(value = "from", required = false, defaultValue = "0") int from,
