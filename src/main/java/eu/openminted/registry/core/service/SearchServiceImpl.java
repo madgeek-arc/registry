@@ -1,10 +1,7 @@
 package eu.openminted.registry.core.service;
 
 import eu.openminted.registry.core.configuration.ElasticConfiguration;
-import eu.openminted.registry.core.domain.FacetFilter;
-import eu.openminted.registry.core.domain.Occurrences;
-import eu.openminted.registry.core.domain.Paging;
-import eu.openminted.registry.core.domain.Resource;
+import eu.openminted.registry.core.domain.*;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -50,6 +47,8 @@ public class SearchServiceImpl implements SearchService {
 
     @Value("${elastic.aggregation.bucketSize : 100}")
     private int bucketSize;
+
+    private Map<String,ResourceType> resourceTypeCache = new HashMap<>();
 
     private static BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
@@ -135,8 +134,12 @@ public class SearchServiceImpl implements SearchService {
                 try {
                     if(!value.equals("resourceType"))
                         PropertyUtils.setProperty(res, value, response.getHits().getAt(i).getSource().get(value).toString());
-                    else
-                        res.setResourceType(resourceTypeService.getResourceType(response.getHits().getAt(i).getSource().get(value).toString()));
+                    else {
+                        String resourceType = response.getHits().getAt(i).getSource().get(value).toString();
+                        if(resourceTypeCache.get(resourceType) == null)
+                            resourceTypeCache.put(resourceType,resourceTypeService.getResourceType(resourceType));
+                        res.setResourceType(resourceTypeCache.get(resourceType));
+                    }
                 } catch(Exception e) {
                     break;
                 }
