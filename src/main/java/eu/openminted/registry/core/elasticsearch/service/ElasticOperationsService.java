@@ -44,7 +44,7 @@ public class ElasticOperationsService {
     static {
         Map<String, String> unmodifiableMap = new HashMap<>();
         unmodifiableMap.put("java.lang.Double", "double");
-        unmodifiableMap.put("java.lang.Integer", "int");
+        unmodifiableMap.put("java.lang.Integer", "integer");
         unmodifiableMap.put("java.lang.Boolean", "boolean");
         unmodifiableMap.put("java.lang.Long", "long");
         unmodifiableMap.put("java.lang.String", "keyword");
