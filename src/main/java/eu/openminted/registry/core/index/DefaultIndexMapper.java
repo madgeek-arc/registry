@@ -1,16 +1,15 @@
 package eu.openminted.registry.core.index;
 
+import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.index.IndexField;
+import eu.openminted.registry.core.domain.index.IndexedField;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
-import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.domain.index.IndexField;
-import eu.openminted.registry.core.domain.index.IndexedField;
 
 public class DefaultIndexMapper implements IndexMapper {
 
@@ -34,7 +33,7 @@ public class DefaultIndexMapper implements IndexMapper {
 	}
 
 	public List<IndexedField> getValues(String payload, ResourceType resourceType) {
-		List<IndexedField> res = new ArrayList<IndexedField>();
+		List<IndexedField> res = new ArrayList<>();
 
 		for (IndexField indexField:resourceType.getIndexFields()) {
 			try {
@@ -66,6 +65,7 @@ public class DefaultIndexMapper implements IndexMapper {
 						values.add(value);
 						res.add(indexedFieldFactory.getIndexedField(fieldName,values,fieldType));
 					}
+
 				}
 			} catch (Exception e) {
 				logger.error(e.getMessage());

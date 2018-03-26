@@ -1,12 +1,10 @@
 package eu.openminted.registry.core.index;
 
-import java.util.Set;
-
-import eu.openminted.registry.core.domain.index.BooleanIndexedField;
+import eu.openminted.registry.core.domain.index.*;
 import org.springframework.stereotype.Repository;
 
-import eu.openminted.registry.core.domain.index.IndexedField;
-import eu.openminted.registry.core.domain.index.StringIndexedField;
+import java.util.Date;
+import java.util.Set;
 
 /**
  * Created by antleb on 5/24/16.
@@ -23,6 +21,10 @@ public class IndexedFieldFactory {
 			field = new StringIndexedField(fieldName,value);
 		} else if (Boolean.class.getName().equals(fieldType)) {
 			field = new BooleanIndexedField(fieldName,value);
+		} else if (Integer.class.getName().equals(fieldType)){
+			field = new IntegerIndexedField(fieldName,value);
+		} else if (Date.class.getName().equals(fieldType)) {
+			field = new DateIndexedField(fieldName, value);
 		}
 		return field;
 	}

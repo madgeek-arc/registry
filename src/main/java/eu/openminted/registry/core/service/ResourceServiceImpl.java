@@ -88,11 +88,8 @@ public class ResourceServiceImpl implements ResourceService {
             try {
                 resource.setIndexedFields(getIndexedFields(resource));
 
-
                 for (IndexedField indexedField : resource.getIndexedFields())
                     indexedField.setResource(resource);
-
-
 
                 // resource needs to be saved first in order for the version to correctly reference to it
                 resourceDao.addResource(resource);

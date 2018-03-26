@@ -1,6 +1,5 @@
 package eu.openminted.registry.core.index;
 
-import java.sql.Date;
 import java.util.Set;
 
 /**
@@ -17,7 +16,7 @@ public interface FieldParser {
 		}else if(fieldType.equals("java.lang.Float")){
 			values.add(Float.parseFloat(typeValue));
 		}else if(fieldType.equals("java.util.Date")){
-			values.add(Date.valueOf(typeValue));
+			values.add(Long.parseLong(typeValue));
 		}else if (fieldType.equals("java.lang.Boolean")){
 			values.add(Boolean.parseBoolean(typeValue));
 		}

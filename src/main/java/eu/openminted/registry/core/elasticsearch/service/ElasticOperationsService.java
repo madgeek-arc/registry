@@ -122,11 +122,13 @@ public class ElasticOperationsService {
 
         Map<String, Object> jsonObjectGeneral = new HashMap<>();
         Map<String, Object> jsonObjectProperties = new HashMap<>();
-
+        logger.info(Date.class.getName());
         if (indexFields != null) {
             for (IndexField indexField : indexFields) {
                 Map<String, Object> typeMap = new HashMap<>();
                 typeMap.put("type", FIELD_TYPES_MAP.get(indexField.getType()));
+                if(indexField.getType().equals("java.util.Date"))
+                    typeMap.put("format","epoch_millis");
                 jsonObjectProperties.put(indexField.getName(), typeMap);
             }
         }
@@ -171,15 +173,28 @@ public class ElasticOperationsService {
             for (IndexedField<?> field : resource.getIndexedFields()) {
                 if(!indexMap.get(field.getName()).isMultivalued()) {
                     for (Object value : field.getValues()) {
-                        jsonObjectField.put(field.getName(), value);
+                        String fieldType = indexMap.get(field.getName()).getType();
+                        if(fieldType.equals("java.lang.String")){
+                            jsonObjectField.put(field.getName(), value);
+                        }else if(fieldType.equals("java.lang.Integer")){
+                            jsonObjectField.put(field.getName(),Integer.parseInt((String)value));
+                        }else if(fieldType.equals("java.lang.Float")){
+                            jsonObjectField.put(field.getName(),Float.parseFloat((String) value));
+                        }else if(fieldType.equals("java.util.Date")){
+                            jsonObjectField.put(field.getName(),Long.parseLong((String) value));
+                        }else if (fieldType.equals("java.lang.Boolean")){
+                            jsonObjectField.put(field.getName(),Boolean.parseBoolean((String) value));
+                        }
                     }
                 } else {
                     List<String> values = new ArrayList<>();
                     values.addAll(field.getValues());
                     jsonObjectField.put(field.getName(),values);
+
                 }
             }
         }
+        logger.info(jsonObjectField.toString());
         return jsonObjectField.toString();
     }
 
