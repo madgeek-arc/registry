@@ -128,7 +128,7 @@ public class ElasticOperationsService {
                 Map<String, Object> typeMap = new HashMap<>();
                 typeMap.put("type", FIELD_TYPES_MAP.get(indexField.getType()));
                 if(indexField.getType().equals("java.util.Date"))
-                    typeMap.put("format","epoch_second");
+                    typeMap.put("format","epoch_millis");
                 jsonObjectProperties.put(indexField.getName(), typeMap);
             }
         }
@@ -181,7 +181,7 @@ public class ElasticOperationsService {
                         }else if(fieldType.equals("java.lang.Float")){
                             jsonObjectField.put(field.getName(),Float.parseFloat((String) value));
                         }else if(fieldType.equals("java.util.Date")){
-                            jsonObjectField.put(field.getName(),Long.parseLong((String) value)*1000);
+                            jsonObjectField.put(field.getName(),Long.parseLong((String) value)*100);
                         }else if (fieldType.equals("java.lang.Boolean")){
                             jsonObjectField.put(field.getName(),Boolean.parseBoolean((String) value));
                         }
