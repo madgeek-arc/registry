@@ -181,7 +181,7 @@ public class ElasticOperationsService {
                         }else if(fieldType.equals("java.lang.Float")){
                             jsonObjectField.put(field.getName(),Float.parseFloat((String) value));
                         }else if(fieldType.equals("java.util.Date")){
-                            jsonObjectField.put(field.getName(),Long.parseLong((String) value));
+                            jsonObjectField.put(field.getName(),Long.parseLong((String) value)*1000);
                         }else if (fieldType.equals("java.lang.Boolean")){
                             jsonObjectField.put(field.getName(),Boolean.parseBoolean((String) value));
                         }
