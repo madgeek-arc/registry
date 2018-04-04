@@ -128,7 +128,7 @@ public class ElasticOperationsService {
                 Map<String, Object> typeMap = new HashMap<>();
                 typeMap.put("type", FIELD_TYPES_MAP.get(indexField.getType()));
                 if(indexField.getType().equals("java.util.Date"))
-                    typeMap.put("format","epoch_millis");
+                    typeMap.put("format","epoch_second");
                 jsonObjectProperties.put(indexField.getName(), typeMap);
             }
         }
