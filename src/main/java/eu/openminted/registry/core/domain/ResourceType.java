@@ -47,7 +47,7 @@ public class ResourceType {
     @Column
     private String aliasGroup;
 
-    @OneToMany(mappedBy = "resourceType", fetch = FetchType.LAZY, cascade = {CascadeType.ALL})
+    @OneToMany(mappedBy = "resourceType", fetch = FetchType.EAGER, cascade = {CascadeType.ALL})
     @JsonManagedReference(value = "resourcetype-resource")
     private List<Resource> resources;
 
