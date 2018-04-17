@@ -116,6 +116,7 @@ public class ResourceMonitor {
 
         pjp.proceed();
 
+
         if (resourceTypeListeners != null)
             for (ResourceTypeListener listener : resourceTypeListeners) {
                 try {
