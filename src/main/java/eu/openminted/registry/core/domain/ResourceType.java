@@ -1,7 +1,10 @@
 package eu.openminted.registry.core.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import eu.openminted.registry.core.domain.index.IndexField;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import javax.persistence.*;
 import javax.validation.constraints.Size;
@@ -47,11 +50,13 @@ public class ResourceType {
     @Column
     private String aliasGroup;
 
-    @OneToMany(mappedBy = "resourceType", fetch = FetchType.LAZY, cascade = {CascadeType.ALL})
+    @OneToMany(mappedBy = "resourceType", fetch = FetchType.EAGER, cascade = {CascadeType.ALL})
+    @Fetch(FetchMode.SUBSELECT)
     @JsonManagedReference(value = "resourcetype-resource")
     private List<Resource> resources;
 
-    @OneToMany(mappedBy = "resourceType")
+    @OneToMany(mappedBy = "resourceType", fetch = FetchType.LAZY)
+    @JsonIgnore
     @JsonManagedReference(value = "resourcetype-versions")
     private List<Version> versions;
 
