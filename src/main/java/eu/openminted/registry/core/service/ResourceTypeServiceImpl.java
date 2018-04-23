@@ -154,8 +154,10 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 		}
 
 		schema.setSchema(resourceType.getSchema());
-		if(schemaDao.getSchema(schema.getId())==null)
+		if(schemaDao.getSchema(schema.getId())==null) {
+			logger.info("Added schema " + resourceType.getName());
 			schemaDao.addSchema(schema);
+		}
 
 		return resourceType;
 	}
@@ -252,7 +254,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 						} catch (Exception e) {
 							throw new ServiceException("failed to download file(s)", e);
 						}
-						System.out.println(schemaContent);
+//						System.out.println(schemaContent);
 						Schema schema = schemaDao.getSchema(stringToMd5(schemaContent));
 
 						if (schema != null) {

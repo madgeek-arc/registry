@@ -18,7 +18,6 @@ import java.util.concurrent.Future;
  * Created by stefanos on 20/6/2017.
  */
 
-@Service("genericService")
 abstract public class AbstractGenericService<T> {
 
     private Logger logger = LogManager.getLogger(AbstractGenericService.class);
@@ -37,7 +36,7 @@ abstract public class AbstractGenericService<T> {
     @Autowired
     public ParserService parserPool;
 
-    public final Class<T> typeParameterClass;
+    protected final Class<T> typeParameterClass;
 
     private List<String> browseBy;
 
@@ -74,7 +73,7 @@ abstract public class AbstractGenericService<T> {
         browseBy.add("resourceType");
     }
 
-    public Browsing<T> getResults(FacetFilter filter) {
+    protected Browsing<T> getResults(FacetFilter filter) {
         List<T> result = new ArrayList<>();
         List<Future<T>> futureResults;
         Paging paging;
@@ -104,7 +103,7 @@ abstract public class AbstractGenericService<T> {
     }
 
 
-    public Map<String,List<T>> getResultsGrouped(FacetFilter filter, String category) {
+    protected Map<String,List<T>> getResultsGrouped(FacetFilter filter, String category) {
         Map<String,List<T>> result = new HashMap<>();
 
         filter.setResourceType(getResourceType());
@@ -129,7 +128,7 @@ abstract public class AbstractGenericService<T> {
      * @param overall
      * @return a List of facets.
      */
-    List<Facet> createFacetCollection(Occurrences overall) {
+    protected List<Facet> createFacetCollection(Occurrences overall) {
         List<Facet> facetsCollection = new ArrayList<>();
 
         Map<String,String> labels = new HashMap<>();
@@ -165,7 +164,7 @@ abstract public class AbstractGenericService<T> {
         return facetsCollection;
     }
 
-    public List<String> getBrowseBy() {
+    protected List<String> getBrowseBy() {
         return browseBy;
     }
 
