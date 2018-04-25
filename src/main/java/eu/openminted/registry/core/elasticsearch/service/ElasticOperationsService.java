@@ -165,7 +165,10 @@ public class ElasticOperationsService {
         jsonObjectField.put("version", resource.getVersion());
         jsonObjectField.put("searchableArea", strip(resource.getPayload(),resource.getPayloadFormat()));
         jsonObjectField.put("modification_date", resource.getModificationDate().getTime());
-        jsonObjectField.put("creation_date", resource.getCreationDate().getTime());
+        //The creation date exists and should not be updated
+        if(resource.getCreationDate() != null) {
+            jsonObjectField.put("creation_date", resource.getCreationDate().getTime());
+        }
         Map<String,IndexField> indexMap = resourceTypeService.getResourceTypeIndexFields(
                 resource.getResourceType().getName()).
                 stream().collect(Collectors.toMap(IndexField::getName, p->p)
