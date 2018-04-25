@@ -94,6 +94,7 @@ public class ResourceDaoImpl extends AbstractDao<String, Resource> implements Re
 
 	public void deleteResource(Resource resource) {
 		getSession().delete(resource);
+		resource.getResourceType().getResources().remove(resource);
 		getSession().flush();
 	}
 
