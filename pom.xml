@@ -26,6 +26,14 @@
     </scm>
 
     <dependencies>
+
+        <dependency>
+            <groupId>org.xbib</groupId>
+            <artifactId>cql-elasticsearch</artifactId>
+            <version>1.1.1</version>
+        </dependency>
+
+
         <!-- https://mvnrepository.com/artifact/org.elasticsearch/elasticsearch -->
         <dependency>
             <groupId>org.elasticsearch</groupId>

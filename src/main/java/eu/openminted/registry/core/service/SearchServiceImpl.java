@@ -3,8 +3,8 @@ package eu.openminted.registry.core.service;
 import eu.openminted.registry.core.configuration.ElasticConfiguration;
 import eu.openminted.registry.core.domain.*;
 import org.apache.commons.beanutils.PropertyUtils;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
@@ -22,6 +22,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
+import org.xbib.cql.CQLParser;
+import org.xbib.cql.elasticsearch.ElasticsearchQueryGenerator;
 
 import java.net.UnknownHostException;
 import java.util.*;
@@ -177,6 +179,45 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
+    public Paging cqlQuery(String query, String resourceType, int quantity, int from) {
+
+
+        CQLParser parser = new CQLParser(query);
+        parser.parse();
+        ElasticsearchQueryGenerator generator = new ElasticsearchQueryGenerator();
+
+        parser.getCQLQuery().accept(generator);
+
+        logger.info(generator.getQueryResult());
+
+        Client client = elastic.client();
+        SearchRequestBuilder search = client.prepareSearch(resourceType).setQuery(QueryBuilders.wrapperQuery(generator.getQueryResult()))
+                .setSize(quantity)
+                .setFrom(from)
+                .setExplain(false);
+
+        SearchResponse response = search.execute().actionGet();
+
+
+        if (response == null || response.getHits().totalHits() == 0) {
+            return new Paging();
+        } else {
+            ArrayList<Resource> resources = new ArrayList<>();
+            for (SearchHit hit : response.getHits()) {
+                String version = hit.getSource().get("version") == null ? "not_set" : hit.getSource().get("version").toString();
+                resources.add(new Resource(
+                        hit.getSource().get("id").toString(),
+                        resourceTypeService.getResourceType(hit.getSource().get("resourceType").toString()),
+                        version,
+                        hit.getSource().get("payload").toString(),
+                        hit.getSource().get("payloadFormat").toString()));
+            }
+            return new Paging<>(Math.min(quantity,(int)response.getHits().getHits().length),from,from+resources.size(),resources,new Occurrences());
+        }
+
+    }
+
+    @Override
     public Paging search(FacetFilter filter) throws ServiceException {
         return buildSearch(filter);
     }
@@ -201,7 +242,6 @@ public class SearchServiceImpl implements SearchService {
         }
 
         Client client = elastic.client();
-
         SearchRequestBuilder search = client.prepareSearch(resourceType).setSearchType(SearchType.DFS_QUERY_AND_FETCH)
                 .setQuery(qBuilder)
                 .setSize(1).setExplain(false);
