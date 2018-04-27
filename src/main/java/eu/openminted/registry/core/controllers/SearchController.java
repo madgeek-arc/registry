@@ -38,4 +38,12 @@ public class SearchController {
 			throw new ServiceException(e);
 		}
 	}
+
+	@RequestMapping(value = "/search/cql/{resourceType}/{query}", method = RequestMethod.GET)
+	public ResponseEntity<Paging> test(@PathVariable("query") String query,
+									   @PathVariable("resourceType") String resourceType,
+									   @RequestParam(value = "from", required = false, defaultValue = "0") int from,
+									   @RequestParam(value = "quantity", required = false, defaultValue = "10") int quantity){
+		return new ResponseEntity<>(searchService.cqlQuery(query,resourceType,quantity,from), HttpStatus.OK);
+	}
 }
