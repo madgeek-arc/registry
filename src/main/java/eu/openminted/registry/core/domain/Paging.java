@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.domain;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Paging<T> {
@@ -15,6 +16,14 @@ public class Paging<T> {
         this.to = to;
         this.results = results;
         this.occurrences = occurrences;
+    }
+
+    public Paging() {
+        this.total = 0;
+        this.from = 0;
+        this.to = 0;
+        this.results = new ArrayList<>();
+        this.occurrences = new Occurrences();
     }
 
     public int getTotal() {

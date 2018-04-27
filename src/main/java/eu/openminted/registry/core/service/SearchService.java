@@ -2,14 +2,16 @@ package eu.openminted.registry.core.service;
 
 import eu.openminted.registry.core.domain.FacetFilter;
 import eu.openminted.registry.core.domain.Paging;
+import eu.openminted.registry.core.domain.Resource;
+
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 
-import eu.openminted.registry.core.domain.Resource;
-
 
 public interface SearchService {
+
+	Paging cqlQuery(String query, String resourceType, int quantity,int from);
 
 	Paging search(FacetFilter filter) throws ServiceException, UnknownHostException;
 
