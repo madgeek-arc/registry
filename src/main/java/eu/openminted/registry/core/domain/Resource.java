@@ -1,6 +1,7 @@
 package eu.openminted.registry.core.domain;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import org.hibernate.annotations.LazyCollection;
@@ -56,12 +57,14 @@ public class Resource {
     private Date modificationDate;
 
     @OneToMany(cascade = {CascadeType.ALL}, mappedBy = "resource")
-    @LazyCollection(LazyCollectionOption.FALSE)
+    @LazyCollection(LazyCollectionOption.TRUE)
+    @JsonIgnore
     @JsonManagedReference(value = "resource-indexedfields")
     private List<IndexedField> indexedFields;
 
     @OneToMany(mappedBy = "resource", cascade = {CascadeType.ALL})
-    @LazyCollection(LazyCollectionOption.FALSE)
+    @LazyCollection(LazyCollectionOption.TRUE)
+    @JsonIgnore
     @JsonManagedReference(value = "resource-versions")
     private List<Version> versions;
 
