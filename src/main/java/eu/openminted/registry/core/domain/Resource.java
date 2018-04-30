@@ -61,7 +61,7 @@ public class Resource {
     private List<IndexedField> indexedFields;
 
     @OneToMany(mappedBy = "resource", cascade = {CascadeType.ALL})
-    @LazyCollection(LazyCollectionOption.TRUE)
+    @LazyCollection(LazyCollectionOption.FALSE)
     @JsonManagedReference(value = "resource-versions")
     private List<Version> versions;
 
