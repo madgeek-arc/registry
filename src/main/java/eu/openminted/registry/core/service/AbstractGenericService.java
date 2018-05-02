@@ -40,6 +40,8 @@ abstract public class AbstractGenericService<T> {
 
     private List<String> browseBy;
 
+    private Map<String,String> labels;
+
     public AbstractGenericService(Class<T> typeParameterClass) {
         this.typeParameterClass = typeParameterClass;
     }
@@ -51,8 +53,11 @@ abstract public class AbstractGenericService<T> {
         resourceType = resourceTypeService.getResourceType(getResourceType());
         Set<String> browseSet = new HashSet<>();
         Map<String,Set<String>> sets = new HashMap<>();
+        labels = new HashMap<>();
+        labels.put("resourceType","Resource Type");
         for (IndexField f : resourceTypeService.getResourceTypeIndexFields(getResourceType())) {
             sets.putIfAbsent(f.getResourceType().getName(), new HashSet<>());
+            labels.put(f.getName(),f.getLabel());
             if(f.getLabel() != null) {
                 sets.get(f.getResourceType().getName()).add(f.getName());
             }
@@ -131,12 +136,6 @@ abstract public class AbstractGenericService<T> {
     protected List<Facet> createFacetCollection(Occurrences overall) {
         List<Facet> facetsCollection = new ArrayList<>();
 
-        Map<String,String> labels = new HashMap<>();
-
-        for (IndexField f : resourceTypeService.getResourceTypeIndexFields(getResourceType())) {
-            labels.put(f.getName(),f.getLabel());
-        }
-        labels.put("resourceType","Resource Type");
         for (Map.Entry<String,String> label : labels.entrySet()) {
             Facet singleFacet = new Facet();
 
