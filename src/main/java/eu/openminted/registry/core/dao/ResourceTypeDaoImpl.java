@@ -3,6 +3,7 @@ package eu.openminted.registry.core.dao;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
 import org.hibernate.Criteria;
+import org.hibernate.Query;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.stereotype.Repository;
 
@@ -17,6 +18,7 @@ public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> imple
 		
 		Criteria cr = getSession().createCriteria(ResourceType.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
 		cr.add(Restrictions.eq("name", name));
+		cr.setCacheable(true);
 		if(cr.list().size()==0){
 			return null;
 		}else{
@@ -50,11 +52,10 @@ public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> imple
 	@Override
 	public Set<IndexField> getResourceTypeIndexFields(String name) {
 		Set<IndexField> indexFields = new HashSet<>();
-		Criteria cr = getSession().createCriteria(ResourceType.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		cr.add(Restrictions.or(Restrictions.eq("name", name),Restrictions.eq("aliasGroup", name)));
-		for(Object type : cr.list()) {
-			indexFields.addAll(((ResourceType) type).getIndexFields());
-		}
+		Query query = getSession().createQuery("from IndexField where resourceType in " +
+				"(from ResourceType where name = :name or aliasGroup = :name)");
+		query.setParameter("name",name);
+		indexFields.addAll(query.list());
 		return indexFields;
 	}
 

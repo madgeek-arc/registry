@@ -76,6 +76,7 @@ abstract public class AbstractGenericService<T> {
         browseBy = new ArrayList<>();
         browseBy.addAll(browseSet);
         browseBy.add("resourceType");
+        logger.info("Generated generic service for " + getResourceType() + "[" + this +"]");
     }
 
     protected Browsing<T> getResults(FacetFilter filter) {
