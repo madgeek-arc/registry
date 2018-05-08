@@ -4,14 +4,11 @@ import eu.openminted.registry.core.domain.FacetFilter;
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.service.SearchService;
 import eu.openminted.registry.core.service.ServiceException;
+import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -43,7 +40,12 @@ public class SearchController {
 	public ResponseEntity<Paging> test(@PathVariable("query") String query,
 									   @PathVariable("resourceType") String resourceType,
 									   @RequestParam(value = "from", required = false, defaultValue = "0") int from,
-									   @RequestParam(value = "quantity", required = false, defaultValue = "10") int quantity){
-		return new ResponseEntity<>(searchService.cqlQuery(query,resourceType,quantity,from), HttpStatus.OK);
+									   @RequestParam(value = "quantity", required = false, defaultValue = "10") int quantity,
+									   @RequestParam(value = "sortBy", required = false, defaultValue = "") String sortBy,
+									   @RequestParam(value = "sortByType", required = false, defaultValue = "ASC")String sortByType){
+		if(sortByType.equals("DESC") || sortByType.equals("ASC"))
+			return new ResponseEntity<>(searchService.cqlQuery(query, resourceType,	quantity, from, sortBy, SortOrder.valueOf(sortByType)), HttpStatus.OK);
+		else
+			throw new ServiceException("Unsupported order by type");
 	}
 }
