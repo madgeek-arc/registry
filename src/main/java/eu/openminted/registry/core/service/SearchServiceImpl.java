@@ -16,6 +16,7 @@ import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms.Bucket;
 import org.elasticsearch.search.aggregations.metrics.tophits.InternalTopHits;
+import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -179,7 +180,12 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public Paging cqlQuery(String query, String resourceType, int quantity, int from) {
+    public Paging cqlQuery(String query,
+                           String resourceType,
+                           int quantity,
+                           int from,
+                           String sortByField,
+                           SortOrder sortOrder) {
 
 
         CQLParser parser = new CQLParser(query);
@@ -190,11 +196,17 @@ public class SearchServiceImpl implements SearchService {
 
         logger.info(generator.getQueryResult());
 
+
+
         Client client = elastic.client();
         SearchRequestBuilder search = client.prepareSearch(resourceType).setQuery(QueryBuilders.wrapperQuery(generator.getQueryResult()))
                 .setSize(quantity)
                 .setFrom(from)
                 .setExplain(false);
+
+        if(!sortByField.isEmpty()){
+            search.addSort(SortBuilders.fieldSort(sortByField).order(sortOrder));
+        }
 
         SearchResponse response = search.execute().actionGet();
 

@@ -49,6 +49,12 @@
             <groupId>eu.openminted</groupId>
             <artifactId>registry-core-api</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.elasticsearch</groupId>
+                    <artifactId>elasticsearch</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>eu.openminted.interop</groupId>
