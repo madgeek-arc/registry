@@ -36,7 +36,7 @@ public class SearchController {
 		}
 	}
 
-	@RequestMapping(value = "/search/cql/{resourceType}/{query}", method = RequestMethod.GET)
+	@RequestMapping(value = "/search/cql/{resourceType}/{query}/", method = RequestMethod.GET)
 	public ResponseEntity<Paging> test(@PathVariable("query") String query,
 									   @PathVariable("resourceType") String resourceType,
 									   @RequestParam(value = "from", required = false, defaultValue = "0") int from,
