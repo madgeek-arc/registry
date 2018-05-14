@@ -31,7 +31,7 @@ import java.util.*;
 
 
 @Service("searchService")
-@PropertySource({"classpath:application.properties","classpath:registry.properties"})
+@PropertySource(value = { "classpath:application.properties", "classpath:registry.properties"} )
 public class SearchServiceImpl implements SearchService {
 
     private static Logger logger = LogManager.getLogger(SearchServiceImpl.class);
@@ -45,10 +45,10 @@ public class SearchServiceImpl implements SearchService {
     @Autowired
     private ElasticConfiguration elastic;
 
-    @Value("${elastic.aggregation.topHitsSize : 100}")
+    @Value("${elastic.aggregation.topHitsSize:100}")
     private int topHitsSize;
 
-    @Value("${elastic.aggregation.bucketSize : 100}")
+    @Value("${elastic.aggregation.bucketSize:100}")
     private int bucketSize;
 
     private Map<String,ResourceType> resourceTypeCache = new HashMap<>();
