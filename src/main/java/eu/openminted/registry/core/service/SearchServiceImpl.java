@@ -224,7 +224,7 @@ public class SearchServiceImpl implements SearchService {
                         hit.getSource().get("payload").toString(),
                         hit.getSource().get("payloadFormat").toString()));
             }
-            return new Paging<>(Math.min(quantity,(int)response.getHits().getHits().length),from,from+resources.size(),resources,new Occurrences());
+            return new Paging<>((int)response.getHits().getTotalHits(),from,from+resources.size(),resources,new Occurrences());
         }
 
     }
