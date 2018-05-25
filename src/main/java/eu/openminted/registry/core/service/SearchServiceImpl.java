@@ -254,7 +254,7 @@ public class SearchServiceImpl implements SearchService {
         }
 
         Client client = elastic.client();
-        SearchRequestBuilder search = client.prepareSearch(resourceType).setSearchType(SearchType.DFS_QUERY_AND_FETCH)
+        SearchRequestBuilder search = client.prepareSearch(resourceType).setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
                 .setQuery(qBuilder)
                 .setSize(1).setExplain(false);
 
