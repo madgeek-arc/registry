@@ -63,6 +63,9 @@ public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> imple
 	public void deleteResourceType(ResourceType resourceType) {
 		getSession().delete(resourceType);
 		getSession().flush();
+
+		getSession().createSQLQuery("DROP VIEW "+resourceType.getName()+"_view;");
+		getSession().flush();
 	}
 
 }
