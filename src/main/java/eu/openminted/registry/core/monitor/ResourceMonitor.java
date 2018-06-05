@@ -30,9 +30,6 @@ public class ResourceMonitor {
     @Autowired(required = false)
     private List<ResourceTypeListener> resourceTypeListeners;
 
-    @Autowired(required = false)
-    private List<VersionListener> versionListeners;
-
     @Autowired
     private ResourceDao resourceDao;
 
@@ -43,6 +40,7 @@ public class ResourceMonitor {
 
         try {
             resource = (Resource) pjp.proceed();
+
             for (ResourceListener listener : resourceListeners) {
                 try {
                     listener.resourceAdded(resource);
@@ -50,10 +48,6 @@ public class ResourceMonitor {
                 } catch (Exception e) {
                     logger.error("Error notifying listener", e);
                 }
-            }
-
-            for (VersionListener listener : versionListeners){
-                listener.versionAdded(resource);
             }
         } catch (Exception e) {
             logger.fatal("fatal error in monitor", e);
@@ -81,12 +75,6 @@ public class ResourceMonitor {
                         logger.error("Error notifying listener", e);
                     }
                 }
-
-            if (versionListeners != null){
-                for (VersionListener listener : versionListeners){
-                    listener.versionUpdated(previous, resource);
-                }
-            }
         } catch (Exception e) {
             logger.fatal("fatal error in monitor", e);
             throw e;

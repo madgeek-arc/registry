@@ -10,8 +10,6 @@ import eu.openminted.registry.core.domain.jms.ResourceJmsDeleted;
 import eu.openminted.registry.core.domain.jms.ResourceJmsUpdated;
 import eu.openminted.registry.core.monitor.ResourceListener;
 import eu.openminted.registry.core.monitor.ResourceTypeListener;
-import eu.openminted.registry.core.monitor.VersionListener;
-import eu.openminted.registry.core.service.VersionService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +20,7 @@ import java.util.Date;
 import java.util.UUID;
 
 @Component
-public class JmsResourceListener implements ResourceListener, ResourceTypeListener,VersionListener {
+public class JmsResourceListener implements ResourceListener, ResourceTypeListener {
 
     @Autowired
     JmsTemplate jmsTopicTemplate;
@@ -30,8 +28,7 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
     @Autowired
     JmsConfiguration jmsConfiguration;
 
-    @Autowired
-    VersionService versionService;
+
 
     private static Logger logger = LogManager.getLogger(JmsResourceListener.class);
 
@@ -52,16 +49,6 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
     }
 
     @Override
-    public void versionAdded(Resource resource) {
-        createVersion(resource);
-    }
-
-    @Override
-    public void versionUpdated(Resource previousResource, Resource newResource) {
-        createVersion(newResource);
-    }
-
-    @Override
     public void resourceDeleted(Resource resource) {
         String destination = String.format("%s.%s.delete",jmsConfiguration.getJmsPrefix(),resource.getResourceType().getName());
         BaseResourceJms jmsResource = new ResourceJmsDeleted(resource);
@@ -78,17 +65,5 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
     public void resourceTypeDelete(String name) {
         logger.warn("JMS is NOT notified for the deletion of resource type " + name);
     }
-
-    private void createVersion(Resource newResource) {
-        Version version = new Version();
-        version.setCreationDate(new Date());
-        version.setId(UUID.randomUUID().toString());
-        version.setPayload(newResource.getPayload());
-        version.setResource(newResource);
-        version.setResourceType(newResource.getResourceType());
-        version.setVersion(newResource.getVersion());
-        versionService.addVersion(version);
-    }
-
 
 }
