@@ -70,12 +70,14 @@ public class ResourceMonitor {
 
             Resource previous = resourceDao.getResource(resource.getResourceType(), resource.getId());
 
+            Resource temp = new Resource(previous.getId(), previous.getResourceType(), previous.getVersion(), previous.getPayload(), previous.getPayloadFormat());
+
             pjp.proceed();
 
             if (resourceListeners != null)
                 for (ResourceListener listener : resourceListeners) {
                     try {
-                        listener.resourceUpdated(previous, resource);
+                        listener.resourceUpdated(temp, resource);
                         logger.info("Notified listener : " + listener.getClass().getSimpleName() + " for update");
                     } catch (Exception e) {
                         logger.error("Error notifying listener", e);
