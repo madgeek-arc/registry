@@ -19,7 +19,6 @@ public class SchemaDaoImpl extends AbstractDao<String, Schema> implements Schema
 		}else{
 			return (Schema) cr.list().get(0);
 		}
-
 	}
 	
 	@Override
