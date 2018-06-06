@@ -11,8 +11,6 @@ import java.util.UUID;
 
 public class VersionListener implements ResourceListener {
 
-	private static
-
 	@Autowired
 	VersionService versionService;
 
