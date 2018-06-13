@@ -57,13 +57,13 @@ public class Resource {
     private Date modificationDate;
 
     @OneToMany(cascade = {CascadeType.ALL}, mappedBy = "resource")
-    @LazyCollection(LazyCollectionOption.TRUE)
+    @LazyCollection(LazyCollectionOption.FALSE)
     @JsonIgnore
     @JsonManagedReference(value = "resource-indexedfields")
     private List<IndexedField> indexedFields;
 
     @OneToMany(mappedBy = "resource", cascade = {CascadeType.ALL})
-    @LazyCollection(LazyCollectionOption.TRUE)
+    @LazyCollection(LazyCollectionOption.FALSE)
     @JsonIgnore
     @JsonManagedReference(value = "resource-versions")
     private List<Version> versions;
