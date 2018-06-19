@@ -51,7 +51,7 @@ public class SearchServiceImpl implements SearchService {
     @Value("${elastic.aggregation.bucketSize:100}")
     private int bucketSize;
 
-    @Value("${prefix:general}")
+    @Value("${prefix}")
     private String type;
 
     private Map<String,ResourceType> resourceTypeCache = new HashMap<>();

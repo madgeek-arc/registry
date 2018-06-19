@@ -27,7 +27,7 @@ public class JmsConfiguration {
     @Value("${jms.host}")
     private String jmsHost;
 
-    @Value("${prefix:registry}")
+    @Value("${prefix}")
     private String jmsPrefix;
 
     @Bean
