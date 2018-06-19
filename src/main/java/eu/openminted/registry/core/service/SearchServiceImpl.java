@@ -51,6 +51,9 @@ public class SearchServiceImpl implements SearchService {
     @Value("${elastic.aggregation.bucketSize:100}")
     private int bucketSize;
 
+    @Value("${prefix:general}")
+    private String type;
+
     private Map<String,ResourceType> resourceTypeCache = new HashMap<>();
 
     private static BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
@@ -72,7 +75,7 @@ public class SearchServiceImpl implements SearchService {
         Client client = elastic.client();
         int quantity = filter.getQuantity();
         BoolQueryBuilder qBuilder = createQueryBuilder(filter);
-        SearchRequestBuilder search = client.prepareSearch(filter.getResourceType()).
+        SearchRequestBuilder search = client.prepareSearch(filter.getResourceType()).setTypes(type).
                 setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
                 .setQuery(qBuilder)
                 .setFrom(filter.getFrom()).setSize(0).setExplain(false);
@@ -112,7 +115,7 @@ public class SearchServiceImpl implements SearchService {
         int quantity = filter.getQuantity();
         BoolQueryBuilder qBuilder = createQueryBuilder(filter);
 
-        SearchRequestBuilder search = client.prepareSearch(filter.getResourceType()).
+        SearchRequestBuilder search = client.prepareSearch(filter.getResourceType()).setTypes(type).
                 setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
                 .setQuery(qBuilder)
                 .setFrom(filter.getFrom()).setSize(quantity).setExplain(false);
@@ -199,7 +202,7 @@ public class SearchServiceImpl implements SearchService {
 
 
         Client client = elastic.client();
-        SearchRequestBuilder search = client.prepareSearch(resourceType).setQuery(QueryBuilders.wrapperQuery(generator.getQueryResult()))
+        SearchRequestBuilder search = client.prepareSearch(resourceType).setTypes(type).setQuery(QueryBuilders.wrapperQuery(generator.getQueryResult()))
                 .setSize(quantity)
                 .setFrom(from)
                 .setExplain(false);
@@ -254,7 +257,7 @@ public class SearchServiceImpl implements SearchService {
         }
 
         Client client = elastic.client();
-        SearchRequestBuilder search = client.prepareSearch(resourceType).setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
+        SearchRequestBuilder search = client.prepareSearch(resourceType).setTypes(type).setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
                 .setQuery(qBuilder)
                 .setSize(1).setExplain(false);
 

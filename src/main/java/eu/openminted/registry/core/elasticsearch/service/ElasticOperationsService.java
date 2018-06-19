@@ -20,6 +20,7 @@ import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +40,9 @@ public class ElasticOperationsService {
     @Autowired
     private ElasticConfiguration elastic;
 
+    @Value("{prefix:general}")
+    private String type;
+
     private static final Map<String, String> FIELD_TYPES_MAP;
 
     static {
@@ -55,7 +59,7 @@ public class ElasticOperationsService {
     public void add(Resource resource) {
         Client client = elastic.client();
         String payload = createDocumentForInsert(resource);
-        IndexResponse response = client.prepareIndex(resource.getResourceType().getName(), "general")
+        IndexResponse response = client.prepareIndex(resource.getResourceType().getName(), type)
                 .setSource(payload)
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .setId(resource.getId()).get();
@@ -66,7 +70,7 @@ public class ElasticOperationsService {
 
         UpdateRequest updateRequest = new UpdateRequest();
         updateRequest.index(newResource.getResourceType().getName());
-        updateRequest.type("general");
+        updateRequest.type(type);
         updateRequest.id(previousResource.getId());
         updateRequest.doc(createDocumentForInsert(newResource));
         try {
@@ -78,7 +82,7 @@ public class ElasticOperationsService {
 
     public void delete(Resource resource) {
         Client client = elastic.client();
-        client.prepareDelete(resource.getResourceType().getName(), "general", resource.getId()).get();
+        client.prepareDelete(resource.getResourceType().getName(), type, resource.getId()).get();
     }
 
     public void createIndex(ResourceType resourceType) {
@@ -95,7 +99,7 @@ public class ElasticOperationsService {
         JSONObject parameters = new JSONObject(jsonObjectForMapping);
         System.err.println(parameters.toString(2));
 
-        createIndexRequestBuilder.addMapping("general", jsonObjectForMapping);
+        createIndexRequestBuilder.addMapping(type, jsonObjectForMapping);
 
         CreateIndexResponse putMappingResponse = createIndexRequestBuilder.get();
 
