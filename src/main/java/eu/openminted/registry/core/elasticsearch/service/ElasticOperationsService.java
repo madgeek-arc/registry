@@ -40,7 +40,7 @@ public class ElasticOperationsService {
     @Autowired
     private ElasticConfiguration elastic;
 
-    @Value("{prefix}")
+    @Value("${prefix:general}")
     private String type;
 
     private static final Map<String, String> FIELD_TYPES_MAP;
