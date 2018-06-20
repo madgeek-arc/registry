@@ -188,7 +188,8 @@ public class SearchServiceImpl implements SearchService {
                            int quantity,
                            int from,
                            String sortByField,
-                           SortOrder sortOrder) {
+                           String sortOrder) {
+
 
 
         CQLParser parser = new CQLParser(query);
@@ -208,7 +209,7 @@ public class SearchServiceImpl implements SearchService {
                 .setExplain(false);
 
         if(!sortByField.isEmpty()){
-            search.addSort(SortBuilders.fieldSort(sortByField).order(sortOrder));
+            search.addSort(SortBuilders.fieldSort(sortByField).order(SortOrder.valueOf(sortOrder)));
         }
 
         SearchResponse response = search.execute().actionGet();
@@ -230,6 +231,11 @@ public class SearchServiceImpl implements SearchService {
             return new Paging<>((int)response.getHits().getTotalHits(),from,from+resources.size(),resources,new Occurrences());
         }
 
+    }
+
+    @Override
+    public Paging cqlQuery(String query, String resourceType) {
+        return cqlQuery(query,resourceType,100000,0,"","ASC");
     }
 
     @Override
