@@ -5,10 +5,12 @@ import eu.openminted.registry.core.domain.Version;
 import eu.openminted.registry.core.monitor.ResourceListener;
 import eu.openminted.registry.core.service.VersionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.Date;
 import java.util.UUID;
 
+@Component
 public class VersionListener implements ResourceListener {
 
 	@Autowired
