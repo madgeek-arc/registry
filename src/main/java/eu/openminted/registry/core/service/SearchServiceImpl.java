@@ -198,10 +198,6 @@ public class SearchServiceImpl implements SearchService {
 
         parser.getCQLQuery().accept(generator);
 
-        logger.info(generator.getQueryResult());
-
-
-
         Client client = elastic.client();
         SearchRequestBuilder search = client.prepareSearch(resourceType).setTypes(type).setQuery(QueryBuilders.wrapperQuery(generator.getQueryResult()))
                 .setSize(quantity)
@@ -235,7 +231,7 @@ public class SearchServiceImpl implements SearchService {
 
     @Override
     public Paging cqlQuery(String query, String resourceType) {
-        return cqlQuery(query,resourceType,100000,0,"","ASC");
+        return cqlQuery(query,resourceType,10000,0,"","ASC");
     }
 
     @Override
