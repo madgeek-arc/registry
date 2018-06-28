@@ -202,7 +202,6 @@ public class ElasticOperationsService {
                 }
             }
         }
-        logger.info(jsonObjectField.toString());
         return jsonObjectField.toString();
     }
 
