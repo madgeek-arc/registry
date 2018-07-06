@@ -91,24 +91,24 @@ public class RestoreServiceImpl implements RestoreService {
         File[] files = dir.listFiles();
         for (File file : files) {
             if(file.isDirectory()) {
-                logger.info("Extracting files from " + file.getName());
+                logger.debug("Extracting files from " + file.getName());
                 storeResources(file, resources, versions, oldResourcesIds);
             }else {
                 if (FilenameUtils.removeExtension(file.getName()).equals("schema")) {
                     //if there is a file with the same name as the directory then it's the schema of the resource type. Drop resource type and reimport
                     String resourceTypeName = file.getParentFile().getName();
-                    logger.info("Resource type:"+resourceTypeName + ", starting procedure");
+                    logger.debug("Resource type:"+resourceTypeName + ", starting procedure");
                     if(resourceTypeService.getResourceType(resourceTypeName)!=null) {
-                        logger.info("Resource type is present, deleting it..");
+                        logger.debug("Resource type is present, deleting it..");
                         resourceTypeService.deleteResourceType(resourceTypeName);
                     }
 
                     ResourceType resourceType = new ResourceType();
                     ObjectMapper mapper = new ObjectMapper();
                     try {
-                        logger.info("Reading resource type from file..");
+                        logger.debug("Reading resource type from file..");
                         resourceType = mapper.readValue(FileUtils.readFileToString(file).replaceAll("^\t$", "").replaceAll("^\n$",""), ResourceType.class);
-                        logger.info("Adding resource type");
+                        logger.debug("Adding resource type");
                         if(resourceType.getSchemaUrl()!=null || !resourceType.getSchemaUrl().isEmpty())
                             resourceType.setSchema(null);
 
@@ -127,11 +127,11 @@ public class RestoreServiceImpl implements RestoreService {
         for(File file : files){
             try {
                 if(!file.isDirectory() && !file.getAbsolutePath().contains("version")) {
-                    logger.info("Scanning resource file with name "+ file.getName());
+                    logger.debug("Scanning resource file with name "+ file.getName());
 
                     if(!FilenameUtils.removeExtension(file.getName()).equals("schema")){
                         //if it's not the schema file then add it as a resource
-                        logger.info("Adding resource:"+file.getName());
+                        logger.debug("Adding resource:"+file.getName());
                         String extension = FilenameUtils.getExtension(file.getName());
                         Resource resource = new Resource();
                         if(extension.equals("json")) {
@@ -160,7 +160,7 @@ public class RestoreServiceImpl implements RestoreService {
                             oldResourcesIds.put(FilenameUtils.removeExtension(file.getName()), resource);
                         }
                     }else{
-                        logger.info("Resource "+file.getName()+" insertion postponed");
+                        logger.debug("Resource "+file.getName()+" insertion postponed");
                     }
                 }else if(!file.isDirectory() && file.getAbsolutePath().contains("version")) {
                     Version version = deserializeVersion(file);
