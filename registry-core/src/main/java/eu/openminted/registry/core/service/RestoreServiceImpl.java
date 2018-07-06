@@ -1,8 +1,11 @@
 package eu.openminted.registry.core.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.openminted.registry.core.dao.ResourceDao;
+import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.Version;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -19,9 +22,7 @@ import javax.xml.bind.Unmarshaller;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -38,7 +39,13 @@ public class RestoreServiceImpl implements RestoreService {
     ResourceTypeService resourceTypeService;
 
     @Autowired
+    ResourceDao resourceDao;
+
+    @Autowired
     ResourceService resourceService;
+
+    @Autowired
+    VersionDao versionDao;
 
     private JAXBContext jaxbContext = null;
 
@@ -56,12 +63,21 @@ public class RestoreServiceImpl implements RestoreService {
             UnzipUtility unzipUtility = new UnzipUtility();
             Path tempDirPath = Files.createTempDirectory("decompress");
             File tempDirFile = tempDirPath.toFile();
-//            tempDir.mkdir();
 
             unzipUtility.unzip(zip.getAbsolutePath(),tempDirPath.toString());
 
             List<Resource> resources = new ArrayList<Resource>();
-            storeResouces(tempDirFile, resources);
+            HashMap<String, List<Version>> versions = new HashMap<>();
+            HashMap<String, Resource> oldResourcesIds = new HashMap<>();
+
+            storeResources(tempDirFile, resources, versions, oldResourcesIds);
+            for(Map.Entry<String, List<Version>> entry : versions.entrySet()){
+                for(Version version : entry.getValue()) {
+                    Resource resource = oldResourcesIds.get(entry.getKey());
+                    version.setResource(resource);
+                    versionDao.addVersion(version);
+                }
+            }
 
             zip.deleteOnExit();
         } catch (IOException e) {
@@ -71,46 +87,49 @@ public class RestoreServiceImpl implements RestoreService {
 
     }
 
-    private void storeResouces(File dir, List<Resource> resources) {
+    private void storeResources(File dir, List<Resource> resources, HashMap<String, List<Version>> versions, HashMap<String, Resource> oldResourcesIds) {
         File[] files = dir.listFiles();
-
         for (File file : files) {
             if(file.isDirectory()) {
-                storeResouces(file, resources);
+                logger.info("Extracting files from " + file.getName());
+                storeResources(file, resources, versions, oldResourcesIds);
             }else {
-                if (FilenameUtils.removeExtension(file.getName()).equals(file.getParentFile().getName())) {
+                if (FilenameUtils.removeExtension(file.getName()).equals("schema")) {
                     //if there is a file with the same name as the directory then it's the schema of the resource type. Drop resource type and reimport
                     String resourceTypeName = file.getParentFile().getName();
-                    logger.info("Adding resource type:"+resourceTypeName);
-                    if(resourceTypeService.getResourceType(resourceTypeName)!=null)
+                    logger.info("Resource type:"+resourceTypeName + ", starting procedure");
+                    if(resourceTypeService.getResourceType(resourceTypeName)!=null) {
+                        logger.info("Resource type is present, deleting it..");
                         resourceTypeService.deleteResourceType(resourceTypeName);
+                    }
 
                     ResourceType resourceType = new ResourceType();
                     ObjectMapper mapper = new ObjectMapper();
                     try {
+                        logger.info("Reading resource type from file..");
                         resourceType = mapper.readValue(FileUtils.readFileToString(file).replaceAll("^\t$", "").replaceAll("^\n$",""), ResourceType.class);
+                        logger.info("Adding resource type");
+                        if(resourceType.getSchemaUrl()!=null || !resourceType.getSchemaUrl().isEmpty())
+                            resourceType.setSchema(null);
+
                         resourceTypeService.addResourceType(resourceType);
                     } catch (IOException e) {
                         throw new ServiceException("Failed to read schema file");
                     }
-
-
                 }
             }
         }
         try {
             jaxbContext =  newInstance(Resource.class);
         } catch (JAXBException e) {
-            new ServiceException(e.getMessage());
+            throw new ServiceException("Could not initiate jaxbContext for RESOURCE class",e);
         }
         for(File file : files){
             try {
-                if(!file.isDirectory()) {
-                    String[] splitInto = file.getAbsolutePath().split("/");
+                if(!file.isDirectory() && !file.getAbsolutePath().contains("version")) {
+                    logger.info("Scanning resource file with name "+ file.getName());
 
-
-                    ResourceType resourceType = resourceTypeService.getResourceType(splitInto[splitInto.length - 1]);
-                    if(!FilenameUtils.removeExtension(file.getName()).equals(file.getParentFile().getName())){
+                    if(!FilenameUtils.removeExtension(file.getName()).equals("schema")){
                         //if it's not the schema file then add it as a resource
                         logger.info("Adding resource:"+file.getName());
                         String extension = FilenameUtils.getExtension(file.getName());
@@ -127,22 +146,39 @@ public class RestoreServiceImpl implements RestoreService {
                             throw new ServiceException("Unsupported file format");
                         }
 
+
+                        ResourceType resourceType = resourceTypeService.getResourceType(file.getParentFile().getName());
                         if(resource==null) {//if it's still null that means that the file contains just the payload
                             resource = new Resource();
                             resource.setPayload(FileUtils.readFileToString(file));
                             resource.setPayloadFormat(extension);
-                            resource.setResourceType(resourceTypeService.getResourceType(file.getParentFile().getName()));
-                            resourceService.addResource(resource);
+                            resource.setResourceType(resourceType);
+                            oldResourcesIds.put(FilenameUtils.removeExtension(file.getName()), resourceService.addResource(resource));
                         }else{
-                            resourceService.addResource(resource);
+                            resource.setResourceType(resourceType);
+                            resourceDao.addResource(resource);// we are using the DAO service in order to keep the previous ID of the resource
+                            oldResourcesIds.put(FilenameUtils.removeExtension(file.getName()), resource);
                         }
+                    }else{
+                        logger.info("Resource "+file.getName()+" insertion postponed");
                     }
+                }else if(!file.isDirectory() && file.getAbsolutePath().contains("version")) {
+                    Version version = deserializeVersion(file);
 
+                    if(version==null)
+                        throw new ServiceException("Could not deserialize version");
 
+                    String resourceId = file.getParentFile().getName().replace("-version","");
+                    if(versions.containsKey(resourceId)) {
+                        versions.get(resourceId).add(version);
+                    }else{
+                        versions.put(resourceId, new ArrayList<>());
+                        versions.get(resourceId).add(version);
+                    }
                 }
-
+                logger.info(file.getName() + " ---- Just gone through parsing");
             } catch (IOException e) {
-                e.printStackTrace();
+               throw new ServiceException("Error parsing resource file",e);
             }
 
         }
@@ -159,6 +195,16 @@ public class RestoreServiceImpl implements RestoreService {
             }else
                 return null;
         } catch (IOException | ClassCastException | JAXBException e) {
+            logger.error("Error deserializing object",e);
+            return null;
+        }
+    }
+
+    private Version deserializeVersion(File file) {
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+                return mapper.readValue(file, Version.class);
+        } catch (IOException | ClassCastException e) {
             logger.error("Error deserializing object",e);
             return null;
         }
@@ -186,21 +232,22 @@ public class RestoreServiceImpl implements RestoreService {
             // iterates over entries in the zip file
             while (entry != null) {
                 String filePath = destDirectory + File.separator + entry.getName();
-//                System.out.println(entry.getName());
                 boolean isDir = false;
 
                 String[] splitInto = entry.getName().split("/");
-
 
                 File tmpFile = null;
                 if(splitInto.length<2) {//it's a dir
                     tmpFile = new File(destDirectory + File.separator + splitInto[0]);
                     isDir = true;
-                }else
-                    tmpFile = new File(destDirectory+File.separator+splitInto[splitInto.length-2]);
+                }else if(splitInto.length==2){//no versions included
+                    tmpFile = new File(destDirectory + File.separator + splitInto[splitInto.length - 2]);
+                }else{//versions included
+                    tmpFile = new File(destDirectory + File.separator + splitInto[splitInto.length - 3] + File.separator + splitInto[splitInto.length - 2]);
+                }
 
                 if(!tmpFile.exists())
-                    tmpFile.mkdir();
+                    tmpFile.mkdirs();
 
                 if(!isDir)
                     extractFile(zipIn, filePath);

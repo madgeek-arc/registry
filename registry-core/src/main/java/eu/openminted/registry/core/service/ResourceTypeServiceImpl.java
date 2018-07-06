@@ -139,6 +139,8 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
 		ArrayList<String> recursionPaths = new ArrayList<>();
 
+		resourceType.setOriginalSchema(resourceType.getSchema());
+
 		exportIncludes(resourceType, resourceType.getSchemaUrl(),recursionPaths);
 
 		try {

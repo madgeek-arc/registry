@@ -1,7 +1,5 @@
 package eu.openminted.registry.core.domain;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-
 import javax.persistence.*;
 import javax.validation.constraints.Size;
 import java.util.Date;
@@ -16,12 +14,10 @@ public class Version {
 
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name="parent_id", nullable = false)
-	@JsonBackReference(value = "resource-versions")
 	private Resource resource;
 
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name="fk_name_version", nullable = false)
-	@JsonBackReference(value = "resourcetype-versions")
 	private ResourceType resourceType;
 
 	@Size(min=3, max=50)

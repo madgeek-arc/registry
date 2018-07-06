@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface DumpService {
 
-	File bringAll(boolean isRaw, boolean schemaless, String[] resourceTypes);
+	File bringAll(boolean isRaw, boolean schemaless, String[] resourceTypes, boolean wantVersion);
 
-	void createDirectory(String name, List<Resource> resources, boolean isRaw);
+	void createDirectory(String name, List<Resource> resources, boolean isRaw, boolean wantVersion);
 }

@@ -145,6 +145,7 @@ public class Resource {
         this.payloadUrl = payloadUrl;
     }
 
+    @JsonIgnore
     public List<IndexedField> getIndexedFields() {
         return indexedFields;
     }
@@ -174,6 +175,7 @@ public class Resource {
         version = generateVersion();
     }
 
+    @JsonIgnore
     public List<Version> getVersions() {
         return versions;
     }

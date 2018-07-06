@@ -3,6 +3,8 @@ package eu.openminted.registry.core.domain;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import eu.openminted.registry.core.domain.index.IndexField;
+import org.hibernate.annotations.LazyCollection;
+import org.hibernate.annotations.LazyCollectionOption;
 
 import javax.persistence.*;
 import javax.validation.constraints.Size;
@@ -21,7 +23,11 @@ public class ResourceType {
     @Column(name = "schema", nullable = false, columnDefinition = "text")
     private String schema;
 
-    @Transient
+    @Column(name = "originalSchema", nullable = false, columnDefinition = "text")
+    @JsonIgnore
+    private String originalSchema;
+
+    @Column
     private String schemaUrl;
 
     @Size(min = 3, max = 30)
@@ -40,7 +46,6 @@ public class ResourceType {
     private String indexMapperClass;
 
     @OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL})
-//	@ElementCollection(targetClass = IndexField.class)
     @JsonManagedReference(value = "resourcetype-indexfields")
     @Column
     private List<IndexField> indexFields;
@@ -48,18 +53,27 @@ public class ResourceType {
     @Column
     private String aliasGroup;
 
-    @OneToMany(mappedBy = "resourceType", fetch = FetchType.LAZY, cascade = {CascadeType.ALL})
+    @OneToMany(mappedBy = "resourceType", cascade = {CascadeType.ALL})
     @JsonIgnore
-    @JsonManagedReference(value = "resourcetype-resource")
+    @LazyCollection(LazyCollectionOption.TRUE)
     private List<Resource> resources;
 
-    @OneToMany(mappedBy = "resourceType", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "resourceType")
+    @LazyCollection(LazyCollectionOption.TRUE)
     @JsonIgnore
-    @JsonManagedReference(value = "resourcetype-versions")
     private List<Version> versions;
 
     public ResourceType() {
 
+    }
+
+
+    public String getOriginalSchema() {
+        return originalSchema;
+    }
+
+    public void setOriginalSchema(String originalSchema) {
+        this.originalSchema = originalSchema;
     }
 
     public String getName() {
@@ -145,6 +159,7 @@ public class ResourceType {
         this.aliasGroup = aliasGroup;
     }
 
+    @JsonIgnore
     public List<Resource> getResources() {
         return resources;
     }
@@ -153,6 +168,7 @@ public class ResourceType {
         this.resources = resources;
     }
 
+    @JsonIgnore
     public List<Version> getVersions() {
         return versions;
     }

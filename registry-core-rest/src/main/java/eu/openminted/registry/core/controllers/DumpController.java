@@ -39,6 +39,7 @@ public class DumpController {
     public void dumpAll(
                         @RequestParam(value="raw", required = false, defaultValue = "false") String raw,
                         @RequestParam(value = "schema", required = false, defaultValue = "false") String schema,
+                        @RequestParam(value = "version", required = false, defaultValue = "false") String version,
                         @RequestParam(value = "resourceTypes", required = false, defaultValue = "") String[] resourceTypes,
                         HttpServletRequest request,
                         HttpServletResponse response ) {
@@ -48,6 +49,10 @@ public class DumpController {
         System.out.println("appPath = " + appPath);
 
         // construct the complete absolute path of the file
+        boolean wantVersion = false;
+        if(version.equals("true"))
+            wantVersion=true;
+
         boolean isRaw = false;
         if(raw.equals("true"))
             isRaw=true;
@@ -58,7 +63,7 @@ public class DumpController {
 
 
         File downloadFile = null;
-        downloadFile = dumpService.bringAll(isRaw, wantSchema, resourceTypes);
+        downloadFile = dumpService.bringAll(isRaw, wantSchema, resourceTypes, wantVersion);
 
         FileInputStream inputStream;
         try {

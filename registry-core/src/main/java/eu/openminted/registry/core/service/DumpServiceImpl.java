@@ -1,8 +1,10 @@
 package eu.openminted.registry.core.service;
 
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.Version;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,8 +78,13 @@ public class DumpServiceImpl implements DumpService {
 
         // we want the zipEntry's path to be a relative path that is relative
         // to the directory being zipped, so chop off the rest of the path
-        String[] splitInto = file.getCanonicalPath().split("/");
-        String zipFilePath = splitInto[splitInto.length-2]+"/"+ splitInto[splitInto.length-1];
+        String[] splitInto = file.getCanonicalPath().substring(System.getProperty("java.io.tmpdir").length()).split("/");
+        String zipFilePath = "";
+
+        if(splitInto.length<5)
+            zipFilePath = splitInto[splitInto.length-2]+"/"+ splitInto[splitInto.length-1];
+        else
+            zipFilePath = splitInto[splitInto.length-3]+"/" +splitInto[splitInto.length-2]+"/"+ splitInto[splitInto.length-1];
 
         ZipEntry zipEntry = new ZipEntry(zipFilePath);
         zos.putNextEntry(zipEntry);
@@ -93,7 +100,7 @@ public class DumpServiceImpl implements DumpService {
     }
 
 
-    public File bringAll(boolean isRaw, boolean wantSchema, String[] resourceTypes) {
+    public File bringAll(boolean isRaw, boolean wantSchema, String[] resourceTypes, boolean wantVersion) {
 
         Path masterDirectory = createBasicPath();
 
@@ -113,15 +120,15 @@ public class DumpServiceImpl implements DumpService {
         for(ResourceType resourceType: resourceTypesList){
             if (!resourceType.getName().equals("user")) {
 
-                // TODO: stream it! Use a custom iterator...
                 resources = resourceType.getResources();
-                createDirectory(masterDirectory.toAbsolutePath().toString() + "/" + resourceType.getName(), resources, isRaw);
+                createDirectory(masterDirectory.toAbsolutePath().toString() + "/" + resourceType.getName(), resources, isRaw, wantVersion);
                 try {
                     if(wantSchema) { //skip schema creation
-                        File tempFile = new File(masterDirectory + "/"+resourceType.getName()+"/" + resourceType.getName() + ".json");
+                        resourceType.setSchema(resourceType.getOriginalSchema());
+                        File tempFile = new File(masterDirectory + "/"+resourceType.getName()+"/schema.json");
                         Path filePath = Files.createFile(tempFile.toPath(), PERMISSIONS);
                         FileWriter file = new FileWriter(filePath.toFile());
-                        ObjectMapper mapper = new ObjectMapper();
+                        ObjectMapper mapper = new ObjectMapper().configure(MapperFeature.USE_ANNOTATIONS, true);
                         file.write(mapper.writeValueAsString(resourceType));
                         file.flush();
                         file.close();
@@ -135,7 +142,7 @@ public class DumpServiceImpl implements DumpService {
         return finalizeFile(masterDirectory,fileList);
     }
 
-    public void createDirectory(String name, List<Resource> resources,boolean isRaw) {
+    public void createDirectory(String name, List<Resource> resources, boolean isRaw, boolean wantVersion) {
         File parentDirectory = new File(name);
 
         if (!parentDirectory.exists()) {
@@ -160,30 +167,28 @@ public class DumpServiceImpl implements DumpService {
                 if (isRaw) {
                     file.write(resource.getPayload());
                 } else {
-                    ObjectMapper mapper = new ObjectMapper();
+                    ObjectMapper mapper = new ObjectMapper().configure(MapperFeature.USE_ANNOTATIONS, true);
                     file.write(mapper.writeValueAsString(resource));
                 }
                 file.flush();
                 file.close();
 
+                if(wantVersion) {
+                    for (Version version : resource.getVersions()) {
+                        File versionDir = new File(name + "/" + resource.getId() + "-version");
+                        if (!versionDir.exists()) {
+                            Files.createDirectory(versionDir.toPath(), PERMISSIONS);
+                        }
+                        File openFileVersion = new File(name + "/" + resource.getId() + "-version/" + version.getId() + ".json");
+                        Path filePathVersion = Files.createFile(openFileVersion.toPath(), PERMISSIONS);
+                        FileWriter fileVersion = new FileWriter(filePathVersion.toFile());
+                        ObjectMapper mapperVersion = new ObjectMapper().configure(MapperFeature.USE_ANNOTATIONS, true);
+                        fileVersion.write(mapperVersion.writeValueAsString(version));
+                        fileVersion.flush();
+                        fileVersion.close();
 
-//                for(Version version : resources.get(i).getVersions()){
-//                    File versionDir = new File(name+"/versions/");
-//                    if(!versionDir.exists()){
-//                        System.out.println(versionDir.getAbsolutePath());
-//                        Files.createDirectory(versionDir.toPath(), PERMISSIONS);
-//                    }
-//                    File openFileVersion = new File(name + "/versions/" + version.getId()+ ".json");
-//                    System.out.println(openFileVersion.getAbsolutePath());
-//                    Path filePathVersion = Files.createFile(openFileVersion.toPath(), PERMISSIONS);
-//                    FileWriter fileVersion = new FileWriter(filePathVersion.toFile());
-//                    ObjectMapper mapperVersion = new ObjectMapper();
-//                    fileVersion.write(mapperVersion.writeValueAsString(version));
-//                    fileVersion.flush();
-//                    fileVersion.close();
-//
-//                }
-
+                    }
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 throw new ServiceException("Failed to create file(s) for " + name);
