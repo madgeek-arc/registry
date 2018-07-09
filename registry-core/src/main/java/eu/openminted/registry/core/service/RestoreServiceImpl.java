@@ -176,7 +176,7 @@ public class RestoreServiceImpl implements RestoreService {
                         versions.get(resourceId).add(version);
                     }
                 }
-                logger.info(file.getName() + " ---- Just gone through parsing");
+                logger.debug(file.getName() + " ---- Just gone through parsing");
             } catch (IOException e) {
                throw new ServiceException("Error parsing resource file",e);
             }
