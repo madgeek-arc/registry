@@ -7,13 +7,15 @@ import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
@@ -54,6 +56,27 @@ public class ElasticOperationsService {
         unmodifiableMap.put("java.lang.String", "keyword");
         unmodifiableMap.put("java.util.Date", "date");
         FIELD_TYPES_MAP = Collections.unmodifiableMap(unmodifiableMap);
+    }
+
+    public void addBulk(List<Resource> resources){
+        Client client = elastic.client();
+        BulkRequestBuilder bulkRequest = client.prepareBulk();
+
+
+        for(Resource resource : resources){
+            logger.info(resource.getPayload());
+            bulkRequest.add(client.prepareIndex(resource.getResourceType().getName(), type)
+                        .setSource(createDocumentForInsert(resource))
+                        .setId(resource.getId()));
+        }
+
+        logger.info("Sending bulk request for " + resources.size() + " resources");
+        bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        BulkResponse bulkResponse = bulkRequest.get();
+
+        if(bulkResponse.hasFailures()){
+            logger.info("Elastic bulk request ended up with some errors");
+        }
     }
 
     public void add(Resource resource) {

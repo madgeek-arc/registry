@@ -6,6 +6,7 @@ import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.Version;
+import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
 import eu.openminted.registry.core.service.ResourceService;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.RestoreService;
@@ -51,6 +52,9 @@ public class RestoreServiceImpl implements RestoreService {
     @Autowired
     VersionDao versionDao;
 
+    @Autowired
+    ElasticOperationsService elasticOperationsService;
+
     private JAXBContext jaxbContext = null;
 
     @Override
@@ -70,18 +74,23 @@ public class RestoreServiceImpl implements RestoreService {
 
             unzipUtility.unzip(zip.getAbsolutePath(),tempDirPath.toString());
 
-            List<Resource> resources = new ArrayList<Resource>();
             HashMap<String, List<Version>> versions = new HashMap<>();
             HashMap<String, Resource> oldResourcesIds = new HashMap<>();
 
-            storeResources(tempDirFile, resources, versions, oldResourcesIds);
+            storeResources(tempDirFile, versions, oldResourcesIds);
+            List<Resource> bulkResources = new ArrayList<>();
             for(Map.Entry<String, List<Version>> entry : versions.entrySet()){
                 for(Version version : entry.getValue()) {
                     Resource resource = oldResourcesIds.get(entry.getKey());
+                    bulkResources.add(resource);
                     version.setResource(resource);
-                    versionDao.addVersion(version);
+
+                    if(entry.getValue().equals(resource.getId()))
+                        versionDao.addVersion(version);
                 }
             }
+
+            elasticOperationsService.addBulk(bulkResources);
 
             zip.deleteOnExit();
         } catch (IOException e) {
@@ -91,12 +100,12 @@ public class RestoreServiceImpl implements RestoreService {
 
     }
 
-    private void storeResources(File dir, List<Resource> resources, HashMap<String, List<Version>> versions, HashMap<String, Resource> oldResourcesIds) {
+    private void storeResources(File dir, HashMap<String, List<Version>> versions, HashMap<String, Resource> oldResourcesIds) {
         File[] files = dir.listFiles();
         for (File file : files) {
             if(file.isDirectory()) {
                 logger.debug("Extracting files from " + file.getName());
-                storeResources(file, resources, versions, oldResourcesIds);
+                storeResources(file, versions, oldResourcesIds);
             }else {
                 if (FilenameUtils.removeExtension(file.getName()).equals("schema")) {
                     //if there is a file with the same name as the directory then it's the schema of the resource type. Drop resource type and reimport
@@ -160,10 +169,10 @@ public class RestoreServiceImpl implements RestoreService {
                             oldResourcesIds.put(FilenameUtils.removeExtension(file.getName()), resourceService.addResource(resource));
                         }else{
                             resource.setResourceType(resourceType);
-//                            resourceService.addResource(resource);// we are using the DAO service in order to keep the previous ID of the resource
-                            oldResourcesIds.put(FilenameUtils.removeExtension(file.getName()), resourceService.addResource(resource));
-//                            oldResourcesIds.put(FilenameUtils.removeExtension(file.getName()), resource);
+                            resourceDao.addResource(resource);// we are using the DAO service in order to keep the previous ID of the resource
+                            oldResourcesIds.put(FilenameUtils.removeExtension(file.getName()), resource);
                         }
+
                     }else{
                         logger.debug("Resource "+file.getName()+" insertion postponed");
                     }
@@ -181,7 +190,7 @@ public class RestoreServiceImpl implements RestoreService {
                         versions.get(resourceId).add(version);
                     }
                 }
-                logger.info(file.getName() + " ---- Just gone through parsing");
+                logger.debug(file.getName() + " ---- Just gone through parsing");
             } catch (IOException e) {
                throw new ServiceException("Error parsing resource file",e);
             }
