@@ -64,7 +64,6 @@ public class ElasticOperationsService {
 
 
         for(Resource resource : resources){
-            logger.info(resource.getPayload());
             bulkRequest.add(client.prepareIndex(resource.getResourceType().getName(), type)
                         .setSource(createDocumentForInsert(resource))
                         .setId(resource.getId()));
