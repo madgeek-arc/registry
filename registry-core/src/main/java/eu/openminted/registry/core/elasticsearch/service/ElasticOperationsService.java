@@ -126,7 +126,6 @@ public class ElasticOperationsService {
 
         Map<String, Object> jsonObjectGeneral = new HashMap<>();
         Map<String, Object> jsonObjectProperties = new HashMap<>();
-        logger.info(Date.class.getName());
         if (indexFields != null) {
             for (IndexField indexField : indexFields) {
                 Map<String, Object> typeMap = new HashMap<>();
