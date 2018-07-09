@@ -23,9 +23,6 @@ public class ResourceType {
     @Column(name = "schema", nullable = false, columnDefinition = "text")
     private String schema;
 
-    @Column(name = "originalSchema", nullable = false, columnDefinition = "text")
-    @JsonIgnore
-    private String originalSchema;
 
     @Column
     private String schemaUrl;
@@ -62,10 +59,13 @@ public class ResourceType {
     @LazyCollection(LazyCollectionOption.TRUE)
     @JsonIgnore
     private List<Version> versions;
-
     public ResourceType() {
 
     }
+
+    @Column(name = "originalSchema", nullable = false, columnDefinition = "text")
+    @JsonIgnore
+    private String originalSchema;
 
 
     public String getOriginalSchema() {
