@@ -4,15 +4,13 @@ import eu.openminted.registry.core.domain.*;
 import eu.openminted.registry.core.domain.index.IndexField;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.LogManager;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import javax.validation.constraints.NotNull;
 import java.net.UnknownHostException;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 /**
  * Created by stefanos on 20/6/2017.
@@ -76,36 +74,32 @@ abstract public class AbstractGenericService<T> {
         browseBy = new ArrayList<>();
         browseBy.addAll(browseSet);
         browseBy.add("resourceType");
-        logger.info("Generated generic service for " + getResourceType() + "[" + this +"]");
+        logger.info("Generated generic service for " + getResourceType() + "[" + getClass().getSimpleName() +"]");
+    }
+
+    protected Browsing<T> cqlQuery(FacetFilter filter) {
+        filter.setResourceType(getResourceType());
+        return convertToBrowsing(searchService.cqlQuery(filter));
     }
 
     protected Browsing<T> getResults(FacetFilter filter) {
-        List<T> result = new ArrayList<>();
-        List<Future<T>> futureResults;
-        Paging paging;
-        filter.setResourceType(getResourceType());
         Browsing<T> browsing;
-        Occurrences overall;
-        List<Facet> facetsCollection;
+        filter.setResourceType(getResourceType());
         try {
-            paging = searchService.search(filter);
-            futureResults = new ArrayList<>(paging.getResults().size());
-            for(Object res : paging.getResults()) {
-                Resource resource = (Resource) res;
-                futureResults.add(parserPool.deserialize(resource,typeParameterClass));
-            }
-            overall = paging.getOccurrences();
-            facetsCollection = createFacetCollection(overall);
-            for(Future<T> res : futureResults) {
-                result.add(res.get());
-            }
-        } catch (UnknownHostException | InterruptedException | ExecutionException e ) {
-            logger.fatal(e);
-            e.printStackTrace();
+            browsing = convertToBrowsing(searchService.search(filter));
+        } catch (UnknownHostException e ) {
+            logger.fatal("getResults",e);
             throw new ServiceException(e);
         }
-        browsing = new Browsing<>(paging.getTotal(), filter.getFrom(), filter.getFrom() + result.size(), result, facetsCollection);
         return browsing;
+    }
+
+    private Browsing<T> convertToBrowsing(@NotNull Paging<Resource> paging) {
+        List<T> results = paging.getResults()
+                .parallelStream()
+                .map(res -> parserPool.deserialize(res,typeParameterClass))
+                .collect(Collectors.toList());
+        return new Browsing<>(paging, results, labels);
     }
 
 
@@ -119,7 +113,7 @@ abstract public class AbstractGenericService<T> {
             for(Map.Entry<String,List<Resource>> bucket : resources.entrySet()) {
                 List<T> bucketResults = new ArrayList<>();
                 for(Resource res : bucket.getValue()) {
-                    bucketResults.add(parserPool.deserialize(res,typeParameterClass).get());
+                    bucketResults.add(parserPool.deserialize(res,typeParameterClass));
                 }
                 result.put(bucket.getKey(),bucketResults);
             }
@@ -129,40 +123,7 @@ abstract public class AbstractGenericService<T> {
             throw new ServiceException(e);
         }
     }
-    /**
-     * Counts the total number of Documents per Facet
-     * @param overall
-     * @return a List of facets.
-     */
-    protected List<Facet> createFacetCollection(Occurrences overall) {
-        List<Facet> facetsCollection = new ArrayList<>();
 
-        for (Map.Entry<String,String> label : labels.entrySet()) {
-            Facet singleFacet = new Facet();
-
-            singleFacet.setField(label.getKey());
-            singleFacet.setLabel(label.getValue());
-
-            List<Value> values = new ArrayList<>();
-            Map<String, Integer> subMap = overall.getValues().get(label.getKey());
-            if (subMap == null)
-                continue;
-            for (Map.Entry<String, Integer> pair2 : subMap.entrySet()) {
-                Value value = new Value();
-                value.setValue(pair2.getKey());
-                value.setCount(pair2.getValue());
-                values.add(value);
-            }
-
-            Collections.sort(values);
-            Collections.reverse(values);
-            singleFacet.setValues(values);
-
-            if (singleFacet.getValues().size() > 0)
-                facetsCollection.add(singleFacet);
-        }
-        return facetsCollection;
-    }
 
     protected List<String> getBrowseBy() {
         return browseBy;

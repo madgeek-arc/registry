@@ -1,0 +1,72 @@
+package eu.openminted.registry.core.service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.openminted.registry.core.domain.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import java.io.StringReader;
+import java.io.StringWriter;
+
+/**
+ * Created by stefanos on 26/6/2017.
+ */
+@Component("parserPool")
+public class ParserPool implements ParserService {
+
+    private JAXBContext jaxbContext;
+
+    @Autowired
+    public ParserPool(JAXBContext jaxbContext) {
+        this.jaxbContext = jaxbContext;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> T deserialize(Resource resource, Class<T> returnType) {
+        T type;
+        if (resource == null) {
+            throw new ServiceException("null resource");
+        }
+        try {
+            switch (resource.getPayloadFormat()) {
+                case "xml":
+                    Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+                    type = (T) unmarshaller.unmarshal(new StringReader(resource.getPayload()));
+                    break;
+                case "json":
+                    ObjectMapper mapper = new ObjectMapper();
+                    type = mapper.readValue(resource.getPayload(), returnType);
+                    break;
+                default:
+                    throw new ServiceException("Unsupported media type");
+            }
+        } catch (Exception je) {
+            throw new ServiceException(je);
+        }
+        return type;
+    }
+
+    public String serialize(Object resource, ParserServiceTypes mediaType) {
+        try {
+            if (mediaType == ParserServiceTypes.XML) {
+                Marshaller marshaller = jaxbContext.createMarshaller();
+                StringWriter sw = new StringWriter();
+                marshaller.marshal(resource, sw);
+                return sw.toString();
+            } else if (mediaType == ParserServiceTypes.JSON) {
+                ObjectMapper mapper = new ObjectMapper();
+                return mapper.writeValueAsString(resource);
+            } else {
+                throw new ServiceException("Unsupported media type");
+            }
+        } catch(Exception e) {
+            throw new ServiceException(e);
+        }
+
+    }
+}
+

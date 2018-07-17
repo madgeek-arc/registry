@@ -16,6 +16,7 @@
         <module>
             registry-core-rest
         </module>
+        <module>registry-core-helper</module>
     </modules>
 
     <properties>

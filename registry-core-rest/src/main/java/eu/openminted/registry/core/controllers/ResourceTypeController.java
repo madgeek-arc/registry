@@ -1,6 +1,5 @@
 package eu.openminted.registry.core.controllers;
 
-import eu.openminted.registry.core.domain.Occurrences;
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.exception.ResourceNotFoundException;
@@ -37,7 +36,7 @@ public class ResourceTypeController {
 	@RequestMapping(value = "/resourceType/", params = {"from"}, method = RequestMethod.GET, headers = "Accept=application/json")
 	public ResponseEntity<Paging> getResourceTypes(@RequestParam(value = "from") int from) throws ResourceNotFoundException {
 		List<ResourceType> results = resourceTypeService.getAllResourceType(from, 0);
-		Paging paging = new Paging(results.size(), 0, results.size() - 1, results,new Occurrences());
+		Paging paging = new Paging<>(results.size(), 0, results.size() - 1, results,null);
 		if (results.size() == 0) {
 			throw new ResourceNotFoundException();
 		} else {
@@ -49,8 +48,7 @@ public class ResourceTypeController {
 	public ResponseEntity<Paging> getResourceTypes(@RequestParam(value = "from") int from, @RequestParam(value = "from") int to) throws ResourceNotFoundException {
 		List<ResourceType> results = resourceTypeService.getAllResourceType(from, to);
 		int total = resourceTypeService.getAllResourceType().size();
-		Paging paging = new Paging(total, from, to, results,new Occurrences());
-		ResponseEntity<String> responseEntity;
+		Paging paging = new Paging<>(total, from, to, results,null);
 		if (total == 0) {
 			throw new ResourceNotFoundException();
 		} else {
@@ -61,7 +59,7 @@ public class ResourceTypeController {
 	@RequestMapping(value = "/resourceType/", method = RequestMethod.GET, headers = "Accept=application/json")
 	public ResponseEntity<Paging> getResourceTypes() throws ResourceNotFoundException {
 		List<ResourceType> results = resourceTypeService.getAllResourceType();
-		Paging paging = new Paging(results.size(), 0, results.size() - 1, results,new Occurrences());
+		Paging paging = new Paging<>(results.size(), 0, results.size() - 1, results,null);
 
 		if (results.size() == 0) {
 			throw new ResourceNotFoundException();
