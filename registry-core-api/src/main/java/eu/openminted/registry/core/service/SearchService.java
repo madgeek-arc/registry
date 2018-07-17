@@ -11,13 +11,15 @@ import java.util.Map;
 
 public interface SearchService {
 
-	Paging cqlQuery(String query, String resourceType, int quantity,int from, String sortByField, String sortOrder);
+	Paging<Resource> cqlQuery(String query, String resourceType, int quantity,int from, String sortByField, String sortOrder);
 
-	Paging cqlQuery(String query, String resourceType);
+	Paging<Resource> cqlQuery(String query, String resourceType);
 
-	Paging search(FacetFilter filter) throws ServiceException, UnknownHostException;
+    Paging<Resource> cqlQuery(FacetFilter filter);
 
-	Paging searchKeyword(String resourceType, String keyword) throws ServiceException, UnknownHostException;
+	Paging<Resource> search(FacetFilter filter) throws ServiceException, UnknownHostException;
+
+	Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException, UnknownHostException;
 
 	Resource searchId(String resourceType, KeyValue... ids) throws ServiceException, UnknownHostException;
 

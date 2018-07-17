@@ -1,7 +1,10 @@
 package eu.openminted.registry.core.service;
 
 import eu.openminted.registry.core.configuration.ElasticConfiguration;
-import eu.openminted.registry.core.domain.*;
+import eu.openminted.registry.core.domain.Facet;
+import eu.openminted.registry.core.domain.FacetFilter;
+import eu.openminted.registry.core.domain.Paging;
+import eu.openminted.registry.core.domain.Resource;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,8 +29,8 @@ import org.springframework.stereotype.Service;
 import org.xbib.cql.CQLParser;
 import org.xbib.cql.elasticsearch.ElasticsearchQueryGenerator;
 
-import java.net.UnknownHostException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Service("searchService")
@@ -54,7 +57,10 @@ public class SearchServiceImpl implements SearchService {
     @Value("${prefix:general}")
     private String type;
 
-    private Map<String,ResourceType> resourceTypeCache = new HashMap<>();
+    SearchServiceImpl() {
+
+    }
+
 
     private static BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
@@ -108,10 +114,9 @@ public class SearchServiceImpl implements SearchService {
         return results;
     }
 
-    private Paging buildSearch(FacetFilter filter) {
+    private Paging<Resource> buildSearch(FacetFilter filter) {
         Client client = elastic.client();
 
-        Paging paging;
         int quantity = filter.getQuantity();
         BoolQueryBuilder qBuilder = createQueryBuilder(filter);
 
@@ -132,65 +137,62 @@ public class SearchServiceImpl implements SearchService {
         }
         SearchResponse response = search.execute().actionGet();
 
-        List<Resource> results = new ArrayList<>();
-        quantity = Math.min(quantity,(int)response.getHits().getHits().length);
-        for(int i = 0 ; i < quantity; ++i) {
-            Resource res = new Resource();
-            for(String value : Arrays.asList("id","resourceType","payload", "payloadFormat", "version")) {
-                try {
-                    if(!value.equals("resourceType"))
-                        PropertyUtils.setProperty(res, value, response.getHits().getAt(i).getSource().get(value).toString());
-                    else {
-                        String resourceType = response.getHits().getAt(i).getSource().get(value).toString();
-                        if(resourceTypeCache.get(resourceType) == null)
-                            resourceTypeCache.put(resourceType,resourceTypeService.getResourceType(resourceType));
-                        res.setResourceType(resourceTypeCache.get(resourceType));
-                    }
-                } catch(Exception e) {
-                    break;
-                }
-            }
-            results.add(res);
-        }
+        return responseToPaging(response,filter.getFrom(),filter.getBrowseBy());
+    }
 
-        Map<String, Map<String, Integer>> values = new HashMap<>();
-        Occurrences occurrences = new Occurrences();
-        if (!filter.getBrowseBy().isEmpty()) {
-
-            for (String browseBy : filter.getBrowseBy()) {
-                Map<String, Integer> subMap = new HashMap<>();
-                Terms terms = response.getAggregations().get("by_" + browseBy);
-                for (Bucket bucket : terms.getBuckets()) {
-                    subMap.put(bucket.getKeyAsString(), Integer.parseInt(bucket.getDocCount() + ""));
-                }
-                values.put(browseBy, subMap);
-            }
-            occurrences.setValues(values);
-
-        }
-        if (response.getHits().getTotalHits() == 0) {
-            paging = new Paging(0, 0, 0, new ArrayList<>(), new Occurrences());
-        } else {
-            if (filter.getQuantity() == 0) {
-                filter.setQuantity(filter.getFrom() + quantity);
-            }
-
-            paging = new Paging((int) response.getHits().getTotalHits(), filter.getFrom(),
-                    filter.getFrom() + results.size(), results, occurrences);
-        }
-
-        return paging;
+    private Facet transformAggregation(String browseBy, Terms terms) {
+        Facet facet = new Facet();
+        facet.setField(browseBy);
+        List<eu.openminted.registry.core.domain.Value> values;
+        assert terms.getBuckets() != null && terms.getBuckets().size() > 0;
+        values = terms.getBuckets()
+                .stream()
+                .map(x -> new eu.openminted.registry.core.domain.Value(x.getKeyAsString(),x.getDocCount()))
+                .sorted()
+                .collect(Collectors.toList());
+        facet.setValues(values);
+        return facet;
     }
 
     @Override
-    public Paging cqlQuery(String query,
+    public Paging<Resource> cqlQuery(FacetFilter filter) {
+        CQLParser parser = new CQLParser(filter.getKeyword());
+        parser.parse();
+        ElasticsearchQueryGenerator generator = new ElasticsearchQueryGenerator();
+
+        parser.getCQLQuery().accept(generator);
+
+        Client client = elastic.client();
+        SearchRequestBuilder search = client.prepareSearch(filter.getResourceType())
+                .setTypes(type)
+                .setQuery(QueryBuilders.wrapperQuery(generator.getQueryResult()))
+                .setSize(filter.getQuantity())
+                .setFrom(filter.getFrom())
+                .setExplain(false);
+
+        if(filter.getOrderBy() != null) {
+            for (Map.Entry<String, Object> order : filter.getOrderBy().entrySet()) {
+                Map op = (Map) order.getValue();
+                search.addSort(order.getKey(), SortOrder.fromString(op.get("order").toString()));
+            }
+        }
+
+        for (String browseBy : filter.getBrowseBy()) {
+            search.addAggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy).size(bucketSize));
+        }
+
+        SearchResponse response = search.execute().actionGet();
+
+        return responseToPaging(response,filter.getFrom(),filter.getBrowseBy());
+    }
+
+    @Override
+    public Paging<Resource> cqlQuery(String query,
                            String resourceType,
                            int quantity,
                            int from,
                            String sortByField,
                            String sortOrder) {
-
-
 
         CQLParser parser = new CQLParser(query);
         parser.parse();
@@ -210,9 +212,13 @@ public class SearchServiceImpl implements SearchService {
 
         SearchResponse response = search.execute().actionGet();
 
+        return responseToPaging(response,from, null);
 
-        if (response == null || response.getHits().totalHits() == 0) {
-            return new Paging();
+    }
+
+    private Paging<Resource> responseToPaging(SearchResponse response, int from, List<String> browseBy) {
+        if (response == null || response.getHits().getTotalHits() == 0) {
+            return new Paging<>();
         } else {
             ArrayList<Resource> resources = new ArrayList<>();
             for (SearchHit hit : response.getHits()) {
@@ -224,23 +230,30 @@ public class SearchServiceImpl implements SearchService {
                         hit.getSource().get("payload").toString(),
                         hit.getSource().get("payloadFormat").toString()));
             }
-            return new Paging<>((int)response.getHits().getTotalHits(),from,from+resources.size(),resources,new Occurrences());
+            List<Facet> facets = new ArrayList<>();
+            if(browseBy != null) {
+                facets = browseBy
+                        .stream()
+                        .map(x -> transformAggregation(x,response.getAggregations().get("by_" + x)))
+                        .collect(Collectors.toList());
+            }
+
+            return new Paging<>((int)response.getHits().getTotalHits(),from,from+resources.size(),resources,facets);
         }
-
     }
 
     @Override
-    public Paging cqlQuery(String query, String resourceType) {
-        return cqlQuery(query,resourceType,10000,0,"","ASC");
+    public Paging<Resource> cqlQuery(String query, String resourceType) {
+        return cqlQuery(query,resourceType,100,0,"","ASC");
     }
 
     @Override
-    public Paging search(FacetFilter filter) throws ServiceException {
+    public Paging<Resource> search(FacetFilter filter) throws ServiceException {
         return buildSearch(filter);
     }
 
     @Override
-    public Paging searchKeyword(String resourceType, String keyword) throws ServiceException, UnknownHostException {
+    public Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException {
         FacetFilter filter = new FacetFilter();
         filter.setResourceType(resourceType);
         filter.setKeyword(keyword);
@@ -248,7 +261,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public Resource searchId(String resourceType, KeyValue... ids) throws ServiceException, UnknownHostException {
+    public Resource searchId(String resourceType, KeyValue... ids) throws ServiceException {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
         //assert that keys are provided
         assert ids.length != 0;
@@ -266,7 +279,7 @@ public class SearchServiceImpl implements SearchService {
         logger.debug("Search query: " + qBuilder + "in index " + resourceType);
 
         SearchResponse response = search.execute().actionGet();
-        if (response == null || response.getHits().totalHits() == 0) {
+        if (response == null || response.getHits().getTotalHits() == 0) {
             return null;
         } else {
             SearchHit hit = response.getHits().getAt(0);
