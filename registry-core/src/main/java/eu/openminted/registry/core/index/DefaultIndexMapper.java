@@ -68,7 +68,7 @@ public class DefaultIndexMapper implements IndexMapper {
 
 				}
 			} catch (Exception e) {
-				logger.error(e.getMessage());
+				logger.error(e.getMessage(), e);
 			}
 		}
 		

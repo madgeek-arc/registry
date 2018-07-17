@@ -2,6 +2,7 @@ package eu.openminted.registry.core.dao;
 
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
+import eu.openminted.registry.core.service.ServiceException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hibernate.Query;
@@ -18,20 +19,40 @@ public class ViewsDaoImpl extends AbstractDao<String, String> implements ViewsDa
 		String joins = "";
 		int count=0;
 		for(IndexField indexField : resourceType.getIndexFields()){
-
+			String indexFieldString = "";
 			selectFields = selectFields.concat(indexField.getName()+".values as "+ indexField.getName());
+			switch (indexField.getType()){
+				case "java.lang.Float":
+					indexFieldString = "floatindexedfield";
+					break;
+				case "java.lang.Integer":
+					indexFieldString = "integerindexedfield";
+					break;
+				case "java.lang.String":
+					indexFieldString = "stringindexedfield";
+					break;
+				case "java.lang.Boolean":
+					indexFieldString = "booleanindexedfield";
+					break;
+				case "java.util.Date":
+					indexFieldString = "dateindexedfield";
+					break;
+				default:
+					throw new ServiceException("Unrecognised indexed field type");
 
+			}
 			if(!indexField.isMultivalued()) {
+
 				joins = joins.concat(" join (select r.id, ifv.values" +
 						" from resource r " +
-						" join indexedfield if on if.resource_id=r.id " +
-						" join indexedfield_values ifv on ifv.indexedfield_id=if.id " +
+						" join "+indexFieldString+" if on if.resource_id=r.id " +
+						" join "+indexFieldString+"_values ifv on ifv."+indexFieldString+"_id=if.id " +
 						" where if.name='" + indexField.getName() + "') as " + indexField.getName()+" on  " + indexField.getName()+".id=r.id ");
 			}else{
 				joins = joins.concat(" join (select r.id, array_agg(ifv.values) as values" +
 						" from resource r " +
-						" join indexedfield if on if.resource_id=r.id " +
-						" join indexedfield_values ifv on ifv.indexedfield_id=if.id " +
+						" join "+indexFieldString+" if on if.resource_id=r.id " +
+						" join "+indexFieldString+"_values ifv on ifv."+indexFieldString+"_id=if.id " +
 						" where if.name='" + indexField.getName()+"' group by r.id) as " + indexField.getName()+" on  " + indexField.getName()+".id=r.id  ");
 			}
 			if(count!=resourceType.getIndexFields().size()-1){

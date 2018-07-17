@@ -2,8 +2,6 @@ package eu.openminted.registry.core.domain.index;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import eu.openminted.registry.core.domain.Resource;
-import org.hibernate.annotations.LazyCollection;
-import org.hibernate.annotations.LazyCollectionOption;
 
 import javax.persistence.*;
 import java.io.Serializable;
@@ -13,7 +11,7 @@ import java.util.Set;
  * Created by antleb on 5/20/16.
  */
 @Entity
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
 public abstract class IndexedField<T extends Object> implements Serializable {
 
 	@Id
@@ -27,26 +25,17 @@ public abstract class IndexedField<T extends Object> implements Serializable {
 	@Column
 	private String name;
 
-	@Column
-	@ElementCollection
-	@LazyCollection(LazyCollectionOption.FALSE)
-	private Set<String> values;
-
 	public IndexedField() {
 	}
 
-	public IndexedField(String name, Set<String> values) {
+	public IndexedField(String name, Set<T> values) {
 		setName(name);
 		setValues(values);
 	}
 
-	public Set<String> getValues() {
-		return values;
-	}
+	public abstract Set<T> getValues();
 
-	public void setValues(Set<String> value) {
-		this.values = value;
-	}
+	public abstract void setValues(Set<T> value);
 
 	public String getName() {
 		return name;
@@ -81,7 +70,7 @@ public abstract class IndexedField<T extends Object> implements Serializable {
 
 		if (resource != null ? !resource.equals(that.resource) : that.resource != null) return false;
 		if (name != null ? !name.equals(that.name) : that.name != null) return false;
-		return values != null ? values.equals(that.values) : that.values == null;
+		return getValues() != null ? getValues().equals(this.getValues()) : that.getValues() == null;
 
 	}
 
@@ -89,7 +78,7 @@ public abstract class IndexedField<T extends Object> implements Serializable {
 	public int hashCode() {
 		int result = resource != null ? resource.hashCode() : 0;
 		result = 31 * result + (name != null ? name.hashCode() : 0);
-		result = 31 * result + (values != null ? values.hashCode() : 0);
+		result = 31 * result + (getValues() != null ? getValues().hashCode() : 0);
 		return result;
 	}
 }

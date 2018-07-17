@@ -26,6 +26,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -49,7 +51,7 @@ public class ElasticOperationsService {
 
     static {
         Map<String, String> unmodifiableMap = new HashMap<>();
-        unmodifiableMap.put("java.lang.Double", "double");
+        unmodifiableMap.put("java.lang.Float", "float");
         unmodifiableMap.put("java.lang.Integer", "integer");
         unmodifiableMap.put("java.lang.Boolean", "boolean");
         unmodifiableMap.put("java.lang.Long", "long");
@@ -206,17 +208,23 @@ public class ElasticOperationsService {
                         if(fieldType.equals("java.lang.String")){
                             jsonObjectField.put(field.getName(), value);
                         }else if(fieldType.equals("java.lang.Integer")){
-                            jsonObjectField.put(field.getName(),Integer.parseInt((String)value));
+                            jsonObjectField.put(field.getName(),value);
                         }else if(fieldType.equals("java.lang.Float")){
-                            jsonObjectField.put(field.getName(),Float.parseFloat((String) value));
+                            jsonObjectField.put(field.getName(),value);
                         }else if(fieldType.equals("java.util.Date")){
-                            jsonObjectField.put(field.getName(),Long.parseLong((String) value));
+                            SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+                            try {
+                                jsonObjectField.put(field.getName(), sdf.parse(sdf.format((Date) value)).getTime());
+                            } catch (ParseException e) {
+                                throw new ServiceException("Wrong date format for indexed field. Try dd-MM-yyyy") ;
+                            }
+
                         }else if (fieldType.equals("java.lang.Boolean")){
-                            jsonObjectField.put(field.getName(),Boolean.parseBoolean((String) value));
+                            jsonObjectField.put(field.getName(),value);
                         }
                     }
                 } else {
-                    List<String> values = new ArrayList<>();
+                    List<Object> values = new ArrayList<>();
                     values.addAll(field.getValues());
                     jsonObjectField.put(field.getName(),values);
 

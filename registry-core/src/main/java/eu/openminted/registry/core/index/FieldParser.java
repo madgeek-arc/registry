@@ -8,7 +8,7 @@ import java.util.Set;
 public interface FieldParser {
 	Set<Object> parse(String payload, String fieldType, String path, boolean isMultiValued);
 
-	static void parseField(String fieldType, String typeValue, Set<Object> values) {
+	static void parseField(String fieldType, String typeValue, Set<Object> values){
 		if(fieldType.equals("java.lang.String")){
 			values.add((String)typeValue);
 		}else if(fieldType.equals("java.lang.Integer")){
@@ -16,7 +16,7 @@ public interface FieldParser {
 		}else if(fieldType.equals("java.lang.Float")){
 			values.add(Float.parseFloat(typeValue));
 		}else if(fieldType.equals("java.util.Date")){
-			values.add(Long.parseLong(typeValue));
+			values.add(typeValue);
 		}else if (fieldType.equals("java.lang.Boolean")){
 			values.add(Boolean.parseBoolean(typeValue));
 		}

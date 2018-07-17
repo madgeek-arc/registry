@@ -15,7 +15,6 @@ public class IndexedFieldFactory {
 
 	public <T> IndexedField<T> getIndexedField(String fieldName, Set<Object> value, String fieldType) {
 
-		// Set<String> set = value.stream().map(Object::toString).collect(Collectors.toSet());
 		IndexedField field = null;
 		if (String.class.getName().equals(fieldType)) {
 			field = new StringIndexedField(fieldName,value);
@@ -25,6 +24,8 @@ public class IndexedFieldFactory {
 			field = new IntegerIndexedField(fieldName,value);
 		} else if (Date.class.getName().equals(fieldType)) {
 			field = new DateIndexedField(fieldName, value);
+		} else if (Float.class.getName().equals(fieldType)) {
+			field = new FloatIndexedField(fieldName,value);
 		}
 		return field;
 	}
