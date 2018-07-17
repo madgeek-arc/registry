@@ -3,6 +3,9 @@ package eu.openminted.registry.core.configuration;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.*;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
@@ -19,6 +22,7 @@ import java.util.Properties;
 @ComponentScan({ "eu.openminted.registry.core.dao" })
 @PropertySource(value = { "classpath:application.properties", "classpath:registry.properties"} )
 @EnableAspectJAutoProxy
+@EnableCaching
 public class HibernateConfiguration {
 
 	@Autowired
@@ -67,4 +71,10 @@ public class HibernateConfiguration {
 		txManager.setSessionFactory(s);
 		return txManager;
 	}
+
+    @Bean
+    public CacheManager cacheManager() {
+        return new ConcurrentMapCacheManager("resourceTypes","resourceTypesIndexFields");
+    }
+
 }

@@ -1,30 +1,39 @@
 package eu.openminted.registry.core.dao;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
 import org.hibernate.Criteria;
 import org.hibernate.Query;
-import org.hibernate.criterion.Restrictions;
 import org.springframework.stereotype.Repository;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Repository("resourceTypeDao")
 public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> implements ResourceTypeDao {
 
+    private LoadingCache<String, Optional<ResourceType>> resourceTypeCacheLoader;
+
+    public ResourceTypeDaoImpl() {
+        super();
+        CacheLoader<String, Optional<ResourceType>> loader;
+        final ResourceTypeDaoImpl self = this;
+        loader = new CacheLoader<String, Optional<ResourceType>>() {
+            @Override
+            public Optional<ResourceType> load(String name) {
+                return Optional.ofNullable(self.getSession().get(ResourceType.class,name));
+            }
+        };
+        resourceTypeCacheLoader = CacheBuilder.newBuilder().build(loader);
+    }
+
 	public ResourceType getResourceType(String name) {
-		
-		Criteria cr = getSession().createCriteria(ResourceType.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		cr.add(Restrictions.eq("name", name));
-		cr.setCacheable(true);
-		if(cr.list().size()==0){
-			return null;
-		}else{
-			return (ResourceType) cr.list().get(0);
-		}
-	
+        return resourceTypeCacheLoader.getUnchecked(name).orElse(null);
 	}
 
 	public List<ResourceType> getAllResourceType() {
