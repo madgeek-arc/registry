@@ -63,7 +63,7 @@ public class ParserPool implements ParserService {
             } else {
                 throw new ServiceException("Unsupported media type");
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw new ServiceException(e);
         }
 

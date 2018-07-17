@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 public interface TransformerCRUDService<T, R, U extends Authentication> {
     /**
      * Returns the resource.
+     *
      * @param id of the resource in the index.
      * @return the resource.
      */
@@ -15,6 +16,7 @@ public interface TransformerCRUDService<T, R, U extends Authentication> {
 
     /**
      * Returns all resource.
+     *
      * @param filter parameters for the indexer.
      * @return the results paged.
      */
@@ -22,6 +24,7 @@ public interface TransformerCRUDService<T, R, U extends Authentication> {
 
     /**
      * Returns all resource of a user.
+     *
      * @param filter parameters for the indexer.
      * @return the results paged.
      */
@@ -29,6 +32,7 @@ public interface TransformerCRUDService<T, R, U extends Authentication> {
 
     /**
      * Add a new resource.
+     *
      * @param resource to be added
      * @return the id of the inserted resource.
      */
@@ -36,6 +40,7 @@ public interface TransformerCRUDService<T, R, U extends Authentication> {
 
     /**
      * Update the resource.
+     *
      * @param resource to be updated.
      * @return the updated resource.
      */
@@ -43,6 +48,7 @@ public interface TransformerCRUDService<T, R, U extends Authentication> {
 
     /**
      * Delete the resource.
+     *
      * @param resourceId to be deleted.
      */
     void delete(T resourceId) throws ResourceNotFoundException;

@@ -2,8 +2,8 @@ package eu.openminted.registry.core.service;
 
 import eu.openminted.registry.core.domain.*;
 import eu.openminted.registry.core.domain.index.IndexField;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
@@ -18,8 +18,7 @@ import java.util.stream.Collectors;
 
 abstract public class AbstractGenericService<T> {
 
-    private Logger logger = LogManager.getLogger(AbstractGenericService.class);
-
+    protected final Class<T> typeParameterClass;
     @Autowired
     public SearchService searchService;
 
@@ -28,17 +27,13 @@ abstract public class AbstractGenericService<T> {
 
     @Autowired
     public ResourceTypeService resourceTypeService;
-
-    protected ResourceType resourceType;
-
     @Autowired
     public ParserService parserPool;
-
-    protected final Class<T> typeParameterClass;
-
+    protected ResourceType resourceType;
+    private Logger logger = LogManager.getLogger(AbstractGenericService.class);
     private List<String> browseBy;
 
-    private Map<String,String> labels;
+    private Map<String, String> labels;
 
     public AbstractGenericService(Class<T> typeParameterClass) {
         this.typeParameterClass = typeParameterClass;
@@ -50,21 +45,21 @@ abstract public class AbstractGenericService<T> {
     void init() {
         resourceType = resourceTypeService.getResourceType(getResourceType());
         Set<String> browseSet = new HashSet<>();
-        Map<String,Set<String>> sets = new HashMap<>();
+        Map<String, Set<String>> sets = new HashMap<>();
         labels = new HashMap<>();
-        labels.put("resourceType","Resource Type");
+        labels.put("resourceType", "Resource Type");
         for (IndexField f : resourceTypeService.getResourceTypeIndexFields(getResourceType())) {
             sets.putIfAbsent(f.getResourceType().getName(), new HashSet<>());
-            labels.put(f.getName(),f.getLabel());
-            if(f.getLabel() != null) {
+            labels.put(f.getName(), f.getLabel());
+            if (f.getLabel() != null) {
                 sets.get(f.getResourceType().getName()).add(f.getName());
             }
             //if(f.getLabel() != null) browseSet.add(f.getName());
             //System.out.println(f.getName() + " " + f.getResourceType().getName());
         }
         boolean flag = true;
-        for(Map.Entry<String,Set<String>> entry : sets.entrySet()) {
-            if(flag) {
+        for (Map.Entry<String, Set<String>> entry : sets.entrySet()) {
+            if (flag) {
                 browseSet.addAll(entry.getValue());
                 flag = false;
             } else {
@@ -74,7 +69,7 @@ abstract public class AbstractGenericService<T> {
         browseBy = new ArrayList<>();
         browseBy.addAll(browseSet);
         browseBy.add("resourceType");
-        logger.info("Generated generic service for " + getResourceType() + "[" + getClass().getSimpleName() +"]");
+        logger.info("Generated generic service for " + getResourceType() + "[" + getClass().getSimpleName() + "]");
     }
 
     protected Browsing<T> cqlQuery(FacetFilter filter) {
@@ -87,8 +82,8 @@ abstract public class AbstractGenericService<T> {
         filter.setResourceType(getResourceType());
         try {
             browsing = convertToBrowsing(searchService.search(filter));
-        } catch (UnknownHostException e ) {
-            logger.fatal("getResults",e);
+        } catch (UnknownHostException e) {
+            logger.fatal("getResults", e);
             throw new ServiceException(e);
         }
         return browsing;
@@ -97,25 +92,25 @@ abstract public class AbstractGenericService<T> {
     private Browsing<T> convertToBrowsing(@NotNull Paging<Resource> paging) {
         List<T> results = paging.getResults()
                 .parallelStream()
-                .map(res -> parserPool.deserialize(res,typeParameterClass))
+                .map(res -> parserPool.deserialize(res, typeParameterClass))
                 .collect(Collectors.toList());
         return new Browsing<>(paging, results, labels);
     }
 
 
-    protected Map<String,List<T>> getResultsGrouped(FacetFilter filter, String category) {
-        Map<String,List<T>> result = new HashMap<>();
+    protected Map<String, List<T>> getResultsGrouped(FacetFilter filter, String category) {
+        Map<String, List<T>> result = new HashMap<>();
 
         filter.setResourceType(getResourceType());
-        Map<String,List<Resource>> resources;
+        Map<String, List<Resource>> resources;
         try {
-            resources = searchService.searchByCategory(filter,category);
-            for(Map.Entry<String,List<Resource>> bucket : resources.entrySet()) {
+            resources = searchService.searchByCategory(filter, category);
+            for (Map.Entry<String, List<Resource>> bucket : resources.entrySet()) {
                 List<T> bucketResults = new ArrayList<>();
-                for(Resource res : bucket.getValue()) {
-                    bucketResults.add(parserPool.deserialize(res,typeParameterClass));
+                for (Resource res : bucket.getValue()) {
+                    bucketResults.add(parserPool.deserialize(res, typeParameterClass));
                 }
-                result.put(bucket.getKey(),bucketResults);
+                result.put(bucket.getKey(), bucketResults);
             }
             return result;
         } catch (Exception e) {
