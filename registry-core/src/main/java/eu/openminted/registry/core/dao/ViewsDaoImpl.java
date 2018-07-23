@@ -34,6 +34,9 @@ public class ViewsDaoImpl extends AbstractDao<String, String> implements ViewsDa
 				case "java.lang.Boolean":
 					indexFieldString = "booleanindexedfield";
 					break;
+				case "java.lang.Long":
+					indexFieldString = "longindexedfield";
+					break;
 				case "java.util.Date":
 					indexFieldString = "dateindexedfield";
 					break;

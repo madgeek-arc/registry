@@ -11,13 +11,15 @@ public interface FieldParser {
 	static void parseField(String fieldType, String typeValue, Set<Object> values){
 		if(fieldType.equals("java.lang.String")){
 			values.add((String)typeValue);
-		}else if(fieldType.equals("java.lang.Integer")){
+		} else if(fieldType.equals("java.lang.Integer")){
 			values.add(Integer.parseInt(typeValue));
-		}else if(fieldType.equals("java.lang.Float")){
+		} else if(fieldType.equals("java.lang.Long")){
+			values.add(Long.parseLong(typeValue));
+		} else if(fieldType.equals("java.lang.Float")){
 			values.add(Float.parseFloat(typeValue));
-		}else if(fieldType.equals("java.util.Date")){
+		} else if(fieldType.equals("java.util.Date")){
 			values.add(typeValue);
-		}else if (fieldType.equals("java.lang.Boolean")){
+		} else if (fieldType.equals("java.lang.Boolean")){
 			values.add(Boolean.parseBoolean(typeValue));
 		}
 	}
