@@ -18,55 +18,57 @@ public class ViewsDaoImpl extends AbstractDao<String, String> implements ViewsDa
 		String selectFields = "";
 		String joins = "";
 		int count=0;
-		for(IndexField indexField : resourceType.getIndexFields()){
-			String indexFieldString = "";
-			selectFields = selectFields.concat(indexField.getName()+".values as "+ indexField.getName());
-			switch (indexField.getType()){
-				case "java.lang.Float":
-					indexFieldString = "floatindexedfield";
-					break;
-				case "java.lang.Integer":
-					indexFieldString = "integerindexedfield";
-					break;
-				case "java.lang.String":
-					indexFieldString = "stringindexedfield";
-					break;
-				case "java.lang.Boolean":
-					indexFieldString = "booleanindexedfield";
-					break;
-				case "java.lang.Long":
-					indexFieldString = "longindexedfield";
-					break;
-				case "java.util.Date":
-					indexFieldString = "dateindexedfield";
-					break;
-				default:
-					throw new ServiceException("Unrecognised indexed field type");
+		if(resourceType.getIndexFields()!=null) {
+            for (IndexField indexField : resourceType.getIndexFields()) {
+                String indexFieldString = "";
+                selectFields = selectFields.concat(indexField.getName() + ".values as " + indexField.getName());
+                switch (indexField.getType()) {
+                    case "java.lang.Float":
+                        indexFieldString = "floatindexedfield";
+                        break;
+                    case "java.lang.Integer":
+                        indexFieldString = "integerindexedfield";
+                        break;
+                    case "java.lang.String":
+                        indexFieldString = "stringindexedfield";
+                        break;
+                    case "java.lang.Boolean":
+                        indexFieldString = "booleanindexedfield";
+                        break;
+                    case "java.lang.Long":
+                        indexFieldString = "longindexedfield";
+                        break;
+                    case "java.util.Date":
+                        indexFieldString = "dateindexedfield";
+                        break;
+                    default:
+                        throw new ServiceException("Unrecognised indexed field type");
 
-			}
-			if(!indexField.isMultivalued()) {
+                }
+                if (!indexField.isMultivalued()) {
 
-				joins = joins.concat(" join (select r.id, ifv.values" +
-						" from resource r " +
-						" join "+indexFieldString+" if on if.resource_id=r.id " +
-						" join "+indexFieldString+"_values ifv on ifv."+indexFieldString+"_id=if.id " +
-						" where if.name='" + indexField.getName() + "') as " + indexField.getName()+" on  " + indexField.getName()+".id=r.id ");
-			}else{
-				joins = joins.concat(" join (select r.id, array_agg(ifv.values) as values" +
-						" from resource r " +
-						" join "+indexFieldString+" if on if.resource_id=r.id " +
-						" join "+indexFieldString+"_values ifv on ifv."+indexFieldString+"_id=if.id " +
-						" where if.name='" + indexField.getName()+"' group by r.id) as " + indexField.getName()+" on  " + indexField.getName()+".id=r.id  ");
-			}
-			if(count!=resourceType.getIndexFields().size()-1){
-				selectFields = selectFields.concat(" , ");
-			}
-			count++;
-		}
+                    joins = joins.concat(" join (select r.id, ifv.values" +
+                            " from resource r " +
+                            " join " + indexFieldString + " if on if.resource_id=r.id " +
+                            " join " + indexFieldString + "_values ifv on ifv." + indexFieldString + "_id=if.id " +
+                            " where if.name='" + indexField.getName() + "') as " + indexField.getName() + " on  " + indexField.getName() + ".id=r.id ");
+                } else {
+                    joins = joins.concat(" join (select r.id, array_agg(ifv.values) as values" +
+                            " from resource r " +
+                            " join " + indexFieldString + " if on if.resource_id=r.id " +
+                            " join " + indexFieldString + "_values ifv on ifv." + indexFieldString + "_id=if.id " +
+                            " where if.name='" + indexField.getName() + "' group by r.id) as " + indexField.getName() + " on  " + indexField.getName() + ".id=r.id  ");
+                }
+                if (count != resourceType.getIndexFields().size() - 1) {
+                    selectFields = selectFields.concat(" , ");
+                }
+                count++;
+            }
 
-		Query query = getSession().createSQLQuery("CREATE VIEW "+resourceType.getName()+"_view AS select r.id, " + selectFields + " from resource r " + joins + " where r.fk_name='"+resourceType.getName()+"'");
+            Query query = getSession().createSQLQuery("CREATE VIEW " + resourceType.getName() + "_view AS select r.id, " + selectFields + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
 
-		query.executeUpdate();
+            query.executeUpdate();
+        }
 	}
 
 	@Override
