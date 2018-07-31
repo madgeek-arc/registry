@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.service;
 
+import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.dao.SchemaDao;
 import eu.openminted.registry.core.domain.ResourceType;
@@ -7,6 +8,7 @@ import eu.openminted.registry.core.domain.Schema;
 import eu.openminted.registry.core.domain.UrlResolver;
 import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.index.DefaultIndexMapper;
+import eu.openminted.registry.core.validation.JsonValidationUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,16 +41,15 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
+import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by antleb on 7/14/16.
@@ -198,9 +199,11 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 			isFromUrl = true;
 		}
 
+
+		validateScema(resourceType.getSchema(),type);
+
 		if (type.equals("xml")) {
 			try {
-				validateScema(resourceType.getSchema());
 				DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
 				dbFactory.setNamespaceAware(true);
 //				dbFactory.setValidating(true);
@@ -296,24 +299,43 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 			} catch (Exception e) {
 				throw new ServiceException(e);
 			}
+		}else if(type.equals("json")){
+
 		}
 	}
 
 	
 
-	private void validateScema(String schema) throws ServiceException {
-		Validator validator = Validator.forLanguage(Languages.W3C_XML_SCHEMA_NS_URI);
+	private void validateScema(String schema, String type) throws ServiceException {
 
-		logger.debug("Validating schema");
+		if("xml".equals(type)) {
+			Validator validator = Validator.forLanguage(Languages.W3C_XML_SCHEMA_NS_URI);
 
-		validator.setSchemaSource(Input.fromURI("https://www.w3.org/2001/XMLSchema.xsd").build());
-		ValidationResult result = validator.validateInstance(new StreamSource( new StringReader(schema)));
+			logger.debug("Validating schema");
 
-		if (!result.isValid()) {
-			throw new ServiceException("Invalid xsd: " + result.getProblems());
+			validator.setSchemaSource(Input.fromURI("https://www.w3.org/2001/XMLSchema.xsd").build());
+			ValidationResult result = validator.validateInstance(new StreamSource(new StringReader(schema)));
+
+			if (!result.isValid()) {
+				throw new ServiceException("Invalid xsd: " + result.getProblems());
+			}
+
+			logger.debug("Schema is valid");
+
+		}else if("json".equals(type)){
+			try {
+				logger.info("Validating schema");
+				if(!JsonValidationUtils.isJsonValid(new Scanner(new URL("http://json-schema.org/draft-04/schema#").openStream(), "UTF-8").useDelimiter("\\A").next(),schema))
+					throw new ServiceException("Invalid json schema");
+
+			} catch (IOException | ProcessingException e) {
+				throw new ServiceException(e.getMessage());
+			}
+
+			logger.info("Schema is valid");
+		}else{
+			throw new ServiceException("Unsupported extension type");
 		}
-
-		logger.debug("Schema is valid");
 	}
 
 	private static int isValidUrl(String Url, boolean isFromUrl) {
