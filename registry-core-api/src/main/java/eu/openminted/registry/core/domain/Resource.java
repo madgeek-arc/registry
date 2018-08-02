@@ -26,11 +26,9 @@ public class Resource {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "fk_name", nullable = false)
     @JsonBackReference(value = "resourcetype-resource")
-    @JsonIgnore
     private ResourceType resourceType;
 
     @Transient
-    @JsonIgnore
     private String resourceTypeName;
 
     @Size(min = 3, max = 50)
