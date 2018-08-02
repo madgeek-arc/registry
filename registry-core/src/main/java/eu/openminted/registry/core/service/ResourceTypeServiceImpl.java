@@ -324,7 +324,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
 		}else if("json".equals(type)){
 			try {
-				logger.info("Validating schema");
+				logger.debug("Validating schema");
 				if(!JsonValidationUtils.isJsonValid(new Scanner(new URL("http://json-schema.org/draft-04/schema#").openStream(), "UTF-8").useDelimiter("\\A").next(),schema))
 					throw new ServiceException("Invalid json schema");
 
@@ -332,7 +332,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 				throw new ServiceException(e.getMessage());
 			}
 
-			logger.info("Schema is valid");
+			logger.debug("Schema is valid");
 		}else{
 			throw new ServiceException("Unsupported extension type");
 		}
