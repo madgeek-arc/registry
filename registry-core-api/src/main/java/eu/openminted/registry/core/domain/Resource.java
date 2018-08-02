@@ -26,6 +26,7 @@ public class Resource {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "fk_name", nullable = false)
     @JsonBackReference(value = "resourcetype-resource")
+    @JsonIgnore
     private ResourceType resourceType;
 
     @Transient
@@ -190,7 +191,7 @@ public class Resource {
     }
 
     public String getResourceTypeName() {
-        return resourceType.getName();
+        return resourceTypeName;
     }
 
     public void setResourceTypeName(String resourceTypeName) {
