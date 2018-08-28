@@ -61,9 +61,13 @@ public class ViewsDaoImpl extends AbstractDao<String, String> implements ViewsDa
 			count++;
 		}
 
-		Query query = getSession().createSQLQuery("CREATE VIEW "+resourceType.getName()+"_view AS select r.id, " + selectFields + " from resource r " + joins + " where r.fk_name='"+resourceType.getName()+"'");
+		Query query = getSession().createSQLQuery("CREATE OR REPLACE VIEW "+resourceType.getName()+"_view AS select r.id, " + selectFields + " from resource r " + joins + " where r.fk_name='"+resourceType.getName()+"'");
+        try {
 
-		query.executeUpdate();
+            query.executeUpdate();
+        } catch (Exception e) {
+            logger.info("View was not created");
+        }
 	}
 
 	@Override

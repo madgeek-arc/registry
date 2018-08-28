@@ -18,8 +18,8 @@ public class JSONFieldParser implements FieldParser {
 				FieldParser.parseField(fieldType,answer,response);
 			}
 		}else{
-			String answer = JsonPath.read(payload, path);
-			FieldParser.parseField(fieldType,answer,response);
+			Object answer = JsonPath.read(payload + "", path);
+			FieldParser.parseField(fieldType,answer.toString(),response);
 		}
 		return response;
 	}

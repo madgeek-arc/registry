@@ -8,6 +8,8 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 @RestController
 public class DumpController {
@@ -88,8 +90,11 @@ public class DumpController {
 
         // set headers for the response
         String headerKey = "Content-Disposition";
-        String headerValue = String.format("attachment; filename=\"%s\"",
-                downloadFile.getName());
+        SimpleDateFormat sdfDate = new SimpleDateFormat("ddMMyyyy");//dd/MM/yyyy
+        Date now = new Date();
+        String strDate = sdfDate.format(now);
+        String headerValue = String.format("attachment; filename=\"dump-%s.zip\"",
+                strDate);
         response.setHeader(headerKey, headerValue);
 
         // get output stream of the response

@@ -37,7 +37,7 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
         String destination = String.format("%s.%s.create",jmsConfiguration.getJmsPrefix(),resource.getResourceType().getName());
         BaseResourceJms jmsResource = new ResourceJmsCreated(resource);
         jmsTopicTemplate.convertAndSend(destination, jmsResource);
-        logger.info("Added new resource at " + destination);
+        logger.debug("Added new resource at " + destination);
     }
 
     @Override
@@ -45,7 +45,7 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
         String destination = String.format("%s.%s.update",jmsConfiguration.getJmsPrefix(),newResource.getResourceType().getName());
         BaseResourceJms jmsResource = new ResourceJmsUpdated(newResource,previousResource);
         jmsTopicTemplate.convertAndSend(destination, jmsResource);
-        logger.info("Updated resource at " + destination);
+        logger.debug("Updated resource at " + destination);
     }
 
     @Override
@@ -53,7 +53,7 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
         String destination = String.format("%s.%s.delete",jmsConfiguration.getJmsPrefix(),resource.getResourceType().getName());
         BaseResourceJms jmsResource = new ResourceJmsDeleted(resource);
         jmsTopicTemplate.convertAndSend(destination, jmsResource);
-        logger.info("Deleted resource at " + destination);
+        logger.debug("Deleted resource at " + destination);
     }
 
     @Override

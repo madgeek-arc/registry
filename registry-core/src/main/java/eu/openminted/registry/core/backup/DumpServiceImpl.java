@@ -8,71 +8,94 @@ import eu.openminted.registry.core.service.DumpService;
 import eu.openminted.registry.core.service.ResourceService;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
+import joptsimple.internal.Strings;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.JobParametersInvalidException;
+import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
+import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
+import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 
 @Service("dumpService")
-@Transactional
 public class DumpServiceImpl implements DumpService {
 
     @Autowired
-    ResourceService resourceService;
+    JobLauncher mySyncJobLauncher;
+
+    @Autowired
+    Job dumpJob;
 
     @Autowired
     ResourceTypeService resourceTypeService;
 
-    private static String FILENAME_FOR_SCHEMA = "schema.json";
-
     @Override
     public File bringAll(boolean isRaw, boolean wantSchema, String[] resourceTypes, boolean wantVersion) {
 
-        Path masterDirectory = RegistryFileUtils.createBasicPath();
-
-        List<ResourceType> resourceTypesList = new ArrayList<>();
-        List<Resource> resources;
-
+        String resourceTypesList;
+        JobExecution job;
         if(resourceTypes.length==0)
-            resourceTypesList = resourceTypeService.getAllResourceType();
+            resourceTypesList = resourceTypeService.getAllResourceType().stream().map(ResourceType::getName).collect(Collectors.joining(","));
+        else
+            resourceTypesList = Strings.join(resourceTypes,",");
 
-        for(String resourceType: resourceTypes) {
-            ResourceType tmp = resourceTypeService.getResourceType(resourceType);
-            if(tmp!=null)
-                resourceTypesList.add(tmp);
+        JobParametersBuilder builder = new JobParametersBuilder();
+        builder.addDate("date",new Date());
+        builder.addString("resourceTypes",resourceTypesList);
+        builder.addString("save",Boolean.toString(wantSchema));
+        builder.addString("raw",Boolean.toString(isRaw));
+        builder.addString("versions",Boolean.toString(wantVersion));
+        try {
+            job = mySyncJobLauncher.run(dumpJob,builder.toJobParameters());
+        } catch (Exception e) {
+           throw new ServiceException(e);
         }
+        String directory = job.getExecutionContext().getString("directory");
 
-        List<File> fileList = new ArrayList<>();
-        for(ResourceType resourceType: resourceTypesList){
-            if (!resourceType.getName().equals("user")) {
-                resources = resourceType.getResources();
-                RegistryFileUtils.createDirectory(masterDirectory.toAbsolutePath().toString() + "/" + resourceType.getName(), resources, isRaw, wantVersion);
-                try {
-                    if(wantSchema) { //skip schema creation
-                        resourceType.setSchema(resourceType.getOriginalSchema());
-                        File tempFile = new File(masterDirectory + "/"+resourceType.getName()+"/" + FILENAME_FOR_SCHEMA);
-                        Path filePath = Files.createFile(tempFile.toPath(), RegistryFileUtils.PERMISSIONS);
-                        FileWriter file = new FileWriter(filePath.toFile());
-                        ObjectMapper mapper = new ObjectMapper().configure(MapperFeature.USE_ANNOTATIONS, true);
-                        file.write(mapper.writeValueAsString(resourceType));
-                        file.flush();
-                        file.close();
-                    }
-                } catch (Exception e) {
-                    throw new ServiceException("Failed to create schema-file for " + resourceType.getName());
-                }
-            }
+        try {
+            return pack(directory);
+        } catch (IOException e) {
+            throw new ServiceException(e);
         }
-
-        return RegistryFileUtils.finalizeFile(masterDirectory,fileList);
     }
 
-
+    private static File pack(String sourceDirPath) throws IOException {
+        Path p = Files.createTempFile("dump", new Date().toString());
+//        Path p = Files.createFile(zipFilePath);
+        try (ZipOutputStream zs = new ZipOutputStream(Files.newOutputStream(p))) {
+            Path pp = Paths.get(sourceDirPath);
+            Files.walk(pp)
+                    .filter(path -> !Files.isDirectory(path))
+                    .forEach(path -> {
+                        ZipEntry zipEntry = new ZipEntry(pp.relativize(path).toString());
+                        try {
+                            zs.putNextEntry(zipEntry);
+                            Files.copy(path, zs);
+                            zs.closeEntry();
+                        } catch (IOException e) {
+                            System.err.println(e);
+                        }
+                    });
+        }
+        return p.toFile();
+    }
 }

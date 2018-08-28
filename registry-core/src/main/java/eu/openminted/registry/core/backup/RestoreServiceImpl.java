@@ -1,227 +1,93 @@
 package eu.openminted.registry.core.backup;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.openminted.registry.core.dao.ResourceDao;
-import eu.openminted.registry.core.dao.VersionDao;
-import eu.openminted.registry.core.domain.Resource;
-import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.domain.Version;
-import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
-import eu.openminted.registry.core.service.ResourceService;
-import eu.openminted.registry.core.service.ResourceTypeService;
+import eu.openminted.registry.core.backup.restore.RestoreJobListener;
+import eu.openminted.registry.core.domain.BatchResult;
 import eu.openminted.registry.core.service.RestoreService;
 import eu.openminted.registry.core.service.ServiceException;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.batch.core.*;
+import org.springframework.batch.core.job.AbstractJob;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static javax.xml.bind.JAXBContext.newInstance;
-
 
 @Service("restoreService")
-@Transactional
 public class RestoreServiceImpl implements RestoreService {
 
     private static final Logger logger = LogManager.getLogger(RestoreServiceImpl.class);
 
     @Autowired
-    ResourceTypeService resourceTypeService;
+    JobLauncher myJobLauncher;
 
     @Autowired
-    ResourceDao resourceDao;
+    Job restoreJob;
 
-    @Autowired
-    ResourceService resourceService;
+    File unzipFile(MultipartFile file) throws IOException {
+        File zip = File.createTempFile(UUID.randomUUID().toString(), "temp");
+        FileOutputStream o = new FileOutputStream(zip);
+        IOUtils.copy(file.getInputStream(), o);
+        o.close();
 
-    @Autowired
-    VersionDao versionDao;
-
-    @Autowired
-    ElasticOperationsService elasticOperationsService;
-
-    private JAXBContext jaxbContext = null;
+        UnzipUtility unzipUtility = new UnzipUtility();
+        Path tempDirPath = Files.createTempDirectory("decompress");
+        File tempDirFile = tempDirPath.toFile();
+        unzipUtility.unzip(zip.getAbsolutePath(), tempDirPath.toString());
+        zip.deleteOnExit();
+        return tempDirFile;
+    }
 
     @Override
-    public void restoreDataFromZip(MultipartFile file) {
+    public Map<String,BatchResult> restoreDataFromZip(MultipartFile zipFile) {
         /**
          * save file to temp
          */
+        List<BatchResult> ret = new ArrayList<>();
         try {
-            File zip = File.createTempFile(UUID.randomUUID().toString(), "temp");
-            FileOutputStream o = new FileOutputStream(zip);
-            IOUtils.copy(file.getInputStream(), o);
-            o.close();
-
-            UnzipUtility unzipUtility = new UnzipUtility();
-            Path tempDirPath = Files.createTempDirectory("decompress");
-            File tempDirFile = tempDirPath.toFile();
-
-            unzipUtility.unzip(zip.getAbsolutePath(),tempDirPath.toString());
-
-            HashMap<String, List<Version>> versions = new HashMap<>();
-            HashMap<String, Resource> oldResourcesIds = new HashMap<>();
-
-            storeResources(tempDirFile, versions, oldResourcesIds);
-            List<Resource> bulkResources = new ArrayList<>();
-            for(Map.Entry<String, List<Version>> entry : versions.entrySet()){
-                for(Version version : entry.getValue()) {
-                    Resource resource = oldResourcesIds.get(entry.getKey());
-                    bulkResources.add(resource);
-                    version.setResource(resource);
-
-                    if(entry.getValue().equals(resource.getId()))
-                        versionDao.addVersion(version);
-                }
+            File tempDirFile = unzipFile(zipFile);
+            Optional<File[]> f = Optional.ofNullable(tempDirFile.listFiles());
+            File[] resourceTypeFiles = f.orElse(new File[]{});
+            Date date = new Date();
+            RestoreJobListener restoreJobListener = new RestoreJobListener();
+            for (File file : resourceTypeFiles) {
+                JobParametersBuilder builder = new JobParametersBuilder();
+                builder.addString("resourceType",file.getName());
+                builder.addString("resourceTypeDir",file.getAbsolutePath());
+                builder.addDate("date",date);
+                ((AbstractJob) restoreJob).registerJobExecutionListener(restoreJobListener);
+                JobExecution job = myJobLauncher.run(restoreJob,builder.toJobParameters());
+                restoreJobListener.registerJob(job);
             }
-
-            elasticOperationsService.addBulk(bulkResources);
-
-            zip.deleteOnExit();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-
-    }
-
-    private void storeResources(File dir, HashMap<String, List<Version>> versions, HashMap<String, Resource> oldResourcesIds) {
-        File[] files = dir.listFiles();
-        for (File file : files) {
-            if(file.isDirectory()) {
-                logger.debug("Extracting files from " + file.getName());
-                storeResources(file, versions, oldResourcesIds);
-            }else {
-                if (FilenameUtils.removeExtension(file.getName()).equals("schema")) {
-                    //if there is a file with the same name as the directory then it's the schema of the resource type. Drop resource type and reimport
-                    String resourceTypeName = file.getParentFile().getName();
-                    logger.debug("Resource type:"+resourceTypeName + ", starting procedure");
-                    if(resourceTypeService.getResourceType(resourceTypeName)!=null) {
-                        logger.debug("Resource type is present, deleting it..");
-                        resourceTypeService.deleteResourceType(resourceTypeName);
-                    }
-
-                    ResourceType resourceType = new ResourceType();
-                    ObjectMapper mapper = new ObjectMapper();
-                    try {
-                        logger.debug("Reading resource type from file..");
-                        resourceType = mapper.readValue(FileUtils.readFileToString(file).replaceAll("^\t$", "").replaceAll("^\n$",""), ResourceType.class);
-                        logger.debug("Adding resource type");
-                        if(resourceType.getSchemaUrl()!=null || !resourceType.getSchemaUrl().isEmpty())
-                            resourceType.setSchema(null);
-
-                        resourceTypeService.addResourceType(resourceType);
-                    } catch (IOException e) {
-                        throw new ServiceException("Failed to read schema file");
-                    }
-                }
-            }
-        }
-        try {
-            jaxbContext =  newInstance(Resource.class);
-        } catch (JAXBException e) {
-            throw new ServiceException("Could not initiate jaxbContext for RESOURCE class",e);
-        }
-        for(File file : files){
-            try {
-                if(!file.isDirectory() && !file.getAbsolutePath().contains("version")) {
-                    logger.debug("Scanning resource file with name "+ file.getName());
-
-                    if(!FilenameUtils.removeExtension(file.getName()).equals("schema")){
-                        //if it's not the schema file then add it as a resource
-                        logger.debug("Adding resource:"+file.getName());
-                        String extension = FilenameUtils.getExtension(file.getName());
-                        Resource resource = new Resource();
-                        if(extension.equals("json")) {
-                            resource = deserializeResource(file, extension);
-                            if(resource==null)
-                                resource = deserializeResource(file, "xml");
-                        }else if(extension.equals("xml")){
-                            resource = deserializeResource(file, extension);
-                            if(resource==null)
-                                resource = deserializeResource(file, "json");
-                        }else{
-                            throw new ServiceException("Unsupported file format");
-                        }
-
-
-                        ResourceType resourceType = resourceTypeService.getResourceType(file.getParentFile().getName());
-                        if(resource==null) {//if it's still null that means that the file contains just the payload
-                            resource = new Resource();
-                            resource.setPayload(FileUtils.readFileToString(file));
-                            resource.setPayloadFormat(extension);
-                            resource.setResourceType(resourceType);
-                            oldResourcesIds.put(FilenameUtils.removeExtension(file.getName()), resourceService.addResource(resource));
-                        }else{
-                            resource.setResourceType(resourceType);
-                            resourceDao.addResource(resource);// we are using the DAO service in order to keep the previous ID of the resource
-                            oldResourcesIds.put(FilenameUtils.removeExtension(file.getName()), resource);
-                        }
-
-                    }else{
-                        logger.debug("Resource "+file.getName()+" insertion postponed");
-                    }
-                }else if(!file.isDirectory() && file.getAbsolutePath().contains("version")) {
-                    Version version = deserializeVersion(file);
-
-                    if(version==null)
-                        throw new ServiceException("Could not deserialize version");
-
-                    String resourceId = file.getParentFile().getName().replace("-version","");
-                    if(versions.containsKey(resourceId)) {
-                        versions.get(resourceId).add(version);
-                    }else{
-                        versions.put(resourceId, new ArrayList<>());
-                        versions.get(resourceId).add(version);
-                    }
-                }
-                logger.debug(file.getName() + " ---- Just gone through parsing");
-            } catch (IOException e) {
-               throw new ServiceException("Error parsing resource file",e);
-            }
-
+            logger.info(restoreJobListener.waitResults());
+            return restoreJobListener.getJobs().stream().map(this::convertJob).collect(Collectors.toMap(BatchResult::getResourceType, Function.identity()));
+        } catch (Exception e) {
+            throw new ServiceException("Failed to restore data from zip", e);
         }
     }
 
-    private Resource deserializeResource(File file, String mediaType) {
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            if (mediaType.equals("json"))
-                return mapper.readValue(file, Resource.class);
-            else if (mediaType.equals("xml")) {
-                Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-                return (Resource) unmarshaller.unmarshal(file);
-            }else
-                return null;
-        } catch (IOException | ClassCastException | JAXBException e) {
-            logger.error("Error deserializing object",e);
-            return null;
-        }
-    }
-
-    private Version deserializeVersion(File file) {
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-                return mapper.readValue(file, Version.class);
-        } catch (IOException | ClassCastException e) {
-            logger.error("Error deserializing object",e);
-            return null;
-        }
+    private BatchResult convertJob(JobExecution j) {
+        BatchResult ret = new BatchResult();
+        List<StepExecution> steps = new ArrayList<>(j.getStepExecutions());
+        ret.setDroped(steps.get(0).getExitStatus().equals(ExitStatus.NOOP));
+        ret.setStatus(j.getStatus().name());
+        ret.setReadCount(steps.get(1).getReadCount());
+        ret.setReadSkipCount(steps.get(1).getReadSkipCount());
+        ret.setWriteCount(steps.get(1).getWriteCount());
+        ret.setWriteSkipCount(steps.get(1).getWriteSkipCount());
+        ret.setResourceType(j.getJobParameters().getString("resourceType"));
+        return ret;
     }
 
     public class UnzipUtility {
@@ -229,9 +95,11 @@ public class RestoreServiceImpl implements RestoreService {
          * Size of the buffer to read/write data
          */
         private static final int BUFFER_SIZE = 4096;
+
         /**
          * Extracts a zip file specified by the zipFilePath to a directory specified by
          * destDirectory (will be created if does not exists)
+         *
          * @param zipFilePath
          * @param destDirectory
          * @throws IOException
@@ -251,19 +119,19 @@ public class RestoreServiceImpl implements RestoreService {
                 String[] splitInto = entry.getName().split("/");
 
                 File tmpFile = null;
-                if(splitInto.length<2) {//it's a dir
+                if (splitInto.length < 2) {//it's a dir
                     tmpFile = new File(destDirectory + File.separator + splitInto[0]);
                     isDir = true;
-                }else if(splitInto.length==2){//no versions included
+                } else if (splitInto.length == 2) {//no versions included
                     tmpFile = new File(destDirectory + File.separator + splitInto[splitInto.length - 2]);
-                }else{//versions included
+                } else {//versions included
                     tmpFile = new File(destDirectory + File.separator + splitInto[splitInto.length - 3] + File.separator + splitInto[splitInto.length - 2]);
                 }
 
-                if(!tmpFile.exists())
+                if (!tmpFile.exists())
                     tmpFile.mkdirs();
 
-                if(!isDir)
+                if (!isDir)
                     extractFile(zipIn, filePath);
 
                 zipIn.closeEntry();
@@ -271,8 +139,10 @@ public class RestoreServiceImpl implements RestoreService {
             }
             zipIn.close();
         }
+
         /**
          * Extracts a zip entry (file entry)
+         *
          * @param zipIn
          * @param filePath
          * @throws IOException

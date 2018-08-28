@@ -23,7 +23,7 @@ public class Resource {
     @Column(name = "id", nullable = false)
     private String id;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fk_name", nullable = false)
     @JsonBackReference(value = "resourcetype-resource")
     private ResourceType resourceType;
@@ -58,7 +58,7 @@ public class Resource {
 
     @OneToMany(cascade = {CascadeType.ALL}, mappedBy = "resource")
     @LazyCollection(LazyCollectionOption.FALSE)
-    @JsonIgnore
+//    @JsonIgnore
     @JsonManagedReference(value = "resource-indexedfields")
     private List<IndexedField> indexedFields;
 
@@ -145,7 +145,7 @@ public class Resource {
         this.payloadUrl = payloadUrl;
     }
 
-    @JsonIgnore
+//    @JsonIgnore
     public List<IndexedField> getIndexedFields() {
         return indexedFields;
     }

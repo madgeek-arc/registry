@@ -1,5 +1,7 @@
 package eu.openminted.registry.core.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import javax.validation.constraints.Size;
 import java.util.Date;
@@ -51,6 +53,7 @@ public class Version {
 		this.id = string;
 	}
 
+	@JsonIgnore
 	public ResourceType getResourceType() {
 		return resourceType;
 	}
@@ -59,6 +62,7 @@ public class Version {
 		this.resourceType = resourceType;
 	}
 
+	@JsonIgnore
 	public String getVersion() {
 		return version;
 	}

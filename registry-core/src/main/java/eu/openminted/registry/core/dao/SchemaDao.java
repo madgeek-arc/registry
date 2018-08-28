@@ -1,8 +1,9 @@
 package eu.openminted.registry.core.dao;
 
 import eu.openminted.registry.core.domain.Schema;
+import org.w3c.dom.ls.LSResourceResolver;
 
-public interface SchemaDao {
+public interface SchemaDao extends LSResourceResolver {
 
 	Schema getSchema(String id);
 	
@@ -11,5 +12,7 @@ public interface SchemaDao {
 	void addSchema(Schema schema);
 
 	void deleteSchema(Schema schema);
+
+	javax.xml.validation.Schema loadSchema(String url);
 	
 }

@@ -9,17 +9,21 @@ import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -67,7 +71,7 @@ public class ElasticOperationsService {
 
         for(Resource resource : resources){
             bulkRequest.add(client.prepareIndex(resource.getResourceType().getName(), type)
-                        .setSource(createDocumentForInsert(resource))
+                        .setSource(createDocumentForInsert(resource),XContentType.JSON)
                         .setId(resource.getId()));
         }
 
@@ -84,7 +88,7 @@ public class ElasticOperationsService {
         Client client = elastic.client();
         String payload = createDocumentForInsert(resource);
         IndexResponse response = client.prepareIndex(resource.getResourceType().getName(), type)
-                .setSource(payload)
+                .setSource(payload,XContentType.JSON)
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .setId(resource.getId()).get();
     }
@@ -96,7 +100,7 @@ public class ElasticOperationsService {
         updateRequest.index(newResource.getResourceType().getName());
         updateRequest.type(type);
         updateRequest.id(previousResource.getId());
-        updateRequest.doc(createDocumentForInsert(newResource));
+        updateRequest.doc(createDocumentForInsert(newResource),XContentType.JSON);
         try {
             client.update(updateRequest).get();
         } catch (InterruptedException | ExecutionException e) {
@@ -112,7 +116,9 @@ public class ElasticOperationsService {
     public void createIndex(ResourceType resourceType) {
         long start_time = System.nanoTime();
         Client client = elastic.client();
-
+        if (exists(resourceType.getName(),client)) {
+            return;
+        }
         CreateIndexRequestBuilder createIndexRequestBuilder = client.admin().indices().prepareCreate(resourceType.getName());
         if (resourceType.getAliasGroup() != null) {
             createIndexRequestBuilder.addAlias(new Alias(resourceType.getAliasGroup()));
@@ -121,7 +127,7 @@ public class ElasticOperationsService {
         Map<String, Object> jsonObjectForMapping = createMapping(resourceType.getIndexFields());
 
         JSONObject parameters = new JSONObject(jsonObjectForMapping);
-        System.err.println(parameters.toString(2));
+        logger.debug(parameters.toString(2));
 
         createIndexRequestBuilder.addMapping(type, jsonObjectForMapping);
 
@@ -143,6 +149,20 @@ public class ElasticOperationsService {
 
         if(!deleteResponse.isAcknowledged()){
             logger.fatal("Error deleting index \""+name+"\"");
+        }
+    }
+
+    private boolean exists(String indexName, Client client) {
+        IndicesExistsRequest request = new IndicesExistsRequest(indexName);
+        ActionFuture<IndicesExistsResponse> future = client.admin().indices().exists(request);
+        try {
+            IndicesExistsResponse response = future.get();
+            boolean result = response.isExists();
+            logger.info("Existence of index '" + indexName + "' result is " + result);
+            return result;
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error("Exception at waiting for IndicesExistsResponse", e);
+            return false;//do some clever exception handling
         }
     }
 
@@ -224,8 +244,7 @@ public class ElasticOperationsService {
                         }
                     }
                 } else {
-                    List<Object> values = new ArrayList<>();
-                    values.addAll(field.getValues());
+                    List<Object> values = new ArrayList<>(field.getValues());
                     jsonObjectField.put(field.getName(),values);
 
                 }

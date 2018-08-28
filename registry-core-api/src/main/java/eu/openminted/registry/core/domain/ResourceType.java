@@ -23,10 +23,6 @@ public class ResourceType {
     @Column(name = "schema", nullable = false, columnDefinition = "text")
     private String schema;
 
-    @Column(name = "originalSchema", columnDefinition = "text")
-    @JsonIgnore
-    private String originalSchema;
-
     @Column
     private String schemaUrl;
 
@@ -65,15 +61,6 @@ public class ResourceType {
 
     public ResourceType() {
 
-    }
-
-
-    public String getOriginalSchema() {
-        return originalSchema;
-    }
-
-    public void setOriginalSchema(String originalSchema) {
-        this.originalSchema = originalSchema;
     }
 
     public String getName() {

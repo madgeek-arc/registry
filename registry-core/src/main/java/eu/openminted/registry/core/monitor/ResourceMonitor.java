@@ -3,8 +3,8 @@ package eu.openminted.registry.core.monitor;
 import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -44,7 +44,7 @@ public class ResourceMonitor {
             for (ResourceListener listener : resourceListeners) {
                 try {
                     listener.resourceAdded(resource);
-                    logger.info("Notified listener : " + listener.getClass().getSimpleName() + " for create");
+                    logger.debug("Notified listener : " + listener.getClass().getSimpleName() + " for create");
                 } catch (Exception e) {
                     logger.error("Error notifying listener", e);
                 }
@@ -72,7 +72,7 @@ public class ResourceMonitor {
                 for (ResourceListener listener : resourceListeners) {
                     try {
                         listener.resourceUpdated(temp, resource);
-                        logger.info("Notified listener : " + listener.getClass().getSimpleName() + " for update");
+                        logger.debug("Notified listener : " + listener.getClass().getSimpleName() + " for update");
                     } catch (Exception e) {
                         logger.error("Error notifying listener", e);
                     }
@@ -102,7 +102,7 @@ public class ResourceMonitor {
     }
 
     @Around("execution (* eu.openminted.registry.core.service.ResourceTypeService.addResourceType(eu.openminted.registry.core.domain.ResourceType)) && args(resourceType)")
-    public void resourceTypeAdded(ProceedingJoinPoint pjp, ResourceType resourceType) throws Throwable {
+    public ResourceType resourceTypeAdded(ProceedingJoinPoint pjp, ResourceType resourceType) throws Throwable {
 
         pjp.proceed();
 
@@ -115,6 +115,7 @@ public class ResourceMonitor {
                     logger.error("Error notifying listener", e);
                 }
             }
+        return resourceType;
     }
 
     @Around("execution (* eu.openminted.registry.core.service.ResourceTypeService.deleteResourceType(String)) && args(name)")
