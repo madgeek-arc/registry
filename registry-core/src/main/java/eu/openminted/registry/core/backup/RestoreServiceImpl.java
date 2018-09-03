@@ -80,15 +80,18 @@ public class RestoreServiceImpl implements RestoreService {
             storeResources(tempDirFile, versions, oldResourcesIds);
             List<Resource> bulkResources = new ArrayList<>();
             for(Map.Entry<String, List<Version>> entry : versions.entrySet()){
+
                 for(Version version : entry.getValue()) {
                     Resource resource = oldResourcesIds.get(entry.getKey());
-                    bulkResources.add(resource);
-                    version.setResource(resource);
 
+                    version.setResource(resource);
                     if(entry.getValue().equals(resource.getId()))
                         versionDao.addVersion(version);
                 }
+
             }
+            for(Map.Entry<String, Resource> resourceEntry : oldResourcesIds.entrySet())
+                bulkResources.add(resourceEntry.getValue());
 
             elasticOperationsService.addBulk(bulkResources);
 
