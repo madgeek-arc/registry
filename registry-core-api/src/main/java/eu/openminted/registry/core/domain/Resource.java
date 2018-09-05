@@ -26,7 +26,7 @@ public class Resource {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "fk_name", nullable = false)
     @JsonBackReference(value = "resourcetype-resource")
-    @JsonIgnore
+//    @JsonIgnore
     private ResourceType resourceType;
 
     @Transient
@@ -40,9 +40,11 @@ public class Resource {
     private String payload;
 
     @Transient
+    @JsonIgnore
     private String payloadUrl;
 
     @Transient
+    @JsonIgnore
     private String searchableArea;
 
     @Size(min = 3, max = 30)
@@ -59,8 +61,6 @@ public class Resource {
 
     @OneToMany(cascade = {CascadeType.ALL}, mappedBy = "resource")
     @LazyCollection(LazyCollectionOption.FALSE)
-    @JsonIgnore
-    @JsonManagedReference(value = "resource-indexedfields")
     private List<IndexedField> indexedFields;
 
     @OneToMany(mappedBy = "resource", cascade = {CascadeType.ALL})
@@ -90,6 +90,7 @@ public class Resource {
         this.id = string;
     }
 
+//    @JsonIgnore
     public ResourceType getResourceType() {
         return resourceType;
     }
@@ -191,7 +192,7 @@ public class Resource {
     }
 
     public String getResourceTypeName() {
-        return resourceTypeName;
+        return resourceType.getName();
     }
 
     public void setResourceTypeName(String resourceTypeName) {

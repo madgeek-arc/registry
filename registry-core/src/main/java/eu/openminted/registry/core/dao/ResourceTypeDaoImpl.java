@@ -57,6 +57,7 @@ public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> imple
 	public void addResourceType(ResourceType resourceType) {
 		persist(resourceType);
 		getSession().flush();
+		resourceTypeCacheLoader.refresh(resourceType.getName());
 	}
 
 	@Override

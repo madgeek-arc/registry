@@ -223,12 +223,17 @@ public class SearchServiceImpl implements SearchService {
             ArrayList<Resource> resources = new ArrayList<>();
             for (SearchHit hit : response.getHits()) {
                 String version = hit.getSource().get("version") == null ? "not_set" : hit.getSource().get("version").toString();
-                resources.add(new Resource(
+                Resource resource = new Resource(
                         hit.getSource().get("id").toString(),
                         resourceTypeService.getResourceType(hit.getSource().get("resourceType").toString()),
                         version,
                         hit.getSource().get("payload").toString(),
-                        hit.getSource().get("payloadFormat").toString()));
+                        hit.getSource().get("payloadFormat").toString());
+
+                resource.setCreationDate(new Date(Long.parseLong(hit.getSource().get("creation_date").toString())));
+                resource.setModificationDate(new Date(Long.parseLong(hit.getSource().get("modification_date").toString())));
+
+                resources.add(resource);
             }
             List<Facet> facets = new ArrayList<>();
             if(browseBy != null) {
