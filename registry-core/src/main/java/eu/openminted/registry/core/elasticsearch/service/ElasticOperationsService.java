@@ -30,8 +30,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -229,16 +227,13 @@ public class ElasticOperationsService {
                             jsonObjectField.put(field.getName(), value);
                         }else if(fieldType.equals("java.lang.Integer")){
                             jsonObjectField.put(field.getName(),value);
+                        }else if(fieldType.equals("java.lang.Long")){
+                            jsonObjectField.put(field.getName(),value);
                         }else if(fieldType.equals("java.lang.Float")){
                             jsonObjectField.put(field.getName(),value);
                         }else if(fieldType.equals("java.util.Date")){
-                            SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
-                            try {
-                                jsonObjectField.put(field.getName(), sdf.parse(sdf.format((Date) value)).getTime());
-                            } catch (ParseException e) {
-                                throw new ServiceException("Wrong date format for indexed field. Try dd-MM-yyyy") ;
-                            }
-
+                            Date date = (Date) value;
+                            jsonObjectField.put(field.getName(), date.getTime());
                         }else if (fieldType.equals("java.lang.Boolean")){
                             jsonObjectField.put(field.getName(),value);
                         }

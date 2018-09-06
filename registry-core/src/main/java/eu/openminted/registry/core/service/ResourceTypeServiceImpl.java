@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.service;
 
+import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.dao.SchemaDao;
 import eu.openminted.registry.core.domain.ResourceType;
@@ -32,10 +33,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by antleb on 7/14/16.

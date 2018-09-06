@@ -26,6 +26,8 @@ public class IndexedFieldFactory {
 			field = new DateIndexedField(fieldName, value);
 		} else if (Float.class.getName().equals(fieldType)) {
 			field = new FloatIndexedField(fieldName,value);
+		} else if (Long.class.getName().equals(fieldType)) {
+			field = new LongIndexedField(fieldName,value);
 		}
 		return field;
 	}

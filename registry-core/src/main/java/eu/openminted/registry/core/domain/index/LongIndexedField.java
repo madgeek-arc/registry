@@ -7,37 +7,35 @@ import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.Table;
-import java.time.OffsetDateTime;
-import java.util.Date;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Entity
 @Table
-public class DateIndexedField extends IndexedField<Date> {
+public class LongIndexedField extends IndexedField<Long> {
 
     @Column
     @ElementCollection
     @LazyCollection(LazyCollectionOption.FALSE)
-    private Set<Date> values;
+    private Set<Long> values;
 
-
-    public DateIndexedField(){
+    public LongIndexedField(){
 
     }
 
     @Override
-    public Set<Date> getValues() {
+    public Set<Long> getValues() {
         return values;
     }
 
     @Override
-    public void setValues(Set<Date> value) {
+    public void setValues(Set<Long> value) {
         this.values = value;
     }
 
-    public DateIndexedField(String name, Set<Object> values) {
+    public LongIndexedField(String name, Set<Object> values) {
         setName(name);
-        setValues(values.stream().map(x -> ((Date) x)).collect(Collectors.toSet()));
+        setValues(values.stream().map(Object::toString).mapToLong(Long::parseLong).boxed().collect(Collectors.toSet()));
     }
+
 }

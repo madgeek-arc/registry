@@ -1,6 +1,6 @@
 package eu.openminted.registry.core.domain.index;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import eu.openminted.registry.core.domain.Resource;
 
 import javax.persistence.*;
@@ -19,7 +19,7 @@ public abstract class IndexedField<T extends Object> implements Serializable {
 	private Integer id;
 
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JsonBackReference(value = "resource-indexedfields")
+	@JsonIgnore
 	private Resource resource;
 
 	@Column

@@ -20,6 +20,7 @@ public class Version {
 
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name="fk_name_version", nullable = false)
+	@JsonIgnore
 	private ResourceType resourceType;
 
 	@Size(min=3, max=50)

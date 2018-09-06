@@ -26,6 +26,7 @@ public class Resource {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fk_name", nullable = false)
     @JsonBackReference(value = "resourcetype-resource")
+//    @JsonIgnore
     private ResourceType resourceType;
 
     @Transient
@@ -39,9 +40,11 @@ public class Resource {
     private String payload;
 
     @Transient
+    @JsonIgnore
     private String payloadUrl;
 
     @Transient
+    @JsonIgnore
     private String searchableArea;
 
     @Size(min = 3, max = 30)
@@ -89,6 +92,7 @@ public class Resource {
         this.id = string;
     }
 
+//    @JsonIgnore
     public ResourceType getResourceType() {
         return resourceType;
     }
@@ -190,7 +194,7 @@ public class Resource {
     }
 
     public String getResourceTypeName() {
-        return resourceTypeName;
+        return resourceType.getName();
     }
 
     public void setResourceTypeName(String resourceTypeName) {

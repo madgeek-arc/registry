@@ -3,6 +3,7 @@ package eu.openminted.registry.core.index;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.domain.index.IndexedField;
+import eu.openminted.registry.core.service.ServiceException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -32,7 +33,7 @@ public class DefaultIndexMapper implements IndexMapper {
 		return indexFields;
 	}
 
-	public List<IndexedField> getValues(String payload, ResourceType resourceType) {
+	public List<IndexedField> getValues(String payload, ResourceType resourceType) throws ServiceException{
 		List<IndexedField> res = new ArrayList<>();
 
 		for (IndexField indexField:resourceType.getIndexFields()) {
@@ -68,7 +69,7 @@ public class DefaultIndexMapper implements IndexMapper {
 
 				}
 			} catch (Exception e) {
-				logger.error(e.getMessage(), e);
+				throw new ServiceException(e.getMessage());
 			}
 		}
 		

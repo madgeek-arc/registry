@@ -132,18 +132,18 @@ public class ResourceServiceImpl implements ResourceService {
         resourceDao.deleteResource(resource);
     }
 
-    private List<IndexedField> getIndexedFields(Resource resource) {
+    private List<IndexedField> getIndexedFields(Resource resource) throws ServiceException{
 
         ResourceType resourceType = resourceTypeDao.getResourceType(resource.getResourceType().getName());
         IndexMapper indexMapper = null;
         try {
             indexMapper = indexMapperFactory.createIndexMapper(resourceType);
+            return indexMapper.getValues(resource.getPayload(), resourceType);
         } catch (Exception e) {
             logger.error("Error extracting fields", e);
             throw new ServiceException(e);
         }
 
-        return indexMapper.getValues(resource.getPayload(), resourceType);
     }
 
     public ResourceDao getResourceDao() {
