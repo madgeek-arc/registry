@@ -72,7 +72,7 @@ public class ViewsDaoImpl extends AbstractDao<String, String> implements ViewsDa
 
 	@Override
 	public void deleteView(String resourceType) {
-		getSession().createSQLQuery("DROP VIEW "+resourceType+"_view").executeUpdate();
+		getSession().createSQLQuery("DROP VIEW IF EXISTS "+resourceType+"_view").executeUpdate();
 	}
 
 

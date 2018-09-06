@@ -40,14 +40,6 @@ public class DateIndexedField extends IndexedField<Date> {
 
     public DateIndexedField(String name, Set<Object> values) {
         setName(name);
-        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
-        setValues(values.stream().map(Object::toString).map(s -> {
-            try {
-                System.out.println(s);
-                return sdf.parse(s);
-            } catch (ParseException e) {
-                throw new ServiceException("Wrong date format for indexed field. Try dd-MM-yyyy");
-            }
-        }).collect(Collectors.toSet()));
+        setValues(values.stream().map(x -> ((Date) x)).collect(Collectors.toSet()));
     }
 }

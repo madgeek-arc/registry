@@ -56,7 +56,6 @@ public class VersionDaoImpl extends AbstractDao<String, Version> implements Vers
 	@Override
 	public void deleteVersion(Version version) {
 		getSession().delete(version);
-		getSession().flush();
 	}
 
 

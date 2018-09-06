@@ -118,7 +118,7 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
         String id = FilenameUtils.removeExtension(resourceDir.getName());
         File version = new File(FilenameUtils.removeExtension(resourceDir.getAbsolutePath()) + "-version");
         if(version.exists() && version.isDirectory()) {
-            logger.info(id + " " +version);
+            logger.debug(id + " " +version);
             Optional<File[]> files = Optional.ofNullable(version.listFiles());
             for(File f : files.orElse(new File[]{})) {
                 Version v = mapper.readValue(f,Version.class);

@@ -30,7 +30,7 @@ public class RestoreServiceImpl implements RestoreService {
     private static final Logger logger = LogManager.getLogger(RestoreServiceImpl.class);
 
     @Autowired
-    JobLauncher myJobLauncher;
+    JobLauncher mySyncJobLauncher;
 
     @Autowired
     Job restoreJob;
@@ -67,7 +67,7 @@ public class RestoreServiceImpl implements RestoreService {
                 builder.addString("resourceTypeDir",file.getAbsolutePath());
                 builder.addDate("date",date);
                 ((AbstractJob) restoreJob).registerJobExecutionListener(restoreJobListener);
-                JobExecution job = myJobLauncher.run(restoreJob,builder.toJobParameters());
+                JobExecution job = mySyncJobLauncher.run(restoreJob,builder.toJobParameters());
                 restoreJobListener.registerJob(job);
             }
             logger.info(restoreJobListener.waitResults());

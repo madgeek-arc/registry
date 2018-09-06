@@ -10,20 +10,20 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Entity
-public class FloatIndexedField extends IndexedField<Float> {
+public class FloatIndexedField extends IndexedField<Double> {
 
     @Column
     @ElementCollection
     @LazyCollection(LazyCollectionOption.FALSE)
-    private Set<Float> values;
+    private Set<Double> values;
 
     @Override
-    public Set<Float> getValues() {
+    public Set<Double> getValues() {
         return values;
     }
 
     @Override
-    public void setValues(Set<Float> value) {
+    public void setValues(Set<Double> value) {
         this.values = value;
     }
 
@@ -33,6 +33,6 @@ public class FloatIndexedField extends IndexedField<Float> {
 
     public FloatIndexedField(String name, Set<Object> values) {
         setName(name);
-        setValues(values.stream().map(Object::toString).map(Float::parseFloat).collect(Collectors.toSet()));
+        setValues(values.stream().map(x -> ((Double) x)).collect(Collectors.toSet()));
     }
 }

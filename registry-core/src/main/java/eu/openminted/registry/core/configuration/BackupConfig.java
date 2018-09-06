@@ -1,9 +1,6 @@
 package eu.openminted.registry.core.configuration;
 
-import eu.openminted.registry.core.backup.dump.DumpResourceReader;
-import eu.openminted.registry.core.backup.dump.DumpResourceTypePartitioner;
-import eu.openminted.registry.core.backup.dump.DumpResourceTypeStep;
-import eu.openminted.registry.core.backup.dump.DumpResourceWriterStep;
+import eu.openminted.registry.core.backup.dump.*;
 import eu.openminted.registry.core.backup.restore.RestoreResourceReaderStep;
 import eu.openminted.registry.core.backup.restore.RestoreResourceTypeStep;
 import eu.openminted.registry.core.backup.restore.RestoreResourceWriterStep;
@@ -13,14 +10,15 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.step.skip.AlwaysSkipItemSkipPolicy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.retry.policy.AlwaysRetryPolicy;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Callable;
@@ -77,14 +75,13 @@ public class BackupConfig {
 
     @Bean
     Step resourcesDumpStep(DumpResourceReader reader, DumpResourceWriterStep writer) {
-
         return steps.get("resourcesDumpChunkStep")
                 .<Resource,Resource>chunk(chunkSize)
-                .reader(reader)
+                .reader(reader).faultTolerant()
+                .retryPolicy(new AlwaysRetryPolicy())
                 .writer(writer)
                 .faultTolerant()
                 .skipPolicy(new AlwaysSkipItemSkipPolicy())
-                .taskExecutor(new SyncTaskExecutor()) //this has to by SyncTaskExecutor due to hibernate session
                 .build();
     }
 
@@ -96,23 +93,34 @@ public class BackupConfig {
     }
 
     @Bean
-    @JobScope
-    Step resourceTypeDumpPartitioner(
-            Step resourcesDumpStep,
-            DumpResourceTypePartitioner partitioner,
-            Callable<TaskExecutor> threadPoolExecutor
+    @StepScope
+    Step resourceDump(Step resourcesDumpStep,
+                      DumpResourcePartitioner resourcePartitioner,
+                      Callable<TaskExecutor> threadPoolExecutor
     ) throws Exception {
-        return steps.get("resourcesType")
-                .partitioner("resourceTypePartitioner", partitioner)
+        return steps.get("resourcePartitioner")
+                .partitioner("resourcePartitioner",resourcePartitioner)
                 .step(resourcesDumpStep)
                 .taskExecutor(threadPoolExecutor.call())
                 .build();
     }
 
     @Bean
+    @JobScope
+    Step resourceTypeDumpPartitioner(
+            DumpResourceTypePartitioner partitioner,
+
+            Step resourceDump
+    ) {
+        return steps.get("resourcesType")
+                .partitioner("resourceTypePartitioner", partitioner)
+                .step(resourceDump)
+                .build();
+    }
+
+    @Bean
     Job restoreJob(Step resourcesStep, Step resourceTypeStep) {
         return jobs.get("restore")
-                .incrementer(new RunIdIncrementer())
                 .start(resourceTypeStep)
                 .next(resourcesStep)
                 .build();

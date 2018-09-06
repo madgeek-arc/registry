@@ -39,7 +39,7 @@ public class StringIndexedField extends IndexedField<String> {
 
 	public StringIndexedField(String name, Set<Object> values) {
 		setName(name);
-		setValues(values.stream().map(Object::toString).collect(Collectors.toSet()));
+		setValues(values.stream().map(x -> ((String)x)).collect(Collectors.toSet()));
 	}
 
 }

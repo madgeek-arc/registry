@@ -39,8 +39,6 @@ public class BatchConfig {
         JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
         factory.setDataSource(dataSource);
         factory.setTransactionManager(transactionManager);
-        // JobRepositoryFactoryBean's methods Throws Generic Exception,
-        // it would have been better to have a specific one
         factory.afterPropertiesSet();
         return factory.getObject();
     }

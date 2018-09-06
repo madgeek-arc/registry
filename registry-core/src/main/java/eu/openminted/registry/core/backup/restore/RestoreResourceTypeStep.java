@@ -17,6 +17,7 @@ import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -80,8 +81,11 @@ public class RestoreResourceTypeStep implements Tasklet, StepExecutionListener {
                 logger.info("Resource type is present, deleting it..");
                 resourceTypeService.deleteResourceType(r.getName());
             });
-            logger.info("Adding resource type");
-            if (resourceType.getSchemaUrl() != null || !resourceType.getSchemaUrl().isEmpty())
+            logger.info("Adding resource type " + resourceType.getName());
+            if("not_set".equals(resourceType.getSchemaUrl())) {
+                resourceType.setSchemaUrl(null);
+            }
+            if (!StringUtils.isEmpty(resourceType.getSchemaUrl()))
                 resourceType.setSchema(null);
             existingResourceType = Optional.of(resourceTypeService.addResourceType(resourceType));
         }

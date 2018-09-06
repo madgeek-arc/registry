@@ -71,10 +71,9 @@ public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> imple
 
 	@Override
 	public void deleteResourceType(ResourceType resourceType) {
+        resourceTypeCacheLoader.invalidate(resourceType.getName());
 		getSession().delete(resourceType);
-		getSession().flush();
-
-		getSession().createSQLQuery("DROP VIEW "+resourceType.getName()+"_view;");
+//		getSession().createSQLQuery("DROP VIEW IF EXISTS "+resourceType.getName()+"_view").executeUpdate();
 		getSession().flush();
 	}
 

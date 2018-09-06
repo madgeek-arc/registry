@@ -123,7 +123,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
 
 
-        if (resourceType.getSchemaUrl() == null) {
+        if (resourceType.getSchemaUrl() == null || "not_set".equals(resourceType.getSchemaUrl())) {
             resourceType.setSchemaUrl("not_set");
         } else {
             try {

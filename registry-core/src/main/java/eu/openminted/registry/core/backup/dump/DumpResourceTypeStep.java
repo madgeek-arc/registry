@@ -90,7 +90,7 @@ public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
         ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
         stepResourceTypes.add(resourceTypeName);
         if(!saveSchema)
-            return RepeatStatus.FINISHED;
+            return RepeatStatus.CONTINUABLE;
         resourceType.setSchema(resourceType.getSchema());
         Path tempFile = Paths.get(resourceTypePath.toString(),FILENAME_FOR_SCHEMA);
         Files.createFile(tempFile,PERMISSIONS);
