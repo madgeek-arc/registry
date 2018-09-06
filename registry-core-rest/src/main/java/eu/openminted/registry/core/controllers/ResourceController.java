@@ -147,7 +147,7 @@ public class ResourceController {
 	    	return new ResponseEntity<>(resourceFinal, HttpStatus.NO_CONTENT);
 	    }  
 	  
-	    @RequestMapping(value = "/resources/{id}", method = RequestMethod.DELETE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	    @RequestMapping(value = "/resources/{id}", method = RequestMethod.DELETE)
 	    public void deleteResources(@PathVariable("id") String id) {  
 	        resourceService.deleteResource(id);  
 	    }   
