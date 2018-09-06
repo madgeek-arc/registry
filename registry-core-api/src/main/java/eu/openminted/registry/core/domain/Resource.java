@@ -197,7 +197,4 @@ public class Resource {
         return resourceType.getName();
     }
 
-    public void setResourceTypeName(String resourceTypeName) {
-        this.resourceTypeName = resourceTypeName;
-    }
 }

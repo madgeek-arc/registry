@@ -15,10 +15,10 @@ public class ViewsDaoImpl extends AbstractDao<String, String> implements ViewsDa
 
 	@Override
 	public void createView(ResourceType resourceType) {
-		String selectFields = "";
-		String joins = "";
-		int count=0;
-		if(resourceType.getIndexFields()!=null) {
+        String selectFields = "";
+        String joins = "";
+        int count = 0;
+        if (resourceType.getIndexFields() != null) {
             for (IndexField indexField : resourceType.getIndexFields()) {
                 String indexFieldString = "";
                 selectFields = selectFields.concat(indexField.getName() + ".values as " + indexField.getName());
@@ -65,14 +65,15 @@ public class ViewsDaoImpl extends AbstractDao<String, String> implements ViewsDa
                 count++;
             }
 
-		Query query = getSession().createSQLQuery("CREATE OR REPLACE VIEW "+resourceType.getName()+"_view AS select r.id, " + selectFields + " from resource r " + joins + " where r.fk_name='"+resourceType.getName()+"'");
-        try {
+            Query query = getSession().createSQLQuery("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id, " + selectFields + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
+            try {
 
-            query.executeUpdate();
-        } catch (Exception e) {
-            logger.info("View was not created");
+                query.executeUpdate();
+            } catch (Exception e) {
+                logger.info("View was not created");
+            }
         }
-	}
+    }
 
 	@Override
 	public void deleteView(String resourceType) {

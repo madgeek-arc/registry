@@ -106,10 +106,13 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
             logger.debug("Skipping resource " + resource.getId() + " already exists");
             throw new ServiceException("Existing resource");
         }
+        final Resource lambdaResource = resource;
         resource.setResourceType(resourceType);
         resource.setPayloadFormat(resourceType.getPayloadType());
         resource.setIndexedFields(indexMapper.getValues(resource.getPayload(),resourceType));
+        resource.getIndexedFields().forEach(x->x.setResource(lambdaResource));
         resource.setVersions(readResourceVersions(file,resource));
+        resource.getVersions().forEach(x->x.setResource(lambdaResource));
         return resource;
     }
 

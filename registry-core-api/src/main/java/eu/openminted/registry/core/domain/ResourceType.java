@@ -18,6 +18,7 @@ public class ResourceType {
     @Id
     @Size(min = 3, max = 50)
     @Column(name = "name", nullable = false)
+    @Access(AccessType.PROPERTY)
     private String name;
 
     @Column(name = "schema", nullable = false, columnDefinition = "text")
