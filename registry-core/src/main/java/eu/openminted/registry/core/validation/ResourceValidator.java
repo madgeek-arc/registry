@@ -1,14 +1,13 @@
 package eu.openminted.registry.core.validation;
 
 import eu.openminted.registry.core.dao.SchemaDao;
+import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.service.ServiceException;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.everit.json.schema.ValidationException;
-import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONObject;
-import org.json.JSONTokener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,9 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.Validator;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 
 
 /**
@@ -37,25 +33,23 @@ public class ResourceValidator {
         this.schemaDao = schemaDao;
     }
 
-    public boolean validateXML(String resourceType, String xmlContent) {
+    public boolean validateXML(Resource resource) {
         Schema schema;
         try {
-            schema = schemaDao.loadSchema(resourceType);
+            schema = schemaDao.loadXMLSchema(resource.getResourceType());
             Validator validator = schema.newValidator();
-            validator.validate(new StreamSource(IOUtils.toInputStream(xmlContent)));
-        } catch (Exception e){
+            validator.validate(new StreamSource(IOUtils.toInputStream(resource.getPayload())));
+        } catch (Exception e) {
             throw new ServiceException(e.getMessage());
         }
         return true;
     }
 
-    public boolean validateJSON(String resourceType, String jsonContent) {
-        InputStream stream = new ByteArrayInputStream(resourceType.getBytes(StandardCharsets.UTF_8));
-        JSONObject rawSchema = new JSONObject(new JSONTokener(stream));
-        org.everit.json.schema.Schema schema = SchemaLoader.load(rawSchema);
-        try{
-            schema.validate(new JSONObject(jsonContent)); // throws a ValidationException if this object is invalid
-        }catch(ValidationException e){
+    public boolean validateJSON(Resource resource) {
+        org.everit.json.schema.Schema schema = schemaDao.loadJSONSchema(resource.getResourceType());
+        try {
+            schema.validate(new JSONObject(resource.getPayload())); // throws a ValidationException if this object is invalid
+        } catch (ValidationException e) {
             throw new ServiceException(e.getMessage());
         }
         return true;

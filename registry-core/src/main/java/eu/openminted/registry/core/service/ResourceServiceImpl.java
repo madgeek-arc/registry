@@ -169,7 +169,7 @@ public class ResourceServiceImpl implements ResourceService {
             if (resourceType.getPayloadType().equals(resource.getPayloadFormat())) {
                 if (resourceType.getPayloadType().equals("xml")) {
                     //validate xml
-                    Boolean output = resourceValidator.validateXML(resource.getResourceType().getName(), resource.getPayload());
+                    Boolean output = resourceValidator.validateXML(resource);
                     if (output) {
                         resource.setPayload(resource.getPayload());
                     } else {
@@ -177,7 +177,7 @@ public class ResourceServiceImpl implements ResourceService {
                     }
                 } else if (resourceType.getPayloadType().equals("json")) {
 
-                    Boolean output = resourceValidator.validateJSON(resourceType.getSchema(), resource.getPayload());
+                    Boolean output = resourceValidator.validateJSON(resource);
 
                     if (output) {
                         resource.setPayload(resource.getPayload());
