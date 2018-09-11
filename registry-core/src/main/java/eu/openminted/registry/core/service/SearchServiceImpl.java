@@ -230,8 +230,10 @@ public class SearchServiceImpl implements SearchService {
                         hit.getSource().get("payload").toString(),
                         hit.getSource().get("payloadFormat").toString());
 
-                resource.setCreationDate(new Date(Long.parseLong(hit.getSource().get("creation_date").toString())));
-                resource.setModificationDate(new Date(Long.parseLong(hit.getSource().get("modification_date").toString())));
+                if(hit.getSource().get("creation_date") != null)
+                    resource.setCreationDate(new Date(Long.parseLong(hit.getSource().get("creation_date").toString())));
+                if(hit.getSource().get("modification_date") != null)
+                    resource.setModificationDate(new Date(Long.parseLong(hit.getSource().get("modification_date").toString())));
 
                 resources.add(resource);
             }
