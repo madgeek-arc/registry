@@ -5,11 +5,13 @@ import eu.openminted.registry.core.domain.ResourceType;
 import org.hibernate.Criteria;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
 
 @Repository("resourceDao")
+@Transactional
 public class ResourceDaoImpl extends AbstractDao<String, Resource> implements ResourceDao {
 
 	public Resource getResource(ResourceType resourceType, String id) {

@@ -10,7 +10,6 @@ import java.io.Serializable;
  * Created by antleb on 5/20/16.
  */
 @Entity
-//@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
 public class IndexField implements Serializable{
 
 	@ManyToOne(fetch = FetchType.EAGER)

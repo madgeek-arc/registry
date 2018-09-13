@@ -3,6 +3,7 @@ package eu.openminted.registry.core.controllers;
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.exception.ResourceNotFoundException;
+import eu.openminted.registry.core.service.IndexFieldService;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
 import org.apache.logging.log4j.LogManager;
@@ -22,6 +23,14 @@ public class ResourceTypeController {
 
 	@Autowired
 	ResourceTypeService resourceTypeService;
+
+	@Autowired
+	IndexFieldService indexFieldService;
+
+	@RequestMapping(value = "/resourceType/index/{name}", method = RequestMethod.GET, headers = "Accept=application/json")
+	public ResponseEntity getResourceTypeIndexFields(@PathVariable("name") String name) throws ResourceNotFoundException {
+		return new ResponseEntity(indexFieldService.getIndexFields(name),HttpStatus.OK);
+	}
 
 	@RequestMapping(value = "/resourceType/{name}", method = RequestMethod.GET, headers = "Accept=application/json")
 	public ResponseEntity<ResourceType> getResourceTypeByName(@PathVariable("name") String name) throws ResourceNotFoundException {

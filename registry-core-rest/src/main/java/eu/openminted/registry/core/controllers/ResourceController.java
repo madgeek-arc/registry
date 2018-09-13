@@ -3,6 +3,7 @@ package eu.openminted.registry.core.controllers;
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.exception.ResourceNotFoundException;
+import eu.openminted.registry.core.service.IndexedFieldService;
 import eu.openminted.registry.core.service.ResourceService;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,13 +20,22 @@ import java.util.List;
 @Transactional
 public class ResourceController {
 
-	   @Autowired
-	   ResourceService resourceService;
+    @Autowired
+    ResourceService resourceService;
 
-	   @Autowired
-	   ResourceTypeService resourceTypeService;
-	  
-	    @RequestMapping(value = "/resources/{resourceType}/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE )
+    @Autowired
+    ResourceTypeService resourceTypeService;
+
+    @Autowired
+	IndexedFieldService indexedFieldService;
+
+	@RequestMapping(value = "/resources/indexed/{resourceId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	public ResponseEntity getIndexedFields(@PathVariable("resourceId") String resourceId){
+		return new ResponseEntity<>(indexedFieldService.getIndexedFields(resourceId), HttpStatus.OK);
+	}
+
+
+	@RequestMapping(value = "/resources/{resourceType}/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE )
 	    public ResponseEntity<Resource> getResourceById(@PathVariable("resourceType") String resourceType,@PathVariable("id") String id) throws ResourceNotFoundException {
 	    	Resource resource = resourceService.getResource(resourceTypeService.getResourceType(resourceType),id);
 	    	if(resource==null){

@@ -42,7 +42,7 @@ public class GenericController {
     @ExceptionHandler(ServiceException.class)
     @ResponseBody
     ServerError handleServiceException(HttpServletRequest req, Exception ex) {
-        logger.info(ex);
+        logger.info("service exception",ex);
         return new ServerError(req.getRequestURL().toString(),ex);
     }
 

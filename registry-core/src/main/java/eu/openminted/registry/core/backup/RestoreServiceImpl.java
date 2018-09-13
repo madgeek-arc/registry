@@ -73,6 +73,7 @@ public class RestoreServiceImpl implements RestoreService {
             logger.info(restoreJobListener.waitResults());
             return restoreJobListener.getJobs().stream().map(this::convertJob).collect(Collectors.toMap(BatchResult::getResourceType, Function.identity()));
         } catch (Exception e) {
+            logger.debug(e.getMessage(),e);
             throw new ServiceException("Failed to restore data from zip", e);
         }
     }
