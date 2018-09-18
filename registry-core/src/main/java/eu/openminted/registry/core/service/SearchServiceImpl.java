@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.xbib.cql.CQLParser;
 import org.xbib.cql.elasticsearch.ElasticsearchQueryGenerator;
 
@@ -156,7 +157,9 @@ public class SearchServiceImpl implements SearchService {
 
     @Override
     public Paging<Resource> cqlQuery(FacetFilter filter) {
-        CQLParser parser = new CQLParser(filter.getKeyword());
+
+        CQLParser parser = StringUtils.isEmpty(filter.getKeyword()) ? new CQLParser("*") : new CQLParser(filter.getKeyword());
+
         parser.parse();
         ElasticsearchQueryGenerator generator = new ElasticsearchQueryGenerator();
 
