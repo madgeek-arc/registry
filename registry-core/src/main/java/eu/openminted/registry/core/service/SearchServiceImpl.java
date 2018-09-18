@@ -158,8 +158,7 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public Paging<Resource> cqlQuery(FacetFilter filter) {
 
-        CQLParser parser = StringUtils.isEmpty(filter.getKeyword()) ? new CQLParser("*") : new CQLParser(filter.getKeyword());
-
+        CQLParser parser = new CQLParser(filter.getKeyword());
         parser.parse();
         ElasticsearchQueryGenerator generator = new ElasticsearchQueryGenerator();
 
@@ -171,7 +170,7 @@ public class SearchServiceImpl implements SearchService {
                 .setQuery(QueryBuilders.wrapperQuery(generator.getQueryResult()))
                 .setSize(filter.getQuantity())
                 .setFrom(filter.getFrom())
-                .setExplain(false);
+                .setExplain(true);
 
         if(filter.getOrderBy() != null) {
             for (Map.Entry<String, Object> order : filter.getOrderBy().entrySet()) {
@@ -183,7 +182,6 @@ public class SearchServiceImpl implements SearchService {
         for (String browseBy : filter.getBrowseBy()) {
             search.addAggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy).size(bucketSize));
         }
-
         SearchResponse response = search.execute().actionGet();
 
         return responseToPaging(response,filter.getFrom(),filter.getBrowseBy());
