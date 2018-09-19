@@ -95,7 +95,7 @@ public class ResourceTypeController {
 
 		try {
 			resourceTypeService.deleteResourceType(name);
-			return new ResponseEntity<>(HttpStatus.GONE);
+			return new ResponseEntity<>(HttpStatus.OK);
 		} catch (ServiceException e) {
 			logger.error("Error deleting resource type", e);
 			throw new ServiceException(e);
