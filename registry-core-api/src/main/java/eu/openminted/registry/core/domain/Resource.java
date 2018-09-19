@@ -193,7 +193,7 @@ public class Resource {
     }
 
     public String getResourceTypeName() {
-        return resourceType.getName();
+        return (resourceType==null) ? resourceTypeName : resourceType.getName();
     }
 
 }
