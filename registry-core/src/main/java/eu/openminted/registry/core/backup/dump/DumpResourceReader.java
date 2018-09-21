@@ -67,7 +67,7 @@ public class DumpResourceReader extends AbstractDao<String, Resource> implements
                 .createCriteria(Resource.class)
                 .add(Restrictions.eq("resourceType", resourceType))
                 .setFirstResult(from)
-                .setMaxResults(to-from-1)
+                .setMaxResults(to-from)
                 .setResultTransformer(CriteriaSpecification.DISTINCT_ROOT_ENTITY)
                 .scroll();
         IndexMapperFactory indexMapperFactory = new IndexMapperFactory();
