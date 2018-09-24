@@ -31,6 +31,7 @@ import org.xbib.cql.CQLParser;
 import org.xbib.cql.elasticsearch.ElasticsearchQueryGenerator;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -43,7 +44,7 @@ public class SearchServiceImpl implements SearchService {
 
     private static Logger logger = LogManager.getLogger(SearchServiceImpl.class);
 
-    private static final String[] INCLUDES = {"payload", "creation_date", "modification_date", "payloadFormat"};
+    private static final String[] INCLUDES = {"payload", "creation_date", "modification_date", "payloadFormat", "version"};
 
     @Autowired
     Environment environment;
@@ -279,6 +280,7 @@ public class SearchServiceImpl implements SearchService {
         SearchRequestBuilder search = client
                 .prepareSearch(resourceType)
                 .setTypes(type)
+                .setFetchSource(INCLUDES,null)
                 .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
                 .setQuery(qBuilder)
                 .setSize(1).setExplain(false);
@@ -290,13 +292,15 @@ public class SearchServiceImpl implements SearchService {
             return null;
         } else {
             SearchHit hit = response.getHits().getAt(0);
-            String version = hit.getSource().get("version") == null ? "not_set" : hit.getSource().get("version").toString();
-            return new Resource(
-                    hit.getSource().get("id").toString(),
-                    null,
-                    version,
-                    hit.getSource().get("payload").toString(),
-                    hit.getSource().get("payloadFormat").toString());
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.convertValue(hit.getSource(),Resource.class);
+//            String version = hit.getSource().get("version") == null ? "not_set" : hit.getSource().get("version").toString();
+//            return new Resource(
+//                    hit.getSource().get("id").toString(),
+//                    null,
+//                    version,
+//                    hit.getSource().get("payload").toString(),
+//                    hit.getSource().get("payloadFormat").toString());
         }
     }
 
