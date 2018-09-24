@@ -2,6 +2,7 @@ package eu.openminted.registry.core.domain.index;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import eu.openminted.registry.core.domain.ResourceType;
+import org.springframework.util.StringUtils;
 
 import javax.persistence.*;
 import java.io.Serializable;
@@ -91,7 +92,7 @@ public class IndexField implements Serializable{
 	}
 
 	public String getLabel() {
-		return label;
+		return (StringUtils.isEmpty(label) ? name : label);
 	}
 
 	public void setLabel(String label) {
