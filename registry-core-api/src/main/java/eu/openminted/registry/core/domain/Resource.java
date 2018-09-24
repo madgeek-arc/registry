@@ -3,6 +3,7 @@ package eu.openminted.registry.core.domain;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
@@ -52,10 +53,12 @@ public class Resource {
     private String payloadFormat;
 
     @Temporal(TemporalType.TIMESTAMP)
+    @JsonProperty("creation_date")
     @Column(name = "creation_date", nullable = false, updatable = false)
     private Date creationDate;
 
     @Temporal(TemporalType.TIMESTAMP)
+    @JsonProperty("modification_date")
     @Column(name = "modification_date", nullable = false)
     private Date modificationDate;
 
