@@ -53,12 +53,10 @@ public class Resource {
     private String payloadFormat;
 
     @Temporal(TemporalType.TIMESTAMP)
-    @JsonProperty("creation_date")
     @Column(name = "creation_date", nullable = false, updatable = false)
     private Date creationDate;
 
     @Temporal(TemporalType.TIMESTAMP)
-    @JsonProperty("modification_date")
     @Column(name = "modification_date", nullable = false)
     private Date modificationDate;
 
