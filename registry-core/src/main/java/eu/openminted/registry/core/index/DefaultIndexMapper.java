@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.index;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.domain.index.IndexedField;
@@ -35,7 +36,7 @@ public class DefaultIndexMapper implements IndexMapper {
 
 	public List<IndexedField> getValues(String payload, ResourceType resourceType) throws ServiceException{
 		List<IndexedField> res = new ArrayList<>();
-
+		ObjectMapper mapper = new ObjectMapper();
 		for (IndexField indexField:resourceType.getIndexFields()) {
 			try {
 				String fieldName = indexField.getName();
@@ -43,27 +44,28 @@ public class DefaultIndexMapper implements IndexMapper {
 				String path = indexField.getPath();
 				String value = indexField.getDefaultValue();
 				Set<Object> values;
-				logger.debug("Indexing field " + fieldName + " (" + fieldType + ") with path " + path);
+				logger.debug("Indexing field " + fieldName + " (" + fieldType + ") with path " + path + " and DEFAULT VALUE:" + value);
 
 				//if there is no xpath add default value
 				if(path == null) {
 					values = new HashSet<>();
 					if(value == null) {
-						throw new Exception("Indexfield"  + fieldName +" with no xpath must supply a default value");
+						throw new Exception("Indexfield:"  + fieldName +" with no xpath must supply a default value");
 					}
-					values.add(value);
+
+					values.add(mapper.convertValue(value,Class.forName(indexField.getType())));
+//					values.add((Class.forName(indexField.getType()).cast(value)));
 					res.add(indexedFieldFactory.getIndexedField(fieldName,values,fieldType));
-				} else {
+				}else {
 					//there is an xpath
 					values = getValue(payload, fieldType, path, resourceType.getPayloadType(), indexField.isMultivalued());
-					if (values != null) {
+					if (values != null && !values.isEmpty()) {
 						res.add(indexedFieldFactory.getIndexedField(fieldName, values, fieldType));
-					} else {
-						if(value == null) {
-							throw new Exception("Indexfield"  + fieldName +" with no xpath must supply a default value");
-						}
+					}else{
 						values = new HashSet<>();
-						values.add(value);
+						if(value != null) {
+							values.add(mapper.convertValue(value,Class.forName(indexField.getType())));
+						}
 						res.add(indexedFieldFactory.getIndexedField(fieldName,values,fieldType));
 					}
 
