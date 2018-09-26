@@ -16,6 +16,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.MultiBucketsAggregation;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
@@ -30,10 +31,7 @@ import org.springframework.stereotype.Service;
 import org.xbib.cql.CQLParser;
 import org.xbib.cql.elasticsearch.ElasticsearchQueryGenerator;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -44,7 +42,7 @@ public class SearchServiceImpl implements SearchService {
 
     private static Logger logger = LogManager.getLogger(SearchServiceImpl.class);
 
-    private static final String[] INCLUDES = {"payload", "creation_date", "modification_date", "payloadFormat", "version"};
+    private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "payloadFormat", "version"};
 
     @Autowired
     Environment environment;
@@ -268,13 +266,11 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public Resource searchId(String resourceType, KeyValue... ids) {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
-        //assert that keys are provided
-        assert ids.length != 0;
-
         //iterate all key values and add them to the elastic query
-        for (KeyValue kv : ids) {
-            qBuilder.must(QueryBuilders.termsQuery(kv.getField(), kv.getValue()));
-        }
+
+        Arrays.stream(ids)
+                .map(kv -> QueryBuilders.termsQuery(kv.getField(), kv.getValue()))
+                .forEach(qBuilder::must);
 
         Client client = elastic.client();
         SearchRequestBuilder search = client
@@ -286,22 +282,10 @@ public class SearchServiceImpl implements SearchService {
                 .setSize(1).setExplain(false);
 
         logger.debug("Search query: " + qBuilder + "in index " + resourceType);
-
-        SearchResponse response = search.execute().actionGet();
-        if (response == null || response.getHits().getTotalHits() == 0) {
-            return null;
-        } else {
-            SearchHit hit = response.getHits().getAt(0);
-            ObjectMapper mapper = new ObjectMapper();
-            return mapper.convertValue(hit.getSource(),Resource.class);
-//            String version = hit.getSource().get("version") == null ? "not_set" : hit.getSource().get("version").toString();
-//            return new Resource(
-//                    hit.getSource().get("id").toString(),
-//                    null,
-//                    version,
-//                    hit.getSource().get("payload").toString(),
-//                    hit.getSource().get("payloadFormat").toString());
-        }
+        SearchHits ss = search.execute().actionGet().getHits();
+        Optional<SearchHit> hit = Optional.ofNullable(ss.getTotalHits() == 0 ? null : ss.getAt(0));
+        ObjectMapper mapper = new ObjectMapper();
+        return hit.map(x -> mapper.convertValue(x.getSource(),Resource.class)).orElse(null);
     }
 
     @Override
