@@ -2,6 +2,7 @@ package eu.openminted.registry.core.service;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import eu.openminted.registry.core.configuration.ElasticConfiguration;
 import eu.openminted.registry.core.domain.Facet;
 import eu.openminted.registry.core.domain.FacetFilter;
@@ -62,7 +63,11 @@ public class SearchServiceImpl implements SearchService {
     @Value("${prefix:general}")
     private String type;
 
+    private ObjectMapper mapper;
+
     SearchServiceImpl() {
+        mapper = new ObjectMapper();
+        mapper.setPropertyNamingStrategy(new ResourcePropertyName());
     }
 
 
@@ -96,7 +101,6 @@ public class SearchServiceImpl implements SearchService {
         SearchResponse response = search.execute().actionGet();
 
         Terms terms = response.getAggregations().get("agg_category");
-        ObjectMapper mapper = new ObjectMapper();
         mapper.configure(JsonGenerator.Feature.IGNORE_UNKNOWN, true);
         results = terms.getBuckets()
                 .parallelStream()
@@ -227,7 +231,6 @@ public class SearchServiceImpl implements SearchService {
         if (response == null || response.getHits().getTotalHits() == 0) {
             return new Paging<>();
         } else {
-            ObjectMapper mapper = new ObjectMapper();
             List<Resource> resources = StreamSupport
                     .stream(response.getHits().spliterator(), true)
                     .map(r -> mapper.convertValue(r.getSource(), Resource.class))
@@ -276,7 +279,7 @@ public class SearchServiceImpl implements SearchService {
         SearchRequestBuilder search = client
                 .prepareSearch(resourceType)
                 .setTypes(type)
-                .setFetchSource(INCLUDES,null)
+                .setFetchSource(INCLUDES, null)
                 .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
                 .setQuery(qBuilder)
                 .setSize(1).setExplain(false);
@@ -284,12 +287,27 @@ public class SearchServiceImpl implements SearchService {
         logger.debug("Search query: " + qBuilder + "in index " + resourceType);
         SearchHits ss = search.execute().actionGet().getHits();
         Optional<SearchHit> hit = Optional.ofNullable(ss.getTotalHits() == 0 ? null : ss.getAt(0));
-        ObjectMapper mapper = new ObjectMapper();
-        return hit.map(x -> mapper.convertValue(x.getSource(),Resource.class)).orElse(null);
+
+        return hit.map(x -> mapper.convertValue(x.getSource(), Resource.class)).orElse(null);
     }
 
     @Override
     public Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category) {
         return buildTopHitAggregation(filter, category);
+    }
+
+    static private class ResourcePropertyName extends PropertyNamingStrategy.PropertyNamingStrategyBase {
+
+        @Override
+        public String translate(String propertyName) {
+            switch (propertyName) {
+                case "modificationDate":
+                    return "modification_date";
+                case "creationDate":
+                    return "creation_date";
+                default:
+                    return propertyName;
+            }
+        }
     }
 }
