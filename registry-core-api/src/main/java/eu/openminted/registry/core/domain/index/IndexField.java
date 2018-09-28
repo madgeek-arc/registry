@@ -92,7 +92,7 @@ public class IndexField implements Serializable{
 	}
 
 	public String getLabel() {
-		return (StringUtils.isEmpty(label) ? name : label);
+		return label;
 	}
 
 	public void setLabel(String label) {
