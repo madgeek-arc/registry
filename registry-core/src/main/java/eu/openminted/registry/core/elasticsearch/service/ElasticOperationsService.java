@@ -97,6 +97,7 @@ public class ElasticOperationsService {
         UpdateRequest updateRequest = new UpdateRequest();
         updateRequest.index(newResource.getResourceType().getName());
         updateRequest.type(type);
+        updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
         updateRequest.id(previousResource.getId());
         updateRequest.doc(createDocumentForInsert(newResource),XContentType.JSON);
         try {
@@ -108,7 +109,9 @@ public class ElasticOperationsService {
 
     public void delete(Resource resource) {
         Client client = elastic.client();
-        client.prepareDelete(resource.getResourceType().getName(), type, resource.getId()).get();
+        client.prepareDelete(resource.getResourceType().getName(), type, resource.getId())
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                .get();
     }
 
     public void createIndex(ResourceType resourceType) {
