@@ -71,7 +71,7 @@ public class DumpController {
         try {
             inputStream = new FileInputStream(downloadFile);
         } catch (FileNotFoundException e) {
-            deleteDirectory(new File(downloadFile.getParent()));
+            deleteDirectory(downloadFile);
             e.printStackTrace();
             return;
         }
@@ -102,7 +102,8 @@ public class DumpController {
         try {
             outStream = response.getOutputStream();
         } catch (IOException e) {
-            deleteDirectory(new File(downloadFile.getParent()));
+            System.out.println(downloadFile);
+            deleteDirectory(downloadFile);
             e.printStackTrace();
             return;
         }
@@ -127,7 +128,7 @@ public class DumpController {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-
-        deleteDirectory(new File(downloadFile.getParent()));
+        System.out.println(downloadFile);
+        deleteDirectory(downloadFile);
     }
 }

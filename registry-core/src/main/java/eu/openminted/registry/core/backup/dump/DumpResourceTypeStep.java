@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.service.ResourceTypeService;
+import eu.openminted.registry.core.service.ServiceException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.batch.core.ExitStatus;
@@ -109,7 +110,7 @@ public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd") ;
             masterDirectory = Files.createTempDirectory(dateFormat.format(today.getTime()),PERMISSIONS);
         } catch (IOException e1) {
-            e1.printStackTrace();
+            throw new ServiceException(e1.getMessage());
         }
 
         return masterDirectory;
