@@ -1,6 +1,7 @@
 package eu.openminted.registry.core.controllers;
 
 import eu.openminted.registry.core.service.DumpService;
+import eu.openminted.registry.core.service.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -72,8 +73,7 @@ public class DumpController {
             inputStream = new FileInputStream(downloadFile);
         } catch (FileNotFoundException e) {
             deleteDirectory(downloadFile);
-            e.printStackTrace();
-            return;
+            throw new ServiceException(e.getMessage());
         }
 
         // get MIME type of the file
@@ -102,10 +102,8 @@ public class DumpController {
         try {
             outStream = response.getOutputStream();
         } catch (IOException e) {
-            System.out.println(downloadFile);
             deleteDirectory(downloadFile);
-            e.printStackTrace();
-            return;
+            throw new ServiceException(e.getMessage());
         }
 
         byte[] buffer = new byte[4096];
@@ -117,18 +115,15 @@ public class DumpController {
                 outStream.write(buffer, 0, bytesRead);
             }
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            throw new ServiceException(e.getMessage());
         }
 
         try {
             inputStream.close();
             outStream.close();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            throw new ServiceException(e.getMessage());
         }
-        System.out.println(downloadFile);
         deleteDirectory(downloadFile);
     }
 }
