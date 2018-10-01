@@ -233,7 +233,11 @@ public class SearchServiceImpl implements SearchService {
         } else {
             List<Resource> resources = StreamSupport
                     .stream(response.getHits().spliterator(), true)
-                    .map(r -> mapper.convertValue(r.getSource(), Resource.class))
+                    .map(r -> {
+                        Resource res = mapper.convertValue(r.getSource(), Resource.class);
+                        res.setResourceTypeName(r.getIndex());
+                        return res;
+                    })
                     .collect(Collectors.toList());
 
             List<Facet> facets = new ArrayList<>();

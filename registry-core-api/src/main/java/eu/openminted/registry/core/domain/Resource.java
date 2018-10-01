@@ -188,6 +188,10 @@ public class Resource {
         this.versions = versions;
     }
 
+    public void setResourceTypeName(String resourceTypeName) {
+        this.resourceTypeName = resourceTypeName;
+    }
+
     private String generateVersion() {
         DateFormat df = new SimpleDateFormat("MMddyyyyHHmmss");
         return df.format(Calendar.getInstance().getTime());
