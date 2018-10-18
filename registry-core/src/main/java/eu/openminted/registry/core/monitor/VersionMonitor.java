@@ -10,7 +10,7 @@ import java.util.Date;
 import java.util.UUID;
 
 @Component
-public class VersionListener implements ResourceListener {
+public class VersionMonitor implements ResourceListener {
 
 	@Autowired
 	VersionService versionService;

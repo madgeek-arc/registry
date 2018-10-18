@@ -85,13 +85,17 @@ public abstract class AbstractDao<T> {
     }
 
     public void persist(T entity) {
-        entityManager.getTransaction().begin();
+        if(!entityManager.getTransaction().isActive())
+            entityManager.getTransaction().begin();
+
         entityManager.persist(entity);
         entityManager.getTransaction().commit();
     }
 
     public void delete(T entity) {
-        entityManager.getTransaction().begin();
+        if(!entityManager.getTransaction().isActive())
+            entityManager.getTransaction().begin();
+
         entityManager.remove(entity);
         entityManager.getTransaction().commit();
     }
