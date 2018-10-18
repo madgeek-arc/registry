@@ -1,15 +1,13 @@
 package eu.openminted.registry.component.service;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.StringReader;
-import java.net.JarURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.jar.JarFile;
-import java.util.zip.ZipEntry;
-
+import eu.openminted.interop.componentoverview.exporter.Exporter;
+import eu.openminted.interop.componentoverview.exporter.OpenMinTeDExporter;
+import eu.openminted.interop.componentoverview.importer.CreoleImporter;
+import eu.openminted.interop.componentoverview.importer.Importer;
+import eu.openminted.interop.componentoverview.importer.UimaImporter;
+import eu.openminted.interop.componentoverview.model.ComponentMetaData;
+import groovy.util.Node;
+import groovy.xml.XmlUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
 import org.eclipse.aether.DefaultRepositorySystemSession;
@@ -28,18 +26,19 @@ import org.eclipse.aether.spi.connector.RepositoryConnectorFactory;
 import org.eclipse.aether.spi.connector.transport.TransporterFactory;
 import org.eclipse.aether.transport.file.FileTransporterFactory;
 import org.eclipse.aether.transport.http.HttpTransporterFactory;
-import org.jdom.Document;
-import org.jdom.JDOMException;
-import org.jdom.input.SAXBuilder;
+import org.jdom2.Document;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
 
-import eu.openminted.interop.componentoverview.exporter.Exporter;
-import eu.openminted.interop.componentoverview.exporter.OpenMinTeDExporter;
-import eu.openminted.interop.componentoverview.importer.CreoleImporter;
-import eu.openminted.interop.componentoverview.importer.Importer;
-import eu.openminted.interop.componentoverview.importer.UimaImporter;
-import eu.openminted.interop.componentoverview.model.ComponentMetaData;
-import groovy.util.Node;
-import groovy.xml.XmlUtil;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringReader;
+import java.net.JarURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.jar.JarFile;
+import java.util.zip.ZipEntry;
 
 public class ComponentRegistryService {
 
@@ -86,7 +85,6 @@ public class ComponentRegistryService {
 		// metadata?
 
 		URL baseURL = new URL("jar:" + jarURL + "!/");
-		// System.out.println(baseURL);
 
 		JarURLConnection connection = (JarURLConnection) baseURL.openConnection();
 
@@ -199,7 +197,6 @@ public class ComponentRegistryService {
 		// TODO pull this from the maven settings.xml file
 		LocalRepository localRepo = new LocalRepository(
 				System.getProperty("user.home") + File.separator + ".m2" + File.separator + "repository/");
-		System.out.println(localRepo);
 		repoSystemSession.setLocalRepositoryManager(
 				getRepositorySystem().newLocalRepositoryManager(repoSystemSession, localRepo));
 
