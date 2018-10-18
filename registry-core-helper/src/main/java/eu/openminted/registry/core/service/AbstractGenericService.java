@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 
 abstract public class AbstractGenericService<T> {
 
-    protected final Class<T> typeParameterClass;
     @Autowired
     public SearchService searchService;
 
@@ -29,11 +28,14 @@ abstract public class AbstractGenericService<T> {
     public ResourceTypeService resourceTypeService;
     @Autowired
     public ParserService parserPool;
-    protected ResourceType resourceType;
+
     private Logger logger = LogManager.getLogger(AbstractGenericService.class);
     private List<String> browseBy;
 
     private Map<String, String> labels;
+
+    protected ResourceType resourceType;
+    protected final Class<T> typeParameterClass;
 
     public AbstractGenericService(Class<T> typeParameterClass) {
         this.typeParameterClass = typeParameterClass;
@@ -54,8 +56,6 @@ abstract public class AbstractGenericService<T> {
             if (f.getLabel() != null) {
                 sets.get(f.getResourceType().getName()).add(f.getName());
             }
-            //if(f.getLabel() != null) browseSet.add(f.getName());
-            //System.out.println(f.getName() + " " + f.getResourceType().getName());
         }
         boolean flag = true;
         for (Map.Entry<String, Set<String>> entry : sets.entrySet()) {

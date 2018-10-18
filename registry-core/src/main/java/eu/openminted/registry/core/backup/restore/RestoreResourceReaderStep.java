@@ -102,7 +102,7 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
                 throw new UnexpectedInputException("Not A supported file transformation");
 
         }
-        if(resourceDao.getResource(resourceType,resource.getId())!=null) {
+        if(resourceDao.getResource(resource.getId())!=null) {
             logger.debug("Skipping resource " + resource.getId() + " already exists");
             throw new ServiceException("Existing resource");
         }

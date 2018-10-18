@@ -8,29 +8,34 @@ import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hibernate.ScrollableResults;
 import org.hibernate.Session;
-import org.hibernate.criterion.CriteriaSpecification;
-import org.hibernate.criterion.Restrictions;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemReader;
-import org.springframework.batch.item.UnexpectedInputException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.TypedQuery;
+import javax.persistence.criteria.Predicate;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Stream;
+
 @Component
 @StepScope
 @Transactional
-public class DumpResourceReader extends AbstractDao<String, Resource> implements ItemReader<Resource>, StepExecutionListener {
+public class DumpResourceReader extends AbstractDao<Resource> implements ItemReader<Resource>, StepExecutionListener {
 
     private static final Logger logger = LogManager.getLogger(DumpResourceReader.class);
 
-    private ScrollableResults resources;
+    private Iterator<Resource> resources;
+
+    private Stream<Resource> test;
 
     private ResourceTypeDao resourceTypeDao;
 
@@ -61,20 +66,30 @@ public class DumpResourceReader extends AbstractDao<String, Resource> implements
             from = context.getInt("from");
             to = context.getInt("to");
         }
-        session = getSession().getSessionFactory().openSession();
         resourceType = resourceTypeDao.getResourceType(resourceTypeName);
-        resources = session
-                .createCriteria(Resource.class)
-                .add(Restrictions.eq("resourceType", resourceType))
-                .setFirstResult(from)
-                .setMaxResults(to-from)
-                .setResultTransformer(CriteriaSpecification.DISTINCT_ROOT_ENTITY)
-                .scroll();
+
+        criteriaQuery = getCriteriaQuery();
+        root = criteriaQuery.from(Resource.class);
+
+        criteriaQuery.distinct(true);
+
+
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(getCriteriaBuilder().equal(root.get("resourceType"), resourceType));
+
+        criteriaQuery.select(root).where(predicates.toArray(new Predicate[]{}));
+
+        TypedQuery<Resource> query = getEntityManager().createQuery(criteriaQuery);
+
+        query.setFirstResult(from);
+        query.setMaxResults(to-from);
+        test = query.getResultStream();
+        resources = query.getResultStream().iterator();
         IndexMapperFactory indexMapperFactory = new IndexMapperFactory();
         try {
             indexMapper = indexMapperFactory.createIndexMapper(resourceType);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage(), e);
         }
     }
 
@@ -97,22 +112,15 @@ public class DumpResourceReader extends AbstractDao<String, Resource> implements
 
     @Override
     public Resource read() throws Exception {
-        if(to<=0)
-            return null;
-        try {
-            if(resources.next()) {
-                Resource resource = (Resource) resources.get()[0];
-                if(resource.getIndexedFields() == null || resource.getIndexedFields().isEmpty()) {
-                    resource.setIndexedFields(indexMapper.getValues(resource.getPayload(),resourceType));
-                }
-                return resource;
+        if(resources.hasNext()) {
+            Resource resource = resources.next();
+//            Resource resource = (Resource) resource
+            if(resource.getIndexedFields() == null || resource.getIndexedFields().isEmpty()) {
+                resource.setIndexedFields(indexMapper.getValues(resource.getPayload(),resourceType));
             }
-        } catch(Exception e) {
-            resources.previous();
-            logger.error("Reader",e);
-            throw new UnexpectedInputException(e.getMessage());
+            return resource;
         }
-
         return null;
+
     }
 }

@@ -1,8 +1,5 @@
 package eu.openminted.registry.core.domain.index;
 
-import org.hibernate.annotations.LazyCollection;
-import org.hibernate.annotations.LazyCollectionOption;
-
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
@@ -16,7 +13,6 @@ public class LongIndexedField extends IndexedField<Long> {
 
     @Column
     @ElementCollection
-    @LazyCollection(LazyCollectionOption.FALSE)
     private Set<Long> values;
 
     public LongIndexedField(){

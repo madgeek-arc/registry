@@ -4,9 +4,6 @@ import eu.openminted.registry.core.dao.AbstractDao;
 import eu.openminted.registry.core.domain.Resource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hibernate.Session;
-import org.hibernate.criterion.Projections;
-import org.hibernate.criterion.Restrictions;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.partition.support.Partitioner;
 import org.springframework.batch.item.ExecutionContext;
@@ -15,16 +12,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.Query;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.stream.IntStream;
 
 @Component
 @StepScope
 @Transactional
-public class DumpResourcePartitioner extends AbstractDao<String, Resource> implements Partitioner {
+public class DumpResourcePartitioner extends AbstractDao<Resource> implements Partitioner {
 
     private static final Logger logger = LogManager.getLogger(DumpResourcePartitioner.class);
 
@@ -43,13 +41,23 @@ public class DumpResourcePartitioner extends AbstractDao<String, Resource> imple
 
     @Override
     public Map<String, ExecutionContext> partition(int gridSize) {
-        Session session = getSession().getSessionFactory().openSession();
-        List sizeResult = session.createCriteria(Resource.class)
-                .add(Restrictions.eq("resourceType.name", resourceType))
-                .setProjection(Projections.count("id")).list();
-        int size = Integer.parseInt(sizeResult.get(0).toString());
-        session.close();
-        return splitRange(size,gridSize);
+        CriteriaBuilder qb = getEntityManager().getCriteriaBuilder();
+        CriteriaQuery<Long> criteriaQuery = qb.createQuery(Long.class);
+        criteriaQuery.select(qb.count(criteriaQuery.from(Resource.class)));
+
+        root = criteriaQuery.from(Resource.class);
+
+
+        criteriaQuery.where(qb.equal(root.get("resourceType").get("name"),resourceType));
+//        List<Predicate> predicates = new ArrayList<>();
+//        predicates.add(qb.equal(newRoot.get("name"), resourceType));
+
+//        criteriaQuery.where(predicates.toArray(new Predicate[]{}));
+
+        Query query = getEntityManager().createQuery(criteriaQuery);
+
+        Long size = (Long) query.getSingleResult();
+        return splitRange(size.intValue(),gridSize);
     }
 
     private Map<String, ExecutionContext> splitRange(int size, int partitions) {
@@ -61,6 +69,7 @@ public class DumpResourcePartitioner extends AbstractDao<String, Resource> imple
             context.putInt("to",size);
             context.putString("resourceType",resourceType);
             versionMap.put(String.format("%s[%d-%d]",resourceType,0,size-1),context);
+            logger.info(String.format("%s[%d-%d]",resourceType,0,size));
         } else {
             IntStream.range(0,partitions).map(x -> x * diff).forEach(from -> {
                 ExecutionContext context = new ExecutionContext();

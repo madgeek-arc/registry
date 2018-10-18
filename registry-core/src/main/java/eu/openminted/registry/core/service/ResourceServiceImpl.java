@@ -16,10 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.function.Consumer;
 
 @Service("resourceService")
 @Transactional
@@ -34,19 +32,28 @@ public class ResourceServiceImpl implements ResourceService {
     private IndexMapperFactory indexMapperFactory;
     @Autowired
     private ResourceValidator resourceValidator;
+    @Autowired
+    private IndexedFieldService indexedFieldService;
 
     public ResourceServiceImpl() {
 
     }
 
     @Override
-    public Resource getResource(ResourceType resourceType, String id) {
-        return resourceDao.getResource(resourceType, id);
+    public Resource getResource(String id) {
+        return resourceDao.getResource(id);
     }
 
     @Override
     public List<Resource> getResource(ResourceType resourceType) {
         return resourceDao.getResource(resourceType);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void getResourceStream(Consumer<Resource> consumer) {
+        resourceDao.getResourceStream().forEach(consumer);
+
     }
 
     @Override
@@ -65,6 +72,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    @Transactional
     public Resource addResource(Resource resource) throws ServiceException {
 
 
@@ -93,7 +101,6 @@ public class ResourceServiceImpl implements ResourceService {
 
                 // resource needs to be saved first in order for the version to correctly reference to it
                 resourceDao.addResource(resource);
-
             } catch (Exception e) {
                 logger.error("Error saving resource", e);
                 throw new ServiceException(e);
@@ -112,8 +119,10 @@ public class ResourceServiceImpl implements ResourceService {
         if(resource.getResourceType() == null) {
             throw new ServiceException("Resource type does not exist");
         }
+        Resource oldResource = resourceDao.getResource(resource.getId());
+        indexedFieldService.deleteAllIndexedFields(oldResource);
         resource.setIndexedFields(getIndexedFields(resource));
-        resource.setModificationDate(new Date());
+//        resource.setIndexedFields(getIndexedFields(resource));
         for (IndexedField indexedField : resource.getIndexedFields()) {
             indexedField.setResource(resource);
         }
@@ -128,10 +137,8 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public void deleteResource(String id) {
-        Resource resource = resourceDao.getResource(null,id);
-        resourceDao.deleteResource(resource);
+        resourceDao.deleteResource(resourceDao.getResource(id));
     }
-
     private List<IndexedField> getIndexedFields(Resource resource) throws ServiceException{
 
         ResourceType resourceType = resourceTypeDao.getResourceType(resource.getResourceType().getName());

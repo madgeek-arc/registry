@@ -3,7 +3,6 @@ package eu.openminted.registry.core.domain;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
@@ -60,7 +59,7 @@ public class Resource {
     @Column(name = "modification_date", nullable = false)
     private Date modificationDate;
 
-    @OneToMany(cascade = {CascadeType.ALL}, mappedBy = "resource")
+    @OneToMany(cascade = {CascadeType.ALL},orphanRemoval = true, mappedBy = "resource")
     @LazyCollection(LazyCollectionOption.TRUE)
     @JsonIgnore
     private List<IndexedField> indexedFields;
@@ -149,7 +148,6 @@ public class Resource {
         this.payloadUrl = payloadUrl;
     }
 
-//    @JsonIgnore
     public List<IndexedField> getIndexedFields() {
         return indexedFields;
     }

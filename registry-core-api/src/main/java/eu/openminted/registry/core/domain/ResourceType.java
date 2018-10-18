@@ -1,6 +1,7 @@
 package eu.openminted.registry.core.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import eu.openminted.registry.core.domain.index.IndexField;
 import org.hibernate.annotations.LazyCollection;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "ResourceType")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class ResourceType {
 
     @Id

@@ -9,4 +9,6 @@ public interface IndexedFieldDao {
 
     List<IndexedField> getIndexedFieldsOfResource(Resource resource);
 
+    void deleteAllIndexedFields(Resource resource);
+
 }

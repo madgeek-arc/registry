@@ -2,102 +2,114 @@ package eu.openminted.registry.core.dao;
 
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
-import org.hibernate.Criteria;
-import org.hibernate.criterion.Restrictions;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.TypedQuery;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Repository("resourceDao")
 @Transactional
-public class ResourceDaoImpl extends AbstractDao<String, Resource> implements ResourceDao {
+public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDao {
 
-	public Resource getResource(ResourceType resourceType, String id) {
+	public Resource getResource(String id) {
+		return getSingleResult("id",id);
+	}
 
-		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		cr.add(Restrictions.eq("id", id));
+	@Override
+	public List<Resource> getModifiedSince(Date date){
+		criteriaQuery = getCriteriaQuery();
+		root = criteriaQuery.from(Resource.class);
 
-		if (resourceType != null)
-			cr.add(Restrictions.eq("resourceType", resourceType));
+		criteriaQuery.select(root).where(getCriteriaBuilder().lessThan(root.get("modificationDate"),date));
 
-		if (cr.list().size() == 0)
-			return null;
-		else
-			return (Resource) cr.list().get(0);
+		TypedQuery<Resource> typedQuery = getEntityManager().createQuery(criteriaQuery);
 
+
+		return typedQuery.getResultList();
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<Resource> getResource(ResourceType resourceType) {
 
-		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		cr.add(Restrictions.eq("resourceType", resourceType));
+		return getList("resourceType", resourceType);
+	}
 
-		return cr.list();
+	public Stream<Resource> getResourceStream(){
+		return getStream();
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<Resource> getResource(ResourceType resourceType, int from, int to) {
+		criteriaQuery = getCriteriaQuery();
+		root = criteriaQuery.from(Resource.class);
 
-		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		cr.add(Restrictions.eq("resourceType", resourceType));
+		criteriaQuery.distinct(true);
+		criteriaQuery.select(root).where(getCriteriaBuilder().equal(root.get("resourceType"),resourceType));
+
+		TypedQuery<Resource> typedQuery = getEntityManager().createQuery(criteriaQuery);
 		if (to == 0) {
-			cr.setFirstResult(from);
+			typedQuery.setFirstResult(from);
 		} else {
 			int quantity;
-			if(from==0)
-				quantity = to;
-			else
-				quantity = to - from;
-			cr.setFirstResult(from);
-			cr.setMaxResults(quantity);
+			quantity = (from==0) ? to : to - from;
+			typedQuery.setFirstResult(from);
+			typedQuery.setMaxResults(quantity);
 		}
 
-		return cr.list();
+		return typedQuery.getResultList();
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<Resource> getResource(int from, int to) {
 
-		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
+		criteriaQuery = getCriteriaQuery();
+		root = criteriaQuery.from(Resource.class);
+
+		criteriaQuery.distinct(true);
+		criteriaQuery.select(root);
+
+		TypedQuery<Resource> typedQuery = getEntityManager().createQuery(criteriaQuery);
+
 		if (to == 0) {
-			cr.setFirstResult(from);
+			typedQuery.setFirstResult(from);
 		} else {
-			int quantity = 10;
-			if(from==0)
-				quantity = to;
-			else
-				quantity = to - from;
-			cr.setFirstResult(from);
-			cr.setMaxResults(quantity);
+			int quantity;
+			quantity = (from==0) ? to : to - from;
+
+			typedQuery.setFirstResult(from);
+			typedQuery.setMaxResults(quantity);
 		}
-		return cr.list();
+		return typedQuery.getResultList();
 	}
 
 	public List<Resource> getResource() {
-		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		return cr.list();
+		criteriaQuery = getCriteriaQuery();
+		root = criteriaQuery.from(Resource.class);
+
+		criteriaQuery.distinct(true);
+		criteriaQuery.select(root);
+
+		return getEntityManager().createQuery(criteriaQuery).getResultList();
 	}
 
-
+    @Transactional
 	public void addResource(Resource resource){
-//		resource.setResourceType(getSession().load(ResourceType.class,resource.getResourceType().getName()));
 		persist(resource);
-		getSession().flush();
+//		getEntityManager().flush();
 	}
 
 	public void updateResource(Resource resource) {
 		resource.setModificationDate(new Date());
-		getSession().merge(resource);
-		getSession().flush();
+		getEntityManager().merge(resource);
 	}
 
 	public void deleteResource(Resource resource) {
-		getSession().delete(resource);
+		delete(resource);
 		resource.getResourceType().getResources().remove(resource);
-		getSession().flush();
+//		getEntityManager().flush();
 	}
 
 }

@@ -5,17 +5,19 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
-import org.hibernate.Criteria;
-import org.hibernate.Query;
 import org.springframework.stereotype.Repository;
 
+import javax.persistence.Query;
+import javax.persistence.TypedQuery;
+import javax.transaction.Transactional;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 @Repository("resourceTypeDao")
-public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> implements ResourceTypeDao {
+@Transactional
+public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements ResourceTypeDao {
 
     private LoadingCache<String, Optional<ResourceType>> resourceTypeCacheLoader;
 
@@ -26,7 +28,7 @@ public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> imple
         loader = new CacheLoader<String, Optional<ResourceType>>() {
             @Override
             public Optional<ResourceType> load(String name) {
-                return Optional.ofNullable(self.getSession().get(ResourceType.class,name));
+                return Optional.ofNullable(getEntityManager().find(ResourceType.class,name));
             }
         };
         resourceTypeCacheLoader = CacheBuilder.newBuilder().build(loader);
@@ -37,45 +39,46 @@ public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> imple
 	}
 
 	public List<ResourceType> getAllResourceType() {
-		Criteria cr = getSession().createCriteria(ResourceType.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		return cr.list();
+		return getList();
 	}
 	
 	@SuppressWarnings("unchecked")
 	public List<ResourceType> getAllResourceType(int from, int to) {
-		
-		Criteria cr = getSession().createCriteria(ResourceType.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		if(to==0){
-			cr.setFirstResult(from);
-		}else{
-			cr.setFirstResult(from);
-			cr.setMaxResults((to-from)+1);
+
+		criteriaQuery = getCriteriaQuery();
+		root = criteriaQuery.from(ResourceType.class);
+		criteriaQuery.distinct(true);
+		criteriaQuery.select(root);
+
+		TypedQuery<ResourceType> typedQuery = getEntityManager().createQuery(criteriaQuery);
+		if (to == 0) {
+			typedQuery.setFirstResult(from);
+		} else {
+			typedQuery.setFirstResult(from);
+			typedQuery.setMaxResults((to-from)+1);
 		}
-		return cr.list();
+		return typedQuery.getResultList();
 	}
 
 	public void addResourceType(ResourceType resourceType) {
 		persist(resourceType);
-		getSession().flush();
 		resourceTypeCacheLoader.refresh(resourceType.getName());
 	}
 
 	@Override
 	public Set<IndexField> getResourceTypeIndexFields(String name) {
 		Set<IndexField> indexFields = new HashSet<>();
-		Query query = getSession().createQuery("from IndexField where resourceType in " +
+		Query query = getEntityManager().createQuery("from IndexField where resourceType in " +
 				"(from ResourceType where name = :name or aliasGroup = :name)");
 		query.setParameter("name",name);
-		indexFields.addAll(query.list());
+		indexFields.addAll(query.getResultList());
 		return indexFields;
 	}
 
 	@Override
 	public void deleteResourceType(ResourceType resourceType) {
         resourceTypeCacheLoader.invalidate(resourceType.getName());
-		getSession().delete(resourceType);
-//		getSession().createSQLQuery("DROP VIEW IF EXISTS "+resourceType.getName()+"_view").executeUpdate();
-		getSession().flush();
+		delete(resourceType);
 	}
 
 }

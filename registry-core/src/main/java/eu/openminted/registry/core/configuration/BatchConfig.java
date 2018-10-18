@@ -1,6 +1,5 @@
 package eu.openminted.registry.core.configuration;
 
-import org.hibernate.SessionFactory;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.SimpleJobLauncher;
@@ -22,9 +21,6 @@ import javax.sql.DataSource;
 @Configuration()
 @EnableBatchProcessing
 public class BatchConfig {
-
-    @Autowired
-    SessionFactory sessionFactory;
 
     @Autowired
     PlatformTransactionManager transactionManager;

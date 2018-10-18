@@ -1,8 +1,7 @@
-package eu.openminted.registry.core.version;
+package eu.openminted.registry.core.monitor;
 
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.Version;
-import eu.openminted.registry.core.monitor.ResourceListener;
 import eu.openminted.registry.core.service.VersionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -23,7 +22,8 @@ public class VersionListener implements ResourceListener {
 
 	@Override
 	public void resourceUpdated(Resource previousResource, Resource newResource) {
-		createVersion(newResource);
+		//previousResource.id==newResource.id so we can send either one
+		createVersion(previousResource);
 	}
 
 	@Override

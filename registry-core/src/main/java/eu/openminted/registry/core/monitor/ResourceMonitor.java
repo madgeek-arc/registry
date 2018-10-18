@@ -62,16 +62,14 @@ public class ResourceMonitor {
 
         try {
 
-            Resource previous = resourceDao.getResource(resource.getResourceType(), resource.getId());
+            Resource previous = resourceDao.getResource(resource.getId());
 
-            Resource temp = new Resource(previous.getId(), previous.getResourceType(), previous.getVersion(), previous.getPayload(), previous.getPayloadFormat());
-
-            pjp.proceed();
+            resource = (Resource) pjp.proceed();
 
             if (resourceListeners != null)
                 for (ResourceListener listener : resourceListeners) {
                     try {
-                        listener.resourceUpdated(temp, resource);
+                        listener.resourceUpdated(previous, resource);
                         logger.debug("Notified listener : " + listener.getClass().getSimpleName() + " for update");
                     } catch (Exception e) {
                         logger.error("Error notifying listener", e);
@@ -87,7 +85,7 @@ public class ResourceMonitor {
     @Around(("execution (* eu.openminted.registry.core.service.ResourceService.deleteResource(java.lang.String)) && args(resourceId)"))
     public void resourceDeleted(ProceedingJoinPoint pjp, String resourceId) throws Throwable {
 
-        Resource previous = resourceDao.getResource(null, resourceId);
+        Resource previous = resourceDao.getResource(resourceId);
 
         pjp.proceed();
 

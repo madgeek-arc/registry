@@ -1,15 +1,18 @@
 package eu.openminted.registry.core.dao;
 
 import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.Version;
 import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.service.ServiceException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hibernate.Query;
 import org.springframework.stereotype.Repository;
 
+import javax.persistence.Query;
+
+
 @Repository("viewsDao")
-public class ViewsDaoImpl extends AbstractDao<String, String> implements ViewsDao {
+public class ViewsDaoImpl extends AbstractDao<Version> implements ViewsDao {
 
 	private static Logger logger = LogManager.getLogger(ViewsDaoImpl.class);
 
@@ -21,7 +24,10 @@ public class ViewsDaoImpl extends AbstractDao<String, String> implements ViewsDa
         if (resourceType.getIndexFields() != null) {
             for (IndexField indexField : resourceType.getIndexFields()) {
                 String indexFieldString = "";
-                selectFields = selectFields.concat(indexField.getName() + ".values as " + indexField.getName());
+                if(indexField.isMultivalued())
+                    selectFields = selectFields.concat("coalesce (" + indexField.getName() + ".values, '{}') as " + indexField.getName());
+                else
+                    selectFields = selectFields.concat("coalesce (" + indexField.getName() + ".values, '') as " + indexField.getName());
                 switch (indexField.getType()) {
                     case "java.lang.Float":
                         indexFieldString = "floatindexedfield";
@@ -47,13 +53,13 @@ public class ViewsDaoImpl extends AbstractDao<String, String> implements ViewsDa
                 }
                 if (!indexField.isMultivalued()) {
 
-                    joins = joins.concat(" join (select r.id, ifv.values" +
+                    joins = joins.concat(" left join (select r.id, ifv.values" +
                             " from resource r " +
                             " join " + indexFieldString + " if on if.resource_id=r.id " +
                             " join " + indexFieldString + "_values ifv on ifv." + indexFieldString + "_id=if.id " +
                             " where if.name='" + indexField.getName() + "') as " + indexField.getName() + " on  " + indexField.getName() + ".id=r.id ");
                 } else {
-                    joins = joins.concat(" join (select r.id, array_agg(ifv.values) as values" +
+                    joins = joins.concat(" left join (select r.id, array_agg(ifv.values) as values" +
                             " from resource r " +
                             " join " + indexFieldString + " if on if.resource_id=r.id " +
                             " join " + indexFieldString + "_values ifv on ifv." + indexFieldString + "_id=if.id " +
@@ -65,18 +71,22 @@ public class ViewsDaoImpl extends AbstractDao<String, String> implements ViewsDa
                 count++;
             }
 
-            Query query = getSession().createSQLQuery("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id, " + selectFields + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
+            Query query = getEntityManager().createNativeQuery("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id, " + selectFields + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
             try {
+                getEntityManager().getTransaction().begin();
                 query.executeUpdate();
+                getEntityManager().getTransaction().commit();
             } catch (Exception e) {
-                logger.info("View was not created");
+                logger.info("View was not created",e);
             }
         }
     }
 
 	@Override
 	public void deleteView(String resourceType) {
-		getSession().createSQLQuery("DROP VIEW IF EXISTS "+resourceType+"_view").executeUpdate();
+	    getEntityManager().getTransaction().begin();
+		getEntityManager().createNativeQuery("DROP VIEW IF EXISTS "+resourceType+"_view").executeUpdate();
+        getEntityManager().getTransaction().commit();
 	}
 
 

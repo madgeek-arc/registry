@@ -50,11 +50,10 @@ public class DefaultIndexMapper implements IndexMapper {
 				if(path == null) {
 					values = new HashSet<>();
 					if(value == null) {
-						throw new Exception("Indexfield:"  + fieldName +" with no xpath must supply a default value");
+						throw new ServiceException("Indexfield:"  + fieldName +" with no xpath must supply a default value");
 					}
 
 					values.add(mapper.convertValue(value,Class.forName(indexField.getType())));
-//					values.add((Class.forName(indexField.getType()).cast(value)));
 					res.add(indexedFieldFactory.getIndexedField(fieldName,values,fieldType));
 				}else {
 					//there is an xpath
@@ -66,6 +65,7 @@ public class DefaultIndexMapper implements IndexMapper {
 						if(value != null) {
 							values.add(mapper.convertValue(value,Class.forName(indexField.getType())));
 						}
+						
 						res.add(indexedFieldFactory.getIndexedField(fieldName,values,fieldType));
 					}
 

@@ -9,6 +9,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
+import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -18,15 +19,15 @@ public class DumpController {
     @Autowired
     DumpService dumpService;
 
-    static boolean deleteDirectory(File directory) {
+    private static boolean deleteDirectory(File directory) throws IOException {
         if (directory.exists()) {
             File[] files = directory.listFiles();
             if (null != files) {
-                for (int i = 0; i < files.length; i++) {
-                    if (files[i].isDirectory()) {
-                        deleteDirectory(files[i]);
+                for (File file : files) {
+                    if (file.isDirectory()) {
+                        deleteDirectory(file);
                     } else {
-                        files[i].delete();
+                        Files.delete(file.toPath());
                     }
                 }
             }
@@ -49,7 +50,6 @@ public class DumpController {
 
         ServletContext context = request.getServletContext();
         String appPath = context.getRealPath("");
-        System.out.println("appPath = " + appPath);
 
         // construct the complete absolute path of the file
         boolean wantVersion = false;
@@ -72,7 +72,11 @@ public class DumpController {
         try {
             inputStream = new FileInputStream(downloadFile);
         } catch (FileNotFoundException e) {
-            deleteDirectory(downloadFile);
+            try {
+                deleteDirectory(downloadFile);
+            } catch (IOException e1) {
+                throw new ServiceException(e1.getMessage());
+            }
             throw new ServiceException(e.getMessage());
         }
 
@@ -102,7 +106,11 @@ public class DumpController {
         try {
             outStream = response.getOutputStream();
         } catch (IOException e) {
-            deleteDirectory(downloadFile);
+            try {
+                deleteDirectory(downloadFile);
+            } catch (IOException e1) {
+                throw new ServiceException(e1.getMessage());
+            }
             throw new ServiceException(e.getMessage());
         }
 
@@ -124,6 +132,10 @@ public class DumpController {
         } catch (IOException e) {
             throw new ServiceException(e.getMessage());
         }
-        deleteDirectory(downloadFile);
+        try {
+            deleteDirectory(downloadFile);
+        } catch (IOException e1) {
+            throw new ServiceException(e1.getMessage());
+        }
     }
 }

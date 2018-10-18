@@ -1,7 +1,6 @@
-package eu.openminted.registry.core.views;
+package eu.openminted.registry.core.monitor;
 
 import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.monitor.ResourceTypeListener;
 import eu.openminted.registry.core.service.ViewService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

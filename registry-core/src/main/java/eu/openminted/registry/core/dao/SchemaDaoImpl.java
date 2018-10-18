@@ -11,8 +11,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.everit.json.schema.loader.SchemaLoader;
-import org.hibernate.Criteria;
-import org.hibernate.criterion.Restrictions;
 import org.json.JSONObject;
 import org.springframework.stereotype.Repository;
 import org.w3c.dom.ls.LSInput;
@@ -32,7 +30,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.TimeUnit;
 
 @Repository("schemaDao")
-public class SchemaDaoImpl extends AbstractDao<String, Schema> implements SchemaDao {
+public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
 
     private static Logger logger = LogManager.getLogger(SchemaDaoImpl.class);
 
@@ -54,26 +52,12 @@ public class SchemaDaoImpl extends AbstractDao<String, Schema> implements Schema
 
     @Override
     public Schema getSchema(String id) {
-        // TODO Auto-generated method stub
-        Criteria cr = getSession().createCriteria(Schema.class);
-        cr.add(Restrictions.eq("id", id));
-        if (cr.list().size() == 0) {
-            return null;
-        } else {
-            return (Schema) cr.list().get(0);
-        }
+        return getSingleResult("id",id);
     }
 
     @Override
     public Schema getSchemaByUrl(String originalURL) {
-        // TODO Auto-generated method stub
-        Criteria cr = getSession().createCriteria(Schema.class);
-        cr.add(Restrictions.eq("originalUrl", originalURL));
-        if (cr.list().size() == 0) {
-            return null;
-        } else {
-            return (Schema) cr.list().get(0);
-        }
+        return getSingleResult("originalUrl",originalURL);
     }
 
     @Override
@@ -81,13 +65,13 @@ public class SchemaDaoImpl extends AbstractDao<String, Schema> implements Schema
         if (schema.getId() == null) {
             schema.setId(stringToMd5(schema.getSchema() + schema.getOriginalUrl()));
         }
-        getSession().saveOrUpdate(schema);
+        persist(schema);
         logger.info("Added schema with url = " + schema.getOriginalUrl());
     }
 
     @Override
     public void deleteSchema(Schema schema) {
-        getSession().delete(schema);
+        delete(schema);
     }
 
     @Override
