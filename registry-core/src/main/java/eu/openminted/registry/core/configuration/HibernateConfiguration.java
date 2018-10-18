@@ -55,8 +55,9 @@ public class HibernateConfiguration {
     }
 
     @Bean
-	public EntityManager entityManager(){
-		return entityManagerFactory().getObject().createEntityManager();
+	@Autowired
+	public EntityManager entityManager(EntityManagerFactory entityManagerFactory){
+		return entityManagerFactory.createEntityManager();
 	}
 
     @Bean
