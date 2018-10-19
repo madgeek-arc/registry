@@ -27,7 +27,7 @@ public class IndexedFieldDaoImpl extends AbstractDao<IndexedField> implements In
             iF.setResource(null);
             persist(iF);
         });
-        getEntityManager().refresh(resource);
+//        getEntityManager().refresh(resource);
 //        resource.setIndexedFields(new ArrayList<>());
 //        getEntityManager().refresh(resource);
     }
