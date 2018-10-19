@@ -6,7 +6,6 @@
     <version>2.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-
     <modules>
         <module>
             registry-core
