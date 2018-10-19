@@ -19,6 +19,9 @@
         <module>
             registry-core-helper
         </module>
+        <module>
+            registry-core-resource-sync
+        </module>
     </modules>
 
     <properties>
