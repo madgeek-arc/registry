@@ -20,7 +20,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -68,8 +70,8 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
         }
         resourceType = resourceTypeDao.getResourceType(resourceTypeName);
 
-        criteriaQuery = getCriteriaQuery();
-        root = criteriaQuery.from(Resource.class);
+        CriteriaQuery<Resource> criteriaQuery = getCriteriaQuery();
+        Root<Resource> root = criteriaQuery.from(Resource.class);
 
         criteriaQuery.distinct(true);
 

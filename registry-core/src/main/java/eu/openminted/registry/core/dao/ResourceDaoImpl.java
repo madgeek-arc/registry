@@ -6,6 +6,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Stream;
@@ -20,8 +22,8 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 
 	@Override
 	public List<Resource> getModifiedSince(Date date){
-		criteriaQuery = getCriteriaQuery();
-		root = criteriaQuery.from(Resource.class);
+		CriteriaQuery<Resource> criteriaQuery = getCriteriaQuery();
+		Root<Resource> root = criteriaQuery.from(Resource.class);
 
 		criteriaQuery.select(root).where(getCriteriaBuilder().lessThan(root.get("modificationDate"),date));
 
@@ -43,8 +45,8 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 
 	@SuppressWarnings("unchecked")
 	public List<Resource> getResource(ResourceType resourceType, int from, int to) {
-		criteriaQuery = getCriteriaQuery();
-		root = criteriaQuery.from(Resource.class);
+		CriteriaQuery<Resource> criteriaQuery = getCriteriaQuery();
+		Root<Resource> root = criteriaQuery.from(Resource.class);
 
 		criteriaQuery.distinct(true);
 		criteriaQuery.select(root).where(getCriteriaBuilder().equal(root.get("resourceType"),resourceType));
@@ -65,8 +67,8 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 	@SuppressWarnings("unchecked")
 	public List<Resource> getResource(int from, int to) {
 
-		criteriaQuery = getCriteriaQuery();
-		root = criteriaQuery.from(Resource.class);
+		CriteriaQuery<Resource> criteriaQuery = getCriteriaQuery();
+		Root<Resource> root = criteriaQuery.from(Resource.class);
 
 		criteriaQuery.distinct(true);
 		criteriaQuery.select(root);
@@ -86,8 +88,8 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 	}
 
 	public List<Resource> getResource() {
-		criteriaQuery = getCriteriaQuery();
-		root = criteriaQuery.from(Resource.class);
+		CriteriaQuery<Resource> criteriaQuery = getCriteriaQuery();
+		Root<Resource> root = criteriaQuery.from(Resource.class);
 
 		criteriaQuery.distinct(true);
 		criteriaQuery.select(root);

@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.Query;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -43,7 +44,7 @@ public class DumpResourcePartitioner extends AbstractDao<Resource> implements Pa
     public Map<String, ExecutionContext> partition(int gridSize) {
         CriteriaBuilder qb = getEntityManager().getCriteriaBuilder();
         CriteriaQuery<Long> criteriaQuery = qb.createQuery(Long.class);
-        root = criteriaQuery.from(Resource.class);
+        Root<Resource> root = criteriaQuery.from(Resource.class);
         criteriaQuery.select(qb.count(root));
         criteriaQuery.where(qb.equal(root.get("resourceType").get("name"),resourceType));
         Query query = getEntityManager().createQuery(criteriaQuery);

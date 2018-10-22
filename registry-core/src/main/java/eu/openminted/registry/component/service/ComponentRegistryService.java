@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 
+@Deprecated
 public class ComponentRegistryService {
 
 	public List<ComponentMetaData> describe(String groupID, String artifactID, String version) throws IOException {

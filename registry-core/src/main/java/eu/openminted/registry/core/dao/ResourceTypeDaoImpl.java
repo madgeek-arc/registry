@@ -9,6 +9,8 @@ import org.springframework.stereotype.Repository;
 
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
 import javax.transaction.Transactional;
 import java.util.HashSet;
 import java.util.List;
@@ -45,8 +47,8 @@ public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements Re
 	@SuppressWarnings("unchecked")
 	public List<ResourceType> getAllResourceType(int from, int to) {
 
-		criteriaQuery = getCriteriaQuery();
-		root = criteriaQuery.from(ResourceType.class);
+		CriteriaQuery<ResourceType> criteriaQuery = getCriteriaQuery();
+		Root<ResourceType> root = criteriaQuery.from(ResourceType.class);
 		criteriaQuery.distinct(true);
 		criteriaQuery.select(root);
 

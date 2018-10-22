@@ -1,6 +1,7 @@
 package eu.openminted.registry.core.dao;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,9 +21,9 @@ public abstract class AbstractDao<T> {
      
     private final Class<T> persistentClass;
 
-    protected CriteriaQuery<T> criteriaQuery;
+//    protected CriteriaQuery<T> criteriaQuery;
 
-    protected Root<T> root;
+//    protected Root<T> root;
 
     @Autowired
     private EntityManager entityManager;
@@ -32,10 +33,12 @@ public abstract class AbstractDao<T> {
         this.persistentClass =(Class<T>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
     }
 
+    @Scope("request")
     protected CriteriaBuilder getCriteriaBuilder(){
         return entityManager.getCriteriaBuilder();
     }
 
+    @Scope("request")
     protected CriteriaQuery<T> getCriteriaQuery(){
         return getCriteriaBuilder().createQuery(persistentClass);
     }
@@ -45,8 +48,8 @@ public abstract class AbstractDao<T> {
     }
     @SuppressWarnings("unchecked")
     public T getSingleResult(String key, Object value) {
-        criteriaQuery = getCriteriaQuery();
-        root = criteriaQuery.from(persistentClass);
+        CriteriaQuery<T> criteriaQuery = getCriteriaQuery();
+        Root<T> root = criteriaQuery.from(persistentClass);
 
         criteriaQuery.distinct(true);
         criteriaQuery.select(root).where(getCriteriaBuilder().equal(root.get(key),value));
@@ -56,8 +59,8 @@ public abstract class AbstractDao<T> {
     }
 
     public List<T> getList(String key, Object value) {
-        criteriaQuery = getCriteriaQuery();
-        root = criteriaQuery.from(persistentClass);
+        CriteriaQuery<T> criteriaQuery = getCriteriaQuery();
+        Root<T> root = criteriaQuery.from(persistentClass);
 
         criteriaQuery.distinct(true);
         criteriaQuery.select(root).where(getCriteriaBuilder().equal(root.get(key),value));
@@ -66,8 +69,8 @@ public abstract class AbstractDao<T> {
     }
 
     public List<T> getList() {
-        criteriaQuery = getCriteriaQuery();
-        root = criteriaQuery.from(persistentClass);
+        CriteriaQuery<T> criteriaQuery = getCriteriaQuery();
+        Root<T> root = criteriaQuery.from(persistentClass);
 
         criteriaQuery.distinct(true);
         criteriaQuery.select(root);
@@ -76,8 +79,8 @@ public abstract class AbstractDao<T> {
     }
 
     public Stream<T> getStream() {
-        criteriaQuery = getCriteriaQuery();
-        root = criteriaQuery.from(persistentClass);
+        CriteriaQuery<T> criteriaQuery = getCriteriaQuery();
+        Root<T> root = criteriaQuery.from(persistentClass);
 
         criteriaQuery.select(root);
         TypedQuery<T> query = entityManager.createQuery(criteriaQuery);

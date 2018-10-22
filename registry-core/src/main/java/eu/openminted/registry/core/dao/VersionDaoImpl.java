@@ -5,7 +5,9 @@ import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.Version;
 import org.springframework.stereotype.Repository;
 
+import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,8 +17,8 @@ public class VersionDaoImpl extends AbstractDao<Version> implements VersionDao {
 	@Override
 	public Version getVersion(Resource resource, String version) {
 
-		criteriaQuery = getCriteriaQuery();
-		root = criteriaQuery.from(Version.class);
+		CriteriaQuery<Version> criteriaQuery = getCriteriaQuery();
+		Root<Version>  root = criteriaQuery.from(Version.class);
 
 		criteriaQuery.distinct(true);
 
