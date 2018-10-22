@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.FlushModeType;
 import javax.sql.DataSource;
 import java.util.Properties;
 
@@ -57,7 +58,9 @@ public class HibernateConfiguration {
     @Bean
 	@Autowired
 	public EntityManager entityManager(EntityManagerFactory entityManagerFactory){
-		return entityManagerFactory.createEntityManager();
+		EntityManager entityManager = entityManagerFactory.createEntityManager();
+		entityManager.setFlushMode(FlushModeType.COMMIT);
+		return entityManager;
 	}
 
     @Bean
@@ -72,7 +75,7 @@ public class HibernateConfiguration {
 	public DataSource dataSource() {
 		DriverManagerDataSource dataSource = new DriverManagerDataSource();
 		dataSource.setDriverClassName(environment.getRequiredProperty("jdbc.driverClassName"));
-		dataSource.setUrl(environment.getRequiredProperty("jdbc.url"));
+		dataSource.setUrl(environment.getRequiredProperty("jdbc.url")+"?autoReconnect=true");
 		dataSource.setUsername(environment.getRequiredProperty("jdbc.username"));
 		dataSource.setPassword(environment.getRequiredProperty("jdbc.password"));
 		return dataSource;
@@ -84,7 +87,7 @@ public class HibernateConfiguration {
 		properties.put("hibernate.show_sql", environment.getRequiredProperty("hibernate.show_sql"));
 		properties.put("hibernate.format_sql", environment.getRequiredProperty("hibernate.format_sql"));
 		properties.put("hibernate.hbm2ddl.auto", environment.getRequiredProperty("hibernate.hbm2ddl.auto"));
-//		properties.put("hibernate.enable_lazy_load_no_trans","true");
+		properties.put("hibernate.enable_lazy_load_no_trans","true");
 		return properties;
 	}
 

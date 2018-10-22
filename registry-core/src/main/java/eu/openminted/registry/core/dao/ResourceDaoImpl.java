@@ -10,6 +10,7 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @Repository("resourceDao")
@@ -24,18 +25,13 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 	public List<Resource> getModifiedSince(Date date){
 		CriteriaQuery<Resource> criteriaQuery = getCriteriaQuery();
 		Root<Resource> root = criteriaQuery.from(Resource.class);
-
 		criteriaQuery.select(root).where(getCriteriaBuilder().lessThan(root.get("modificationDate"),date));
-
 		TypedQuery<Resource> typedQuery = getEntityManager().createQuery(criteriaQuery);
-
-
 		return typedQuery.getResultList();
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<Resource> getResource(ResourceType resourceType) {
-
 		return getList("resourceType", resourceType);
 	}
 
@@ -48,8 +44,10 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 		CriteriaQuery<Resource> criteriaQuery = getCriteriaQuery();
 		Root<Resource> root = criteriaQuery.from(Resource.class);
 
+        criteriaQuery.select(root);
+        Optional<ResourceType> optional = Optional.ofNullable(resourceType);
+        optional.ifPresent(r -> criteriaQuery.where(getCriteriaBuilder().equal(root.get("resourceType"),resourceType)));
 		criteriaQuery.distinct(true);
-		criteriaQuery.select(root).where(getCriteriaBuilder().equal(root.get("resourceType"),resourceType));
 
 		TypedQuery<Resource> typedQuery = getEntityManager().createQuery(criteriaQuery);
 		if (to == 0) {
@@ -66,41 +64,16 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 
 	@SuppressWarnings("unchecked")
 	public List<Resource> getResource(int from, int to) {
-
-		CriteriaQuery<Resource> criteriaQuery = getCriteriaQuery();
-		Root<Resource> root = criteriaQuery.from(Resource.class);
-
-		criteriaQuery.distinct(true);
-		criteriaQuery.select(root);
-
-		TypedQuery<Resource> typedQuery = getEntityManager().createQuery(criteriaQuery);
-
-		if (to == 0) {
-			typedQuery.setFirstResult(from);
-		} else {
-			int quantity;
-			quantity = (from==0) ? to : to - from;
-
-			typedQuery.setFirstResult(from);
-			typedQuery.setMaxResults(quantity);
-		}
-		return typedQuery.getResultList();
+        return getResource(null,from,to);
 	}
 
 	public List<Resource> getResource() {
-		CriteriaQuery<Resource> criteriaQuery = getCriteriaQuery();
-		Root<Resource> root = criteriaQuery.from(Resource.class);
-
-		criteriaQuery.distinct(true);
-		criteriaQuery.select(root);
-
-		return getEntityManager().createQuery(criteriaQuery).getResultList();
+	    return getResource(null,0,Integer.MAX_VALUE);
 	}
 
     @Transactional
 	public void addResource(Resource resource){
 		persist(resource);
-//		getEntityManager().flush();
 	}
 
 	public void updateResource(Resource resource) {
@@ -111,7 +84,6 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 	public void deleteResource(Resource resource) {
 		delete(resource);
 		resource.getResourceType().getResources().remove(resource);
-//		getEntityManager().flush();
 	}
 
 }
