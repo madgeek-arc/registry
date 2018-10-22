@@ -43,19 +43,10 @@ public class DumpResourcePartitioner extends AbstractDao<Resource> implements Pa
     public Map<String, ExecutionContext> partition(int gridSize) {
         CriteriaBuilder qb = getEntityManager().getCriteriaBuilder();
         CriteriaQuery<Long> criteriaQuery = qb.createQuery(Long.class);
-        criteriaQuery.select(qb.count(criteriaQuery.from(Resource.class)));
-
         root = criteriaQuery.from(Resource.class);
-
-
+        criteriaQuery.select(qb.count(root));
         criteriaQuery.where(qb.equal(root.get("resourceType").get("name"),resourceType));
-//        List<Predicate> predicates = new ArrayList<>();
-//        predicates.add(qb.equal(newRoot.get("name"), resourceType));
-
-//        criteriaQuery.where(predicates.toArray(new Predicate[]{}));
-
         Query query = getEntityManager().createQuery(criteriaQuery);
-
         Long size = (Long) query.getSingleResult();
         return splitRange(size.intValue(),gridSize);
     }
