@@ -27,7 +27,7 @@ public class ViewsDaoImpl extends AbstractDao<Version> implements ViewsDao {
                 if(indexField.isMultivalued())
                     selectFields = selectFields.concat("coalesce (" + indexField.getName() + ".values, '{}') as " + indexField.getName());
                 else
-                    selectFields = selectFields.concat("coalesce (" + indexField.getName() + ".values, '') as " + indexField.getName());
+                    selectFields = selectFields.concat("coalesce (" + indexField.getName() + ".values, NULL) as " + indexField.getName());
                 switch (indexField.getType()) {
                     case "java.lang.Float":
                         indexFieldString = "floatindexedfield";
@@ -71,8 +71,9 @@ public class ViewsDaoImpl extends AbstractDao<Version> implements ViewsDao {
                 count++;
             }
 
-            Query query = getEntityManager().createNativeQuery("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id, " + selectFields + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
+            Query query = getEntityManager().createNativeQuery("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id " + (selectFields.isEmpty() ? "" :  ", " + selectFields) + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
             try {
+                logger.info("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id, " + selectFields + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
                 getEntityManager().getTransaction().begin();
                 query.executeUpdate();
                 getEntityManager().getTransaction().commit();
