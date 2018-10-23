@@ -15,15 +15,9 @@ import java.util.List;
 import java.util.stream.Stream;
 
 
-@Repository
-@Transactional
 public abstract class AbstractDao<T> {
      
     private final Class<T> persistentClass;
-
-//    protected CriteriaQuery<T> criteriaQuery;
-
-//    protected Root<T> root;
 
     @Autowired
     private EntityManager entityManager;
