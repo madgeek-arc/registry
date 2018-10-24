@@ -93,9 +93,16 @@ public class HibernateConfiguration {
 		dataSource.setUser(environment.getRequiredProperty("jdbc.username"));
 		dataSource.setPassword(environment.getRequiredProperty("jdbc.password"));
 		dataSource.setAcquireIncrement(2);
-		dataSource.setMinPoolSize(5);
-		dataSource.setMaxPoolSize(15);
-		dataSource.setMaxIdleTime(600);
+		dataSource.setMinPoolSize(2);
+		dataSource.setMaxPoolSize(10);
+		dataSource.setMaxIdleTime(60);//seconds
+		dataSource.setPreferredTestQuery("SELECT 1");
+		dataSource.setDebugUnreturnedConnectionStackTraces(true);
+		dataSource.setTestConnectionOnCheckin(true);
+		dataSource.setIdleConnectionTestPeriod(10);
+		dataSource.setInitialPoolSize(2);
+		dataSource.setMaxStatements(0);
+		dataSource.setMaxStatementsPerConnection(0);
 
 		return dataSource;
 	}
