@@ -2,6 +2,8 @@ package eu.openminted.registry.core.dao;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
@@ -12,7 +14,8 @@ import java.lang.reflect.ParameterizedType;
 import java.util.List;
 import java.util.stream.Stream;
 
-
+@Repository
+@Transactional
 public abstract class AbstractDao<T> {
      
     private final Class<T> persistentClass;
