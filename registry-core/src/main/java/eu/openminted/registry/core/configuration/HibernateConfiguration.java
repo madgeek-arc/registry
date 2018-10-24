@@ -1,5 +1,8 @@
 package eu.openminted.registry.core.configuration;
 
+import com.mchange.v2.c3p0.ComboPooledDataSource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.cache.CacheManager;
@@ -8,7 +11,6 @@ import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.*;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -20,6 +22,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.FlushModeType;
 import javax.sql.DataSource;
+import java.beans.PropertyVetoException;
 import java.util.Properties;
 
 @Configuration
@@ -29,6 +32,8 @@ import java.util.Properties;
 @EnableAspectJAutoProxy
 @EnableCaching
 public class HibernateConfiguration {
+
+	private static Logger logger = LogManager.getLogger(HibernateConfiguration.class);
 
 	@Autowired
 	private Environment environment;
@@ -72,12 +77,26 @@ public class HibernateConfiguration {
     }
 
 	@Bean(destroyMethod="")
-	public DataSource dataSource() {
-		DriverManagerDataSource dataSource = new DriverManagerDataSource();
-		dataSource.setDriverClassName(environment.getRequiredProperty("jdbc.driverClassName"));
-		dataSource.setUrl(environment.getRequiredProperty("jdbc.url")+"?autoReconnect=true");
-		dataSource.setUsername(environment.getRequiredProperty("jdbc.username"));
+	public DataSource dataSource(){
+		ComboPooledDataSource dataSource = new ComboPooledDataSource();
+////		DriverManagerDataSource dataSource = new DriverManagerDataSource();
+//		dataSource.setDriverClassName(environment.getRequiredProperty("jdbc.driverClassName"));
+//		dataSource.setUrl(environment.getRequiredProperty("jdbc.url")+"?autoReconnect=true");
+//		dataSource.setUsername(environment.getRequiredProperty("jdbc.username"));
+//		dataSource.setPassword(environment.getRequiredProperty("jdbc.password"));
+		try {
+			dataSource.setDriverClass(environment.getRequiredProperty("jdbc.driverClassName"));
+		} catch (PropertyVetoException e) {
+			logger.error(e.getMessage(),e);
+		}
+		dataSource.setJdbcUrl(environment.getRequiredProperty("jdbc.url"));
+		dataSource.setUser(environment.getRequiredProperty("jdbc.username"));
 		dataSource.setPassword(environment.getRequiredProperty("jdbc.password"));
+		dataSource.setAcquireIncrement(2);
+		dataSource.setMinPoolSize(5);
+		dataSource.setMaxPoolSize(15);
+		dataSource.setMaxIdleTime(600);
+
 		return dataSource;
 	}
 

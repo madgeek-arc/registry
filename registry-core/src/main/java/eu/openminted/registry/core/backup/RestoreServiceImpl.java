@@ -80,7 +80,7 @@ public class RestoreServiceImpl implements RestoreService {
 
     private BatchResult convertJob(JobExecution j) {
         BatchResult ret = new BatchResult();
-//        Optional<Throwable> e = j.getAllFailureExceptions().stream().reduce(Throwable::initCause);
+        Optional<Throwable> e = j.getAllFailureExceptions().stream().reduce(Throwable::initCause);
 //        if (e.isPresent()) try {
 //            throw e.get();
 //        } catch (Throwable throwable) {
