@@ -98,6 +98,7 @@ public class HibernateConfiguration {
 		dataSource.setMaxIdleTime(60);//seconds
 		dataSource.setPreferredTestQuery("SELECT 1");
 		dataSource.setDebugUnreturnedConnectionStackTraces(true);
+		dataSource.setTestConnectionOnCheckout(true);
 		dataSource.setTestConnectionOnCheckin(true);
 		dataSource.setIdleConnectionTestPeriod(10);
 		dataSource.setInitialPoolSize(2);
