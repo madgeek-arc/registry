@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.FlushModeType;
 import javax.sql.DataSource;
 import java.beans.PropertyVetoException;
 import java.util.Properties;
@@ -63,6 +64,7 @@ public class HibernateConfiguration {
 	@Autowired
 	public EntityManager entityManager(EntityManagerFactory entityManagerFactory){
 		EntityManager entityManager = entityManagerFactory.createEntityManager();
+		entityManager.setFlushMode(FlushModeType.AUTO);
 		return entityManager;
 	}
 

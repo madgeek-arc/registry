@@ -1,10 +1,10 @@
 package eu.openminted.registry.core.dao;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
@@ -20,7 +20,7 @@ public abstract class AbstractDao<T> {
      
     private final Class<T> persistentClass;
 
-    @Autowired
+    @Inject
     private EntityManager entityManager;
 
     @SuppressWarnings("unchecked")
@@ -39,7 +39,7 @@ public abstract class AbstractDao<T> {
     }
 
     protected EntityManager getEntityManager(){
-        return entityManager;
+        return this.entityManager;
     }
     @SuppressWarnings("unchecked")
     public T getSingleResult(String key, Object value) {
@@ -82,6 +82,7 @@ public abstract class AbstractDao<T> {
         return query.getResultStream();
     }
 
+    @Transactional
     public void persist(T entity) {
         if(!entityManager.getTransaction().isActive())
             entityManager.getTransaction().begin();
@@ -90,6 +91,7 @@ public abstract class AbstractDao<T> {
         entityManager.getTransaction().commit();
     }
 
+    @Transactional
     public void delete(T entity) {
         if(!entityManager.getTransaction().isActive())
             entityManager.getTransaction().begin();
