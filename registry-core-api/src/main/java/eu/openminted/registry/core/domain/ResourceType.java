@@ -52,7 +52,7 @@ public class ResourceType {
     @Column
     private String aliasGroup;
 
-    @OneToMany(mappedBy = "resourceType", cascade = {CascadeType.ALL})
+    @OneToMany(mappedBy = "resourceType", cascade = {CascadeType.ALL}, orphanRemoval = true)
     @JsonIgnore
     @LazyCollection(LazyCollectionOption.TRUE)
     private List<Resource> resources;

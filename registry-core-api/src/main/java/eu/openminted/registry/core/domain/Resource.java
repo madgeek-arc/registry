@@ -23,7 +23,7 @@ public class Resource {
     @Column(name = "id", nullable = false)
     private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "fk_name", nullable = false)
     @JsonBackReference(value = "resourcetype-resource")
 //    @JsonIgnore
@@ -59,7 +59,7 @@ public class Resource {
     @Column(name = "modification_date", nullable = false)
     private Date modificationDate;
 
-    @OneToMany(cascade = {CascadeType.ALL},orphanRemoval = true, mappedBy = "resource")
+    @OneToMany(cascade = {CascadeType.ALL}, orphanRemoval = true, mappedBy = "resource")
     @LazyCollection(LazyCollectionOption.TRUE)
     @JsonIgnore
     private List<IndexedField> indexedFields;
