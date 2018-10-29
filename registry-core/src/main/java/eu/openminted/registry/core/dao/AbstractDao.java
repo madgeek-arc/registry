@@ -1,11 +1,11 @@
 package eu.openminted.registry.core.dao;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -20,7 +20,7 @@ public abstract class AbstractDao<T> {
      
     private final Class<T> persistentClass;
 
-    @Autowired
+    @PersistenceContext
     private EntityManager entityManager;
 
     @SuppressWarnings("unchecked")
@@ -83,20 +83,20 @@ public abstract class AbstractDao<T> {
     }
 
     public void persist(T entity) {
-        if(!entityManager.getTransaction().isActive())
-            entityManager.getTransaction().begin();
+//        if(!entityManager.getTransaction().isActive())
+//            entityManager.getTransaction().begin();
 
         entityManager.persist(entity);
-        entityManager.getTransaction().commit();
+//        entityManager.getTransaction().commit();
     }
 
 
     public void delete(T entity) {
-        if(!entityManager.getTransaction().isActive())
-            entityManager.getTransaction().begin();
+//        if(!entityManager.getTransaction().isActive())
+//            entityManager.getTransaction().begin();
 
         entityManager.remove(entity);
-        entityManager.getTransaction().commit();
+//        entityManager.getTransaction().commit();
     }
      
 }
