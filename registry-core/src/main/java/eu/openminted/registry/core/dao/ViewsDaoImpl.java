@@ -74,9 +74,9 @@ public class ViewsDaoImpl extends AbstractDao<Version> implements ViewsDao {
             Query query = getEntityManager().createNativeQuery("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id " + (selectFields.isEmpty() ? "" :  ", " + selectFields) + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
             try {
                 logger.info("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id, " + selectFields + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
-                getEntityManager().getTransaction().begin();
+//                getEntityManager().getTransaction().begin();
                 query.executeUpdate();
-                getEntityManager().getTransaction().commit();
+//                getEntityManager().getTransaction().commit();
             } catch (Exception e) {
                 logger.info("View was not created",e);
             }
@@ -85,9 +85,10 @@ public class ViewsDaoImpl extends AbstractDao<Version> implements ViewsDao {
 
 	@Override
 	public void deleteView(String resourceType) {
-	    getEntityManager().getTransaction().begin();
+	    logger.info("Deleting view ");
+//	    getEntityManager().getTransaction().begin();
 		getEntityManager().createNativeQuery("DROP VIEW IF EXISTS "+resourceType+"_view").executeUpdate();
-        getEntityManager().getTransaction().commit();
+//        getEntityManager().getTransaction().commit();
 	}
 
 
