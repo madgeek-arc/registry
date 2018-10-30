@@ -11,12 +11,17 @@ import eu.openminted.registry.core.validation.ResourceValidator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.sql.DataSource;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 @Service("resourceService")
@@ -34,6 +39,8 @@ public class ResourceServiceImpl implements ResourceService {
     private ResourceValidator resourceValidator;
     @Autowired
     private IndexedFieldService indexedFieldService;
+    @Autowired
+    private DataSource dataSource;
 
     public ResourceServiceImpl() {
 
@@ -68,6 +75,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public List<Resource> getResource() {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         return resourceDao.getResource();
     }
 

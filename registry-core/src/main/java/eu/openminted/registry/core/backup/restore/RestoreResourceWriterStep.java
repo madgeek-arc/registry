@@ -5,8 +5,6 @@ import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
-import eu.openminted.registry.core.index.IndexMapper;
-import eu.openminted.registry.core.index.IndexMapperFactory;
 import eu.openminted.registry.core.service.ResourceService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -74,6 +72,7 @@ public class RestoreResourceWriterStep implements ItemWriter<Resource>, StepExec
                     // we are using the DAO service in order to keep the previous ID of the resource
                     resourceDao.addResource(resource);
                 }
+
                 resource.getVersions().forEach(v -> versionDao.addVersion(v));
                 logger.debug("Restoring " + resourceType.getName() + " with id " + addedResource.getId());
                 resources.add(addedResource);
@@ -81,7 +80,7 @@ public class RestoreResourceWriterStep implements ItemWriter<Resource>, StepExec
             }
             elasticOperationsService.addBulk(resources);
         } catch (Exception e) {
-            logger.info(e.getMessage());
+            logger.info(e.getMessage(),e);
         }
     }
 }

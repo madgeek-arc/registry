@@ -7,4 +7,5 @@ public interface ViewsDao {
     void createView(ResourceType resourceType);
 
     void deleteView(String resourceType);
+
 }

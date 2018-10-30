@@ -15,8 +15,11 @@ public class Version {
 	private String id;
 
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name="parent_id", nullable = false)
+	@JoinColumn(name="reference_id")
 	private Resource resource;
+
+	@Column(name = "parent_id")
+	private String parentId;
 
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name="fk_name_version", nullable = false)
@@ -99,5 +102,13 @@ public class Version {
 
 	public void setResource(Resource resource) {
 		this.resource = resource;
+	}
+
+	public String getParentId() {
+		return parentId;
+	}
+
+	public void setParentId(String parentId) {
+		this.parentId = parentId;
 	}
 }

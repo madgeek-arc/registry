@@ -11,7 +11,13 @@ public interface ResourceDao {
 
     Resource getResource(String id);
 
+    List<Resource> getModifiedSince(Date date, String resourceType);
+
     List<Resource> getModifiedSince(Date date);
+
+    List<Resource> getCreatedSince(Date date);
+
+    List<Resource> getCreatedSince(Date date, String resourceType);
 
     List<Resource> getResource(ResourceType resourceType);
 

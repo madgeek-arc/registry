@@ -81,11 +81,11 @@ public class RestoreServiceImpl implements RestoreService {
     private BatchResult convertJob(JobExecution j) {
         BatchResult ret = new BatchResult();
         Optional<Throwable> e = j.getAllFailureExceptions().stream().reduce(Throwable::initCause);
-//        if (e.isPresent()) try {
-//            throw e.get();
-//        } catch (Throwable throwable) {
-//            throwable.printStackTrace();
-//        }
+        if (e.isPresent()) try {
+            throw e.get();
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
         List<StepExecution> steps = new ArrayList<>(j.getStepExecutions());
         ret.setDroped(steps.get(0).getExitStatus().equals(ExitStatus.NOOP));
         ret.setStatus(j.getStatus().name());

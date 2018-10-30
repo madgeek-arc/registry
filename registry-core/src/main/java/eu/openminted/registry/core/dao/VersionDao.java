@@ -16,8 +16,12 @@ public interface VersionDao {
 
     List<Version> getAllVersions();
 
+    List<Version> getOrphans();
+
     void addVersion(Version version);
 
     void deleteVersion(Version version);
+
+
 
 }

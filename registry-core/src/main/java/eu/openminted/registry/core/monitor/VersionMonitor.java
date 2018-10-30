@@ -28,7 +28,17 @@ public class VersionMonitor implements ResourceListener {
 
 	@Override
 	public void resourceDeleted(Resource resource) {
+		Version version = new Version();
 
+		version.setCreationDate(new Date());
+		version.setId(UUID.randomUUID().toString());
+		version.setPayload(resource.getPayload());
+		version.setResource(null);
+		version.setResourceType(resource.getResourceType());
+		version.setVersion(resource.getVersion());
+		version.setParentId(resource.getId());
+
+		versionService.addVersion(version);
 	}
 
 	private void createVersion(Resource newResource) {
@@ -40,6 +50,7 @@ public class VersionMonitor implements ResourceListener {
 		version.setResource(newResource);
 		version.setResourceType(newResource.getResourceType());
 		version.setVersion(newResource.getVersion());
+		version.setParentId(newResource.getId());
 
 		versionService.addVersion(version);
 	}

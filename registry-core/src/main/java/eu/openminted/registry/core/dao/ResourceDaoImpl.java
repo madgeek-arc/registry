@@ -7,7 +7,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Expression;
+import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -21,13 +24,39 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 		return getSingleResult("id",id);
 	}
 
-	@Override
-	public List<Resource> getModifiedSince(Date date){
+	private List<Resource> getSince(Date date, String resourceType, String dateType){
 		CriteriaQuery<Resource> criteriaQuery = getCriteriaQuery();
 		Root<Resource> root = criteriaQuery.from(Resource.class);
-		criteriaQuery.select(root).where(getCriteriaBuilder().lessThan(root.get("modificationDate"),date));
+		Expression<Date> dateTypeExp = root.<Date>get(dateType);
+		Expression<String> resourceTypeExp = root.<String>get("resourceType").get("name");
+		List<Predicate> predicates = new ArrayList<>();
+		predicates.add(getCriteriaBuilder().greaterThan(dateTypeExp, date));
+		if(!resourceType.isEmpty())
+			predicates.add(getCriteriaBuilder().equal(resourceTypeExp, resourceType));
+
+		criteriaQuery.select(root).where(predicates.toArray(new Predicate[0]));
 		TypedQuery<Resource> typedQuery = getEntityManager().createQuery(criteriaQuery);
 		return typedQuery.getResultList();
+	}
+
+	@Override
+	public List<Resource> getModifiedSince(Date date, String resourceType){
+		return getSince(date,resourceType,"modificationDate");
+	}
+
+	@Override
+	public List<Resource> getModifiedSince(Date date) {
+		return getSince(date,"","modificationDate");
+	}
+
+	@Override
+	public List<Resource> getCreatedSince(Date date) {
+		return getSince(date,"","creationDate");
+	}
+
+	@Override
+	public List<Resource> getCreatedSince(Date date, String resourceType) {
+		return getSince(date,resourceType,"creationDate");
 	}
 
 	@SuppressWarnings("unchecked")
@@ -82,8 +111,13 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 	}
 
 	public void deleteResource(Resource resource) {
+		resource.getVersions().forEach(version -> {
+			version.setResource(null);
+		});
+		resource.setVersions(null);
+
 		delete(resource);
-		resource.getResourceType().getResources().remove(resource);
+//		resource.getResourceType().getResources().remove(resource);
 	}
 
 }

@@ -3,6 +3,7 @@ package eu.openminted.registry.core.configuration;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.cache.CacheManager;
@@ -46,18 +47,18 @@ public class HibernateConfiguration {
 		return ppc;
 	}
 
-//	@Bean(initMethod = "migrate")
-//    public Flyway flyway(){
-//	    Flyway flyway = new Flyway();
-//	    flyway.setBaselineOnMigrate(true);
-//	    flyway.setLocations("classpath:migrations/");
-//	    flyway.setDataSource(dataSource());
-//        return flyway;
-//    }
-//
+	@Bean(initMethod = "migrate")
+    public Flyway flyway(){
+	    Flyway flyway = new Flyway();
+	    flyway.setBaselineOnMigrate(true);
+	    flyway.setLocations("classpath:migrations/");
+	    flyway.setDataSource(dataSource());
+	    flyway.setOutOfOrder(true);
+        return flyway;
+    }
 
     @Bean
-//    @DependsOn("flyway")
+    @DependsOn("flyway")
     public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
         LocalContainerEntityManagerFactoryBean em
                 = new LocalContainerEntityManagerFactoryBean();
