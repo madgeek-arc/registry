@@ -89,7 +89,7 @@ public class HibernateConfiguration {
         return transactionManager;
     }
 
-	@Bean(destroyMethod="")
+	@Bean(destroyMethod="close")
 	public DataSource dataSource(){
 		ComboPooledDataSource dataSource = new ComboPooledDataSource();
 ////		DriverManagerDataSource dataSource = new DriverManagerDataSource();
