@@ -46,12 +46,24 @@ public class HibernateConfiguration {
 		return ppc;
 	}
 
+//	@Bean(initMethod = "migrate")
+//    public Flyway flyway(){
+//	    Flyway flyway = new Flyway();
+//	    flyway.setBaselineOnMigrate(true);
+//	    flyway.setLocations("classpath:migrations/");
+//	    flyway.setDataSource(dataSource());
+//        return flyway;
+//    }
+//
+
     @Bean
+//    @DependsOn("flyway")
     public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
         LocalContainerEntityManagerFactoryBean em
                 = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource());
         em.setPackagesToScan("eu.openminted.registry.core.domain", "eu.openminted.registry.core.domain.index");
+//        em.setPersistenceUnitName("MY_PERSISTENCE");
 
         JpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         em.setJpaVendorAdapter(vendorAdapter);
@@ -104,8 +116,14 @@ public class HibernateConfiguration {
 		dataSource.setInitialPoolSize(2);
 		dataSource.setMaxStatements(0);
 		dataSource.setMaxStatementsPerConnection(0);
+		dataSource.setPrivilegeSpawnedThreads(true);
+        try {
+            dataSource.setContextClassLoaderSource("library");
+        } catch (PropertyVetoException e) {
+            logger.error("Unable to create context class load for c3p0",e);
+        }
 
-		return dataSource;
+        return dataSource;
 	}
 
 	private Properties hibernateProperties() {
