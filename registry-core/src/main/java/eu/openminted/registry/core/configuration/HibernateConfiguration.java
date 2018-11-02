@@ -110,14 +110,12 @@ public class HibernateConfiguration {
 		dataSource.setMaxPoolSize(20);
 		dataSource.setMaxIdleTime(60);//seconds
 		dataSource.setPreferredTestQuery("SELECT 1");
-		dataSource.setDebugUnreturnedConnectionStackTraces(true);
 		dataSource.setTestConnectionOnCheckout(true);
 		dataSource.setTestConnectionOnCheckin(true);
 		dataSource.setIdleConnectionTestPeriod(10);
 		dataSource.setInitialPoolSize(2);
 		dataSource.setMaxStatements(100);
 		dataSource.setMaxStatementsPerConnection(100);
-		dataSource.setPrivilegeSpawnedThreads(true);
         try {
             dataSource.setContextClassLoaderSource("library");
         } catch (PropertyVetoException e) {
