@@ -28,12 +28,12 @@ public abstract class AbstractDao<T> {
         this.persistentClass =(Class<T>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
     }
 
-    @Scope("request")
+//    @Scope("request")
     protected CriteriaBuilder getCriteriaBuilder(){
         return entityManager.getCriteriaBuilder();
     }
 
-    @Scope("request")
+//    @Scope("request")
     protected CriteriaQuery<T> getCriteriaQuery(){
         return getCriteriaBuilder().createQuery(persistentClass);
     }
