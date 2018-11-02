@@ -8,6 +8,7 @@ import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.hibernate.Session;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
@@ -34,7 +35,7 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
 
     private static final Logger logger = LogManager.getLogger(DumpResourceReader.class);
 
-    private Iterator<Resource> resources;
+    private List<Resource> resources;
 
     private Stream<Resource> test;
 
@@ -53,6 +54,7 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
 
     @Override
     public void beforeStep(StepExecution stepExecution) {
+
         String resourceTypeName;
         from = 0;
         to = Integer.MAX_VALUE;
@@ -83,7 +85,7 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
         query.setFirstResult(from);
         query.setMaxResults(to-from);
         test = query.getResultStream();
-        resources = query.getResultStream().iterator();
+        resources = query.getResultList();
         IndexMapperFactory indexMapperFactory = new IndexMapperFactory();
         try {
             indexMapper = indexMapperFactory.createIndexMapper(resourceType);
@@ -109,10 +111,7 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
 
     @Override
     public Resource read() throws Exception {
-        if(getEntityManager().getTransaction().isActive())
-            getEntityManager().getTransaction().begin();
-        if(resources.hasNext()) {
-            Resource resource = resources.next();
+        for(Resource resource : resources){
 //            Resource resource = (Resource) resource
             if(resource.getIndexedFields() == null || resource.getIndexedFields().isEmpty()) {
                 resource.setIndexedFields(indexMapper.getValues(resource.getPayload(),resourceType));
