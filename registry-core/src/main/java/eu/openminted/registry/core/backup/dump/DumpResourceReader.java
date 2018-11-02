@@ -109,14 +109,18 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
 
     @Override
     public Resource read() throws Exception {
+        if(getEntityManager().getTransaction().isActive())
+            getEntityManager().getTransaction().begin();
         if(resources.hasNext()) {
             Resource resource = resources.next();
 //            Resource resource = (Resource) resource
             if(resource.getIndexedFields() == null || resource.getIndexedFields().isEmpty()) {
                 resource.setIndexedFields(indexMapper.getValues(resource.getPayload(),resourceType));
             }
+            getEntityManager().getTransaction().commit();
             return resource;
         }
+        getEntityManager().getTransaction().commit();
         return null;
 
     }
