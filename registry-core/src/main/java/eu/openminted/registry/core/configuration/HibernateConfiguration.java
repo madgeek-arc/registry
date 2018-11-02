@@ -115,8 +115,8 @@ public class HibernateConfiguration {
 		dataSource.setTestConnectionOnCheckin(true);
 		dataSource.setIdleConnectionTestPeriod(10);
 		dataSource.setInitialPoolSize(2);
-		dataSource.setMaxStatements(0);
-		dataSource.setMaxStatementsPerConnection(0);
+		dataSource.setMaxStatements(100);
+		dataSource.setMaxStatementsPerConnection(100);
 		dataSource.setPrivilegeSpawnedThreads(true);
         try {
             dataSource.setContextClassLoaderSource("library");
