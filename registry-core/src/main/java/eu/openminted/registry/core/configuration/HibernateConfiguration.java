@@ -107,7 +107,7 @@ public class HibernateConfiguration {
 		dataSource.setPassword(environment.getRequiredProperty("jdbc.password"));
 		dataSource.setAcquireIncrement(2);
 		dataSource.setMinPoolSize(2);
-		dataSource.setMaxPoolSize(10);
+		dataSource.setMaxPoolSize(20);
 		dataSource.setMaxIdleTime(60);//seconds
 		dataSource.setPreferredTestQuery("SELECT 1");
 		dataSource.setDebugUnreturnedConnectionStackTraces(true);
