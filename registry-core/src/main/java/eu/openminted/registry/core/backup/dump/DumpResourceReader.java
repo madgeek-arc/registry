@@ -8,7 +8,6 @@ import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hibernate.Session;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
@@ -40,8 +39,6 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
     private Stream<Resource> test;
 
     private ResourceTypeDao resourceTypeDao;
-
-    private Session session;
 
     private IndexMapper indexMapper;
 
@@ -97,8 +94,6 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
 
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
-        if(session.isOpen())
-            session.close();
         logger.info(String.format(
                 "Read resources of %s [%4d -%4d] skipped=%d retries=%d total=%d",
                 resourceType.getName(),
