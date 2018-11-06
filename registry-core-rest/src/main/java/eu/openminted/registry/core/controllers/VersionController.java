@@ -7,12 +7,10 @@ import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.VersionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -83,6 +81,13 @@ public class VersionController {
 			return new ResponseEntity<>(versions, HttpStatus.OK);
 		}
 
+	}
+
+
+	@RequestMapping(value = "/version", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	public ResponseEntity<Version> addVersion(@RequestBody Version version) {
+		versionService.addVersion(version);
+		return new ResponseEntity<>(version, HttpStatus.CREATED);
 	}
 
 }
