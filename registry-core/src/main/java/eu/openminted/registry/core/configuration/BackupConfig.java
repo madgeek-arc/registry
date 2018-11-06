@@ -21,6 +21,7 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.retry.policy.AlwaysRetryPolicy;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import javax.transaction.Transactional;
 import java.util.concurrent.Callable;
 
 @Configuration()
@@ -74,6 +75,7 @@ public class BackupConfig {
     }
 
     @Bean
+    @Transactional
     Step resourcesDumpStep(DumpResourceReader reader, DumpResourceWriterStep writer) {
         return steps.get("resourcesDumpChunkStep")
                 .<Resource,Resource>chunk(chunkSize)

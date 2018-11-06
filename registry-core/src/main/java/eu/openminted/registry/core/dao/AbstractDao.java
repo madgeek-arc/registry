@@ -28,12 +28,12 @@ public abstract class AbstractDao<T> {
         this.persistentClass =(Class<T>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
     }
 
-//    @Scope("request")
+    @Scope("request")
     protected CriteriaBuilder getCriteriaBuilder(){
         return entityManager.getCriteriaBuilder();
     }
 
-//    @Scope("request")
+    @Scope("request")
     protected CriteriaQuery<T> getCriteriaQuery(){
         return getCriteriaBuilder().createQuery(persistentClass);
     }
@@ -83,20 +83,12 @@ public abstract class AbstractDao<T> {
     }
 
     public void persist(T entity) {
-//        if(!entityManager.getTransaction().isActive())
-//            entityManager.getTransaction().begin();
-
         entityManager.persist(entity);
-//        entityManager.getTransaction().commit();
     }
 
 
     public void delete(T entity) {
-//        if(!entityManager.getTransaction().isActive())
-//            entityManager.getTransaction().begin();
-
         entityManager.remove(entity);
-//        entityManager.getTransaction().commit();
     }
      
 }

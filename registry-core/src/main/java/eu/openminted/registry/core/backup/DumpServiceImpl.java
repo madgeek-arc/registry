@@ -1,36 +1,25 @@
 package eu.openminted.registry.core.backup;
 
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.service.DumpService;
-import eu.openminted.registry.core.service.ResourceService;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
 import joptsimple.internal.Strings;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParametersBuilder;
-import org.springframework.batch.core.JobParametersInvalidException;
 import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
-import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
-import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -38,6 +27,8 @@ import java.util.zip.ZipOutputStream;
 
 @Service("dumpService")
 public class DumpServiceImpl implements DumpService {
+
+    private static final Logger logger = LogManager.getLogger(DumpServiceImpl.class);
 
     @Autowired
     JobLauncher mySyncJobLauncher;
@@ -70,7 +61,8 @@ public class DumpServiceImpl implements DumpService {
            throw new ServiceException(e);
         }
         String directory = job.getExecutionContext().getString("directory");
-
+//        Throwable ex = job.getAllFailureExceptions().stream().reduce(new Exception(),(e1, e2) -> {e1.addSuppressed(e2); return e1;});
+//        logger.info("Failzor", ex);
         try {
             return pack(directory);
         } catch (IOException e) {

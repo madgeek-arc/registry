@@ -1,6 +1,7 @@
 package eu.openminted.registry.core.configuration;
 
-import com.mchange.v2.c3p0.ComboPooledDataSource;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.flywaydb.core.Flyway;
@@ -23,7 +24,6 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.FlushModeType;
 import javax.sql.DataSource;
-import java.beans.PropertyVetoException;
 import java.util.Properties;
 
 @Configuration
@@ -64,7 +64,6 @@ public class HibernateConfiguration {
                 = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource());
         em.setPackagesToScan("eu.openminted.registry.core.domain", "eu.openminted.registry.core.domain.index");
-//        em.setPersistenceUnitName("MY_PERSISTENCE");
 
         JpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         em.setJpaVendorAdapter(vendorAdapter);
@@ -89,42 +88,64 @@ public class HibernateConfiguration {
         return transactionManager;
     }
 
-	@Bean(destroyMethod="close")
-	public DataSource dataSource(){
-		ComboPooledDataSource dataSource = new ComboPooledDataSource();
-////		DriverManagerDataSource dataSource = new DriverManagerDataSource();
-//		dataSource.setDriverClassName(environment.getRequiredProperty("jdbc.driverClassName"));
-//		dataSource.setUrl(environment.getRequiredProperty("jdbc.url")+"?autoReconnect=true");
-//		dataSource.setUsername(environment.getRequiredProperty("jdbc.username"));
-//		dataSource.setPassword(environment.getRequiredProperty("jdbc.password"));
-		try {
-			dataSource.setDriverClass(environment.getRequiredProperty("jdbc.driverClassName"));
-		} catch (PropertyVetoException e) {
-			logger.error(e.getMessage(),e);
-		}
-		dataSource.setJdbcUrl(environment.getRequiredProperty("jdbc.url"));
-		dataSource.setUser(environment.getRequiredProperty("jdbc.username"));
-		dataSource.setPassword(environment.getRequiredProperty("jdbc.password"));
-		dataSource.setAcquireIncrement(2);
-		dataSource.setMinPoolSize(2);
-		dataSource.setMaxPoolSize(10);
-		dataSource.setMaxIdleTime(60);//seconds
-		dataSource.setPreferredTestQuery("SELECT 1");
-		dataSource.setDebugUnreturnedConnectionStackTraces(true);
-		dataSource.setTestConnectionOnCheckout(true);
-		dataSource.setTestConnectionOnCheckin(true);
-		dataSource.setIdleConnectionTestPeriod(10);
-		dataSource.setInitialPoolSize(2);
-		dataSource.setMaxStatements(0);
-		dataSource.setMaxStatementsPerConnection(0);
-		dataSource.setPrivilegeSpawnedThreads(true);
-        try {
-            dataSource.setContextClassLoaderSource("library");
-        } catch (PropertyVetoException e) {
-            logger.error("Unable to create context class load for c3p0",e);
-        }
+    @Bean
+	HikariConfig hikariConfig(){
+		HikariConfig hikariConfig = new HikariConfig();
+		hikariConfig.setPoolName("RegistryCP");
+		hikariConfig.setConnectionTestQuery("SELECT 1");
+		hikariConfig.setDriverClassName(environment.getRequiredProperty("jdbc.driverClassName"));
+		hikariConfig.setMaximumPoolSize(20);
+		hikariConfig.setIdleTimeout(60);
+		hikariConfig.setJdbcUrl(environment.getRequiredProperty("jdbc.url"));
+		hikariConfig.setUsername(environment.getRequiredProperty("jdbc.username"));
+		hikariConfig.setPassword(environment.getRequiredProperty("jdbc.password"));
+		hikariConfig.addDataSourceProperty("cachePreStmts", "true"); // Enable Prepared Statement caching
+		hikariConfig.addDataSourceProperty("prepStmtCacheSize", "25"); // How many PS cache, default: 25
+		hikariConfig.addDataSourceProperty("useServerPrepStmts", "true"); // If supported use PS server-side
+		hikariConfig.addDataSourceProperty("useLocalSessionState", "true"); // Enable setAutoCommit
+		hikariConfig.addDataSourceProperty("useLocalTransactionState", "true"); // Enable commit/rollbacks
 
-        return dataSource;
+
+		return hikariConfig;
+	}
+
+
+	@Bean
+	public DataSource dataSource(){
+//		ComboPooledDataSource dataSource = new ComboPooledDataSource();
+//////		DriverManagerDataSource dataSource = new DriverManagerDataSource();
+////		dataSource.setDriverClassName(environment.getRequiredProperty("jdbc.driverClassName"));
+////		dataSource.setUrl(environment.getRequiredProperty("jdbc.url")+"?autoReconnect=true");
+////		dataSource.setUsername(environment.getRequiredProperty("jdbc.username"));
+////		dataSource.setPassword(environment.getRequiredProperty("jdbc.password"));
+//		try {
+//			dataSource.setDriverClass(environment.getRequiredProperty("jdbc.driverClassName"));
+//		} catch (PropertyVetoException e) {
+//			logger.error(e.getMessage(),e);
+//		}
+//		dataSource.setJdbcUrl(environment.getRequiredProperty("jdbc.url"));
+//		dataSource.setUser(environment.getRequiredProperty("jdbc.username"));
+//		dataSource.setPassword(environment.getRequiredProperty("jdbc.password"));
+//		dataSource.setAcquireIncrement(2);
+//		dataSource.setMinPoolSize(2);
+//		dataSource.setMaxPoolSize(10);
+//		dataSource.setMaxIdleTime(60);//seconds
+//		dataSource.setPreferredTestQuery("SELECT 1");
+//		dataSource.setDebugUnreturnedConnectionStackTraces(true);
+//		dataSource.setTestConnectionOnCheckout(true);
+//		dataSource.setTestConnectionOnCheckin(true);
+//		dataSource.setIdleConnectionTestPeriod(10);
+//		dataSource.setInitialPoolSize(2);
+//		dataSource.setMaxStatements(0);
+//		dataSource.setMaxStatementsPerConnection(0);
+//		dataSource.setPrivilegeSpawnedThreads(true);
+//        try {
+//            dataSource.setContextClassLoaderSource("library");
+//        } catch (PropertyVetoException e) {
+//            logger.error("Unable to create context class load for c3p0",e);
+//        }
+
+        return new HikariDataSource(hikariConfig());
 	}
 
 	private Properties hibernateProperties() {

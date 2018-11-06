@@ -8,7 +8,6 @@ import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hibernate.Session;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
@@ -24,7 +23,6 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -35,13 +33,11 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
 
     private static final Logger logger = LogManager.getLogger(DumpResourceReader.class);
 
-    private Iterator<Resource> resources;
+    private List<Resource> resources;
 
     private Stream<Resource> test;
 
     private ResourceTypeDao resourceTypeDao;
-
-    private Session session;
 
     private IndexMapper indexMapper;
 
@@ -86,7 +82,7 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
         query.setFirstResult(from);
         query.setMaxResults(to-from);
         test = query.getResultStream();
-        resources = query.getResultStream().iterator();
+        resources = query.getResultList();
         IndexMapperFactory indexMapperFactory = new IndexMapperFactory();
         try {
             indexMapper = indexMapperFactory.createIndexMapper(resourceType);
@@ -97,8 +93,6 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
 
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
-        if(session.isOpen())
-            session.close();
         logger.info(String.format(
                 "Read resources of %s [%4d -%4d] skipped=%d retries=%d total=%d",
                 resourceType.getName(),
@@ -113,10 +107,10 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
     }
 
     @Override
-    public Resource read() throws Exception {
-        if(resources.hasNext()) {
-            Resource resource = resources.next();
-//            Resource resource = (Resource) resource
+    public Resource read() throws Exception{
+        Resource resource = resources.remove(0);
+
+        if(resource != null) {
             if(resource.getIndexedFields() == null || resource.getIndexedFields().isEmpty()) {
                 resource.setIndexedFields(indexMapper.getValues(resource.getPayload(),resourceType));
             }

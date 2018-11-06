@@ -72,7 +72,6 @@ public class DumpResourceWriterStep implements ItemWriter<Resource>, StepExecuti
         if (raw)
             extension = "." + resource.getPayloadFormat();
         File openFile = new File(resourceTypeDirectory.toFile(), resource.getId() + extension);
-
         Path filePath = Files.createFile(openFile.toPath(), PERMISSIONS);
         FileWriter file = new FileWriter(filePath.toFile());
         resource.setIndexedFields(null);
