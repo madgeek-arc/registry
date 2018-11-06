@@ -1,7 +1,6 @@
 package eu.openminted.registry.core.service;
 
 import eu.openminted.registry.core.dao.IndexedFieldDao;
-import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,12 +26,6 @@ public class IndexedFieldServiceImpl implements IndexedFieldService {
     public List<IndexedField> getIndexedFields(String resourceId) {
         return indexedFieldDao.getIndexedFieldsOfResource(resourceService.getResource(resourceId));
     }
-
-    @Override
-    public void deleteAllIndexedFields(Resource resource) {
-        indexedFieldDao.deleteAllIndexedFields(resource);
-    }
-
 
 }
 
