@@ -186,11 +186,4 @@ public class ResourceController {
 	        resourceService.deleteResource(id);  
 	    }
 
-		@RequestMapping(value = "/resources/indexed/{id}", method = RequestMethod.DELETE)
-		public void deleteIndexedFields(@PathVariable("id") String id) {
-			indexedFieldService.deleteAllIndexedFields(resourceService.getResource(id));
-		}
-
-
-
 }

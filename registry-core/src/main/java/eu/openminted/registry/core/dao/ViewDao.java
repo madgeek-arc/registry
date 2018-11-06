@@ -1,8 +1,8 @@
-package eu.openminted.registry.core.service;
+package eu.openminted.registry.core.dao;
 
 import eu.openminted.registry.core.domain.ResourceType;
 
-public interface ViewService {
+public interface ViewDao {
 
 	void createView(ResourceType resourceType);
 

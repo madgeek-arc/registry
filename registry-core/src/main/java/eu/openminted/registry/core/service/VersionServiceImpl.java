@@ -60,10 +60,5 @@ public class VersionServiceImpl implements VersionService {
         return versionDao.getAllVersions();
     }
 
-    @Override
-    public void addVersion(Version version) {
-        versionDao.addVersion(version);
-    }
-
 }
 

@@ -1,8 +1,8 @@
 package eu.openminted.registry.core.monitor;
 
+import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.Version;
-import eu.openminted.registry.core.service.VersionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +13,7 @@ import java.util.UUID;
 public class VersionMonitor implements ResourceListener {
 
 	@Autowired
-	VersionService versionService;
+	VersionDao versionDao;
 
 	@Override
 	public void resourceAdded(Resource resource) {
@@ -38,7 +38,7 @@ public class VersionMonitor implements ResourceListener {
 		version.setVersion(resource.getVersion());
 		version.setParentId(resource.getId());
 
-		versionService.addVersion(version);
+		versionDao.addVersion(version);
 	}
 
 	private void createVersion(Resource newResource) {
@@ -52,6 +52,6 @@ public class VersionMonitor implements ResourceListener {
 		version.setVersion(newResource.getVersion());
 		version.setParentId(newResource.getId());
 
-		versionService.addVersion(version);
+		versionDao.addVersion(version);
 	}
 }

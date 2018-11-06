@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.service;
 
+import eu.openminted.registry.core.dao.IndexedFieldDao;
 import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.domain.Resource;
@@ -39,6 +40,8 @@ public class ResourceServiceImpl implements ResourceService {
     private ResourceValidator resourceValidator;
     @Autowired
     private IndexedFieldService indexedFieldService;
+    @Autowired
+    private IndexedFieldDao indexedFieldDao;
     @Autowired
     private DataSource dataSource;
 
@@ -128,7 +131,7 @@ public class ResourceServiceImpl implements ResourceService {
             throw new ServiceException("Resource type does not exist");
         }
         Resource oldResource = resourceDao.getResource(resource.getId());
-        indexedFieldService.deleteAllIndexedFields(oldResource);
+        indexedFieldDao.deleteAllIndexedFields(oldResource);
         resource.setIndexedFields(getIndexedFields(resource));
 //        resource.setIndexedFields(getIndexedFields(resource));
         for (IndexedField indexedField : resource.getIndexedFields()) {

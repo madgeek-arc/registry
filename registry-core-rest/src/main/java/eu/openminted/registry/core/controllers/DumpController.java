@@ -66,7 +66,7 @@ public class DumpController {
 
 
         File downloadFile = null;
-        downloadFile = dumpService.bringAll(isRaw, wantSchema, resourceTypes, wantVersion);
+        downloadFile = dumpService.dump(isRaw, wantSchema, resourceTypes, wantVersion);
 
         FileInputStream inputStream;
         try {

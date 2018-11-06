@@ -37,7 +37,7 @@ public class DumpServiceImpl implements DumpService {
     private String registryHost;
 
     @Override
-    public File bringAll(boolean isRaw, boolean schemaless, String[] resourceTypes, boolean wantVersion) {
+    public File dump(boolean isRaw, boolean schemaless, String[] resourceTypes, boolean wantVersion) {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<byte[]> response = restTemplate.getForEntity(registryHost + "/dump/?schema="+schemaless+"&raw="+isRaw+ ((resourceTypes.length==0) ? "" : "&resourceTypes="+String.join(",",resourceTypes)), byte[].class);
         if(response.getStatusCode().is2xxSuccessful()){

@@ -4,7 +4,6 @@ import java.io.File;
 
 public interface DumpService {
 
-	File bringAll(boolean isRaw, boolean schemaless, String[] resourceTypes, boolean wantVersion);
-
+	File dump(boolean isRaw, boolean schemaless, String[] resourceTypes, boolean wantVersion);
 
 }

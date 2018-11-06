@@ -40,7 +40,7 @@ public class DumpServiceImpl implements DumpService {
     ResourceTypeService resourceTypeService;
 
     @Override
-    public File bringAll(boolean isRaw, boolean wantSchema, String[] resourceTypes, boolean wantVersion) {
+    public File dump(boolean isRaw, boolean wantSchema, String[] resourceTypes, boolean wantVersion) {
 
         String resourceTypesList;
         JobExecution job;

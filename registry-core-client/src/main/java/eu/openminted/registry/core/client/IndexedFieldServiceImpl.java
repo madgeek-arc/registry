@@ -1,6 +1,5 @@
 package eu.openminted.registry.core.client;
 
-import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.service.IndexedFieldService;
 import org.apache.logging.log4j.LogManager;
@@ -39,9 +38,4 @@ public class IndexedFieldServiceImpl implements IndexedFieldService {
         }
     }
 
-    @Override
-    public void deleteAllIndexedFields(Resource resource) {
-        RestTemplate restTemplate = new RestTemplate();
-        restTemplate.delete(registryHost+"/resources/indexed/"+resource.getId());
-    }
 }

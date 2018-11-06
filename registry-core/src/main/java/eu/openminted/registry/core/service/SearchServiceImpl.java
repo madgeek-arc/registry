@@ -222,7 +222,6 @@ public class SearchServiceImpl implements SearchService {
         }
 
         SearchResponse response = search.execute().actionGet();
-
         return responseToPaging(response, from, null);
 
     }

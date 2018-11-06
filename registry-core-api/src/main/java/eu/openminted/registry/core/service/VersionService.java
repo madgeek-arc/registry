@@ -14,7 +14,5 @@ public interface VersionService {
 
 	List<Version> getAllVersions();
 
-	void addVersion(Version version);
-
 }
 
