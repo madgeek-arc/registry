@@ -53,17 +53,6 @@ public class VersionDaoImpl extends AbstractDao<Version> implements VersionDao {
 	public List<Version> getOrphans() {
 
 
-//		List<String> listOrphans = new ArrayList<>();
-//
-//		List<Object[]> results = getEntityManager().createNativeQuery("SELECT max(creation_date), parent_id " +
-//				"										FROM resourceversion " +
-//				"										WHERE reference_id IS NULL " +
-//				"										GROUP BY parent_id").getResultList();
-//
-//		results.stream().	forEach(record -> {
-//			listOrphans.add((String) record[1]);
-//		});
-
 
 		List<Version> versions = getEntityManager().createNativeQuery("SELECT * from resourceversion INNER JOIN (SELECT max(creation_date) as maxd, parent_id as zulu FROM resourceversion WHERE reference_id IS NULL GROUP BY parent_id) as tablzor ON maxd=creation_date AND parent_id=zulu", Version.class).getResultList();
 

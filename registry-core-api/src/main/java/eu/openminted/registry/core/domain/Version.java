@@ -21,8 +21,11 @@ public class Version {
 	@Column(name = "parent_id")
 	private String parentId;
 
+	@Column(name = "resourceType_name")
+	private String resourceTypeName;
+
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name="fk_name_version", nullable = false)
+	@JoinColumn(name="fk_name_version")
 	@JsonIgnore
 	private ResourceType resourceType;
 
@@ -47,6 +50,14 @@ public class Version {
 
 	public Version(){
 
+	}
+
+	public String getResourceTypeName() {
+		return resourceTypeName;
+	}
+
+	public void setResourceTypeName(String resourceTypeName) {
+		this.resourceTypeName = resourceTypeName;
 	}
 
 	public String getId() {

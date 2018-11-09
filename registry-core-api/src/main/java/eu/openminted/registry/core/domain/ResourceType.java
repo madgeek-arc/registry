@@ -44,7 +44,7 @@ public class ResourceType {
     @Column
     private String indexMapperClass;
 
-    @OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL})
+    @OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL}, orphanRemoval = true)
     @JsonManagedReference(value = "resourcetype-indexfields")
     @Column
     private List<IndexField> indexFields;

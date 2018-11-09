@@ -2,7 +2,6 @@ package eu.openminted.registry.core.domain;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
@@ -26,7 +25,6 @@ public class Resource {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "fk_name", nullable = false)
     @JsonBackReference(value = "resourcetype-resource")
-//    @JsonIgnore
     private ResourceType resourceType;
 
     @Transient
@@ -67,8 +65,16 @@ public class Resource {
     @OneToMany(mappedBy = "resource")
     @LazyCollection(LazyCollectionOption.TRUE)
     @JsonIgnore
-    @JsonManagedReference(value = "resource-versions")
     private List<Version> versions;
+
+    @PreRemove
+    private void preRemove() {
+        for (Version v : versions) {
+            v.setResource(null);
+            v.setResourceType(null);
+        }
+        setVersions(null);
+    }
 
 
     public Resource(String id, ResourceType resourceType, String version, String payload, String payloadFormat) {

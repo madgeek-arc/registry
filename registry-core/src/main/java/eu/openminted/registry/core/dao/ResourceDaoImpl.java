@@ -111,11 +111,6 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 	}
 
 	public void deleteResource(Resource resource) {
-		resource.getVersions().forEach(version -> {
-			version.setResource(null);
-		});
-		resource.setVersions(null);
-
 		delete(resource);
 //		resource.getResourceType().getResources().remove(resource);
 	}

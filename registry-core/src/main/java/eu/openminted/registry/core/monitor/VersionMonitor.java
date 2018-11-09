@@ -34,9 +34,10 @@ public class VersionMonitor implements ResourceListener {
 		version.setId(UUID.randomUUID().toString());
 		version.setPayload(resource.getPayload());
 		version.setResource(null);
-		version.setResourceType(resource.getResourceType());
+		version.setResourceType(null);
 		version.setVersion(resource.getVersion());
 		version.setParentId(resource.getId());
+		version.setResourceTypeName(resource.getResourceTypeName());
 
 		versionDao.addVersion(version);
 	}
@@ -51,6 +52,7 @@ public class VersionMonitor implements ResourceListener {
 		version.setResourceType(newResource.getResourceType());
 		version.setVersion(newResource.getVersion());
 		version.setParentId(newResource.getId());
+		version.setResourceTypeName(newResource.getResourceTypeName());
 
 		versionDao.addVersion(version);
 	}
