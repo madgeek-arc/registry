@@ -19,12 +19,12 @@ public class ResourceSyncController {
 	private static Logger logger = LogManager.getLogger(ResourceSyncController.class);
 
 	@Autowired
-	ResourceSyncService resourceSyncService;
+    ResourceSyncService resourceSyncService;
 
 
 	@RequestMapping(value = "/resourcesync/{name}/resourcelist.xml", method = RequestMethod.GET, headers = "Accept=application/xml")
 	public ResponseEntity getResourceListController(@PathVariable("name") String name){
-		return new ResponseEntity(resourceSyncService.getResourceList(name).serialise(),HttpStatus.OK);
+		return new ResponseEntity(resourceSyncService.getResourceList(name).serialise(), HttpStatus.OK);
 	}
 
 	@RequestMapping(value = "/resourcesync/", method = RequestMethod.GET, headers = "Accept=application/xml")
