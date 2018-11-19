@@ -172,7 +172,13 @@ public class Resource {
 
     @PrePersist
     protected void onCreate() {
-        modificationDate = creationDate = new Date();
+
+        if(creationDate==null)
+            creationDate = new Date();
+
+        if(modificationDate==null)
+            modificationDate = new Date();
+
         version = generateVersion();
     }
 
