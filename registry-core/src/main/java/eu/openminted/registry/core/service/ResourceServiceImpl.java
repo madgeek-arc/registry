@@ -130,6 +130,10 @@ public class ResourceServiceImpl implements ResourceService {
         if(resource.getResourceType() == null) {
             throw new ServiceException("Resource type does not exist");
         }
+
+        if(resource.getId()==null || resource.getId().isEmpty())
+            throw new ServiceException("Resource ID cannot be empty");
+
         Resource oldResource = resourceDao.getResource(resource.getId());
         indexedFieldDao.deleteAllIndexedFields(oldResource);
         resource.setIndexedFields(getIndexedFields(resource));

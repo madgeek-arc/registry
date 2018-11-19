@@ -18,7 +18,7 @@
 			</dependency>
 			<dependency>
 				<groupId>eu.openminted</groupId>
-				<artifactId>registry-core-client</artifactId>
+				<artifactId>registry-core</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>

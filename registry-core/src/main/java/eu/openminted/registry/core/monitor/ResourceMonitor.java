@@ -3,6 +3,7 @@ package eu.openminted.registry.core.monitor;
 import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.service.ServiceException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -60,6 +61,9 @@ public class ResourceMonitor {
     public Resource resourceUpdated(ProceedingJoinPoint pjp, Resource resource) throws Throwable {
 
         try {
+            if(resource.getId()==null || resource.getId().isEmpty()) {
+                throw new ServiceException("Empty resource ID");
+            }
 
             Resource previous = resourceDao.getResource(resource.getId());
 
