@@ -113,6 +113,7 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
         resource.getIndexedFields().forEach(x->x.setResource(lambdaResource));
         resource.setVersions(readResourceVersions(file,resource));
         resource.getVersions().forEach(x->x.setResource(lambdaResource));
+        resource.setCreationDate(lambdaResource.getCreationDate());
         return resource;
     }
 
