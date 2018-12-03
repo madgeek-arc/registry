@@ -4,11 +4,10 @@ import configuration.MockDatabaseConfiguration;
 import eu.openminted.registry.core.domain.Resource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -16,9 +15,10 @@ import javax.transaction.Transactional;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
-            MockDatabaseConfiguration.class
-        })
+        MockDatabaseConfiguration.class
+})
 @Transactional
+@ComponentScan("eu.openminted.registry.core.dao")
 public class ResourceDaoImplTest {
 
     private static Logger logger = LogManager.getLogger(ResourceDaoImplTest.class);
@@ -29,17 +29,6 @@ public class ResourceDaoImplTest {
     private Resource resource;
 
 
-
-    @Before
-    public void iniatiateResource(){
-       logger.info("HELLOOOOOO");
-    }
-
-
-    @After
-    public void after(){
-        logger.info("OMAGAD");
-    }
 
     @Test
     public void getResource() {

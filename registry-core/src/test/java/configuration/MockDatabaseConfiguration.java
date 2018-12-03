@@ -1,6 +1,7 @@
 package configuration;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.Bean;
@@ -8,8 +9,12 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.Resource;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.datasource.init.DataSourceInitializer;
+import org.springframework.jdbc.datasource.init.DatabasePopulator;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -28,11 +33,18 @@ import java.util.Properties;
 @EnableJpaRepositories(basePackages = "eu.openminted.registry.core.dao")
 @PropertySource("classpath:application-test.properties")
 @EnableTransactionManagement
-@ComponentScan("eu.")
+@ComponentScan("eu.openminted.registry.core.dao")
 public class MockDatabaseConfiguration {
 
     @Autowired
     private Environment env;
+
+    @Value("classpath:migrations/V1.1__Create_batch_tables.sql")
+    private Resource schemaScript;
+
+    @Value("classpath:data.sql")
+    private Resource dataScript;
+
 
     @Bean
     public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
@@ -76,6 +88,22 @@ public class MockDatabaseConfiguration {
         return dataSource;
 
     }
+
+    @Bean
+    public DataSourceInitializer dataSourceInitializer(final DataSource dataSource) {
+        final DataSourceInitializer initializer = new DataSourceInitializer();
+        initializer.setDataSource(dataSource);
+        initializer.setDatabasePopulator(databasePopulator());
+        return initializer;
+    }
+
+    private DatabasePopulator databasePopulator() {
+        final ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
+        populator.addScript(schemaScript);
+        populator.addScript(dataScript);
+        return populator;
+    }
+
 
 
     private Properties hibernateProperties() {
