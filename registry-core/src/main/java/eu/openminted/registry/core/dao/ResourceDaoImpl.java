@@ -17,7 +17,6 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 @Repository("resourceDao")
-@Transactional
 public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDao {
 
 	public Resource getResource(String id) {
@@ -112,7 +111,6 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 
 	public void deleteResource(Resource resource) {
 		delete(resource);
-//		resource.getResourceType().getResources().remove(resource);
 	}
 
 }

@@ -17,7 +17,6 @@ import javax.transaction.Transactional;
 import java.util.*;
 
 @Repository("resourceTypeDao")
-@Transactional
 public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements ResourceTypeDao {
 
     private LoadingCache<String, Optional<ResourceType>> resourceTypeCacheLoader;

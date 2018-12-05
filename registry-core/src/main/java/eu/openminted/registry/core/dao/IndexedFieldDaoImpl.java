@@ -5,13 +5,10 @@ import eu.openminted.registry.core.domain.index.IndexedField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Repository("indexedFieldDao")
-@Transactional
 public class IndexedFieldDaoImpl extends AbstractDao<IndexedField> implements IndexedFieldDao {
 
     private static Logger logger = LogManager.getLogger(IndexedFieldDaoImpl.class);
@@ -27,9 +24,6 @@ public class IndexedFieldDaoImpl extends AbstractDao<IndexedField> implements In
             iF.setResource(null);
             persist(iF);
         });
-//        getEntityManager().refresh(resource);
-//        resource.setIndexedFields(new ArrayList<>());
-//        getEntityManager().refresh(resource);
     }
 
 

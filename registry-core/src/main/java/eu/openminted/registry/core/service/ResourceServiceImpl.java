@@ -12,7 +12,6 @@ import eu.openminted.registry.core.validation.ResourceValidator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,8 +37,6 @@ public class ResourceServiceImpl implements ResourceService {
     private IndexMapperFactory indexMapperFactory;
     @Autowired
     private ResourceValidator resourceValidator;
-    @Autowired
-    private IndexedFieldService indexedFieldService;
     @Autowired
     private IndexedFieldDao indexedFieldDao;
     @Autowired
@@ -78,12 +75,10 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public List<Resource> getResource() {
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         return resourceDao.getResource();
     }
 
     @Override
-    @Transactional
     public Resource addResource(Resource resource) throws ServiceException {
 
 
@@ -137,7 +132,6 @@ public class ResourceServiceImpl implements ResourceService {
         Resource oldResource = resourceDao.getResource(resource.getId());
         indexedFieldDao.deleteAllIndexedFields(oldResource);
         resource.setIndexedFields(getIndexedFields(resource));
-//        resource.setIndexedFields(getIndexedFields(resource));
         for (IndexedField indexedField : resource.getIndexedFields()) {
             indexedField.setResource(resource);
         }
