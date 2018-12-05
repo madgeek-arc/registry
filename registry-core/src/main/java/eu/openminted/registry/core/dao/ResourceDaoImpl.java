@@ -3,7 +3,6 @@ package eu.openminted.registry.core.dao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaQuery;
@@ -99,7 +98,6 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 	    return getResource(null,0,Integer.MAX_VALUE);
 	}
 
-    @Transactional
 	public void addResource(Resource resource){
 		persist(resource);
 	}
