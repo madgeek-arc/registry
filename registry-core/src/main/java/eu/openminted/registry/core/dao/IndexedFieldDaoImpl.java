@@ -22,7 +22,9 @@ public class IndexedFieldDaoImpl extends AbstractDao<IndexedField> implements In
     public void deleteAllIndexedFields(Resource resource) {
         resource.getIndexedFields().forEach(iF ->{
             iF.setResource(null);
-            persist(iF);
+//            persist(iF);
+            getEntityManager().persist(iF);
+            getEntityManager().flush();
         });
     }
 
