@@ -71,9 +71,9 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
                 count++;
             }
 
-            Query query = getEntityManager().createNativeQuery("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id, r.creation_date, r.modification_date, " + (selectFields.isEmpty() ? "" :  ", " + selectFields) + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
+            Query query = getEntityManager().createNativeQuery("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id, r.creation_date, r.modification_date " + (selectFields.isEmpty() ? "" :  ", " + selectFields) + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
             try {
-                logger.info("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id, " + selectFields + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
+                logger.info("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id, r.creation_date, r.modification_date, " + (selectFields.isEmpty() ? "" :  ", " + selectFields) + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
                 query.executeUpdate();
             } catch (Exception e) {
                 logger.info("View was not created",e);
@@ -84,9 +84,7 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
 	@Override
 	public void deleteView(String resourceType) {
 	    logger.info("Deleting view ");
-//	    getEntityManager().getTransaction().begin();
 		getEntityManager().createNativeQuery("DROP VIEW IF EXISTS "+resourceType+"_view").executeUpdate();
-//        getEntityManager().getTransaction().commit();
 	}
 
 
