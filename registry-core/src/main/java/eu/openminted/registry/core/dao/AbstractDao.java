@@ -3,8 +3,6 @@ package eu.openminted.registry.core.dao;
 import eu.openminted.registry.core.service.ServiceException;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -83,7 +81,6 @@ public abstract class AbstractDao<T> {
         return query.getResultStream();
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
     public void persist(T entity) {
         try {
             entityManager.persist(entity);

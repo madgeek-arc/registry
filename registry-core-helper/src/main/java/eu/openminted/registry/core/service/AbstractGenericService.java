@@ -5,7 +5,6 @@ import eu.openminted.registry.core.domain.index.IndexField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotNull;
@@ -16,7 +15,6 @@ import java.util.stream.Collectors;
 /**
  * Created by stefanos on 20/6/2017.
  */
-@Transactional
 abstract public class AbstractGenericService<T> {
 
     @Autowired
