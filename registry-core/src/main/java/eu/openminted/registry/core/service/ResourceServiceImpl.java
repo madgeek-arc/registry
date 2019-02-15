@@ -105,7 +105,6 @@ public class ResourceServiceImpl implements ResourceService {
                 for (IndexedField indexedField : resource.getIndexedFields())
                     indexedField.setResource(resource);
 
-                // resource needs to be saved first in order for the version to correctly reference to it
                 resourceDao.addResource(resource);
             } catch (Exception e) {
                 logger.error("Error saving resource", e);

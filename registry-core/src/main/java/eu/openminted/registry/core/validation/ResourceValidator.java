@@ -32,7 +32,6 @@ public class ResourceValidator {
     ResourceValidator(SchemaDao schemaDao) {
         this.schemaDao = schemaDao;
     }
-
     public boolean validateXML(Resource resource) {
         Schema schema;
         try {
@@ -50,6 +49,7 @@ public class ResourceValidator {
         try {
             schema.validate(new JSONObject(resource.getPayload())); // throws a ValidationException if this object is invalid
         } catch (ValidationException e) {
+            logger.error("Error validation JSON payload",e);
             throw new ServiceException(e.getMessage());
         }
         return true;

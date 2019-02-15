@@ -76,12 +76,22 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
 
     @Override
     public javax.xml.validation.Schema loadXMLSchema(ResourceType resourceType) {
-        return this.schemaXMLLoader.getUnchecked(resourceType.getName());
+        try {
+            return this.schemaXMLLoader.getUnchecked(resourceType.getName());
+        } catch (Exception ex) {
+            logger.error("Error loading XML schema from cache", ex);
+            throw new ServiceException(ex.getMessage());
+        }
     }
 
     @Override
     public org.everit.json.schema.Schema loadJSONSchema(ResourceType resourceType) {
-        return this.schemaJSONLoader.getUnchecked(resourceType.getName());
+        try{
+            return this.schemaJSONLoader.getUnchecked(resourceType.getName());
+        }catch (Exception ex){
+            logger.error("Error loading JSON schema from cache",ex);
+            throw new ServiceException(ex.getMessage());
+        }
     }
 
     @Override

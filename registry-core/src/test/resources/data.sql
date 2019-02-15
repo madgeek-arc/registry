@@ -82,42 +82,42 @@ INSERT INTO public.resource (id, creation_date, modification_date, payload, payl
 -- Data for Name: booleanindexedfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.booleanindexedfield (id, name, resource_id) VALUES (3, 'single', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+INSERT INTO public.booleanindexedfield (id, name, resource_id) VALUES (123123, 'single', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 
 
 --
 -- Data for Name: booleanindexedfield_values; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.booleanindexedfield_values (booleanindexedfield_id, values) VALUES (3, false);
+INSERT INTO public.booleanindexedfield_values (booleanindexedfield_id, values) VALUES (123123, false);
 
 
 --
 -- Data for Name: dateindexedfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.dateindexedfield (id, name, resource_id) VALUES (4, 'birthday', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+INSERT INTO public.dateindexedfield (id, name, resource_id) VALUES (123123, 'birthday', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 
 
 --
 -- Data for Name: dateindexedfield_values; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.dateindexedfield_values (dateindexedfield_id, values) VALUES (4, '1990-06-16 17:00:21');
+INSERT INTO public.dateindexedfield_values (dateindexedfield_id, values) VALUES (123123, '1990-06-16 17:00:21');
 
 
 --
 -- Data for Name: floatindexedfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.floatindexedfield (id, name, resource_id) VALUES (5, 'salary', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+INSERT INTO public.floatindexedfield (id, name, resource_id) VALUES (123123, 'salary', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 
 
 --
 -- Data for Name: floatindexedfield_values; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.floatindexedfield_values (floatindexedfield_id, values) VALUES (5, 1292.12300000000005);
+INSERT INTO public.floatindexedfield_values (floatindexedfield_id, values) VALUES (123123, 1292.12300000000005);
 
 
 
@@ -137,28 +137,28 @@ INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, pri
 -- Data for Name: integerindexedfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.integerindexedfield (id, name, resource_id) VALUES (2, 'age', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+INSERT INTO public.integerindexedfield (id, name, resource_id) VALUES (123123, 'age', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 
 
 --
 -- Data for Name: integerindexedfield_values; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.integerindexedfield_values (integerindexedfield_id, values) VALUES (2, 28);
+INSERT INTO public.integerindexedfield_values (integerindexedfield_id, values) VALUES (123123, 28);
 
 
 --
 -- Data for Name: longindexedfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.longindexedfield (id, name, resource_id) VALUES (6, 'amka', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+INSERT INTO public.longindexedfield (id, name, resource_id) VALUES (123123, 'amka', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 
 
 --
 -- Data for Name: longindexedfield_values; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.longindexedfield_values (longindexedfield_id, values) VALUES (6, 51417010293821);
+INSERT INTO public.longindexedfield_values (longindexedfield_id, values) VALUES (123123, 51417010293821);
 
 
 --
@@ -205,14 +205,14 @@ INSERT INTO public.schemadatabase (id, originalurl, schema) VALUES ('cccbd2ae2ab
 -- Data for Name: stringindexedfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.stringindexedfield (id, name, resource_id) VALUES (1, 'first_name', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+INSERT INTO public.stringindexedfield (id, name, resource_id) VALUES (123123,'first_name', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 
 
 --
 -- Data for Name: stringindexedfield_values; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.stringindexedfield_values (stringindexedfield_id, values) VALUES (1, 'Jodeee');
+INSERT INTO public.stringindexedfield_values (stringindexedfield_id, values) VALUES (123123, 'Jodeee');
 
 
 --

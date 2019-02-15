@@ -33,7 +33,9 @@ import java.util.Properties;
 @EnableJpaRepositories(basePackages = "eu.openminted.registry.core.dao")
 @PropertySource("classpath:application-test.properties")
 @EnableTransactionManagement
-@ComponentScan("eu.openminted.registry.core.dao")
+@ComponentScan({
+        "eu.openminted.registry.core.*"
+})
 public class MockDatabaseConfiguration {
 
     @Autowired

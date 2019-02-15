@@ -19,6 +19,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>eu.openminted</groupId>
+            <artifactId>registry-core-resource-sync</artifactId>
+            <version>2.1.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
             <groupId>org.xbib</groupId>
             <artifactId>cql-elasticsearch</artifactId>
             <version>1.1.1</version>

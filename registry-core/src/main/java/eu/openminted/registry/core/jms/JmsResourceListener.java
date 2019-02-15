@@ -3,7 +3,6 @@ package eu.openminted.registry.core.jms;
 import eu.openminted.registry.core.configuration.JmsConfiguration;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.domain.Version;
 import eu.openminted.registry.core.domain.jms.BaseResourceJms;
 import eu.openminted.registry.core.domain.jms.ResourceJmsCreated;
 import eu.openminted.registry.core.domain.jms.ResourceJmsDeleted;
@@ -15,9 +14,6 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Component;
-
-import java.util.Date;
-import java.util.UUID;
 
 @Component
 public class JmsResourceListener implements ResourceListener, ResourceTypeListener {

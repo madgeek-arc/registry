@@ -12,9 +12,9 @@ import javax.persistence.Query;
 
 
 @Repository("viewsDao")
-public class ViewsDaoImpl extends AbstractDao<Version> implements ViewsDao {
+public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
 
-	private static Logger logger = LogManager.getLogger(ViewsDaoImpl.class);
+	private static Logger logger = LogManager.getLogger(ViewDaoImpl.class);
 
 	@Override
 	public void createView(ResourceType resourceType) {
@@ -71,12 +71,10 @@ public class ViewsDaoImpl extends AbstractDao<Version> implements ViewsDao {
                 count++;
             }
 
-            Query query = getEntityManager().createNativeQuery("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id " + (selectFields.isEmpty() ? "" :  ", " + selectFields) + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
+            Query query = getEntityManager().createNativeQuery("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id, r.creation_date, r.modification_date, " + (selectFields.isEmpty() ? "" :  ", " + selectFields) + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
             try {
                 logger.info("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id, " + selectFields + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
-//                getEntityManager().getTransaction().begin();
                 query.executeUpdate();
-//                getEntityManager().getTransaction().commit();
             } catch (Exception e) {
                 logger.info("View was not created",e);
             }
