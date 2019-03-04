@@ -64,7 +64,6 @@ public class HibernateConfiguration {
                 = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource());
         em.setPackagesToScan("eu.openminted.registry.core.domain", "eu.openminted.registry.core.domain.index");
-//        em.setPersistenceUnitName("MY_PERSISTENCE");
 
         JpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         em.setJpaVendorAdapter(vendorAdapter);
@@ -95,8 +94,9 @@ public class HibernateConfiguration {
         hikariConfig.setPoolName("RegistryCP");
         hikariConfig.setConnectionTestQuery("SELECT 1");
         hikariConfig.setDriverClassName(environment.getRequiredProperty("jdbc.driverClassName"));
-        hikariConfig.setMaximumPoolSize(20);
-        hikariConfig.setIdleTimeout(60);
+        hikariConfig.setMaximumPoolSize(15);
+        hikariConfig.setIdleTimeout(120000);
+        hikariConfig.setMinimumIdle(5);
         hikariConfig.setJdbcUrl(environment.getRequiredProperty("jdbc.url"));
         hikariConfig.setUsername(environment.getRequiredProperty("jdbc.username"));
         hikariConfig.setPassword(environment.getRequiredProperty("jdbc.password"));
