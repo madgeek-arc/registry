@@ -87,7 +87,6 @@ public abstract class AbstractDao<T> {
     public void persist(T entity) {
         try {
             entityManager.persist(entity);
-            entityManager.flush();
         }catch (Exception e){
             throw new ServiceException(e);
         }
