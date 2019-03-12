@@ -14,24 +14,21 @@ import org.springframework.context.annotation.*;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.orm.jpa.JpaTransactionManager;
-import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-import javax.persistence.FlushModeType;
 import javax.sql.DataSource;
 import java.util.Properties;
 
 @Configuration
-@EnableTransactionManagement
-@ComponentScan({ "eu.openminted.registry.core.dao" })
+@ComponentScan({ "eu.openminted.registry.core.dao", "eu.openminted.registry.core.service" })
 @PropertySource(value = { "classpath:application.properties", "classpath:registry.properties"} )
 @EnableAspectJAutoProxy
 @EnableCaching
+@EnableTransactionManagement(proxyTargetClass = true)
 public class HibernateConfiguration {
 
 	private static Logger logger = LogManager.getLogger(HibernateConfiguration.class);
@@ -57,34 +54,30 @@ public class HibernateConfiguration {
         return flyway;
     }
 
-    @Bean
+    @Bean(name = "entityManagerFactory")
     @DependsOn("flyway")
     public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
-        LocalContainerEntityManagerFactoryBean em
-                = new LocalContainerEntityManagerFactoryBean();
+        LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource());
         em.setPackagesToScan("eu.openminted.registry.core.domain", "eu.openminted.registry.core.domain.index");
 
-        JpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
-        em.setJpaVendorAdapter(vendorAdapter);
+        em.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
         em.setJpaProperties(hibernateProperties());
 
         return em;
     }
 
     @Bean
-	@Autowired
+    @Autowired
 	public EntityManager entityManager(EntityManagerFactory entityManagerFactory){
-		EntityManager entityManager = entityManagerFactory.createEntityManager();
-		entityManager.setFlushMode(FlushModeType.AUTO);
-		return entityManager;
+		return  entityManagerFactory.createEntityManager();
 	}
 
     @Bean
-	@Autowired
-    public PlatformTransactionManager transactionManager( EntityManagerFactory emf ){
+    @Autowired
+    public JpaTransactionManager transactionManager(){
         JpaTransactionManager transactionManager = new JpaTransactionManager();
-        transactionManager.setEntityManagerFactory(emf);
+        transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());
         return transactionManager;
     }
 

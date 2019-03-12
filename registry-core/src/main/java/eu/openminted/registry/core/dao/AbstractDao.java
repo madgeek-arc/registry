@@ -16,7 +16,6 @@ import java.lang.reflect.ParameterizedType;
 import java.util.List;
 import java.util.stream.Stream;
 
-@Repository
 public abstract class AbstractDao<T> {
      
     private final Class<T> persistentClass;
