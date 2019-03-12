@@ -74,7 +74,6 @@ public class HibernateConfiguration {
 	}
 
     @Bean
-    @Autowired
     public JpaTransactionManager transactionManager(){
         JpaTransactionManager transactionManager = new JpaTransactionManager();
         transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());
