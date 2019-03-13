@@ -16,6 +16,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.persistence.EntityManager;
@@ -74,14 +75,14 @@ public class HibernateConfiguration {
 	}
 
     @Bean
-    public JpaTransactionManager transactionManager(){
+    public PlatformTransactionManager transactionManager(){
         JpaTransactionManager transactionManager = new JpaTransactionManager();
         transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());
         return transactionManager;
     }
 
     @Bean
-    HikariConfig hikariConfig(){
+    public HikariConfig hikariConfig(){
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setPoolName("RegistryCP");
         hikariConfig.setConnectionTestQuery("SELECT 1");
@@ -116,6 +117,8 @@ public class HibernateConfiguration {
 		properties.put("hibernate.format_sql", environment.getRequiredProperty("hibernate.format_sql"));
 		properties.put("hibernate.hbm2ddl.auto", environment.getRequiredProperty("hibernate.hbm2ddl.auto"));
 		properties.put("hibernate.enable_lazy_load_no_trans","true");
+		properties.put("hibernate.allow_update_outside_transaction","true");
+
 		return properties;
 	}
 
