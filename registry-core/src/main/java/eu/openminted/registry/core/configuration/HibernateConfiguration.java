@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.FlywayException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.cache.CacheManager;
@@ -19,6 +20,7 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
+import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
@@ -45,18 +47,7 @@ public class HibernateConfiguration {
 		return ppc;
 	}
 
-	@Bean(initMethod = "migrate")
-    public Flyway flyway(){
-	    Flyway flyway = new Flyway();
-	    flyway.setBaselineOnMigrate(true);
-	    flyway.setLocations("classpath:migrations/");
-	    flyway.setDataSource(dataSource());
-	    flyway.setOutOfOrder(true);
-        return flyway;
-    }
-
     @Bean(name = "entityManagerFactory")
-    @DependsOn("flyway")
     public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource());
@@ -126,6 +117,18 @@ public class HibernateConfiguration {
     @Bean
     public CacheManager cacheManager() {
         return new ConcurrentMapCacheManager("resourceTypes","resourceTypesIndexFields");
+    }
+
+
+    @PostConstruct
+    public void flywayMigration(){
+        Flyway flyway = Flyway.configure().dataSource(dataSource()).locations("classpath:db/migrations").load();
+        try {
+            flyway.baseline();
+        }catch (FlywayException ex){
+            logger.warn("Flyway exception on baseline",ex);
+        }
+        flyway.migrate();
     }
 
 }
