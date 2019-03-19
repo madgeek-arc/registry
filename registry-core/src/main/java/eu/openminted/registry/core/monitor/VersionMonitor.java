@@ -3,6 +3,9 @@ package eu.openminted.registry.core.monitor;
 import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.Version;
+import eu.openminted.registry.core.service.ResourceServiceImpl;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +14,8 @@ import java.util.UUID;
 
 @Component
 public class VersionMonitor implements ResourceListener {
+
+	private static Logger logger = LogManager.getLogger(VersionMonitor.class);
 
 	@Autowired
 	VersionDao versionDao;
@@ -28,21 +33,11 @@ public class VersionMonitor implements ResourceListener {
 
 	@Override
 	public void resourceDeleted(Resource resource) {
-		Version version = new Version();
-
-		version.setCreationDate(new Date());
-		version.setId(UUID.randomUUID().toString());
-		version.setPayload(resource.getPayload());
-		version.setResource(null);
-		version.setResourceType(null);
-		version.setVersion(resource.getVersion());
-		version.setParentId(resource.getId());
-		version.setResourceTypeName(resource.getResourceTypeName());
-
-		versionDao.addVersion(version);
+		logger.info("Deleting resource with id:" + resource.getId());
 	}
 
 	private void createVersion(Resource newResource) {
+
 		Version version = new Version();
 
 		version.setCreationDate(new Date());

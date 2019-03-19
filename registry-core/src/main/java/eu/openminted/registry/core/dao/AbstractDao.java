@@ -81,6 +81,11 @@ public abstract class AbstractDao<T> {
         return query.getResultStream();
     }
 
+    public T update(T entity) {
+        return entityManager.merge(entity);
+    }
+
+
     @Transactional(propagation = Propagation.REQUIRED)
     public void persist(T entity) {
         try {
@@ -94,6 +99,7 @@ public abstract class AbstractDao<T> {
 
     public void delete(T entity) {
         entityManager.remove(entity);
+        entityManager.flush();
     }
      
 }

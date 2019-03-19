@@ -57,11 +57,6 @@ public class ResourceType {
     @LazyCollection(LazyCollectionOption.TRUE)
     private List<Resource> resources;
 
-    @OneToMany(mappedBy = "resourceType")
-    @LazyCollection(LazyCollectionOption.TRUE)
-    @JsonIgnore
-    private List<Version> versions;
-
     public ResourceType() {
 
     }
@@ -158,12 +153,4 @@ public class ResourceType {
         this.resources = resources;
     }
 
-    @JsonIgnore
-    public List<Version> getVersions() {
-        return versions;
-    }
-
-    public void setVersions(List<Version> versions) {
-        this.versions = versions;
-    }
 }

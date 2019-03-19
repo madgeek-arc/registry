@@ -15,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.sql.DataSource;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -39,8 +38,6 @@ public class ResourceServiceImpl implements ResourceService {
     private ResourceValidator resourceValidator;
     @Autowired
     private IndexedFieldDao indexedFieldDao;
-    @Autowired
-    private DataSource dataSource;
 
     public ResourceServiceImpl() {
 

@@ -63,19 +63,16 @@ public class Resource {
     private List<IndexedField> indexedFields;
 
     @OneToMany(mappedBy = "resource")
-    @LazyCollection(LazyCollectionOption.TRUE)
+    @LazyCollection(LazyCollectionOption.FALSE)
     @JsonIgnore
     private List<Version> versions;
 
     @PreRemove
-    private void preRemove() {
+    public void removeReferenceOfChildren(){
         for (Version v : versions) {
             v.setResource(null);
-            v.setResourceType(null);
         }
-        setVersions(null);
     }
-
 
     public Resource(String id, ResourceType resourceType, String version, String payload, String payloadFormat) {
         this.id = id;

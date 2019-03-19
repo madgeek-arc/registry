@@ -66,6 +66,11 @@ public class VersionDaoImpl extends AbstractDao<Version> implements VersionDao {
 	}
 
 	@Override
+	public void updateVersion(Version version) {
+		update(version);
+	}
+
+	@Override
 	public void deleteVersion(Version version) {
 		delete(version);
 	}

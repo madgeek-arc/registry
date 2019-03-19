@@ -2,6 +2,7 @@ package eu.openminted.registry.core.monitor;
 
 import eu.openminted.registry.core.dao.ViewDao;
 import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.service.ViewService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,16 +17,16 @@ public class ViewResourceTypeListener implements ResourceTypeListener{
 
 
     @Autowired
-    ViewDao viewDao;
+    private ViewService viewService;
 
     @Override
     public void resourceTypeAdded(ResourceType resourceType) {
-        viewDao.createView(resourceType);
+        viewService.createView(resourceType);
     }
 
     @Override
     public void resourceTypeDelete(String name) {
-        viewDao.deleteView(name);
+        viewService.deleteView(name);
     }
 
 }

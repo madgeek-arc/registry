@@ -83,6 +83,7 @@ public class HibernateConfiguration {
 
     @Bean
     public HikariConfig hikariConfig(){
+	    logger.info("Connecting to Database @ "+environment.getRequiredProperty("jdbc.url"));
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setPoolName("RegistryCP");
         hikariConfig.setConnectionTestQuery("SELECT 1");

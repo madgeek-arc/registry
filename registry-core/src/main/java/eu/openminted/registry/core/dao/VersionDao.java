@@ -20,6 +20,8 @@ public interface VersionDao {
 
     void addVersion(Version version);
 
+    void updateVersion(Version version);
+
     void deleteVersion(Version version);
 
 

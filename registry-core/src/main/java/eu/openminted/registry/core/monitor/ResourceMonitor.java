@@ -87,7 +87,7 @@ public class ResourceMonitor {
         return resource;
     }
 
-    @Around(("execution (* eu.openminted.registry.core.service.ResourceService.deleteResource(java.lang.String)) && args(resourceId)"))
+    @Around(("execution (* eu.openminted.registry.core.service.ResourceService.deleteResource(..)) && args(resourceId)"))
     public void resourceDeleted(ProceedingJoinPoint pjp, String resourceId) throws Throwable {
 
         Resource previous = resourceDao.getResource(resourceId);
