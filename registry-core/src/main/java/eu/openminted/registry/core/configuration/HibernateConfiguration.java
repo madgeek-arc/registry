@@ -122,7 +122,7 @@ public class HibernateConfiguration {
 
     @PostConstruct
     public void flywayMigration(){
-        Flyway flyway = Flyway.configure().dataSource(dataSource()).locations("classpath:db/migrations").load();
+        Flyway flyway = Flyway.configure().dataSource(dataSource()).locations("classpath:migrations").load();
         try {
             flyway.baseline();
         }catch (FlywayException ex){
