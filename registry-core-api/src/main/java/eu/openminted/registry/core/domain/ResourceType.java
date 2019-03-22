@@ -57,6 +57,11 @@ public class ResourceType {
     @LazyCollection(LazyCollectionOption.TRUE)
     private List<Resource> resources;
 
+    @OneToMany(mappedBy = "resourceType",cascade = {CascadeType.ALL}, orphanRemoval = true)
+    @LazyCollection(LazyCollectionOption.TRUE)
+    @JsonIgnore
+    private List<Version> versions;
+
     public ResourceType() {
 
     }
