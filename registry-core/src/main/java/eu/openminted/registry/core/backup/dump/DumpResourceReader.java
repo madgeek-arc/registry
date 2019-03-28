@@ -24,7 +24,6 @@ import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 @Component
 @StepScope
@@ -34,8 +33,6 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
     private static final Logger logger = LogManager.getLogger(DumpResourceReader.class);
 
     private List<Resource> resources;
-
-    private Stream<Resource> test;
 
     private ResourceTypeDao resourceTypeDao;
 
@@ -56,11 +53,11 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
         from = 0;
         to = Integer.MAX_VALUE;
         ExecutionContext context = stepExecution.getExecutionContext();
-        if(context.get("resourceType") != null)
+        if (context.get("resourceType") != null)
             resourceTypeName = context.getString("resourceType");
         else
             resourceTypeName = stepExecution.getJobExecution().getJobParameters().getString("resourceType");
-        if(context.get("from") != null && context.get("to") != null) {
+        if (context.get("from") != null && context.get("to") != null) {
             from = context.getInt("from");
             to = context.getInt("to");
         }
@@ -80,8 +77,7 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
         TypedQuery<Resource> query = getEntityManager().createQuery(criteriaQuery);
 
         query.setFirstResult(from);
-        query.setMaxResults(to-from);
-        test = query.getResultStream();
+        query.setMaxResults(to - from);
         resources = query.getResultList();
         IndexMapperFactory indexMapperFactory = new IndexMapperFactory();
         try {
@@ -107,12 +103,12 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
     }
 
     @Override
-    public Resource read() throws Exception{
+    public Resource read() throws Exception {
         Resource resource = resources.remove(0);
 
-        if(resource != null) {
-            if(resource.getIndexedFields() == null || resource.getIndexedFields().isEmpty()) {
-                resource.setIndexedFields(indexMapper.getValues(resource.getPayload(),resourceType));
+        if (resource != null) {
+            if (resource.getIndexedFields() == null || resource.getIndexedFields().isEmpty()) {
+                resource.setIndexedFields(indexMapper.getValues(resource.getPayload(), resourceType));
             }
             return resource;
         }
