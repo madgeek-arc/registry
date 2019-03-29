@@ -9,25 +9,36 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.Query;
+import java.util.*;
 
 
 @Repository("viewsDao")
 public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
 
-	private static Logger logger = LogManager.getLogger(ViewDaoImpl.class);
+    private static Logger logger = LogManager.getLogger(ViewDaoImpl.class);
 
-	@Override
-	public void createView(ResourceType resourceType) {
-        String selectFields = "";
-        String joins = "";
-        int count = 0;
+    @Override
+    public void createView(ResourceType resourceType) {
         if (resourceType.getIndexFields() != null) {
+            // create datatype maps
+            Map<String,String> dataTypeMap = new HashMap< String,String>();
+            dataTypeMap.put("floatindexedfield", "float");
+            dataTypeMap.put("integerindexedfield", "int");
+            dataTypeMap.put("stringindexedfield", "text");
+            dataTypeMap.put("booleanindexedfield", "bool");
+            dataTypeMap.put("longindexedfield", "bigint");
+            dataTypeMap.put("dateindexedfield", "timestamp");
+
+            // order indexFields by name
+            resourceType.getIndexFields().sort(Comparator.comparing(IndexField::getName));
+
+            // create maps to store single- and multi-valued index names
+            Map<String, List<String>> singleVal_indexMap = new HashMap< String,List<String>>();
+            Map<String,List<String>> multiVal_indexMap = new HashMap< String,List<String>>();
+
             for (IndexField indexField : resourceType.getIndexFields()) {
                 String indexFieldString = "";
-                if(indexField.isMultivalued())
-                    selectFields = selectFields.concat("coalesce (" + indexField.getName() + ".values, '{}') as " + indexField.getName());
-                else
-                    selectFields = selectFields.concat("coalesce (" + indexField.getName() + ".values, NULL) as " + indexField.getName());
+
                 switch (indexField.getType()) {
                     case "java.lang.Float":
                         indexFieldString = "floatindexedfield";
@@ -52,28 +63,111 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
 
                 }
                 if (!indexField.isMultivalued()) {
-
-                    joins = joins.concat(" left join (select r.id, ifv.values" +
-                            " from resource r " +
-                            " join " + indexFieldString + " if on if.resource_id=r.id " +
-                            " join " + indexFieldString + "_values ifv on ifv." + indexFieldString + "_id=if.id " +
-                            " where if.name='" + indexField.getName() + "') as " + indexField.getName() + " on  " + indexField.getName() + ".id=r.id ");
+                    // create entry if it does not exist
+                    if (!singleVal_indexMap.containsKey(indexFieldString)) {
+                        List<String> tempList = new ArrayList<String>();
+                        tempList.add(indexField.getName());
+                        singleVal_indexMap.put(indexFieldString, tempList);
+                    } else {
+                        singleVal_indexMap.get(indexFieldString).add(indexField.getName());
+                    }
                 } else {
-                    joins = joins.concat(" left join (select r.id, array_agg(ifv.values) as values" +
-                            " from resource r " +
-                            " join " + indexFieldString + " if on if.resource_id=r.id " +
-                            " join " + indexFieldString + "_values ifv on ifv." + indexFieldString + "_id=if.id " +
-                            " where if.name='" + indexField.getName() + "' group by r.id) as " + indexField.getName() + " on  " + indexField.getName() + ".id=r.id  ");
+                    // create entry if it does not exist
+                    if (!multiVal_indexMap.containsKey(indexFieldString)) {
+                        List<String> tempList = new ArrayList<String>();
+                        tempList.add(indexField.getName());
+                        multiVal_indexMap.put(indexFieldString, tempList);
+                    } else {
+                        multiVal_indexMap.get(indexFieldString).add(indexField.getName());
+                    }
                 }
-                if (count != resourceType.getIndexFields().size() - 1) {
-                    selectFields = selectFields.concat(" , ");
-                }
-                count++;
             }
 
-            Query query = getEntityManager().createNativeQuery("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id, r.creation_date, r.modification_date " + (selectFields.isEmpty() ? "" :  ", " + selectFields) + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
+            String queryString = "";
+            queryString = queryString.concat("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS (");
+            queryString = queryString.concat("SELECT * FROM (select id, creation_date, modification_date from resource where fk_name='" + resourceType.getName() + "') r");
+
+            // setup query for single-valued indices
+            if (!singleVal_indexMap.isEmpty()) {
+
+                // for each indexFieldString in map
+                for (String s : singleVal_indexMap.keySet()) {
+                    queryString = queryString.concat(" INNER JOIN ");
+                    queryString = queryString.concat("(SELECT * FROM crosstab('");
+                    queryString = queryString.concat("SELECT i.resource_id, i.name, v.values FROM (");
+                    queryString = queryString.concat("SELECT " + s + ".id, " + s + ".name, " + s + ".resource_id FROM resource r, " + s);
+                    queryString = queryString.concat(" WHERE r.fk_name = ''" + resourceType.getName() + "'' AND r.id = " + s + ".resource_id AND " + s + ".name IN(");
+
+                    // get list of index names of current subtype
+                    Iterator iter = singleVal_indexMap.get(s).iterator();
+                    while (iter.hasNext()) {
+                        queryString = queryString.concat("''" + iter.next() + "''");
+                        if (iter.hasNext()) {
+                            queryString = queryString.concat(", ");
+                        }
+                    }
+
+                    queryString = queryString.concat(") ORDER BY " + s + ".name) i");
+                    queryString = queryString.concat(" LEFT JOIN (");
+                    queryString = queryString.concat("SELECT " + s + ".id, " + s + "_values.values FROM " + s + ", " + s + "_values");
+                    queryString = queryString.concat(" WHERE " + s + ".id = " + s + "_values." + s + "_id) v");
+                    queryString = queryString.concat(" ON i.id = v.id");
+                    queryString = queryString.concat(" ORDER BY i.resource_id, i.name");
+                    queryString = queryString.concat("') AS output_tbl(");
+                    queryString = queryString.concat("id varchar(255)");
+
+                    // define output table schema
+                    iter = singleVal_indexMap.get(s).iterator();
+                    while (iter.hasNext()) {
+                        queryString = queryString.concat(", " + iter.next() + " " + dataTypeMap.get(s));
+                    }
+                    queryString = queryString.concat(") ) s_" + s + " USING(id)");
+                }
+            }
+
+            // setup query for multi-valued indices
+            if (!multiVal_indexMap.isEmpty()) {
+
+                // for each indexFieldString in map
+                for (String m : multiVal_indexMap.keySet()) {
+                    queryString = queryString.concat(" INNER JOIN ");
+                    queryString = queryString.concat("(SELECT * FROM crosstab('");
+                    queryString = queryString.concat("SELECT i.resource_id, i.name, array_remove(array_agg(v.values), NULL) FROM (");
+                    queryString = queryString.concat("SELECT " + m + ".id, " + m + ".name, " + m + ".resource_id FROM resource r, " + m);
+                    queryString = queryString.concat(" WHERE r.fk_name = ''" + resourceType.getName() + "'' AND r.id = " + m + ".resource_id AND " + m + ".name IN(");
+
+                    // get list of index names of current subtype
+                    Iterator iter = multiVal_indexMap.get(m).iterator();
+                    while (iter.hasNext()) {
+                        queryString = queryString.concat("''" + iter.next() + "''");
+                        if (iter.hasNext()) {
+                            queryString = queryString.concat(", ");
+                        }
+                    }
+
+                    queryString = queryString.concat(") ORDER BY " + m + ".name) i");
+                    queryString = queryString.concat(" LEFT JOIN (");
+                    queryString = queryString.concat("SELECT " + m + ".id, " + m + "_values.values FROM " + m + ", " + m + "_values");
+                    queryString = queryString.concat(" WHERE " + m + ".id = " + m + "_values." + m + "_id) v");
+                    queryString = queryString.concat(" ON i.id = v.id");
+                    queryString = queryString.concat(" GROUP BY i.resource_id, i.name");
+                    queryString = queryString.concat(" ORDER BY i.resource_id, i.name");
+                    queryString = queryString.concat("') AS output_tbl(");
+                    queryString = queryString.concat("id varchar(255)");
+
+                    // define output table schema
+                    iter = multiVal_indexMap.get(m).iterator();
+                    while (iter.hasNext()) {
+                        queryString = queryString.concat(", " + iter.next() + " " + dataTypeMap.get(m) + "[]");
+                    }
+                    queryString = queryString.concat(") ) m_" + m + " USING(id)");
+                }
+            }
+            queryString = queryString.concat(")");
+
+            Query query = getEntityManager().createNativeQuery(queryString);
             try {
-                logger.info("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS select r.id, r.creation_date, r.modification_date, " + (selectFields.isEmpty() ? "" :  ", " + selectFields) + " from resource r " + joins + " where r.fk_name='" + resourceType.getName() + "'");
+                logger.info(queryString);
                 getEntityManager().joinTransaction();
                 query.executeUpdate();
             } catch (Exception e) {
