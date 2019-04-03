@@ -88,7 +88,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
     @Override
     public void deleteResourceType(String name) {
-        resourceTypeDao.deleteResourceType(resourceTypeDao.getResourceType(name));
+        resourceTypeDao.deleteResourceType(name);
     }
 
     private boolean validate(String schema) {

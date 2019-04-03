@@ -80,9 +80,9 @@ public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements Re
 	}
 
 	@Override
-	public void deleteResourceType(ResourceType resourceType) {
-        resourceTypeCacheLoader.invalidate(resourceType.getName());
-		delete(resourceType);
+	public void deleteResourceType(String resourceType) {
+        resourceTypeCacheLoader.invalidate(resourceType);
+		delete(getResourceType(resourceType));
 	}
 
 }
