@@ -19,27 +19,12 @@ import java.util.*;
 @Repository("resourceTypeDao")
 public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements ResourceTypeDao {
 
-    private LoadingCache<String, Optional<ResourceType>> resourceTypeCacheLoader;
-
-    @Autowired
-	VersionDao versionDao;
-
-
     public ResourceTypeDaoImpl() {
         super();
-        CacheLoader<String, Optional<ResourceType>> loader;
-        final ResourceTypeDaoImpl self = this;
-        loader = new CacheLoader<String, Optional<ResourceType>>() {
-            @Override
-            public Optional<ResourceType> load(String name) {
-                return Optional.ofNullable(getEntityManager().find(ResourceType.class,name));
-            }
-        };
-        resourceTypeCacheLoader = CacheBuilder.newBuilder().build(loader);
     }
 
 	public ResourceType getResourceType(String name) {
-        return resourceTypeCacheLoader.getUnchecked(name).orElse(null);
+        return getSingleResult("name",name);
 	}
 
 	public List<ResourceType> getAllResourceType() {
@@ -66,7 +51,6 @@ public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements Re
 
 	public void addResourceType(ResourceType resourceType) {
 		persist(resourceType);
-		resourceTypeCacheLoader.refresh(resourceType.getName());
 	}
 
 	@Override
@@ -81,7 +65,6 @@ public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements Re
 
 	@Override
 	public void deleteResourceType(String resourceType) {
-        resourceTypeCacheLoader.invalidate(resourceType);
 		delete(getResourceType(resourceType));
 	}
 

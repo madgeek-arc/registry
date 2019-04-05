@@ -104,7 +104,8 @@ public class Version {
 
 	@PrePersist
 	protected void onCreate() {
-		creationDate = new Date();
+		if(creationDate==null)
+			creationDate = new Date();
 	}
 
 	public Resource getResource() {

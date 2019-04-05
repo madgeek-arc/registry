@@ -179,7 +179,9 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
 	@Override
 	public void deleteView(String resourceType) {
 	    logger.info("Deleting view ");
+	    getEntityManager().joinTransaction();
 		getEntityManager().createNativeQuery("DROP VIEW IF EXISTS "+resourceType+"_view").executeUpdate();
+		getEntityManager().flush();
 	}
 
 
