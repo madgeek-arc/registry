@@ -3,7 +3,6 @@ package eu.openminted.registry.core.monitor;
 import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.Version;
-import eu.openminted.registry.core.service.ResourceServiceImpl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +27,7 @@ public class VersionMonitor implements ResourceListener {
 	@Override
 	public void resourceUpdated(Resource previousResource, Resource newResource) {
 		//previousResource.id==newResource.id so we can send either one
-		createVersion(previousResource);
+		createVersion(newResource);
 	}
 
 	@Override
