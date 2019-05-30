@@ -38,4 +38,20 @@ public class IndexFieldServiceImpl implements IndexFieldService {
             return new ArrayList<>();
         }
     }
+
+    @Override
+    public IndexField getIndexField(String indexFieldName) {
+        return null;
+    }
+
+    @Override
+    public IndexField add(IndexField indexField) {
+        return null;
+    }
+
+    @Override
+    public void delete(String indexField, String resourceTypeName) {
+
+    }
+
 }

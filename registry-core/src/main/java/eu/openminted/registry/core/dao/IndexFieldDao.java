@@ -9,4 +9,10 @@ public interface IndexFieldDao {
 
     List<IndexField> getIndexFieldsOfResourceType(ResourceType resourceType);
 
+    IndexField getIndexField(String name);
+
+    IndexField add(IndexField indexField);
+
+    void remove(IndexField indexField);
+
 }

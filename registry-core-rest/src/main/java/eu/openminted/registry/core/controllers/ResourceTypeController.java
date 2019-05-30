@@ -2,6 +2,7 @@ package eu.openminted.registry.core.controllers;
 
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.exception.ResourceNotFoundException;
 import eu.openminted.registry.core.service.IndexFieldService;
 import eu.openminted.registry.core.service.ResourceTypeService;
@@ -28,8 +29,31 @@ public class ResourceTypeController {
 	IndexFieldService indexFieldService;
 
 	@RequestMapping(value = "/resourceType/index/{name}", method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity getResourceTypeIndexFields(@PathVariable("name") String name) throws ResourceNotFoundException {
+	public ResponseEntity getResourceTypeIndexFields(@PathVariable("name") String name){
 		return new ResponseEntity(indexFieldService.getIndexFields(name),HttpStatus.OK);
+	}
+
+	@RequestMapping(value = "/resourceType/index/{name}/{indexFieldName}", method = RequestMethod.GET, headers = "Accept=application/json")
+	public ResponseEntity getResourceTypeIndexField(@PathVariable("name") String name, @PathVariable("indexFieldName") String indexFieldName){
+		return new ResponseEntity(indexFieldService.getIndexField(indexFieldName),HttpStatus.OK);
+	}
+
+	@RequestMapping(value = "/resourceType/index/{name}/{indexFieldName}", method = RequestMethod.DELETE)
+	public ResponseEntity deleteIndexField(@PathVariable("name") String name, @PathVariable("indexFieldName") String indexFieldName){
+		indexFieldService.delete(indexFieldName,name);
+		return new ResponseEntity(HttpStatus.OK);
+	}
+
+	@RequestMapping(value = "/resourceType/index/{name}", method = RequestMethod.POST, headers = "Accept=application/json")
+	public ResponseEntity<IndexField> addIndexField(
+			@PathVariable("name") String resourceTypeName,
+			@RequestBody IndexField indexField) {
+		ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
+		if(resourceType == null)
+			throw new ServiceException("Resource type not found");
+
+		indexField.setResourceType(resourceType);
+		return new ResponseEntity<>(indexFieldService.add(indexField),HttpStatus.OK);
 	}
 
 	@RequestMapping(value = "/resourceType/{name}", method = RequestMethod.GET, headers = "Accept=application/json")

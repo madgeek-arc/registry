@@ -12,7 +12,7 @@ import java.util.List;
 
 @Service("indexFieldService")
 @Transactional
-public class IndexFieldServiceImpl implements IndexFieldService {
+public class IndexFieldServiceImpl implements IndexFieldService{
 
     private static Logger logger = LogManager.getLogger(IndexFieldServiceImpl.class);
 
@@ -25,6 +25,28 @@ public class IndexFieldServiceImpl implements IndexFieldService {
     @Override
     public List<IndexField> getIndexFields(String resourceTypeName) {
         return indexFieldDao.getIndexFieldsOfResourceType(resourceTypeService.getResourceType(resourceTypeName));
+    }
+
+    @Override
+    public IndexField getIndexField(String indexFieldName) {
+        return indexFieldDao.getIndexField(indexFieldName);
+    }
+
+    @Override
+    public IndexField add(IndexField indexField) {
+        indexFieldDao.add(indexField);
+        indexField.getResourceType().getIndexFields().add(indexField);
+        return indexField;
+    }
+
+    @Override
+    public void delete(String indexField,String resourceTypeName) {
+        IndexField indexFieldObj = getIndexField(indexField);
+        if(indexFieldObj==null)
+            throw new ServiceException("Index field not found");
+
+        resourceTypeService.getResourceType(resourceTypeName).getIndexFields().remove(indexFieldObj);
+        indexFieldDao.remove(indexFieldObj);
     }
 }
 

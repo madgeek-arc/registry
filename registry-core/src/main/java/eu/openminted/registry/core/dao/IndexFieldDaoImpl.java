@@ -13,4 +13,22 @@ public class IndexFieldDaoImpl extends AbstractDao<IndexField> implements IndexF
     public List<IndexField> getIndexFieldsOfResourceType(ResourceType resourceType) {
         return getList("resourceType",resourceType);
     }
+
+    @Override
+    public IndexField getIndexField(String name) {
+        return getSingleResult("name", name);
+    }
+
+    @Override
+    public IndexField add(IndexField indexField) {
+        persist(indexField);
+        return indexField;
+    }
+
+    @Override
+    public void remove(IndexField indexField) {
+        delete(indexField);
+    }
+
+
 }
