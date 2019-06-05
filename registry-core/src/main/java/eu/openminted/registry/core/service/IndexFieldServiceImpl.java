@@ -1,6 +1,7 @@
 package eu.openminted.registry.core.service;
 
 import eu.openminted.registry.core.dao.IndexFieldDao;
+import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,6 +23,9 @@ public class IndexFieldServiceImpl implements IndexFieldService{
     @Autowired
     ResourceTypeService resourceTypeService;
 
+    @Autowired
+    ResourceService resourceService;
+
     @Override
     public List<IndexField> getIndexFields(String resourceTypeName) {
         return indexFieldDao.getIndexFieldsOfResourceType(resourceTypeService.getResourceType(resourceTypeName));
@@ -34,6 +38,9 @@ public class IndexFieldServiceImpl implements IndexFieldService{
 
     @Override
     public IndexField add(IndexField indexField) {
+        if(getIndexField(indexField.getName())!= null)
+            throw new ServiceException("Index field name already registered");
+
         indexFieldDao.add(indexField);
         indexField.getResourceType().getIndexFields().add(indexField);
         return indexField;
@@ -45,7 +52,11 @@ public class IndexFieldServiceImpl implements IndexFieldService{
         if(indexFieldObj==null)
             throw new ServiceException("Index field not found");
 
-        resourceTypeService.getResourceType(resourceTypeName).getIndexFields().remove(indexFieldObj);
+        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
+        if(resourceType == null)
+            throw new ServiceException("Resource type not found");
+
+        resourceType.getIndexFields().remove(indexFieldObj);
         indexFieldDao.remove(indexFieldObj);
     }
 }

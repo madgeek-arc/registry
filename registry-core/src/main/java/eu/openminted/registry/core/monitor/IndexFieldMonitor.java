@@ -1,6 +1,5 @@
 package eu.openminted.registry.core.monitor;
 
-import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.dao.ViewDao;
 import eu.openminted.registry.core.domain.Resource;
@@ -30,9 +29,6 @@ public class IndexFieldMonitor {
     private ResourceTypeDao resourceTypeDao;
 
     @Autowired
-    private ResourceDao resourceDao;
-
-    @Autowired
     private ResourceService resourceService;
 
     @AfterReturning(pointcut = "execution (* eu.openminted.registry.core.service.IndexFieldService.delete(..)) && args(..,resourceTypeName" +
@@ -43,9 +39,11 @@ public class IndexFieldMonitor {
         viewDao.deleteView(resourceType.getName());
         viewDao.createView(resourceType);
 
-        for(Resource resource: resourceDao.getResource(resourceType)){
+        logger.info("Reindexing resources..");
+        for(Resource resource : resourceType.getResources())
             resourceService.updateResource(resource);
-        }
+
+
     }
 
     @AfterReturning(pointcut = "execution (* eu.openminted.registry.core.service.IndexFieldService.add(..))", returning = "indexField")
@@ -54,9 +52,9 @@ public class IndexFieldMonitor {
         viewDao.deleteView(indexField.getResourceType().getName());
         viewDao.createView(indexField.getResourceType());
 
-        for(Resource resource: resourceDao.getResource(indexField.getResourceType())){
+        logger.info("Reindexing resources..");
+        for(Resource resource : indexField.getResourceType().getResources())
             resourceService.updateResource(resource);
-        }
 
     }
 }
