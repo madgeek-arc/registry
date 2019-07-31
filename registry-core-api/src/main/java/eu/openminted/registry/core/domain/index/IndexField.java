@@ -2,7 +2,6 @@ package eu.openminted.registry.core.domain.index;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import eu.openminted.registry.core.domain.ResourceType;
-import org.springframework.util.StringUtils;
 
 import javax.persistence.*;
 import java.io.Serializable;
@@ -107,34 +106,4 @@ public class IndexField implements Serializable{
 		this.primaryKey = primaryKey;
 	}
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
-
-		IndexField that = (IndexField) o;
-
-		if (multivalued != that.multivalued) return false;
-		if (primaryKey != that.primaryKey) return false;
-		if (resourceType != null ? !resourceType.equals(that.resourceType) : that.resourceType != null) return false;
-		if (name != null ? !name.equals(that.name) : that.name != null) return false;
-		if (path != null ? !path.equals(that.path) : that.path != null) return false;
-		if (type != null ? !type.equals(that.type) : that.type != null) return false;
-		if (label != null ? !label.equals(that.label) : that.label != null) return false;
-		return defaultValue != null ? defaultValue.equals(that.defaultValue) : that.defaultValue == null;
-
-	}
-
-	@Override
-	public int hashCode() {
-		int result = resourceType != null ? resourceType.hashCode() : 0;
-		result = 31 * result + (name != null ? name.hashCode() : 0);
-		result = 31 * result + (path != null ? path.hashCode() : 0);
-		result = 31 * result + (type != null ? type.hashCode() : 0);
-		result = 31 * result + (label != null ? label.hashCode() : 0);
-		result = 31 * result + (defaultValue != null ? defaultValue.hashCode() : 0);
-		result = 31 * result + (multivalued ? 1 : 0);
-		result = 31 * result + (primaryKey ? 1 : 0);
-		return result;
-	}
 }
