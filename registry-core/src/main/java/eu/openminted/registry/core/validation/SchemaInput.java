@@ -18,6 +18,8 @@ public class SchemaInput implements LSInput {
 
     private String systemId;
 
+    private String baseUri;
+
     public String getPublicId() {
         return publicId;
     }
@@ -27,7 +29,7 @@ public class SchemaInput implements LSInput {
     }
 
     public String getBaseURI() {
-        return null;
+        return baseUri;
     }
 
     public InputStream getByteStream() {
@@ -62,6 +64,7 @@ public class SchemaInput implements LSInput {
     }
 
     public void setBaseURI(String baseURI) {
+        this.baseUri = baseURI;
     }
 
     public void setByteStream(InputStream byteStream) {
@@ -97,10 +100,11 @@ public class SchemaInput implements LSInput {
 
     private BufferedInputStream inputStream;
 
-    public SchemaInput (String publicId, String sysId, InputStream input) {
+    public SchemaInput (String publicId, String sysId, InputStream input, String baseUri) {
         this.publicId = publicId;
         this.systemId = sysId;
         this.inputStream = new BufferedInputStream(input);
+        this.baseUri = baseUri;
     }
 }
 

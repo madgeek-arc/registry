@@ -1,33 +1,47 @@
 package eu.openminted.registry.core.controllers;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.exception.ResourceNotFoundException;
+import eu.openminted.registry.core.service.IndexedFieldService;
 import eu.openminted.registry.core.service.ResourceService;
 import eu.openminted.registry.core.service.ResourceTypeService;
+import eu.openminted.registry.core.service.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
-@Transactional
 public class ResourceController {
 
-	   @Autowired
-	   ResourceService resourceService;
+    @Autowired
+    ResourceService resourceService;
 
-	   @Autowired
-	   ResourceTypeService resourceTypeService;
-	  
-	    @RequestMapping(value = "/resources/{resourceType}/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE )
+    @Autowired
+    ResourceTypeService resourceTypeService;
+
+    @Autowired
+	IndexedFieldService indexedFieldService;
+
+	@RequestMapping(value = "/resources/indexed/{resourceId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	public ResponseEntity getIndexedFields(@PathVariable("resourceId") String resourceId){
+		return new ResponseEntity<>(indexedFieldService.getIndexedFields(resourceId), HttpStatus.OK);
+	}
+
+
+	@RequestMapping(value = "/resources/{resourceType}/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE )
 	    public ResponseEntity<Resource> getResourceById(@PathVariable("resourceType") String resourceType,@PathVariable("id") String id) throws ResourceNotFoundException {
-	    	Resource resource = resourceService.getResource(resourceTypeService.getResourceType(resourceType),id);
+	    	Resource resource = resourceService.getResource(id);
 	    	if(resource==null){
 				throw new ResourceNotFoundException();
 	    	}else{
@@ -119,19 +133,37 @@ public class ResourceController {
 	    }
 	    
 	    @RequestMapping(value = "/resources/", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-	    public ResponseEntity<Paging> getAllResources() throws ResourceNotFoundException {
-	    	List<Resource> results = resourceService.getResource();
-	    	int total = resourceService.getResource().size();
-	    	Paging paging = new Paging(total, 0, total-1, results,null);
-	    	ResponseEntity<String> responseEntity;
-	    	if(total==0){
-	    		throw new ResourceNotFoundException();
-	    	}else{
-	    		return new ResponseEntity<>(paging, HttpStatus.OK);
-	    	}
-	    	
-	    	
-	    } 
+	    public ResponseEntity<StreamingResponseBody> getAllResources() {
+
+			StreamingResponseBody streamingResponseBody = outputStream -> {
+				ObjectMapper mapper = new ObjectMapper();
+				JsonGenerator g = mapper.getFactory().createGenerator(outputStream);
+				g.writeStartObject();
+				g.writeFieldName("results");
+				g.writeStartArray();
+				AtomicInteger totals= new AtomicInteger();
+				resourceService.getResourceStream( r -> {
+					try {
+						mapper.writeValue(g,r);
+						totals.getAndIncrement();
+					} catch (IOException e) {
+						throw new ServiceException(e.getMessage());
+					}
+				});
+				g.writeEndArray();
+				g.writeObjectField("facets",null);
+				g.writeNumberField("total",totals.intValue());
+				g.writeNumberField("from",0);
+				g.writeNumberField("to",totals.intValue()-1);
+				g.writeEndObject();
+				g.close();
+			};
+
+			return ResponseEntity
+					.ok()
+					.contentType(MediaType.valueOf(MediaType.APPLICATION_JSON_UTF8_VALUE))
+					.body(streamingResponseBody);
+	    }
 	  
 	    @RequestMapping(value = "/resources", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
 	    public ResponseEntity<Resource> addResource(@RequestBody Resource resource) {
@@ -147,11 +179,9 @@ public class ResourceController {
 	    	return new ResponseEntity<>(resourceFinal, HttpStatus.NO_CONTENT);
 	    }  
 	  
-	    @RequestMapping(value = "/resources/{id}", method = RequestMethod.DELETE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	    @RequestMapping(value = "/resources/{id}", method = RequestMethod.DELETE)
 	    public void deleteResources(@PathVariable("id") String id) {  
 	        resourceService.deleteResource(id);  
-	    }   
-	    
-	  
-  
+	    }
+
 }

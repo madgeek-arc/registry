@@ -2,100 +2,119 @@ package eu.openminted.registry.core.dao;
 
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
-import org.hibernate.Criteria;
-import org.hibernate.criterion.Restrictions;
+import eu.openminted.registry.core.domain.Version;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Expression;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 @Repository("resourceDao")
-public class ResourceDaoImpl extends AbstractDao<String, Resource> implements ResourceDao {
+public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDao {
 
-	public Resource getResource(ResourceType resourceType, String id) {
 
-		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		cr.add(Restrictions.eq("id", id));
+	@Autowired
+	private VersionDao versionDao;
 
-		if (resourceType != null)
-			cr.add(Restrictions.eq("resourceType", resourceType));
+	public Resource getResource(String id) {
+		return getSingleResult("id",id);
+	}
 
-		if (cr.list().size() == 0)
-			return null;
-		else
-			return (Resource) cr.list().get(0);
+	private List<Resource> getSince(Date date, String resourceType, String dateType){
+		CriteriaQuery<Resource> criteriaQuery = getCriteriaQuery();
+		Root<Resource> root = criteriaQuery.from(Resource.class);
+		Expression<Date> dateTypeExp = root.<Date>get(dateType);
+		Expression<String> resourceTypeExp = root.<String>get("resourceType").get("name");
+		List<Predicate> predicates = new ArrayList<>();
+		predicates.add(getCriteriaBuilder().greaterThan(dateTypeExp, date));
+		if(!resourceType.isEmpty())
+			predicates.add(getCriteriaBuilder().equal(resourceTypeExp, resourceType));
 
+		criteriaQuery.select(root).where(predicates.toArray(new Predicate[0]));
+		TypedQuery<Resource> typedQuery = getEntityManager().createQuery(criteriaQuery);
+		return typedQuery.getResultList();
+	}
+
+	@Override
+	public List<Resource> getModifiedSince(Date date, String resourceType){
+		return getSince(date,resourceType,"modificationDate");
+	}
+
+	@Override
+	public List<Resource> getModifiedSince(Date date) {
+		return getSince(date,"","modificationDate");
+	}
+
+	@Override
+	public List<Resource> getCreatedSince(Date date) {
+		return getSince(date,"","creationDate");
+	}
+
+	@Override
+	public List<Resource> getCreatedSince(Date date, String resourceType) {
+		return getSince(date,resourceType,"creationDate");
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<Resource> getResource(ResourceType resourceType) {
+		return getList("resourceType", resourceType);
+	}
 
-		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		cr.add(Restrictions.eq("resourceType", resourceType));
-
-		return cr.list();
+	public Stream<Resource> getResourceStream(){
+		return getStream();
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<Resource> getResource(ResourceType resourceType, int from, int to) {
+		CriteriaQuery<Resource> criteriaQuery = getCriteriaQuery();
+		Root<Resource> root = criteriaQuery.from(Resource.class);
 
-		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		cr.add(Restrictions.eq("resourceType", resourceType));
+        criteriaQuery.select(root);
+        Optional<ResourceType> optional = Optional.ofNullable(resourceType);
+        optional.ifPresent(r -> criteriaQuery.where(getCriteriaBuilder().equal(root.get("resourceType"),resourceType)));
+		criteriaQuery.distinct(true);
+
+		TypedQuery<Resource> typedQuery = getEntityManager().createQuery(criteriaQuery);
 		if (to == 0) {
-			cr.setFirstResult(from);
+			typedQuery.setFirstResult(from);
 		} else {
 			int quantity;
-			if(from==0)
-				quantity = to;
-			else
-				quantity = to - from;
-			cr.setFirstResult(from);
-			cr.setMaxResults(quantity);
+			quantity = (from==0) ? to : to - from;
+			typedQuery.setFirstResult(from);
+			typedQuery.setMaxResults(quantity);
 		}
 
-		return cr.list();
+		return typedQuery.getResultList();
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<Resource> getResource(int from, int to) {
-
-		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		if (to == 0) {
-			cr.setFirstResult(from);
-		} else {
-			int quantity = 10;
-			if(from==0)
-				quantity = to;
-			else
-				quantity = to - from;
-			cr.setFirstResult(from);
-			cr.setMaxResults(quantity);
-		}
-		return cr.list();
+        return getResource(null,from,to);
 	}
 
 	public List<Resource> getResource() {
-		Criteria cr = getSession().createCriteria(Resource.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		return cr.list();
+	    return getResource(null,0,Integer.MAX_VALUE);
 	}
 
-
 	public void addResource(Resource resource){
-//		resource.setResourceType(getSession().load(ResourceType.class,resource.getResourceType().getName()));
 		persist(resource);
-		getSession().flush();
 	}
 
 	public void updateResource(Resource resource) {
 		resource.setModificationDate(new Date());
-		getSession().merge(resource);
-		getSession().flush();
+		getEntityManager().merge(resource);
 	}
 
 	public void deleteResource(Resource resource) {
-		getSession().delete(resource);
-		resource.getResourceType().getResources().remove(resource);
-		getSession().flush();
+		delete(resource);
 	}
 
 }

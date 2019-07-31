@@ -1,48 +1,52 @@
 package eu.openminted.registry.core.dao;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.Version;
 import eu.openminted.registry.core.domain.index.IndexField;
-import org.hibernate.Criteria;
-import org.hibernate.Query;
-import org.hibernate.criterion.Restrictions;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import javax.persistence.Query;
+import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
+import javax.transaction.Transactional;
+import java.util.*;
 
 @Repository("resourceTypeDao")
-public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> implements ResourceTypeDao {
+public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements ResourceTypeDao {
+
+    public ResourceTypeDaoImpl() {
+        super();
+    }
 
 	public ResourceType getResourceType(String name) {
-		
-		Criteria cr = getSession().createCriteria(ResourceType.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		cr.add(Restrictions.eq("name", name));
-		cr.setCacheable(true);
-		if(cr.list().size()==0){
-			return null;
-		}else{
-			return (ResourceType) cr.list().get(0);
-		}
-	
+        return getSingleResult("name",name);
 	}
 
 	public List<ResourceType> getAllResourceType() {
-		Criteria cr = getSession().createCriteria(ResourceType.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		return cr.list();
+		return getList();
 	}
 	
 	@SuppressWarnings("unchecked")
 	public List<ResourceType> getAllResourceType(int from, int to) {
-		
-		Criteria cr = getSession().createCriteria(ResourceType.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-		if(to==0){
-			cr.setFirstResult(from);
-		}else{
-			cr.setFirstResult(from);
-			cr.setMaxResults((to-from)+1);
+
+		CriteriaQuery<ResourceType> criteriaQuery = getCriteriaQuery();
+		Root<ResourceType> root = criteriaQuery.from(ResourceType.class);
+		criteriaQuery.distinct(true);
+		criteriaQuery.select(root);
+
+		TypedQuery<ResourceType> typedQuery = getEntityManager().createQuery(criteriaQuery);
+		if (to == 0) {
+			typedQuery.setFirstResult(from);
+		} else {
+			typedQuery.setFirstResult(from);
+			typedQuery.setMaxResults((to-from)+1);
 		}
-		return cr.list();
+		return typedQuery.getResultList();
 	}
 
 	public void addResourceType(ResourceType resourceType) {
@@ -52,20 +56,16 @@ public class ResourceTypeDaoImpl extends AbstractDao<String, ResourceType> imple
 	@Override
 	public Set<IndexField> getResourceTypeIndexFields(String name) {
 		Set<IndexField> indexFields = new HashSet<>();
-		Query query = getSession().createQuery("from IndexField where resourceType in " +
+		Query query = getEntityManager().createQuery("from IndexField where resourceType in " +
 				"(from ResourceType where name = :name or aliasGroup = :name)");
 		query.setParameter("name",name);
-		indexFields.addAll(query.list());
+		indexFields.addAll(query.getResultList());
 		return indexFields;
 	}
 
 	@Override
-	public void deleteResourceType(ResourceType resourceType) {
-		getSession().delete(resourceType);
-		getSession().flush();
-
-		getSession().createSQLQuery("DROP VIEW "+resourceType.getName()+"_view;");
-		getSession().flush();
+	public void deleteResourceType(String resourceType) {
+		delete(getResourceType(resourceType));
 	}
 
 }

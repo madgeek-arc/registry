@@ -1,8 +1,11 @@
 package eu.openminted.registry.core.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import eu.openminted.registry.core.domain.index.IndexField;
+import org.hibernate.annotations.LazyCollection;
+import org.hibernate.annotations.LazyCollectionOption;
 
 import javax.persistence.*;
 import javax.validation.constraints.Size;
@@ -11,17 +14,19 @@ import java.util.List;
 
 @Entity
 @Table(name = "ResourceType")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class ResourceType {
 
     @Id
     @Size(min = 3, max = 50)
     @Column(name = "name", nullable = false)
+    @Access(AccessType.PROPERTY)
     private String name;
 
     @Column(name = "schema", nullable = false, columnDefinition = "text")
     private String schema;
 
-    @Transient
+    @Column
     private String schemaUrl;
 
     @Size(min = 3, max = 30)
@@ -39,8 +44,7 @@ public class ResourceType {
     @Column
     private String indexMapperClass;
 
-    @OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL})
-//	@ElementCollection(targetClass = IndexField.class)
+    @OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL}, orphanRemoval = true)
     @JsonManagedReference(value = "resourcetype-indexfields")
     @Column
     private List<IndexField> indexFields;
@@ -48,14 +52,14 @@ public class ResourceType {
     @Column
     private String aliasGroup;
 
-    @OneToMany(mappedBy = "resourceType", fetch = FetchType.LAZY, cascade = {CascadeType.ALL})
+    @OneToMany(mappedBy = "resourceType", cascade = {CascadeType.ALL}, orphanRemoval = true)
     @JsonIgnore
-    @JsonManagedReference(value = "resourcetype-resource")
+    @LazyCollection(LazyCollectionOption.TRUE)
     private List<Resource> resources;
 
-    @OneToMany(mappedBy = "resourceType", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "resourceType",cascade = {CascadeType.ALL}, orphanRemoval = true)
+    @LazyCollection(LazyCollectionOption.TRUE)
     @JsonIgnore
-    @JsonManagedReference(value = "resourcetype-versions")
     private List<Version> versions;
 
     public ResourceType() {
@@ -145,6 +149,7 @@ public class ResourceType {
         this.aliasGroup = aliasGroup;
     }
 
+    @JsonIgnore
     public List<Resource> getResources() {
         return resources;
     }
@@ -153,11 +158,4 @@ public class ResourceType {
         this.resources = resources;
     }
 
-    public List<Version> getVersions() {
-        return versions;
-    }
-
-    public void setVersions(List<Version> versions) {
-        this.versions = versions;
-    }
 }

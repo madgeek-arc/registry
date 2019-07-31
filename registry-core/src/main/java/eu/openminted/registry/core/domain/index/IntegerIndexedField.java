@@ -1,19 +1,37 @@
 package eu.openminted.registry.core.domain.index;
 
+import javax.persistence.Column;
+import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
+import javax.persistence.Table;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Entity
-public class IntegerIndexedField extends IndexedField<Integer> {
+@Table
+public class IntegerIndexedField extends IndexedField<Long> {
+
+    @Column
+    @ElementCollection
+    private Set<Long> values;
 
     public IntegerIndexedField(){
 
     }
 
+    @Override
+    public Set<Long> getValues() {
+        return values;
+    }
+
+    @Override
+    public void setValues(Set<Long> value) {
+        this.values = value;
+    }
+
     public IntegerIndexedField(String name, Set<Object> values) {
         setName(name);
-        setValues(values.stream().map(Object::toString).collect(Collectors.toSet()));
+        setValues(values.stream().map(x -> ((Long) x)).collect(Collectors.toSet()));
     }
 
 }

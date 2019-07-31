@@ -1,5 +1,6 @@
 package eu.openminted.registry.core.service;
 
+import eu.openminted.registry.core.dao.IndexedFieldDao;
 import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.domain.Resource;
@@ -20,6 +21,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 @Service("resourceService")
 @Transactional
@@ -34,19 +36,28 @@ public class ResourceServiceImpl implements ResourceService {
     private IndexMapperFactory indexMapperFactory;
     @Autowired
     private ResourceValidator resourceValidator;
+    @Autowired
+    private IndexedFieldDao indexedFieldDao;
 
     public ResourceServiceImpl() {
 
     }
 
     @Override
-    public Resource getResource(ResourceType resourceType, String id) {
-        return resourceDao.getResource(resourceType, id);
+    public Resource getResource(String id) {
+        return resourceDao.getResource(id);
     }
 
     @Override
     public List<Resource> getResource(ResourceType resourceType) {
         return resourceDao.getResource(resourceType);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void getResourceStream(Consumer<Resource> consumer) {
+        resourceDao.getResourceStream().forEach(consumer);
+
     }
 
     @Override
@@ -91,9 +102,7 @@ public class ResourceServiceImpl implements ResourceService {
                 for (IndexedField indexedField : resource.getIndexedFields())
                     indexedField.setResource(resource);
 
-                // resource needs to be saved first in order for the version to correctly reference to it
                 resourceDao.addResource(resource);
-
             } catch (Exception e) {
                 logger.error("Error saving resource", e);
                 throw new ServiceException(e);
@@ -112,8 +121,13 @@ public class ResourceServiceImpl implements ResourceService {
         if(resource.getResourceType() == null) {
             throw new ServiceException("Resource type does not exist");
         }
+
+        if(resource.getId()==null || resource.getId().isEmpty())
+            throw new ServiceException("Resource ID cannot be empty");
+
+        Resource oldResource = resourceDao.getResource(resource.getId());
+        indexedFieldDao.deleteAllIndexedFields(oldResource);
         resource.setIndexedFields(getIndexedFields(resource));
-        resource.setModificationDate(new Date());
         for (IndexedField indexedField : resource.getIndexedFields()) {
             indexedField.setResource(resource);
         }
@@ -128,22 +142,20 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public void deleteResource(String id) {
-        Resource resource = resourceDao.getResource(null,id);
-        resourceDao.deleteResource(resource);
+        resourceDao.deleteResource(resourceDao.getResource(id));
     }
-
-    private List<IndexedField> getIndexedFields(Resource resource) {
+    private List<IndexedField> getIndexedFields(Resource resource) throws ServiceException{
 
         ResourceType resourceType = resourceTypeDao.getResourceType(resource.getResourceType().getName());
         IndexMapper indexMapper = null;
         try {
             indexMapper = indexMapperFactory.createIndexMapper(resourceType);
+            return indexMapper.getValues(resource.getPayload(), resourceType);
         } catch (Exception e) {
             logger.error("Error extracting fields", e);
             throw new ServiceException(e);
         }
 
-        return indexMapper.getValues(resource.getPayload(), resourceType);
     }
 
     public ResourceDao getResourceDao() {
@@ -169,7 +181,7 @@ public class ResourceServiceImpl implements ResourceService {
             if (resourceType.getPayloadType().equals(resource.getPayloadFormat())) {
                 if (resourceType.getPayloadType().equals("xml")) {
                     //validate xml
-                    Boolean output = resourceValidator.validateXML(resource.getResourceType().getName(), resource.getPayload());
+                    Boolean output = resourceValidator.validateXML(resource);
                     if (output) {
                         resource.setPayload(resource.getPayload());
                     } else {
@@ -177,7 +189,7 @@ public class ResourceServiceImpl implements ResourceService {
                     }
                 } else if (resourceType.getPayloadType().equals("json")) {
 
-                    Boolean output = resourceValidator.validateJSON(resourceType.getSchema(), resource.getPayload());
+                    Boolean output = resourceValidator.validateJSON(resource);
 
                     if (output) {
                         resource.setPayload(resource.getPayload());

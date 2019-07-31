@@ -1,5 +1,8 @@
 package eu.openminted.registry.core.configuration;
 
+import eu.openminted.registry.core.monitor.ViewResourceTypeListener;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
@@ -24,6 +27,9 @@ import java.net.UnknownHostException;
 @PropertySource(value = { "classpath:application.properties", "classpath:registry.properties"} )
 public class ElasticConfiguration {
 
+
+    private static Logger logger = LogManager.getLogger(ElasticConfiguration.class);
+
     @Autowired
     private Environment environment;
 
@@ -47,11 +53,11 @@ public class ElasticConfiguration {
         }
 
         try {
+            logger.info("Connecting to Elasticsearch @ "+hostname+":"+port);
             client = new PreBuiltTransportClient(settings.build())
                     .addTransportAddress(new InetSocketTransportAddress(
-                                    InetAddress.getByName(
-                                            environment.getRequiredProperty("elasticsearch.url")),
-                                    Integer.parseInt(environment.getRequiredProperty("elasticsearch.port"))
+                                    InetAddress.getByName(hostname),
+                                    Integer.parseInt(port)
                             )
                     );
         } catch (UnknownHostException e) {

@@ -2,6 +2,7 @@ package eu.openminted.registry.core.domain.index;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import eu.openminted.registry.core.domain.ResourceType;
+import org.springframework.util.StringUtils;
 
 import javax.persistence.*;
 import java.io.Serializable;
@@ -10,7 +11,6 @@ import java.io.Serializable;
  * Created by antleb on 5/20/16.
  */
 @Entity
-//@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
 public class IndexField implements Serializable{
 
 	@ManyToOne(fetch = FetchType.EAGER)

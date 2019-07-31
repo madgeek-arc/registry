@@ -2,7 +2,6 @@ package eu.openminted.registry.core.domain;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
@@ -39,9 +38,11 @@ public class Resource {
     private String payload;
 
     @Transient
+    @JsonIgnore
     private String payloadUrl;
 
     @Transient
+    @JsonIgnore
     private String searchableArea;
 
     @Size(min = 3, max = 30)
@@ -56,18 +57,22 @@ public class Resource {
     @Column(name = "modification_date", nullable = false)
     private Date modificationDate;
 
-    @OneToMany(cascade = {CascadeType.ALL}, mappedBy = "resource")
-    @LazyCollection(LazyCollectionOption.FALSE)
+    @OneToMany(cascade = {CascadeType.ALL}, orphanRemoval = true, mappedBy = "resource")
+    @LazyCollection(LazyCollectionOption.TRUE)
     @JsonIgnore
-    @JsonManagedReference(value = "resource-indexedfields")
     private List<IndexedField> indexedFields;
 
-    @OneToMany(mappedBy = "resource", cascade = {CascadeType.ALL})
+    @OneToMany(mappedBy = "resource")
     @LazyCollection(LazyCollectionOption.FALSE)
     @JsonIgnore
-    @JsonManagedReference(value = "resource-versions")
     private List<Version> versions;
 
+    @PreRemove
+    public void removeReferenceOfChildren(){
+        for (Version v : versions) {
+            v.setResource(null);
+        }
+    }
 
     public Resource(String id, ResourceType resourceType, String version, String payload, String payloadFormat) {
         this.id = id;
@@ -89,6 +94,7 @@ public class Resource {
         this.id = string;
     }
 
+//    @JsonIgnore
     public ResourceType getResourceType() {
         return resourceType;
     }
@@ -163,7 +169,13 @@ public class Resource {
 
     @PrePersist
     protected void onCreate() {
-        modificationDate = creationDate = new Date();
+
+        if(creationDate==null)
+            creationDate = new Date();
+
+        if(modificationDate==null)
+            modificationDate = new Date();
+
         version = generateVersion();
     }
 
@@ -174,6 +186,7 @@ public class Resource {
         version = generateVersion();
     }
 
+    @JsonIgnore
     public List<Version> getVersions() {
         return versions;
     }
@@ -182,16 +195,17 @@ public class Resource {
         this.versions = versions;
     }
 
+    public void setResourceTypeName(String resourceTypeName) {
+        this.resourceTypeName = resourceTypeName;
+    }
+
     private String generateVersion() {
         DateFormat df = new SimpleDateFormat("MMddyyyyHHmmss");
         return df.format(Calendar.getInstance().getTime());
     }
 
     public String getResourceTypeName() {
-        return resourceTypeName;
+        return (resourceType==null) ? resourceTypeName : resourceType.getName();
     }
 
-    public void setResourceTypeName(String resourceTypeName) {
-        this.resourceTypeName = resourceTypeName;
-    }
 }

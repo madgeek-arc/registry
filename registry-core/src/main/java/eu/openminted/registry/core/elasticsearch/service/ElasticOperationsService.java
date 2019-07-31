@@ -7,17 +7,23 @@ import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,7 +53,7 @@ public class ElasticOperationsService {
 
     static {
         Map<String, String> unmodifiableMap = new HashMap<>();
-        unmodifiableMap.put("java.lang.Double", "double");
+        unmodifiableMap.put("java.lang.Float", "float");
         unmodifiableMap.put("java.lang.Integer", "integer");
         unmodifiableMap.put("java.lang.Boolean", "boolean");
         unmodifiableMap.put("java.lang.Long", "long");
@@ -56,11 +62,31 @@ public class ElasticOperationsService {
         FIELD_TYPES_MAP = Collections.unmodifiableMap(unmodifiableMap);
     }
 
+    public void addBulk(List<Resource> resources){
+        Client client = elastic.client();
+        BulkRequestBuilder bulkRequest = client.prepareBulk();
+
+
+        for(Resource resource : resources){
+            bulkRequest.add(client.prepareIndex(resource.getResourceType().getName(), type)
+                        .setSource(createDocumentForInsert(resource),XContentType.JSON)
+                        .setId(resource.getId()));
+        }
+
+        logger.info("Sending bulk request for " + resources.size() + " resources");
+        bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        BulkResponse bulkResponse = bulkRequest.get();
+
+        if(bulkResponse.hasFailures()){
+            logger.info("Elastic bulk request ended up with some errors");
+        }
+    }
+
     public void add(Resource resource) {
         Client client = elastic.client();
         String payload = createDocumentForInsert(resource);
         IndexResponse response = client.prepareIndex(resource.getResourceType().getName(), type)
-                .setSource(payload)
+                .setSource(payload,XContentType.JSON)
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .setId(resource.getId()).get();
     }
@@ -71,8 +97,9 @@ public class ElasticOperationsService {
         UpdateRequest updateRequest = new UpdateRequest();
         updateRequest.index(newResource.getResourceType().getName());
         updateRequest.type(type);
+        updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
         updateRequest.id(previousResource.getId());
-        updateRequest.doc(createDocumentForInsert(newResource));
+        updateRequest.doc(createDocumentForInsert(newResource),XContentType.JSON);
         try {
             client.update(updateRequest).get();
         } catch (InterruptedException | ExecutionException e) {
@@ -82,13 +109,17 @@ public class ElasticOperationsService {
 
     public void delete(Resource resource) {
         Client client = elastic.client();
-        client.prepareDelete(resource.getResourceType().getName(), type, resource.getId()).get();
+        client.prepareDelete(resource.getResourceType().getName(), type, resource.getId())
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                .get();
     }
 
     public void createIndex(ResourceType resourceType) {
         long start_time = System.nanoTime();
         Client client = elastic.client();
-
+        if (exists(resourceType.getName(),client)) {
+            return;
+        }
         CreateIndexRequestBuilder createIndexRequestBuilder = client.admin().indices().prepareCreate(resourceType.getName());
         if (resourceType.getAliasGroup() != null) {
             createIndexRequestBuilder.addAlias(new Alias(resourceType.getAliasGroup()));
@@ -97,7 +128,7 @@ public class ElasticOperationsService {
         Map<String, Object> jsonObjectForMapping = createMapping(resourceType.getIndexFields());
 
         JSONObject parameters = new JSONObject(jsonObjectForMapping);
-        System.err.println(parameters.toString(2));
+        logger.debug(parameters.toString(2));
 
         createIndexRequestBuilder.addMapping(type, jsonObjectForMapping);
 
@@ -115,6 +146,9 @@ public class ElasticOperationsService {
         logger.info("Deleting index");
 
         Client client = elastic.client();
+        if(!exists(name,client)) {
+            return;
+        }
         DeleteIndexResponse deleteResponse = client.admin().indices().delete(new DeleteIndexRequest(name)).actionGet();
 
         if(!deleteResponse.isAcknowledged()){
@@ -122,11 +156,24 @@ public class ElasticOperationsService {
         }
     }
 
+    private boolean exists(String indexName, Client client) {
+        IndicesExistsRequest request = new IndicesExistsRequest(indexName);
+        ActionFuture<IndicesExistsResponse> future = client.admin().indices().exists(request);
+        try {
+            IndicesExistsResponse response = future.get();
+            boolean result = response.isExists();
+            logger.info("Existence of index '" + indexName + "' result is " + result);
+            return result;
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error("Exception at waiting for IndicesExistsResponse", e);
+            return false;//do some clever exception handling
+        }
+    }
+
     private Map<String, Object> createMapping(List<IndexField> indexFields) {
 
         Map<String, Object> jsonObjectGeneral = new HashMap<>();
         Map<String, Object> jsonObjectProperties = new HashMap<>();
-        logger.info(Date.class.getName());
         if (indexFields != null) {
             for (IndexField indexField : indexFields) {
                 Map<String, Object> typeMap = new HashMap<>();
@@ -185,18 +232,20 @@ public class ElasticOperationsService {
                         if(fieldType.equals("java.lang.String")){
                             jsonObjectField.put(field.getName(), value);
                         }else if(fieldType.equals("java.lang.Integer")){
-                            jsonObjectField.put(field.getName(),Integer.parseInt((String)value));
+                            jsonObjectField.put(field.getName(),value);
+                        }else if(fieldType.equals("java.lang.Long")){
+                            jsonObjectField.put(field.getName(),value);
                         }else if(fieldType.equals("java.lang.Float")){
-                            jsonObjectField.put(field.getName(),Float.parseFloat((String) value));
+                            jsonObjectField.put(field.getName(),value);
                         }else if(fieldType.equals("java.util.Date")){
-                            jsonObjectField.put(field.getName(),Long.parseLong((String) value));
+                            Date date = (Date) value;
+                            jsonObjectField.put(field.getName(), date.getTime());
                         }else if (fieldType.equals("java.lang.Boolean")){
-                            jsonObjectField.put(field.getName(),Boolean.parseBoolean((String) value));
+                            jsonObjectField.put(field.getName(),value);
                         }
                     }
                 } else {
-                    List<String> values = new ArrayList<>();
-                    values.addAll(field.getValues());
+                    List<Object> values = new ArrayList<>(field.getValues());
                     jsonObjectField.put(field.getName(),values);
 
                 }

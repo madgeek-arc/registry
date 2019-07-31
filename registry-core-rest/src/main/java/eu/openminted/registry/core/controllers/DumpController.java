@@ -1,6 +1,7 @@
 package eu.openminted.registry.core.controllers;
 
 import eu.openminted.registry.core.service.DumpService;
+import eu.openminted.registry.core.service.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -8,6 +9,9 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
+import java.nio.file.Files;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 @RestController
 public class DumpController {
@@ -15,15 +19,15 @@ public class DumpController {
     @Autowired
     DumpService dumpService;
 
-    static boolean deleteDirectory(File directory) {
+    private static boolean deleteDirectory(File directory) throws IOException {
         if (directory.exists()) {
             File[] files = directory.listFiles();
             if (null != files) {
-                for (int i = 0; i < files.length; i++) {
-                    if (files[i].isDirectory()) {
-                        deleteDirectory(files[i]);
+                for (File file : files) {
+                    if (file.isDirectory()) {
+                        deleteDirectory(file);
                     } else {
-                        files[i].delete();
+                        Files.delete(file.toPath());
                     }
                 }
             }
@@ -39,15 +43,19 @@ public class DumpController {
     public void dumpAll(
                         @RequestParam(value="raw", required = false, defaultValue = "false") String raw,
                         @RequestParam(value = "schema", required = false, defaultValue = "false") String schema,
+                        @RequestParam(value = "version", required = false, defaultValue = "false") String version,
                         @RequestParam(value = "resourceTypes", required = false, defaultValue = "") String[] resourceTypes,
                         HttpServletRequest request,
                         HttpServletResponse response ) {
 
         ServletContext context = request.getServletContext();
         String appPath = context.getRealPath("");
-        System.out.println("appPath = " + appPath);
 
         // construct the complete absolute path of the file
+        boolean wantVersion = false;
+        if(version.equals("true"))
+            wantVersion=true;
+
         boolean isRaw = false;
         if(raw.equals("true"))
             isRaw=true;
@@ -58,15 +66,18 @@ public class DumpController {
 
 
         File downloadFile = null;
-        downloadFile = dumpService.bringAll(isRaw, wantSchema, resourceTypes);
+        downloadFile = dumpService.dump(isRaw, wantSchema, resourceTypes, wantVersion);
 
         FileInputStream inputStream;
         try {
             inputStream = new FileInputStream(downloadFile);
         } catch (FileNotFoundException e) {
-            deleteDirectory(new File(downloadFile.getParent()));
-            e.printStackTrace();
-            return;
+            try {
+                deleteDirectory(downloadFile);
+            } catch (IOException e1) {
+                throw new ServiceException(e1.getMessage());
+            }
+            throw new ServiceException(e.getMessage());
         }
 
         // get MIME type of the file
@@ -83,8 +94,11 @@ public class DumpController {
 
         // set headers for the response
         String headerKey = "Content-Disposition";
-        String headerValue = String.format("attachment; filename=\"%s\"",
-                downloadFile.getName());
+        SimpleDateFormat sdfDate = new SimpleDateFormat("ddMMyyyy");//dd/MM/yyyy
+        Date now = new Date();
+        String strDate = sdfDate.format(now);
+        String headerValue = String.format("attachment; filename=\"dump-%s.zip\"",
+                strDate);
         response.setHeader(headerKey, headerValue);
 
         // get output stream of the response
@@ -92,9 +106,12 @@ public class DumpController {
         try {
             outStream = response.getOutputStream();
         } catch (IOException e) {
-            deleteDirectory(new File(downloadFile.getParent()));
-            e.printStackTrace();
-            return;
+            try {
+                deleteDirectory(downloadFile);
+            } catch (IOException e1) {
+                throw new ServiceException(e1.getMessage());
+            }
+            throw new ServiceException(e.getMessage());
         }
 
         byte[] buffer = new byte[4096];
@@ -106,18 +123,19 @@ public class DumpController {
                 outStream.write(buffer, 0, bytesRead);
             }
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            throw new ServiceException(e.getMessage());
         }
 
         try {
             inputStream.close();
             outStream.close();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            throw new ServiceException(e.getMessage());
         }
-
-        deleteDirectory(new File(downloadFile.getParent()));
+        try {
+            deleteDirectory(downloadFile);
+        } catch (IOException e1) {
+            throw new ServiceException(e1.getMessage());
+        }
     }
 }

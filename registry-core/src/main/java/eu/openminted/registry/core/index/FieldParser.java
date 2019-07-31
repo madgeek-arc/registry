@@ -1,5 +1,10 @@
 package eu.openminted.registry.core.index;
 
+import org.apache.commons.lang3.StringUtils;
+
+import java.time.Instant;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -8,17 +13,29 @@ import java.util.Set;
 public interface FieldParser {
 	Set<Object> parse(String payload, String fieldType, String path, boolean isMultiValued);
 
-	static void parseField(String fieldType, String typeValue, Set<Object> values) {
-		if(fieldType.equals("java.lang.String")){
-			values.add((String)typeValue);
-		}else if(fieldType.equals("java.lang.Integer")){
-			values.add(Integer.parseInt(typeValue));
-		}else if(fieldType.equals("java.lang.Float")){
-			values.add(Float.parseFloat(typeValue));
-		}else if(fieldType.equals("java.util.Date")){
-			values.add(Long.parseLong(typeValue));
-		}else if (fieldType.equals("java.lang.Boolean")){
-			values.add(Boolean.parseBoolean(typeValue));
-		}
+	static Set<Object> parseField(String fieldType, String typeValue){
+	    Set<Object> values = new HashSet<>();
+        if(!StringUtils.isEmpty(typeValue)) {
+            switch (fieldType) {
+                case "java.lang.String":
+                    values.add(typeValue);
+                    break;
+                case "java.lang.Integer":
+                case "java.lang.Long":
+                    values.add(Long.parseLong(typeValue));
+                    break;
+                case "java.lang.Float":
+                case "java.lang.Double":
+                    values.add(Double.parseDouble(typeValue));
+                    break;
+                case "java.util.Date":
+                    values.add(Date.from(Instant.ofEpochMilli(Long.parseLong(typeValue))));
+                    break;
+                case "java.lang.Boolean":
+                    values.add(Boolean.parseBoolean(typeValue));
+                    break;
+            }
+        }
+		return values;
 	}
 }

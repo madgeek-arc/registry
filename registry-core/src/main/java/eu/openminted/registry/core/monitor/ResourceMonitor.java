@@ -3,8 +3,9 @@ package eu.openminted.registry.core.monitor;
 import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
-import org.apache.logging.log4j.Logger;
+import eu.openminted.registry.core.service.ServiceException;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -37,14 +38,13 @@ public class ResourceMonitor {
 
     @Around("execution (* eu.openminted.registry.core.service.ResourceService.addResource(eu.openminted.registry.core.domain.Resource)) && args(resource)")
     public Resource resourceAdded(ProceedingJoinPoint pjp, Resource resource) throws Throwable {
-
         try {
             resource = (Resource) pjp.proceed();
 
             for (ResourceListener listener : resourceListeners) {
                 try {
                     listener.resourceAdded(resource);
-                    logger.info("Notified listener : " + listener.getClass().getSimpleName() + " for create");
+                    logger.debug("Notified listener : " + listener.getClass().getSimpleName() + " for create");
                 } catch (Exception e) {
                     logger.error("Error notifying listener", e);
                 }
@@ -61,8 +61,11 @@ public class ResourceMonitor {
     public Resource resourceUpdated(ProceedingJoinPoint pjp, Resource resource) throws Throwable {
 
         try {
+            if(resource.getId()==null || resource.getId().isEmpty()) {
+                throw new ServiceException("Empty resource ID");
+            }
 
-            Resource previous = resourceDao.getResource(resource.getResourceType(), resource.getId());
+            Resource previous = resourceDao.getResource(resource.getId());
 
             Resource temp = new Resource(previous.getId(), previous.getResourceType(), previous.getVersion(), previous.getPayload(), previous.getPayloadFormat());
 
@@ -72,7 +75,7 @@ public class ResourceMonitor {
                 for (ResourceListener listener : resourceListeners) {
                     try {
                         listener.resourceUpdated(temp, resource);
-                        logger.info("Notified listener : " + listener.getClass().getSimpleName() + " for update");
+                        logger.debug("Notified listener : " + listener.getClass().getSimpleName() + " for update");
                     } catch (Exception e) {
                         logger.error("Error notifying listener", e);
                     }
@@ -84,10 +87,10 @@ public class ResourceMonitor {
         return resource;
     }
 
-    @Around(("execution (* eu.openminted.registry.core.service.ResourceService.deleteResource(java.lang.String)) && args(resourceId)"))
+    @Around(("execution (* eu.openminted.registry.core.service.ResourceService.deleteResource(..)) && args(resourceId)"))
     public void resourceDeleted(ProceedingJoinPoint pjp, String resourceId) throws Throwable {
 
-        Resource previous = resourceDao.getResource(null, resourceId);
+        Resource previous = resourceDao.getResource(resourceId);
 
         pjp.proceed();
 
@@ -102,7 +105,7 @@ public class ResourceMonitor {
     }
 
     @Around("execution (* eu.openminted.registry.core.service.ResourceTypeService.addResourceType(eu.openminted.registry.core.domain.ResourceType)) && args(resourceType)")
-    public void resourceTypeAdded(ProceedingJoinPoint pjp, ResourceType resourceType) throws Throwable {
+    public ResourceType resourceTypeAdded(ProceedingJoinPoint pjp, ResourceType resourceType) throws Throwable {
 
         pjp.proceed();
 
@@ -115,6 +118,7 @@ public class ResourceMonitor {
                     logger.error("Error notifying listener", e);
                 }
             }
+        return resourceType;
     }
 
     @Around("execution (* eu.openminted.registry.core.service.ResourceTypeService.deleteResourceType(String)) && args(name)")

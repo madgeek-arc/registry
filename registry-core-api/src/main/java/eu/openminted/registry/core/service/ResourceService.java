@@ -4,11 +4,14 @@ import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public interface ResourceService {
-	Resource getResource(ResourceType resourceType, String id);
+	Resource getResource(String id);
 
 	List<Resource> getResource(ResourceType resourceType);
+
+	void getResourceStream(Consumer<Resource> consumer);
 
 	List<Resource> getResource(ResourceType resourceType, int from, int to);
 

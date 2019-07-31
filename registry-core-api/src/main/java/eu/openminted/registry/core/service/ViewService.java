@@ -9,3 +9,4 @@ public interface ViewService {
 	void deleteView(String resourceType);
 
 }
+

@@ -19,6 +19,6 @@ public interface ResourceTypeDao {
 
 	Set<IndexField> getResourceTypeIndexFields(String name);
 
-	void deleteResourceType(ResourceType resourceType);
+	void deleteResourceType(String resourceType);
 
 }

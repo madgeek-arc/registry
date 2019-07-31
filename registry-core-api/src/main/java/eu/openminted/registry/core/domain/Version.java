@@ -1,6 +1,6 @@
 package eu.openminted.registry.core.domain;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.persistence.*;
 import javax.validation.constraints.Size;
@@ -15,13 +15,18 @@ public class Version {
 	private String id;
 
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name="parent_id", nullable = false)
-	@JsonBackReference(value = "resource-versions")
+	@JoinColumn(name="reference_id")
 	private Resource resource;
 
+	@Column(name = "parent_id")
+	private String parentId;
+
+	@Column(name = "resourceType_name")
+	private String resourceTypeName;
+
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name="fk_name_version", nullable = false)
-	@JsonBackReference(value = "resourcetype-versions")
+	@JoinColumn(name="fk_name_version")
+	@JsonIgnore
 	private ResourceType resourceType;
 
 	@Size(min=3, max=50)
@@ -47,6 +52,14 @@ public class Version {
 
 	}
 
+	public String getResourceTypeName() {
+		return resourceTypeName;
+	}
+
+	public void setResourceTypeName(String resourceTypeName) {
+		this.resourceTypeName = resourceTypeName;
+	}
+
 	public String getId() {
 		return id;
 	}
@@ -55,6 +68,7 @@ public class Version {
 		this.id = string;
 	}
 
+	@JsonIgnore
 	public ResourceType getResourceType() {
 		return resourceType;
 	}
@@ -63,6 +77,7 @@ public class Version {
 		this.resourceType = resourceType;
 	}
 
+	@JsonIgnore
 	public String getVersion() {
 		return version;
 	}
@@ -89,7 +104,8 @@ public class Version {
 
 	@PrePersist
 	protected void onCreate() {
-		creationDate = new Date();
+		if(creationDate==null)
+			creationDate = new Date();
 	}
 
 	public Resource getResource() {
@@ -98,5 +114,13 @@ public class Version {
 
 	public void setResource(Resource resource) {
 		this.resource = resource;
+	}
+
+	public String getParentId() {
+		return parentId;
+	}
+
+	public void setParentId(String parentId) {
+		this.parentId = parentId;
 	}
 }

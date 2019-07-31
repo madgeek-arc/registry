@@ -1,21 +1,43 @@
 package eu.openminted.registry.core.domain;
 
+import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Paging<T> {
-    int total;
-    int from;
-    int to;
-    List<T> results;
-    Occurrences occurrences;
 
-    public Paging(int total, int from, int to, List<T> results, Occurrences occurrences) {
+    private int total;
+
+    private int from;
+
+    private int to;
+
+    private List<T> results;
+
+    private List<Facet> facets;
+
+    public Paging(int total, int from, int to, List<T> results, List<Facet> facets) {
         this.total = total;
         this.from = from;
         this.to = to;
         this.results = results;
-        this.occurrences = occurrences;
+        this.facets = facets;
+    }
+
+    public Paging(@NotNull Paging<T> page) {
+        this.total = page.getTotal();
+        this.from = page.getFrom();
+        this.to = page.getTo();
+        this.results = page.getResults();
+        this.facets = page.getFacets();
+    }
+
+    public <K> Paging(@NotNull Paging<K> page, List<T> results) {
+        this.total = page.getTotal();
+        this.from = page.getFrom();
+        this.to = page.getTo();
+        this.facets = page.getFacets();
+        this.results = results;
     }
 
     public Paging() {
@@ -23,7 +45,7 @@ public class Paging<T> {
         this.from = 0;
         this.to = 0;
         this.results = new ArrayList<>();
-        this.occurrences = new Occurrences();
+        this.facets = new ArrayList<>();
     }
 
     public int getTotal() {
@@ -58,12 +80,11 @@ public class Paging<T> {
         this.results = results;
     }
 
-    public Occurrences getOccurrences() {
-        return occurrences;
+    public List<Facet> getFacets() {
+        return facets;
     }
 
-    public void setOccurrences(Occurrences occurrences) {
-        this.occurrences = occurrences;
+    public void setFacets(List<Facet> facets) {
+        this.facets = facets;
     }
-
 }

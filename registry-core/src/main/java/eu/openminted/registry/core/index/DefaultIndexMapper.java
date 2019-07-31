@@ -1,40 +1,39 @@
 package eu.openminted.registry.core.index;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.domain.index.IndexedField;
+import eu.openminted.registry.core.service.ServiceException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
+@Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class DefaultIndexMapper implements IndexMapper {
 
 	private static Logger logger = LogManager.getLogger(DefaultIndexMapper.class);
 
 	private List<IndexField> indexFields;
 
-	// TODO spring me!
-	private IndexedFieldFactory indexedFieldFactory = new IndexedFieldFactory();
+	@Autowired
+	private IndexedFieldFactory indexedFieldFactory;
+	@Autowired
+	private XMLFieldParser xmlFieldParser;
+	@Autowired
+	private JSONFieldParser jsonFieldParser;
 
-	// TODO: springisize this part!
-	private XMLFieldParser xmlFieldParser = new XMLFieldParser();
-	private JSONFieldParser jsonFieldParser = new JSONFieldParser();
-
-	public DefaultIndexMapper(List<IndexField> indexFields) {
-		this.indexFields = indexFields;
-	}
-
-	public List<IndexField> getIndexFields() {
-		return indexFields;
-	}
-
-	public List<IndexedField> getValues(String payload, ResourceType resourceType) {
+	public List<IndexedField> getValues(String payload, ResourceType resourceType) throws ServiceException{
 		List<IndexedField> res = new ArrayList<>();
-
+		ObjectMapper mapper = new ObjectMapper();
 		for (IndexField indexField:resourceType.getIndexFields()) {
 			try {
 				String fieldName = indexField.getName();
@@ -42,33 +41,34 @@ public class DefaultIndexMapper implements IndexMapper {
 				String path = indexField.getPath();
 				String value = indexField.getDefaultValue();
 				Set<Object> values;
-				logger.debug("Indexing field " + fieldName + " (" + fieldType + ") with path " + path);
+				logger.debug("Indexing field " + fieldName + " (" + fieldType + ") with path " + path + " and DEFAULT VALUE:" + value);
 
 				//if there is no xpath add default value
 				if(path == null) {
 					values = new HashSet<>();
 					if(value == null) {
-						throw new Exception("Indexfield"  + fieldName +" with no xpath must supply a default value");
+						throw new ServiceException("Indexfield:"  + fieldName +" with no xpath must supply a default value");
 					}
-					values.add(value);
+
+					values.add(mapper.convertValue(value,Class.forName(indexField.getType())));
 					res.add(indexedFieldFactory.getIndexedField(fieldName,values,fieldType));
-				} else {
+				}else {
 					//there is an xpath
 					values = getValue(payload, fieldType, path, resourceType.getPayloadType(), indexField.isMultivalued());
-					if (values != null) {
+					if (values != null && !values.isEmpty()) {
 						res.add(indexedFieldFactory.getIndexedField(fieldName, values, fieldType));
-					} else {
-						if(value == null) {
-							throw new Exception("Indexfield"  + fieldName +" with no xpath must supply a default value");
-						}
+					}else{
 						values = new HashSet<>();
-						values.add(value);
+						if(value != null) {
+							values.add(mapper.convertValue(value,Class.forName(indexField.getType())));
+						}
+						
 						res.add(indexedFieldFactory.getIndexedField(fieldName,values,fieldType));
 					}
 
 				}
 			} catch (Exception e) {
-				logger.error(e.getMessage());
+				throw new ServiceException(e.getMessage());
 			}
 		}
 		
@@ -86,5 +86,14 @@ public class DefaultIndexMapper implements IndexMapper {
 			fieldParser = null;
 
 		return fieldParser.parse(payload, fieldType, path,isMultiValued);
+	}
+
+	public void setIndexFields(List<IndexField> indexFields) {
+		this.indexFields = indexFields;
+	}
+
+	@Override
+	public List<IndexField> getIndexFields() {
+		return indexFields;
 	}
 }

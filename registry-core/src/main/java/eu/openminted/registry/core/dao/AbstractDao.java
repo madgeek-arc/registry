@@ -1,43 +1,104 @@
 package eu.openminted.registry.core.dao;
-import org.hibernate.Criteria;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
-import java.io.Serializable;
+import eu.openminted.registry.core.service.ServiceException;
+import org.springframework.context.annotation.Scope;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
 import java.lang.reflect.ParameterizedType;
- 
-public abstract class AbstractDao<PK extends Serializable, T> {
+import java.util.List;
+import java.util.stream.Stream;
+
+public abstract class AbstractDao<T> {
      
     private final Class<T> persistentClass;
-     
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
     @SuppressWarnings("unchecked")
     public AbstractDao(){
-        this.persistentClass =(Class<T>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[1];
+        this.persistentClass =(Class<T>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
     }
-     
-    @Autowired
-    private SessionFactory sessionFactory;
- 
-    protected Session getSession(){
-        return sessionFactory.getCurrentSession();
+
+    @Scope("request")
+    protected CriteriaBuilder getCriteriaBuilder(){
+        return entityManager.getCriteriaBuilder();
     }
- 
+
+    @Scope("request")
+    protected CriteriaQuery<T> getCriteriaQuery(){
+        return getCriteriaBuilder().createQuery(persistentClass);
+    }
+
+    protected EntityManager getEntityManager(){
+        return this.entityManager;
+    }
     @SuppressWarnings("unchecked")
-    public T getByKey(PK key) {
-        return (T) getSession().get(persistentClass, key);
+    public T getSingleResult(String key, Object value) {
+        CriteriaQuery<T> criteriaQuery = getCriteriaQuery();
+        Root<T> root = criteriaQuery.from(persistentClass);
+
+        criteriaQuery.distinct(true);
+        criteriaQuery.select(root).where(getCriteriaBuilder().equal(root.get(key),value));
+        TypedQuery<T> query = entityManager.createQuery(criteriaQuery);
+
+        return query.getResultList().isEmpty() ? null : query.getSingleResult();
     }
- 
+
+    public List<T> getList(String key, Object value) {
+        CriteriaQuery<T> criteriaQuery = getCriteriaQuery();
+        Root<T> root = criteriaQuery.from(persistentClass);
+
+        criteriaQuery.distinct(true);
+        criteriaQuery.select(root).where(getCriteriaBuilder().equal(root.get(key),value));
+        TypedQuery<T> query = entityManager.createQuery(criteriaQuery);
+        return query.getResultList();
+    }
+
+    public List<T> getList() {
+        CriteriaQuery<T> criteriaQuery = getCriteriaQuery();
+        Root<T> root = criteriaQuery.from(persistentClass);
+
+        criteriaQuery.distinct(true);
+        criteriaQuery.select(root);
+        TypedQuery<T> query = entityManager.createQuery(criteriaQuery);
+        return query.getResultList();
+    }
+
+    public Stream<T> getStream() {
+        CriteriaQuery<T> criteriaQuery = getCriteriaQuery();
+        Root<T> root = criteriaQuery.from(persistentClass);
+
+        criteriaQuery.select(root);
+        TypedQuery<T> query = entityManager.createQuery(criteriaQuery);
+        return query.getResultStream();
+    }
+
+    public T update(T entity) {
+        return entityManager.merge(entity);
+    }
+
+
+    @Transactional(propagation = Propagation.REQUIRED)
     public void persist(T entity) {
-        getSession().persist(entity);
+        try {
+            entityManager.persist(entity);
+            entityManager.flush();
+        }catch (Exception e){
+            throw new ServiceException(e);
+        }
     }
- 
+
     public void delete(T entity) {
-        getSession().delete(entity);
+        entityManager.remove(entity);
+        entityManager.flush();
     }
      
-    protected Criteria createEntityCriteria(){
-        return getSession().createCriteria(persistentClass);
-    }
- 
 }
