@@ -23,7 +23,7 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
             // create datatype maps
             Map<String,String> dataTypeMap = new HashMap< String,String>();
             dataTypeMap.put("floatindexedfield", "float");
-            dataTypeMap.put("integerindexedfield", "int");
+            dataTypeMap.put("integerindexedfield", "bigint");
             dataTypeMap.put("stringindexedfield", "text");
             dataTypeMap.put("booleanindexedfield", "bool");
             dataTypeMap.put("longindexedfield", "bigint");

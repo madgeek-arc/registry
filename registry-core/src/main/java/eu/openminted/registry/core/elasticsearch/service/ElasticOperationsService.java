@@ -146,6 +146,9 @@ public class ElasticOperationsService {
         logger.info("Deleting index");
 
         Client client = elastic.client();
+        if(!exists(name,client)) {
+            return;
+        }
         DeleteIndexResponse deleteResponse = client.admin().indices().delete(new DeleteIndexRequest(name)).actionGet();
 
         if(!deleteResponse.isAcknowledged()){

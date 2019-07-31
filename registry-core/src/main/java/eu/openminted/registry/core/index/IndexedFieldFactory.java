@@ -1,7 +1,7 @@
 package eu.openminted.registry.core.index;
 
 import eu.openminted.registry.core.domain.index.*;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.Date;
 import java.util.Set;
@@ -9,7 +9,7 @@ import java.util.Set;
 /**
  * Created by antleb on 5/24/16.
  */
-@Repository("indexedFieldFactory")
+@Component("indexedFieldFactory")
 public class IndexedFieldFactory {
 
 
