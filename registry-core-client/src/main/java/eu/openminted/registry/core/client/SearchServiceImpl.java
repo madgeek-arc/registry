@@ -7,6 +7,7 @@ import eu.openminted.registry.core.service.SearchService;
 import eu.openminted.registry.core.service.ServiceException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,12 @@ public class SearchServiceImpl implements SearchService {
 
     @Value("${registry.base}")
     private String registryHost;
+
+
+    @Override
+    public QueryBuilder createQueryBuilder(FacetFilter facetFilter) {
+        return null;
+    }
 
     @Override
     public Paging<Resource> cqlQuery(String query, String resourceType, int quantity, int from, String sortByField, String sortOrder) {

@@ -70,8 +70,8 @@ public class SearchServiceImpl implements SearchService {
         mapper.setPropertyNamingStrategy(new ResourcePropertyName());
     }
 
-
-    private static BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
+    @Override
+    public BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
         if (!filter.getKeyword().equals("")) {
             qBuilder.must(QueryBuilders.matchQuery("searchableArea", filter.getKeyword()));
