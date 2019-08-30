@@ -65,7 +65,7 @@ public class SearchServiceImpl implements SearchService {
 
     private ObjectMapper mapper;
 
-    SearchServiceImpl() {
+    public SearchServiceImpl() {
         mapper = new ObjectMapper();
         mapper.setPropertyNamingStrategy(new ResourcePropertyName());
     }
