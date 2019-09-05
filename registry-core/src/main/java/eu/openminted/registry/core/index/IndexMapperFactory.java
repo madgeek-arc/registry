@@ -15,23 +15,24 @@ public class IndexMapperFactory{
 	private ApplicationContext context;
 
 	public IndexMapper createIndexMapper(ResourceType resourceType) throws Exception {
-//		IndexMapper indexMapper = null;
-//
-//		String indexMapperClass = resourceType.getIndexMapperClass();
-//
-//		if (indexMapperClass.equals(DefaultIndexMapper.class.getName()))
-//			indexMapper = new DefaultIndexMapper(resourceType.getIndexFields());
-//		else
-//			indexMapper = (IndexMapper) Class.forName(resourceType.getIndexMapperClass()).newInstance();
-//
-//		return indexMapper;
+		IndexMapper indexMapper = null;
 
-		IndexMapper indexMapper = (IndexMapper) context.getBean(Class.forName(resourceType.getIndexMapperClass()));
+		String indexMapperClass = resourceType.getIndexMapperClass();
 
-		if (DefaultIndexMapper.class.isAssignableFrom(Class.forName(resourceType.getIndexMapperClass())))
+		if (indexMapperClass.equals(DefaultIndexMapper.class.getName())) {
+			indexMapper = new DefaultIndexMapper();
 			((DefaultIndexMapper) indexMapper).setIndexFields(resourceType.getIndexFields());
+		}else
+			indexMapper = (IndexMapper) Class.forName(resourceType.getIndexMapperClass()).newInstance();
 
 		return indexMapper;
+
+//		IndexMapper indexMapper = (IndexMapper) context.getBean(Class.forName(resourceType.getIndexMapperClass()));
+//
+//		if (DefaultIndexMapper.class.isAssignableFrom(Class.forName(resourceType.getIndexMapperClass())))
+//			((DefaultIndexMapper) indexMapper).setIndexFields(resourceType.getIndexFields());
+
+//		return indexMapper;
 	}
 
 
