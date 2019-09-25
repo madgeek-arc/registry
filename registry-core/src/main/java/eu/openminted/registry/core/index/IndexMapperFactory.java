@@ -15,24 +15,13 @@ public class IndexMapperFactory{
 	private ApplicationContext context;
 
 	public IndexMapper createIndexMapper(ResourceType resourceType) throws Exception {
-		IndexMapper indexMapper = null;
 
-		String indexMapperClass = resourceType.getIndexMapperClass();
+		IndexMapper indexMapper = (IndexMapper) context.getBean(Class.forName(resourceType.getIndexMapperClass()));
 
-		if (indexMapperClass.equals(DefaultIndexMapper.class.getName())) {
-			indexMapper = new DefaultIndexMapper();
+		if (DefaultIndexMapper.class.isAssignableFrom(Class.forName(resourceType.getIndexMapperClass())))
 			((DefaultIndexMapper) indexMapper).setIndexFields(resourceType.getIndexFields());
-		}else
-			indexMapper = (IndexMapper) Class.forName(resourceType.getIndexMapperClass()).newInstance();
 
 		return indexMapper;
-
-//		IndexMapper indexMapper = (IndexMapper) context.getBean(Class.forName(resourceType.getIndexMapperClass()));
-//
-//		if (DefaultIndexMapper.class.isAssignableFrom(Class.forName(resourceType.getIndexMapperClass())))
-//			((DefaultIndexMapper) indexMapper).setIndexFields(resourceType.getIndexFields());
-
-//		return indexMapper;
 	}
 
 

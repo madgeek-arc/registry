@@ -24,12 +24,17 @@ public class DefaultIndexMapper implements IndexMapper {
 
 	private List<IndexField> indexFields;
 
-	@Autowired
 	private IndexedFieldFactory indexedFieldFactory;
-	@Autowired
 	private XMLFieldParser xmlFieldParser;
-	@Autowired
 	private JSONFieldParser jsonFieldParser;
+
+	@Autowired
+	public DefaultIndexMapper(IndexedFieldFactory indexedFieldFactory, XMLFieldParser xmlFieldParser,
+							  JSONFieldParser jsonFieldParser) {
+		this.indexedFieldFactory = indexedFieldFactory;
+		this.xmlFieldParser = xmlFieldParser;
+		this.jsonFieldParser = jsonFieldParser;
+	}
 
 	public List<IndexedField> getValues(String payload, ResourceType resourceType) throws ServiceException{
 		List<IndexedField> res = new ArrayList<>();
