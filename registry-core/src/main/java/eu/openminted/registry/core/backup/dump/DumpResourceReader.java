@@ -36,6 +36,8 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
 
     private ResourceTypeDao resourceTypeDao;
 
+    private IndexMapperFactory indexMapperFactory;
+
     private IndexMapper indexMapper;
 
     private ResourceType resourceType;
@@ -43,8 +45,9 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
     private int from, to;
 
     @Autowired
-    public DumpResourceReader(ResourceTypeDao resourceTypeDao) {
+    public DumpResourceReader(ResourceTypeDao resourceTypeDao, IndexMapperFactory indexMapperFactory) {
         this.resourceTypeDao = resourceTypeDao;
+        this.indexMapperFactory = indexMapperFactory;
     }
 
     @Override
@@ -79,7 +82,7 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
         query.setFirstResult(from);
         query.setMaxResults(to - from);
         resources = query.getResultList();
-        IndexMapperFactory indexMapperFactory = new IndexMapperFactory();
+
         try {
             indexMapper = indexMapperFactory.createIndexMapper(resourceType);
         } catch (Exception e) {

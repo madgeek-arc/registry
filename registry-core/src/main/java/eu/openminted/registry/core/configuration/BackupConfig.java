@@ -109,11 +109,7 @@ public class BackupConfig {
 
     @Bean
     @JobScope
-    Step resourceTypeDumpPartitioner(
-            DumpResourceTypePartitioner partitioner,
-
-            Step resourceDump
-    ) {
+    Step resourceTypeDumpPartitioner(DumpResourceTypePartitioner partitioner, Step resourceDump) {
         return steps.get("resourcesType")
                 .partitioner("resourceTypePartitioner", partitioner)
                 .step(resourceDump)

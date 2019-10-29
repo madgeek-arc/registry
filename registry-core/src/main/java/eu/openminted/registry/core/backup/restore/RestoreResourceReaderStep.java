@@ -42,11 +42,14 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
 
     private ObjectMapper mapper;
 
+    private IndexMapperFactory indexMapperFactory;
+
     private IndexMapper indexMapper;
 
     @Autowired
-    public RestoreResourceReaderStep(ResourceDao resourceDao) {
+    public RestoreResourceReaderStep(ResourceDao resourceDao, IndexMapperFactory indexMapperFactory) {
         this.resourceDao = resourceDao;
+        this.indexMapperFactory = indexMapperFactory;
         this.mapper = new ObjectMapper();
         this.mapper.configure(MapperFeature.USE_ANNOTATIONS,true);
         this.mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS,false);
@@ -58,9 +61,9 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
         resourceType = (ResourceType) executionContext.get("resourceType");
         File[] files = (File[]) executionContext.get("resources");
         resources = new ConcurrentLinkedQueue<>(Arrays.asList(files));
-        IndexMapperFactory factory = new IndexMapperFactory();
+
         try {
-            indexMapper = factory.createIndexMapper(resourceType);
+            indexMapper = indexMapperFactory.createIndexMapper(resourceType);
         } catch (Exception e) {
             stepExecution.addFailureException(e);
         }
