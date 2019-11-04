@@ -3,6 +3,7 @@ package eu.openminted.registry.core.service;
 import eu.openminted.registry.core.domain.FacetFilter;
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
+import org.elasticsearch.index.query.QueryBuilder;
 
 import java.net.UnknownHostException;
 import java.util.List;
@@ -10,6 +11,8 @@ import java.util.Map;
 
 
 public interface SearchService {
+
+	QueryBuilder createQueryBuilder(FacetFilter facetFilter);
 
 	Paging<Resource> cqlQuery(String query, String resourceType, int quantity,int from, String sortByField, String sortOrder);
 

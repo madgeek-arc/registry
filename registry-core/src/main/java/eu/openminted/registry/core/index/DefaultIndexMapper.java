@@ -7,31 +7,33 @@ import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.service.ServiceException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
+@Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class DefaultIndexMapper implements IndexMapper {
 
 	private static Logger logger = LogManager.getLogger(DefaultIndexMapper.class);
 
 	private List<IndexField> indexFields;
 
-	// TODO spring me!
-	private IndexedFieldFactory indexedFieldFactory = new IndexedFieldFactory();
+	private IndexedFieldFactory indexedFieldFactory;
+	private XMLFieldParser xmlFieldParser;
+	private JSONFieldParser jsonFieldParser;
 
-	// TODO: springisize this part!
-	private XMLFieldParser xmlFieldParser = new XMLFieldParser();
-	private JSONFieldParser jsonFieldParser = new JSONFieldParser();
-
-	public DefaultIndexMapper(List<IndexField> indexFields) {
-		this.indexFields = indexFields;
-	}
-
-	public List<IndexField> getIndexFields() {
-		return indexFields;
+	@Autowired
+	public DefaultIndexMapper(IndexedFieldFactory indexedFieldFactory, XMLFieldParser xmlFieldParser,
+							  JSONFieldParser jsonFieldParser) {
+		this.indexedFieldFactory = indexedFieldFactory;
+		this.xmlFieldParser = xmlFieldParser;
+		this.jsonFieldParser = jsonFieldParser;
 	}
 
 	public List<IndexedField> getValues(String payload, ResourceType resourceType) throws ServiceException{
@@ -89,5 +91,14 @@ public class DefaultIndexMapper implements IndexMapper {
 			fieldParser = null;
 
 		return fieldParser.parse(payload, fieldType, path,isMultiValued);
+	}
+
+	public void setIndexFields(List<IndexField> indexFields) {
+		this.indexFields = indexFields;
+	}
+
+	@Override
+	public List<IndexField> getIndexFields() {
+		return indexFields;
 	}
 }

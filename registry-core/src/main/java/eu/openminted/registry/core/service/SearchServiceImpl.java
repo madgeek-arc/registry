@@ -65,13 +65,13 @@ public class SearchServiceImpl implements SearchService {
 
     private ObjectMapper mapper;
 
-    SearchServiceImpl() {
+    public SearchServiceImpl() {
         mapper = new ObjectMapper();
         mapper.setPropertyNamingStrategy(new ResourcePropertyName());
     }
 
-
-    private static BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
+    @Override
+    public BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
         if (!filter.getKeyword().equals("")) {
             qBuilder.must(QueryBuilders.matchQuery("searchableArea", filter.getKeyword()));
