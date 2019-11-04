@@ -11,6 +11,8 @@ public interface SchemaDao extends LSResourceResolver, SchemaClient {
 
     Schema getSchemaByUrl(String originalURL);
 
+    String replaceLastSegment(String url, String replacingPath);
+
     void addSchema(Schema schema);
 
     void deleteSchema(Schema schema);

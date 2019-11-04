@@ -76,22 +76,12 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
 
     @Override
     public javax.xml.validation.Schema loadXMLSchema(ResourceType resourceType) {
-        try {
-            return this.schemaXMLLoader.getUnchecked(resourceType.getName());
-        } catch (Exception ex) {
-            logger.error("Error loading XML schema from cache", ex);
-            throw new ServiceException(ex.getMessage());
-        }
+        return schemaXMLLoader.getUnchecked(resourceType.getName());
     }
 
     @Override
     public org.everit.json.schema.Schema loadJSONSchema(ResourceType resourceType) {
-        try{
-            return this.schemaJSONLoader.getUnchecked(resourceType.getName());
-        }catch (Exception ex){
-            logger.error("Error loading JSON schema from cache",ex);
-            throw new ServiceException(ex.getMessage());
-        }
+        return this.schemaJSONLoader.getUnchecked(resourceType.getName());
     }
 
     @Override
@@ -100,17 +90,30 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
         try {
             logger.info("Processing schema with systemId " + systemId);
             eu.openminted.registry.core.domain.Schema existing;
-            existing = getSchemaByUrl(systemId);
+            if(baseURI==null)
+                existing = getSchemaByUrl(systemId);
+            else
+                existing = getSchemaByUrl(replaceLastSegment(baseURI, systemId));
+
             if (existing != null)
                 return new SchemaInput(publicId, systemId, IOUtils.toInputStream(existing.getSchema()), baseURI);
-            URL schemaURL = new URL(new URL(baseURI), systemId);
+
+            URL schemaURL = new URL("");
+            if(baseURI!=null) {
+                schemaURL = new URL(new URL(baseURI), systemId);
+            } else {
+                schemaURL = new URL(systemId);
+            }
             String schemaStr = IOUtils.toString(schemaURL.openStream());
             if (validateXML(schemaStr)) {
                 String md5 = stringToMd5(schemaStr + systemId);
                 if (getSchema(md5) == null) {
                     Schema schema = new Schema();
                     schema.setSchema(schemaStr);
-                    schema.setOriginalUrl(systemId);
+                    if(baseURI!=null)
+                        schema.setOriginalUrl(replaceLastSegment(baseURI,systemId));
+                    else
+                        schema.setOriginalUrl(systemId);
                     schema.setId(md5);
                     addSchema(schema);
                 }
@@ -119,6 +122,10 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
         } catch (IOException e) {
             throw new ServiceException(e);
         }
+    }
+
+    public String replaceLastSegment(String url, String replacingPath){
+        return url.replace(url.substring(url.lastIndexOf('/')+1), replacingPath);
     }
 
     private boolean validateXML(String schema) throws IOException {
