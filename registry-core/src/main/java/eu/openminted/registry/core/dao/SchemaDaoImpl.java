@@ -98,7 +98,7 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
             if (existing != null)
                 return new SchemaInput(publicId, systemId, IOUtils.toInputStream(existing.getSchema()), baseURI);
 
-            URL schemaURL = new URL("");
+            URL schemaURL;
             if(baseURI!=null) {
                 schemaURL = new URL(new URL(baseURI), systemId);
             } else {
