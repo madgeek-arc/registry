@@ -150,12 +150,15 @@ public class SearchServiceImpl implements SearchService {
         Facet facet = new Facet();
         facet.setField(browseBy);
         List<eu.openminted.registry.core.domain.Value> values;
-        assert terms.getBuckets() != null && !terms.getBuckets().isEmpty();
-        values = terms.getBuckets()
-                .stream()
-                .map(x -> new eu.openminted.registry.core.domain.Value(x.getKeyAsString(), x.getDocCount()))
-                .sorted()
-                .collect(Collectors.toList());
+        if (terms.getBuckets() != null && !terms.getBuckets().isEmpty()) {
+            values = terms.getBuckets()
+                    .stream()
+                    .map(x -> new eu.openminted.registry.core.domain.Value(x.getKeyAsString(), x.getDocCount()))
+                    .sorted()
+                    .collect(Collectors.toList());
+        } else {
+            values = new ArrayList<>();
+        }
         facet.setValues(values);
         return facet;
     }
