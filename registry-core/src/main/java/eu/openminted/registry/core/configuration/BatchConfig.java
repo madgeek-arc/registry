@@ -43,8 +43,8 @@ public class BatchConfig {
     @Scope(WebApplicationContext.SCOPE_APPLICATION)
     public TaskExecutor jobTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setMaxPoolSize(2);
-        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(1);
+        executor.setCorePoolSize(1);
         executor.initialize();
         return executor;
     }

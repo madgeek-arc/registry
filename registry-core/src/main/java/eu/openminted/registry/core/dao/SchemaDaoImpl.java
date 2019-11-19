@@ -136,6 +136,7 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
         try {
             validator.validate(new StreamSource(IOUtils.toInputStream(schema)));
         } catch (SAXException e) {
+            logger.error("Error validating xsd",e);
             return false;
         }
         return true;
@@ -153,6 +154,7 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
             }
             return sb.toString();
         } catch (NoSuchAlgorithmException e) {
+            logger.error("MD5 not found",e);
             return null;
         }
     }

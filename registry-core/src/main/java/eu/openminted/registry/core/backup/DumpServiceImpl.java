@@ -60,9 +60,9 @@ public class DumpServiceImpl implements DumpService {
         } catch (Exception e) {
            throw new ServiceException(e);
         }
+        Throwable ex = job.getAllFailureExceptions().stream().reduce(new Exception(),(e1, e2) -> {e1.addSuppressed(e2); return e1;});
+        logger.info("Failzor", ex);
         String directory = job.getExecutionContext().getString("directory");
-//        Throwable ex = job.getAllFailureExceptions().stream().reduce(new Exception(),(e1, e2) -> {e1.addSuppressed(e2); return e1;});
-//        logger.info("Failzor", ex);
         try {
             return pack(directory);
         } catch (IOException e) {
@@ -72,7 +72,6 @@ public class DumpServiceImpl implements DumpService {
 
     private static File pack(String sourceDirPath) throws IOException {
         Path p = Files.createTempFile("dump", new Date().toString());
-//        Path p = Files.createFile(zipFilePath);
         try (ZipOutputStream zs = new ZipOutputStream(Files.newOutputStream(p))) {
             Path pp = Paths.get(sourceDirPath);
             Files.walk(pp)

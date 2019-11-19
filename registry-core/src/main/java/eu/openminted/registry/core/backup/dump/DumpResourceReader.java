@@ -84,9 +84,10 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
         resources = query.getResultList();
 
         try {
+            logger.info("Just read "+ resources.size() + " resources for " + resourceType.getName());
             indexMapper = indexMapperFactory.createIndexMapper(resourceType);
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
+            logger.error("ResourceReader failed on beforeStep with message :" + e.getMessage(), e);
         }
     }
 

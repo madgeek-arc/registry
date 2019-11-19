@@ -10,10 +10,11 @@ import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -21,7 +22,8 @@ import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.MultiBucketsAggregation;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
-import org.elasticsearch.search.aggregations.metrics.tophits.InternalTopHits;
+import org.elasticsearch.search.aggregations.metrics.InternalTopHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +34,7 @@ import org.springframework.stereotype.Service;
 import org.xbib.cql.CQLParser;
 import org.xbib.cql.elasticsearch.ElasticsearchQueryGenerator;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -60,9 +63,6 @@ public class SearchServiceImpl implements SearchService {
     @Value("${elastic.aggregation.bucketSize:100}")
     private int bucketSize;
 
-    @Value("${prefix:general}")
-    private String type;
-
     private ObjectMapper mapper;
 
     public SearchServiceImpl() {
@@ -87,18 +87,25 @@ public class SearchServiceImpl implements SearchService {
 
     private Map<String, List<Resource>> buildTopHitAggregation(FacetFilter filter, String category) {
         Map<String, List<Resource>> results;
-        Client client = elastic.client();
+        RestHighLevelClient client = elastic.client();
         BoolQueryBuilder qBuilder = createQueryBuilder(filter);
-        SearchRequestBuilder search = client.prepareSearch(filter.getResourceType()).setTypes(type).
-                setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
-                .setQuery(qBuilder)
-                .setFetchSource(INCLUDES, null)
-                .setFrom(filter.getFrom()).setSize(0).setExplain(false);
-        search.addAggregation(
+        SearchRequest search = new SearchRequest(filter.getResourceType());
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        search.searchType(SearchType.DFS_QUERY_THEN_FETCH);
+        searchSourceBuilder.query(qBuilder)
+                .fetchSource(INCLUDES, null)
+                .from(filter.getFrom()).size(0).explain(false);
+        searchSourceBuilder.aggregation(
                 AggregationBuilders.terms("agg_category").field(category).size(bucketSize)
                         .subAggregation(AggregationBuilders.topHits("documents").size(topHitsSize).fetchSource(INCLUDES, null)
                         ));
-        SearchResponse response = search.execute().actionGet();
+        search.source(searchSourceBuilder);
+        SearchResponse response = null;
+        try {
+            response = client.search(search, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            throw new ServiceException(e.getMessage());
+        }
 
         Terms terms = response.getAggregations().get("agg_category");
         mapper.configure(JsonGenerator.Feature.IGNORE_UNKNOWN, true);
@@ -112,7 +119,13 @@ public class SearchServiceImpl implements SearchService {
                                         .getHits()
                                         .spliterator(), true
                         )
-                                .map(r -> mapper.convertValue(r.getSource(), Resource.class))
+                                .map(r -> {
+                                    try {
+                                        return mapper.readValue(r.getSourceAsString(), Resource.class);
+                                    } catch (IOException e) {
+                                        throw new ServiceException(e.getMessage());
+                                    }
+                                })
                                 .collect(Collectors.toList())
                 ));
 
@@ -120,28 +133,35 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private Paging<Resource> buildSearch(FacetFilter filter) {
-        Client client = elastic.client();
+        RestHighLevelClient client = elastic.client();
 
         int quantity = filter.getQuantity();
         BoolQueryBuilder qBuilder = createQueryBuilder(filter);
 
-        SearchRequestBuilder search = client.prepareSearch(filter.getResourceType()).setTypes(type).
-                setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
-                .setQuery(qBuilder)
-                .setFetchSource(INCLUDES, null)
-                .setFrom(filter.getFrom()).setSize(quantity).setExplain(false);
+        SearchRequest search = new SearchRequest(filter.getResourceType()).
+                searchType(SearchType.DFS_QUERY_THEN_FETCH);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+                searchSourceBuilder.query(qBuilder)
+                .fetchSource(INCLUDES, null)
+                .from(filter.getFrom()).size(quantity).explain(false);
 
         if (filter.getOrderBy() != null) {
             for (Map.Entry<String, Object> order : filter.getOrderBy().entrySet()) {
                 Map op = (Map) order.getValue();
-                search.addSort(order.getKey(), SortOrder.fromString(op.get("order").toString()));
+                searchSourceBuilder.sort(order.getKey(), SortOrder.fromString(op.get("order").toString()));
             }
         }
 
         for (String browseBy : filter.getBrowseBy()) {
-            search.addAggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy).size(bucketSize));
+            searchSourceBuilder.aggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy).size(bucketSize));
         }
-        SearchResponse response = search.execute().actionGet();
+        search.source(searchSourceBuilder);
+        SearchResponse response = null;
+        try {
+            response = client.search(search, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            throw new ServiceException(e.getMessage());
+        }
 
         return responseToPaging(response, filter.getFrom(), filter.getBrowseBy());
     }
@@ -169,26 +189,32 @@ public class SearchServiceImpl implements SearchService {
 
         parser.getCQLQuery().accept(generator);
 
-        Client client = elastic.client();
-        SearchRequestBuilder search = client.prepareSearch(filter.getResourceType())
-                .setTypes(type)
-                .setQuery(QueryBuilders.wrapperQuery(generator.getQueryResult()))
-                .setSize(filter.getQuantity())
-                .setFrom(filter.getFrom())
-                .setFetchSource(INCLUDES, null)
-                .setExplain(true);
+        RestHighLevelClient client = elastic.client();
+        SearchRequest searchRequest = new SearchRequest(filter.getResourceType());
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query((QueryBuilders.wrapperQuery(generator.getQueryResult())));
+        searchSourceBuilder.size(filter.getQuantity())
+                .from(filter.getFrom())
+                .fetchSource(INCLUDES, null)
+                .explain(true);
 
         if (filter.getOrderBy() != null) {
             for (Map.Entry<String, Object> order : filter.getOrderBy().entrySet()) {
                 Map op = (Map) order.getValue();
-                search.addSort(order.getKey(), SortOrder.fromString(op.get("order").toString()));
+                searchSourceBuilder.sort(order.getKey(), SortOrder.fromString(op.get("order").toString()));
             }
         }
 
         for (String browseBy : filter.getBrowseBy()) {
-            search.addAggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy).size(bucketSize));
+            searchSourceBuilder.aggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy).size(bucketSize));
         }
-        SearchResponse response = search.execute().actionGet();
+        searchRequest.source(searchSourceBuilder);
+        SearchResponse response = null;
+        try {
+            response = client.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            throw new ServiceException(e.getMessage());
+        }
 
         return responseToPaging(response, filter.getFrom(), filter.getBrowseBy());
     }
@@ -207,35 +233,45 @@ public class SearchServiceImpl implements SearchService {
 
         parser.getCQLQuery().accept(generator);
 
-        Client client = elastic.client();
-        SearchRequestBuilder search = client
-                .prepareSearch(resourceType)
-                .setTypes(type)
-                .setFetchSource(INCLUDES, null)
-                .setQuery(QueryBuilders.wrapperQuery(generator.getQueryResult()))
-                .setSize(quantity)
-                .setFrom(from)
-                .setExplain(false);
+        RestHighLevelClient client = elastic.client();
+        SearchRequest searchRequest = new SearchRequest(resourceType);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.fetchSource(INCLUDES, null)
+                .query(QueryBuilders.wrapperQuery(generator.getQueryResult()))
+                .size(quantity)
+                .from(from)
+                .explain(false);
 
         if (!sortByField.isEmpty()) {
-            search.addSort(SortBuilders.fieldSort(sortByField).order(SortOrder.valueOf(sortOrder)));
+            searchSourceBuilder.sort(SortBuilders.fieldSort(sortByField).order(SortOrder.valueOf(sortOrder)));
         }
 
-        SearchResponse response = search.execute().actionGet();
+        searchRequest.source(searchSourceBuilder);
+        SearchResponse response = null;
+        try {
+            response = client.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            throw new ServiceException(e.getMessage());
+        }
         return responseToPaging(response, from, null);
 
     }
 
     private Paging<Resource> responseToPaging(SearchResponse response, int from, List<String> browseBy) {
-        if (response == null || response.getHits().getTotalHits() == 0) {
+        if (response == null || response.getHits().getTotalHits().value == 0) {
             return new Paging<>();
         } else {
             List<Resource> resources = StreamSupport
                     .stream(response.getHits().spliterator(), true)
                     .map(r -> {
-                        Resource res = mapper.convertValue(r.getSource(), Resource.class);
-                        res.setResourceTypeName(r.getIndex());
-                        return res;
+                        try {
+                            Resource res = mapper.readValue(r.getSourceAsString(), Resource.class);
+                            res.setResourceTypeName(r.getIndex());
+                            return res;
+                        } catch (IOException e) {
+                            throw new ServiceException(e.getMessage());
+                        }
+
                     })
                     .collect(Collectors.toList());
 
@@ -247,7 +283,7 @@ public class SearchServiceImpl implements SearchService {
                         .collect(Collectors.toList());
             }
 
-            return new Paging<>((int) response.getHits().getTotalHits(), from, from + resources.size(), resources, facets);
+            return new Paging<>((int) response.getHits().getTotalHits().value, from, from + resources.size(), resources, facets);
         }
     }
 
@@ -278,20 +314,32 @@ public class SearchServiceImpl implements SearchService {
                 .map(kv -> QueryBuilders.termsQuery(kv.getField(), kv.getValue()))
                 .forEach(qBuilder::must);
 
-        Client client = elastic.client();
-        SearchRequestBuilder search = client
-                .prepareSearch(resourceType)
-                .setTypes(type)
-                .setFetchSource(INCLUDES, null)
-                .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
-                .setQuery(qBuilder)
-                .setSize(1).setExplain(false);
+        RestHighLevelClient client = elastic.client();
+        SearchRequest searchRequest = new SearchRequest(resourceType);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.fetchSource(INCLUDES, null);
+        searchRequest.searchType(SearchType.DFS_QUERY_THEN_FETCH);
+        searchSourceBuilder.query(qBuilder)
+                .size(1).explain(false);
 
+        searchRequest.source(searchSourceBuilder);
         logger.debug("Search query: " + qBuilder + "in index " + resourceType);
-        SearchHits ss = search.execute().actionGet().getHits();
-        Optional<SearchHit> hit = Optional.ofNullable(ss.getTotalHits() == 0 ? null : ss.getAt(0));
+        try {
+            SearchResponse searchResponse = client.search(searchRequest,RequestOptions.DEFAULT);
+            SearchHits ss = searchResponse.getHits();
+            Optional<SearchHit> hit = Optional.ofNullable(ss.getTotalHits().value == 0 ? null : ss.getAt(0));
 
-        return hit.map(x -> mapper.convertValue(x.getSource(), Resource.class)).orElse(null);
+            return hit.map(x -> {
+                try {
+                    return mapper.readValue(x.getSourceAsString(), Resource.class);
+                } catch (IOException e) {
+                    throw new ServiceException(e.getMessage());
+                }
+            }).orElse(null);
+        } catch (IOException e) {
+            throw new ServiceException(e.getMessage());
+        }
+
     }
 
     @Override

@@ -9,29 +9,29 @@ import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.CreateIndexResponse;
+import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 @Service("elasticOperationsService")
@@ -45,9 +45,6 @@ public class ElasticOperationsService {
 
     @Autowired
     private ElasticConfiguration elastic;
-
-    @Value("${prefix:general}")
-    private String type;
 
     private static final Map<String, String> FIELD_TYPES_MAP;
 
@@ -63,66 +60,82 @@ public class ElasticOperationsService {
     }
 
     public void addBulk(List<Resource> resources){
-        Client client = elastic.client();
-        BulkRequestBuilder bulkRequest = client.prepareBulk();
+        RestHighLevelClient client = elastic.client();
+        BulkRequest bulkRequest = new BulkRequest();
 
 
         for(Resource resource : resources){
-            bulkRequest.add(client.prepareIndex(resource.getResourceType().getName(), type)
-                        .setSource(createDocumentForInsert(resource),XContentType.JSON)
-                        .setId(resource.getId()));
+            bulkRequest.add(new IndexRequest(resource.getResourceType().getName())
+                        .source(createDocumentForInsert(resource),XContentType.JSON)
+                        .id(resource.getId()));
         }
 
         logger.info("Sending bulk request for " + resources.size() + " resources");
         bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-        BulkResponse bulkResponse = bulkRequest.get();
+        BulkResponse bulkResponse = null;
+        try {
+            bulkResponse = client.bulk(bulkRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            logger.error("Elastic bulk request ended up with some errors");
+        }
 
         if(bulkResponse.hasFailures()){
-            logger.info("Elastic bulk request ended up with some errors");
+            logger.error("Elastic bulk request ended up with some errors");
         }
     }
 
     public void add(Resource resource) {
-        Client client = elastic.client();
+        RestHighLevelClient client = elastic.client();
         String payload = createDocumentForInsert(resource);
-        IndexResponse response = client.prepareIndex(resource.getResourceType().getName(), type)
-                .setSource(payload,XContentType.JSON)
-                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                .setId(resource.getId()).get();
+
+        IndexRequest indexRequest = new IndexRequest(resource.getResourceType().getName());
+        indexRequest.id(resource.getId());
+        indexRequest.source(payload,XContentType.JSON);
+        indexRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+
+        try {
+            IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            throw new ServiceException(e.getMessage());
+        }
     }
 
     public void update(Resource previousResource, Resource newResource) {
-        Client client = elastic.client();
+        RestHighLevelClient client = elastic.client();
 
         UpdateRequest updateRequest = new UpdateRequest();
         updateRequest.index(newResource.getResourceType().getName());
-        updateRequest.type(type);
         updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
         updateRequest.id(previousResource.getId());
         updateRequest.doc(createDocumentForInsert(newResource),XContentType.JSON);
         try {
-            client.update(updateRequest).get();
-        } catch (InterruptedException | ExecutionException e) {
+            client.update(updateRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
             throw new ServiceException(e.getMessage());
         }
     }
 
     public void delete(Resource resource) {
-        Client client = elastic.client();
-        client.prepareDelete(resource.getResourceType().getName(), type, resource.getId())
-                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                .get();
+        RestHighLevelClient client = elastic.client();
+
+        DeleteRequest deleteRequest = new DeleteRequest(resource.getResourceType().getName(), resource.getId());
+        try {
+            client.delete(deleteRequest,RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            throw new ServiceException(e.getMessage());
+        }
     }
 
     public void createIndex(ResourceType resourceType) {
-        long start_time = System.nanoTime();
-        Client client = elastic.client();
+        RestHighLevelClient client = elastic.client();
         if (exists(resourceType.getName(),client)) {
             return;
         }
-        CreateIndexRequestBuilder createIndexRequestBuilder = client.admin().indices().prepareCreate(resourceType.getName());
+
+        CreateIndexRequest request = new CreateIndexRequest(resourceType.getName());
+
         if (resourceType.getAliasGroup() != null) {
-            createIndexRequestBuilder.addAlias(new Alias(resourceType.getAliasGroup()));
+            request.alias(new Alias(resourceType.getAliasGroup()));
         }
 
         Map<String, Object> jsonObjectForMapping = createMapping(resourceType.getIndexFields());
@@ -130,43 +143,48 @@ public class ElasticOperationsService {
         JSONObject parameters = new JSONObject(jsonObjectForMapping);
         logger.debug(parameters.toString(2));
 
-        createIndexRequestBuilder.addMapping(type, jsonObjectForMapping);
+        request.mapping(jsonObjectForMapping);
 
-        CreateIndexResponse putMappingResponse = createIndexRequestBuilder.get();
-
-        if (!putMappingResponse.isAcknowledged()) {
-            System.err.println("Error creating result");
+        try {
+            CreateIndexResponse putMappingResponse = client.indices().create(request,RequestOptions.DEFAULT); //request, RequestOptions.DEFAULT);
+            if (!putMappingResponse.isAcknowledged()) {
+                System.err.println("Error creating result");
+            }
+        } catch (IOException e) {
+           throw new ServiceException(e.getMessage());
         }
-        long end_time = System.nanoTime();
-        double difference = (end_time - start_time) / 1e6;
-        logger.info("Resource type "+resourceType.getName()+" added in "+difference+"ms to Elastic");
+
     }
 
     public void deleteIndex(String name) {
         logger.info("Deleting index");
 
-        Client client = elastic.client();
+        RestHighLevelClient client = elastic.client();
         if(!exists(name,client)) {
             return;
         }
-        DeleteIndexResponse deleteResponse = client.admin().indices().delete(new DeleteIndexRequest(name)).actionGet();
-
-        if(!deleteResponse.isAcknowledged()){
-            logger.fatal("Error deleting index \""+name+"\"");
+        AcknowledgedResponse deleteResponse = null;
+        try {
+            deleteResponse = client.indices().delete(new DeleteIndexRequest(name), RequestOptions.DEFAULT);
+            if(!deleteResponse.isAcknowledged()){
+                logger.fatal("Error deleting index \""+name+"\"");
+            }
+        } catch (IOException e) {
+            logger.fatal("Error deleting index: " + name,e);
         }
+
+
     }
 
-    private boolean exists(String indexName, Client client) {
-        IndicesExistsRequest request = new IndicesExistsRequest(indexName);
-        ActionFuture<IndicesExistsResponse> future = client.admin().indices().exists(request);
+    private boolean exists(String indexName, RestHighLevelClient client) {
         try {
-            IndicesExistsResponse response = future.get();
-            boolean result = response.isExists();
+            GetIndexRequest request = new GetIndexRequest(indexName);
+            boolean result = client.indices().exists(request, RequestOptions.DEFAULT);
             logger.info("Existence of index '" + indexName + "' result is " + result);
             return result;
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (IOException e) {
             logger.error("Exception at waiting for IndicesExistsResponse", e);
-            return false;//do some clever exception handling
+            return false;
         }
     }
 
