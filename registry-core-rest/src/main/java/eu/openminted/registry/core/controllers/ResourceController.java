@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
+import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.exception.ResourceNotFoundException;
 import eu.openminted.registry.core.service.IndexedFieldService;
 import eu.openminted.registry.core.service.ResourceService;
@@ -88,7 +89,7 @@ public class ResourceController {
 	    		return new ResponseEntity<>(paging, HttpStatus.OK);
 	    	}
 	    	
-	    } 
+	    }
 	    
 	    @RequestMapping(value = "/resources/{resourceType}", params = {"to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
 	    public ResponseEntity<Paging> getResourceByResourceTypeTo(@PathVariable("resourceType") String resourceType , @RequestParam(value = "to") int to ) throws ResourceNotFoundException {
@@ -169,9 +170,25 @@ public class ResourceController {
 	    public ResponseEntity<Resource> addResource(@RequestBody Resource resource) {
 			resourceService.addResource(resource);
 			return new ResponseEntity<>(resource, HttpStatus.CREATED);
-	    }  
-	  
-	    @RequestMapping(value = "/resources", method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	    }
+		@RequestMapping(value = "/resource/{resourceId}/{resourceType}", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+		public ResponseEntity<Resource> changeResourceType(
+				@PathVariable("resourceId") String resourceId,
+				@PathVariable("resourceType") String resourceTypeName
+		) {
+			Resource resource = resourceService.getResource(resourceId);
+			if (resource==null)
+				throw new ServiceException("Resource not found");
+
+			ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
+			if(resourceType == null)
+				throw new ServiceException("Resource type not found");
+
+			resourceService.changeResourceType(resource,resourceType);
+			return new ResponseEntity<>(resource, HttpStatus.CREATED);
+		}
+
+	@RequestMapping(value = "/resources", method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
 	    public ResponseEntity<Resource> updateResource(@RequestBody Resource resource) {
 	    	resource.setModificationDate(new Date());
 	    	Resource resourceFinal;

@@ -5,6 +5,7 @@ import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.Version;
 import org.springframework.stereotype.Repository;
 
+import javax.persistence.Query;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
@@ -51,12 +52,7 @@ public class VersionDaoImpl extends AbstractDao<Version> implements VersionDao {
 
 	@Override
 	public List<Version> getOrphans() {
-
-
-
 		List<Version> versions = getEntityManager().createNativeQuery("SELECT * from resourceversion INNER JOIN (SELECT max(creation_date) as maxd, parent_id as zulu FROM resourceversion WHERE reference_id IS NULL GROUP BY parent_id) as tablzor ON maxd=creation_date AND parent_id=zulu", Version.class).getResultList();
-
-
 		return versions;
 	}
 
@@ -68,6 +64,20 @@ public class VersionDaoImpl extends AbstractDao<Version> implements VersionDao {
 	@Override
 	public void updateVersion(Version version) {
 		update(version);
+	}
+
+	@Override
+	public void updateParent(Resource oldResource, Resource newResource) {
+		Query query = getEntityManager().createNativeQuery("UPDATE resourceversion SET parent_id='"+newResource.getId()+"', reference_id = '"+newResource.getId()+"' WHERE parent_id='"+oldResource.getId()+"'");
+		getEntityManager().joinTransaction();
+		query.executeUpdate();
+	}
+
+	@Override
+	public void updateParent(ResourceType oldResourceType, ResourceType newResourceType) {
+		Query query = getEntityManager().createNativeQuery("UPDATE resourceversion SET fk_name_version='"+newResourceType.getName()+"', resourcetype_name='"+newResourceType.getName()+"' WHERE resourcetype_name='"+oldResourceType.getName()+"'");
+		getEntityManager().joinTransaction();
+		query.executeUpdate();
 	}
 
 	@Override

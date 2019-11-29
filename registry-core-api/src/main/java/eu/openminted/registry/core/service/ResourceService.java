@@ -23,6 +23,8 @@ public interface ResourceService {
 
 	Resource updateResource(Resource resource) throws ServiceException;
 
+	Resource changeResourceType(Resource resource, ResourceType resourceType);
+
 	void deleteResource(String id);
 }
 

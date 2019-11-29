@@ -3,6 +3,7 @@ package eu.openminted.registry.core.service;
 import eu.openminted.registry.core.dao.IndexedFieldDao;
 import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
+import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexedField;
@@ -30,6 +31,10 @@ public class ResourceServiceImpl implements ResourceService {
     private static Logger logger = LogManager.getLogger(ResourceServiceImpl.class);
     @Autowired
     private ResourceDao resourceDao;
+
+    @Autowired
+    private VersionDao versionDao;
+
     @Autowired
     private ResourceTypeDao resourceTypeDao;
     @Autowired
@@ -135,6 +140,36 @@ public class ResourceServiceImpl implements ResourceService {
         if (response) {
             resource.setVersion(generateVersion());
             resourceDao.updateResource(resource);
+        }
+
+        return resource;
+    }
+
+    @Override
+    public Resource changeResourceType(Resource resource, ResourceType resourceType) {
+        if(resource.getResourceType() == null)
+            throw new ServiceException("Resource type not present");
+        ResourceType oldResourceType = resource.getResourceType();
+        resource.setResourceType(resourceType);
+
+        Boolean response = checkValid(resource);
+        if(!response)
+            throw new ServiceException("Failed to validate resource with the new resource type");
+
+        deleteResource(resource.getId());
+        resource.setVersion(generateVersion());
+        try {
+            resource.setIndexedFields(getIndexedFields(resource));
+
+            for (IndexedField indexedField : resource.getIndexedFields())
+                indexedField.setResource(resource);
+
+            resourceDao.addResource(resource);
+            versionDao.updateParent(resource,resource);
+            versionDao.updateParent(oldResourceType,resourceType);
+        } catch (Exception e) {
+            logger.error("Error saving resource", e);
+            throw new ServiceException(e);
         }
 
         return resource;
