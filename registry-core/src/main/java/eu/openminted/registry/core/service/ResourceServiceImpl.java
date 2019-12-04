@@ -7,6 +7,7 @@ import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexedField;
+import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
 import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
 import eu.openminted.registry.core.validation.ResourceValidator;
@@ -43,6 +44,8 @@ public class ResourceServiceImpl implements ResourceService {
     private ResourceValidator resourceValidator;
     @Autowired
     private IndexedFieldDao indexedFieldDao;
+    @Autowired
+    private ElasticOperationsService elasticOperationsService;
 
     public ResourceServiceImpl() {
 
@@ -171,9 +174,12 @@ public class ResourceServiceImpl implements ResourceService {
 
             for (IndexedField indexedField : resource.getIndexedFields())
                 indexedField.setResource(resource);
-
-            resourceDao.addResource(resource);
-            versionDao.updateParent(resource,resource);
+            resource.setResourceType(oldResourceType);
+            elasticOperationsService.delete(resource);
+            resource.setResourceType(resourceType);
+            //using DAO in order to keep the ID of the Resource
+            resourceDao.updateResource(resource);
+            elasticOperationsService.add(resource);
             versionDao.updateParent(oldResourceType,resourceType);
         } catch (Exception e) {
             logger.error("Error saving resource", e);

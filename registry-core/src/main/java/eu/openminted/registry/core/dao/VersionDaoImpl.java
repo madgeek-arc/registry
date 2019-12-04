@@ -67,13 +67,6 @@ public class VersionDaoImpl extends AbstractDao<Version> implements VersionDao {
 	}
 
 	@Override
-	public void updateParent(Resource oldResource, Resource newResource) {
-		Query query = getEntityManager().createNativeQuery("UPDATE resourceversion SET parent_id='"+newResource.getId()+"', reference_id = '"+newResource.getId()+"' WHERE parent_id='"+oldResource.getId()+"'");
-		getEntityManager().joinTransaction();
-		query.executeUpdate();
-	}
-
-	@Override
 	public void updateParent(ResourceType oldResourceType, ResourceType newResourceType) {
 		Query query = getEntityManager().createNativeQuery("UPDATE resourceversion SET fk_name_version='"+newResourceType.getName()+"', resourcetype_name='"+newResourceType.getName()+"' WHERE resourcetype_name='"+oldResourceType.getName()+"'");
 		getEntityManager().joinTransaction();
