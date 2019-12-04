@@ -147,9 +147,17 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public Resource changeResourceType(Resource resource, ResourceType resourceType) {
-        if(resource.getResourceType() == null)
+        if(resource.getResourceType() == null && resource.getResourceTypeName()!=null && resource.getResourceTypeName().isEmpty())
             throw new ServiceException("Resource type not present");
-        ResourceType oldResourceType = resource.getResourceType();
+        ResourceType oldResourceType = null;
+        if(resource.getResourceType()!=null)
+            oldResourceType = resource.getResourceType();
+        else
+            oldResourceType = resourceTypeDao.getResourceType(resource.getResourceTypeName());
+
+        if(oldResourceType==null)
+            throw new ServiceException("Resource type not found");
+
         resource.setResourceType(resourceType);
 
         Boolean response = checkValid(resource);
