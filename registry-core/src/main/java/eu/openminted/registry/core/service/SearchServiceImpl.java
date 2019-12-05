@@ -121,7 +121,9 @@ public class SearchServiceImpl implements SearchService {
                         )
                                 .map(r -> {
                                     try {
-                                        return mapper.readValue(r.getSourceAsString(), Resource.class);
+                                        Resource resource = mapper.readValue(r.getSourceAsString(), Resource.class);
+                                        resource.setResourceTypeName(r.getIndex());
+                                        return resource;
                                     } catch (IOException e) {
                                         throw new ServiceException(e.getMessage());
                                     }
@@ -334,7 +336,9 @@ public class SearchServiceImpl implements SearchService {
 
             return hit.map(x -> {
                 try {
-                    return mapper.readValue(x.getSourceAsString(), Resource.class);
+                    Resource resource = mapper.readValue(x.getSourceAsString(), Resource.class);
+                    resource.setResourceTypeName(x.getIndex());
+                    return resource;
                 } catch (IOException e) {
                     throw new ServiceException(e.getMessage());
                 }
