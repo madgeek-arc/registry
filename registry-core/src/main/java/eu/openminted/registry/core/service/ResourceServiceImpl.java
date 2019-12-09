@@ -180,7 +180,7 @@ public class ResourceServiceImpl implements ResourceService {
             //using DAO in order to keep the ID of the Resource
             resourceDao.updateResource(resource);
             elasticOperationsService.add(resource);
-            versionDao.updateParent(oldResourceType,resourceType);
+            versionDao.updateParent(resource,oldResourceType,resourceType);
         } catch (Exception e) {
             logger.error("Error saving resource", e);
             throw new ServiceException(e);

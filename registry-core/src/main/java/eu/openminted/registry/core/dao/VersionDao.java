@@ -22,7 +22,7 @@ public interface VersionDao {
 
     void updateVersion(Version version);
 
-    void updateParent(ResourceType oldResourceType, ResourceType newResourceType);
+    void updateParent(Resource resource, ResourceType oldResourceType, ResourceType newResourceType);
 
     void deleteVersion(Version version);
 
