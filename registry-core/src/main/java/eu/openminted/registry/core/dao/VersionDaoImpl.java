@@ -36,7 +36,7 @@ public class VersionDaoImpl extends AbstractDao<Version> implements VersionDao {
 
 	@Override
 	public List<Version> getVersionsByResource(Resource resource) {
-		return getList("resource",resource);
+		return getEntityManager().createNativeQuery("SELECT * from resourceversion WHERE reference_id='"+resource.getId()+"' or parent_id='"+resource.getId()+"'" , Version.class).getResultList();
 	}
 
 	@Override
