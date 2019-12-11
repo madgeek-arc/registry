@@ -22,7 +22,7 @@ import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.MultiBucketsAggregation;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
-import org.elasticsearch.search.aggregations.metrics.InternalTopHits;
+import org.elasticsearch.search.aggregations.metrics.TopHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
@@ -114,7 +114,7 @@ public class SearchServiceImpl implements SearchService {
                 .collect(Collectors.toMap(
                         MultiBucketsAggregation.Bucket::getKeyAsString,
                         y -> StreamSupport.stream(
-                                ((InternalTopHits) y.getAggregations()
+                                ((TopHits) y.getAggregations()
                                         .get("documents"))
                                         .getHits()
                                         .spliterator(), true
