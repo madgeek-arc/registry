@@ -9,7 +9,6 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.settings.Settings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
@@ -35,7 +34,6 @@ public class ElasticConfiguration {
     @Value("${elasticsearch.url}")
     String hostname;
 
-    @Bean
     public RestHighLevelClient client(){
 
         Settings.Builder settings = Settings.builder();
@@ -45,7 +43,7 @@ public class ElasticConfiguration {
             settings.put("cluster.name", environment.getRequiredProperty("elasticsearch.cluster"));
         }
 
-        logger.info("Connecting to Elasticsearch @ "+hostname+":"+port);
+//        logger.info("Connecting to Elasticsearch @ "+hostname+":"+port);
         RestClientBuilder restClientBuilder =  RestClient.builder(
                 new HttpHost(hostname, Integer.parseInt(port), "http"));
 
