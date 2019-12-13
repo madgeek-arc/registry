@@ -4,6 +4,7 @@ import org.apache.http.HttpHost;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.settings.Settings;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,9 +46,16 @@ public class ElasticConfiguration {
         }
 
         logger.info("Connecting to Elasticsearch @ "+hostname+":"+port);
+        RestClientBuilder restClientBuilder =  RestClient.builder(
+                new HttpHost(hostname, Integer.parseInt(port), "http"));
 
-        return new RestHighLevelClient(
-                RestClient.builder(
-                        new HttpHost(hostname, Integer.parseInt(port), "http")));
+        restClientBuilder.setRequestConfigCallback(requestConfigBuilder -> {
+            requestConfigBuilder.setConnectTimeout(0);
+            requestConfigBuilder.setSocketTimeout(0);
+            requestConfigBuilder.setConnectionRequestTimeout(0);
+            return requestConfigBuilder;
+        });
+
+        return new RestHighLevelClient(restClientBuilder);
     }
 }
