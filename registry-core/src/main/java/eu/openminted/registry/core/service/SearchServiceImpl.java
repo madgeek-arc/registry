@@ -3,7 +3,6 @@ package eu.openminted.registry.core.service;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import eu.openminted.registry.core.configuration.ElasticConfiguration;
 import eu.openminted.registry.core.domain.Facet;
 import eu.openminted.registry.core.domain.FacetFilter;
 import eu.openminted.registry.core.domain.Paging;
@@ -55,7 +54,7 @@ public class SearchServiceImpl implements SearchService {
     ResourceTypeService resourceTypeService;
 
     @Autowired
-    private ElasticConfiguration elastic;
+    private RestHighLevelClient client;
 
     @Value("${elastic.aggregation.topHitsSize:100}")
     private int topHitsSize;
@@ -87,7 +86,6 @@ public class SearchServiceImpl implements SearchService {
 
     private Map<String, List<Resource>> buildTopHitAggregation(FacetFilter filter, String category) {
         Map<String, List<Resource>> results;
-        RestHighLevelClient client = elastic.client();
         BoolQueryBuilder qBuilder = createQueryBuilder(filter);
         SearchRequest search = new SearchRequest(filter.getResourceType());
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -135,8 +133,6 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private Paging<Resource> buildSearch(FacetFilter filter) {
-        RestHighLevelClient client = elastic.client();
-
         int quantity = filter.getQuantity();
         BoolQueryBuilder qBuilder = createQueryBuilder(filter);
 
@@ -194,7 +190,6 @@ public class SearchServiceImpl implements SearchService {
 
         parser.getCQLQuery().accept(generator);
 
-        RestHighLevelClient client = elastic.client();
         SearchRequest searchRequest = new SearchRequest(filter.getResourceType());
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.query((QueryBuilders.wrapperQuery(generator.getQueryResult())));
@@ -238,7 +233,6 @@ public class SearchServiceImpl implements SearchService {
 
         parser.getCQLQuery().accept(generator);
 
-        RestHighLevelClient client = elastic.client();
         SearchRequest searchRequest = new SearchRequest(resourceType);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.fetchSource(INCLUDES, null)
@@ -319,7 +313,6 @@ public class SearchServiceImpl implements SearchService {
                 .map(kv -> QueryBuilders.termsQuery(kv.getField(), kv.getValue()))
                 .forEach(qBuilder::must);
 
-        RestHighLevelClient client = elastic.client();
         SearchRequest searchRequest = new SearchRequest(resourceType);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.fetchSource(INCLUDES, null);

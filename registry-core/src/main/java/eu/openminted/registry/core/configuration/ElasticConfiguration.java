@@ -49,12 +49,6 @@ public class ElasticConfiguration {
         RestClientBuilder restClientBuilder =  RestClient.builder(
                 new HttpHost(hostname, Integer.parseInt(port), "http"));
 
-        restClientBuilder.setRequestConfigCallback(requestConfigBuilder -> {
-            requestConfigBuilder.setConnectTimeout(0);
-            requestConfigBuilder.setSocketTimeout(0);
-            requestConfigBuilder.setConnectionRequestTimeout(0);
-            return requestConfigBuilder;
-        });
 
         return new RestHighLevelClient(restClientBuilder);
     }
