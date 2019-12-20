@@ -61,7 +61,6 @@ public class DumpServiceImpl implements DumpService {
            throw new ServiceException(e);
         }
         Throwable ex = job.getAllFailureExceptions().stream().reduce(new Exception(),(e1, e2) -> {e1.addSuppressed(e2); return e1;});
-        logger.info("Failzor", ex);
         String directory = job.getExecutionContext().getString("directory");
         try {
             return pack(directory);
