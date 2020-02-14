@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -95,6 +96,12 @@ public class ResourceSyncServiceImpl implements ResourceSyncService {
         });
 
         return changeList;
+    }
+
+    @PostConstruct
+    public void onConstruct(){
+        host = (host.substring(host.length() - 1).equals("/") ? host.substring(0, host.length()-1) : host);
+        System.out.println(host);
     }
 }
 
