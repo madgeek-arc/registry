@@ -79,7 +79,16 @@ public class SearchServiceImpl implements SearchService {
             qBuilder.must(QueryBuilders.matchAllQuery());
         }
         for (Map.Entry<String, Object> filterSet : filter.getFilter().entrySet()) {
-            qBuilder.must(QueryBuilders.termQuery(filterSet.getKey(), filterSet.getValue()));
+            // Check if Filter value is a Collection, and create should matches for every value in the collection.
+            // FIXME: Please implement me properly.
+            if (Collection.class.isAssignableFrom(filterSet.getValue().getClass())) {
+                for (Object value : ((Collection) filterSet.getValue())) {
+                    qBuilder.should(QueryBuilders.matchQuery(filterSet.getKey(), value));
+                }
+                qBuilder.minimumShouldMatch(1);
+            } else {
+                qBuilder.must(QueryBuilders.termQuery(filterSet.getKey(), filterSet.getValue()));
+            }
         }
         return qBuilder;
     }
