@@ -44,7 +44,7 @@ public class ElasticOperationsService {
     ResourceTypeService resourceTypeService;
 
     @Autowired
-    private ElasticConfiguration elastic;
+    private RestHighLevelClient client;
 
     private static final Map<String, String> FIELD_TYPES_MAP;
 
@@ -60,7 +60,6 @@ public class ElasticOperationsService {
     }
 
     public void addBulk(List<Resource> resources){
-        RestHighLevelClient client = elastic.client();
         BulkRequest bulkRequest = new BulkRequest();
 
 
@@ -85,7 +84,6 @@ public class ElasticOperationsService {
     }
 
     public void add(Resource resource) {
-        RestHighLevelClient client = elastic.client();
         String payload = createDocumentForInsert(resource);
 
         IndexRequest indexRequest = new IndexRequest(resource.getResourceType().getName());
@@ -96,14 +94,13 @@ public class ElasticOperationsService {
         try {
             IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
-            throw new ServiceException(e.getMessage());
+            throw new ServiceException(e);
         }
     }
 
     public void update(Resource previousResource, Resource newResource) {
-        RestHighLevelClient client = elastic.client();
-
         UpdateRequest updateRequest = new UpdateRequest();
+
         updateRequest.index(newResource.getResourceType().getName());
         updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
         updateRequest.id(previousResource.getId());
@@ -111,24 +108,21 @@ public class ElasticOperationsService {
         try {
             client.update(updateRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
-            throw new ServiceException(e.getMessage());
+            throw new ServiceException(e);
         }
     }
 
     public void delete(Resource resource) {
-        RestHighLevelClient client = elastic.client();
-
         DeleteRequest deleteRequest = new DeleteRequest(resource.getResourceType().getName(), resource.getId());
         try {
             client.delete(deleteRequest,RequestOptions.DEFAULT);
         } catch (IOException e) {
-            throw new ServiceException(e.getMessage());
+            throw new ServiceException(e);
         }
     }
 
     public void createIndex(ResourceType resourceType) {
-        RestHighLevelClient client = elastic.client();
-        if (exists(resourceType.getName(),client)) {
+        if (exists(resourceType.getName())) {
             return;
         }
 
@@ -148,10 +142,10 @@ public class ElasticOperationsService {
         try {
             CreateIndexResponse putMappingResponse = client.indices().create(request,RequestOptions.DEFAULT); //request, RequestOptions.DEFAULT);
             if (!putMappingResponse.isAcknowledged()) {
-                System.err.println("Error creating result");
+                logger.error("Error creating result");
             }
         } catch (IOException e) {
-           throw new ServiceException(e.getMessage());
+           throw new ServiceException(e);
         }
 
     }
@@ -159,8 +153,7 @@ public class ElasticOperationsService {
     public void deleteIndex(String name) {
         logger.info("Deleting index");
 
-        RestHighLevelClient client = elastic.client();
-        if(!exists(name,client)) {
+        if(!exists(name)) {
             return;
         }
         AcknowledgedResponse deleteResponse = null;
@@ -176,7 +169,7 @@ public class ElasticOperationsService {
 
     }
 
-    private boolean exists(String indexName, RestHighLevelClient client) {
+    private boolean exists(String indexName) {
         try {
             GetIndexRequest request = new GetIndexRequest(indexName);
             boolean result = client.indices().exists(request, RequestOptions.DEFAULT);
