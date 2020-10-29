@@ -9,10 +9,15 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.settings.Settings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import java.io.IOException;
 
 /**
  * Created by stefanos on 14/11/2016.
@@ -34,8 +39,10 @@ public class ElasticConfiguration {
     @Value("${elasticsearch.url}")
     String hostname;
 
-    public RestHighLevelClient client(){
+    private RestHighLevelClient client = null;
 
+    @PostConstruct
+    private void init() {
         Settings.Builder settings = Settings.builder();
 
         //check if part of a cluster and add it
@@ -43,11 +50,20 @@ public class ElasticConfiguration {
             settings.put("cluster.name", environment.getRequiredProperty("elasticsearch.cluster"));
         }
 
-//        logger.info("Connecting to Elasticsearch @ "+hostname+":"+port);
+        logger.info("Connecting to Elasticsearch @ "+hostname+":"+port);
         RestClientBuilder restClientBuilder =  RestClient.builder(
                 new HttpHost(hostname, Integer.parseInt(port), "http"));
 
+        this.client = new RestHighLevelClient(restClientBuilder);
+    }
 
-        return new RestHighLevelClient(restClientBuilder);
+    @PreDestroy
+    private void destroy() throws IOException {
+        this.client.close();
+    }
+
+    @Bean
+    public RestHighLevelClient getClient() {
+        return this.client;
     }
 }

@@ -3,7 +3,6 @@ package eu.openminted.registry.core.service;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import eu.openminted.registry.core.configuration.ElasticConfiguration;
 import eu.openminted.registry.core.domain.Facet;
 import eu.openminted.registry.core.domain.FacetFilter;
 import eu.openminted.registry.core.domain.Paging;
@@ -55,7 +54,7 @@ public class SearchServiceImpl implements SearchService {
     ResourceTypeService resourceTypeService;
 
     @Autowired
-    private ElasticConfiguration elasticConfiguration;
+    private RestHighLevelClient restClient;
 
     @Value("${elastic.aggregation.topHitsSize:100}")
     private int topHitsSize;
@@ -96,7 +95,6 @@ public class SearchServiceImpl implements SearchService {
 
     private Map<String, List<Resource>> buildTopHitAggregation(FacetFilter filter, String category) {
         Map<String, List<Resource>> results;
-        RestHighLevelClient client = elasticConfiguration.client();
         BoolQueryBuilder qBuilder = createQueryBuilder(filter);
         SearchRequest search = new SearchRequest(filter.getResourceType());
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -111,8 +109,7 @@ public class SearchServiceImpl implements SearchService {
         search.source(searchSourceBuilder);
         SearchResponse response = null;
         try {
-            response = client.search(search, RequestOptions.DEFAULT);
-            client.close();
+            response = restClient.search(search, RequestOptions.DEFAULT);
         } catch (IOException e) {
             throw new ServiceException(e.getMessage());
         }
@@ -147,7 +144,6 @@ public class SearchServiceImpl implements SearchService {
     private Paging<Resource> buildSearch(FacetFilter filter) {
         int quantity = filter.getQuantity();
         BoolQueryBuilder qBuilder = createQueryBuilder(filter);
-        RestHighLevelClient client = elasticConfiguration.client();
         SearchRequest search = new SearchRequest(filter.getResourceType()).
                 searchType(SearchType.DFS_QUERY_THEN_FETCH);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -168,8 +164,7 @@ public class SearchServiceImpl implements SearchService {
         search.source(searchSourceBuilder);
         SearchResponse response = null;
         try {
-            response = client.search(search, RequestOptions.DEFAULT);
-            client.close();
+            response = restClient.search(search, RequestOptions.DEFAULT);
         } catch (IOException e) {
             throw new ServiceException(e.getMessage());
         }
@@ -196,7 +191,6 @@ public class SearchServiceImpl implements SearchService {
 
     @Override
     public Paging<Resource> cqlQuery(FacetFilter filter) {
-        RestHighLevelClient client = elasticConfiguration.client();
         CQLParser parser = new CQLParser(filter.getKeyword());
         parser.parse();
         ElasticsearchQueryGenerator generator = new ElasticsearchQueryGenerator();
@@ -224,10 +218,9 @@ public class SearchServiceImpl implements SearchService {
         searchRequest.source(searchSourceBuilder);
         SearchResponse response = null;
         try {
-            response = client.search(searchRequest, RequestOptions.DEFAULT);
-            client.close();
+            response = restClient.search(searchRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
-            throw new ServiceException(e.getMessage());
+            throw new ServiceException(e);
         }
 
         return responseToPaging(response, filter.getFrom(), filter.getBrowseBy());
@@ -240,7 +233,6 @@ public class SearchServiceImpl implements SearchService {
                                      int from,
                                      String sortByField,
                                      String sortOrder) {
-        RestHighLevelClient client = elasticConfiguration.client();
         CQLParser parser = new CQLParser(query);
         parser.parse();
         ElasticsearchQueryGenerator generator = new ElasticsearchQueryGenerator();
@@ -262,10 +254,9 @@ public class SearchServiceImpl implements SearchService {
         searchRequest.source(searchSourceBuilder);
         SearchResponse response = null;
         try {
-            response = client.search(searchRequest, RequestOptions.DEFAULT);
-            client.close();
+            response = restClient.search(searchRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
-            throw new ServiceException(e.getMessage());
+            throw new ServiceException(e);
         }
         return responseToPaging(response, from, null);
 
@@ -323,7 +314,6 @@ public class SearchServiceImpl implements SearchService {
     public Resource searchId(String resourceType, KeyValue... ids) {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
         //iterate all key values and add them to the elastic query
-        RestHighLevelClient client = elasticConfiguration.client();
         Arrays.stream(ids)
                 .map(kv -> QueryBuilders.termsQuery(kv.getField(), kv.getValue()))
                 .forEach(qBuilder::must);
@@ -338,10 +328,10 @@ public class SearchServiceImpl implements SearchService {
         searchRequest.source(searchSourceBuilder);
         logger.debug("Search query: " + qBuilder + "in index " + resourceType);
         try {
-            SearchResponse searchResponse = client.search(searchRequest,RequestOptions.DEFAULT);
+            SearchResponse searchResponse = restClient.search(searchRequest,RequestOptions.DEFAULT);
             SearchHits ss = searchResponse.getHits();
             Optional<SearchHit> hit = Optional.ofNullable(ss.getTotalHits().value == 0 ? null : ss.getAt(0));
-            client.close();
+
             return hit.map(x -> {
                 try {
                     Resource resource = mapper.readValue(x.getSourceAsString(), Resource.class);
