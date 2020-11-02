@@ -27,15 +27,28 @@ public class JmsConfiguration {
     @Value("${jms.host}")
     private String jmsHost;
 
-    @Value("${prefix:registry}")
+    @Value("${jms.prefix:registry}")
     private String jmsPrefix;
+
+    @Value("${jms.user:@null}")
+    private String jmsUser;
+
+    @Value("${jms.password:@null}")
+    private String jmsPassword;
 
     @Bean
     public ActiveMQConnectionFactory activeMQConnectionFactory() {
         ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
         connectionFactory.setBrokerURL(jmsHost);
+
+        if (jmsUser != null)
+            connectionFactory.setUserName(jmsUser);
+        if (jmsPassword != null)
+            connectionFactory.setPassword(jmsPassword);
+        
         connectionFactory.setConnectionIDPrefix(jmsPrefix);
         logger.info("ActiveMQConnection Factory created for " + jmsHost);
+
         return connectionFactory;
     }
 
