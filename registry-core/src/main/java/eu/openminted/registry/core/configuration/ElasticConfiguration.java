@@ -14,6 +14,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
+import org.springframework.retry.annotation.EnableRetry;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -23,6 +24,7 @@ import java.io.IOException;
  * Created by stefanos on 14/11/2016.
  */
 @Configuration
+@EnableRetry
 @ComponentScan({ "eu.openminted.registry.core.elasticsearch" })
 @PropertySource(value = { "classpath:application.properties", "classpath:registry.properties"} )
 public class ElasticConfiguration {

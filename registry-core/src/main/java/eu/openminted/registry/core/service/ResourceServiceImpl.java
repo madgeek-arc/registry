@@ -14,6 +14,8 @@ import eu.openminted.registry.core.validation.ResourceValidator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -149,6 +151,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+
     public Resource changeResourceType(Resource resource, ResourceType resourceType) {
         if(resource.getResourceType() == null && (resource.getResourceTypeName()==null || resource.getResourceTypeName().isEmpty()))
             throw new ServiceException("Resource type not present");

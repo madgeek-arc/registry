@@ -27,6 +27,8 @@ import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -83,6 +85,7 @@ public class ElasticOperationsService {
         }
     }
 
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void add(Resource resource) {
         String payload = createDocumentForInsert(resource);
 
@@ -98,6 +101,7 @@ public class ElasticOperationsService {
         }
     }
 
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void update(Resource previousResource, Resource newResource) {
         UpdateRequest updateRequest = new UpdateRequest();
 
@@ -112,6 +116,7 @@ public class ElasticOperationsService {
         }
     }
 
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void delete(Resource resource) {
         DeleteRequest deleteRequest = new DeleteRequest(resource.getResourceType().getName(), resource.getId());
         try {
@@ -121,6 +126,7 @@ public class ElasticOperationsService {
         }
     }
 
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void createIndex(ResourceType resourceType) {
         if (exists(resourceType.getName())) {
             return;
@@ -150,6 +156,7 @@ public class ElasticOperationsService {
 
     }
 
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void deleteIndex(String name) {
         logger.info("Deleting index");
 
