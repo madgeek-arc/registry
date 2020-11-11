@@ -52,7 +52,8 @@ public class ElasticConfiguration {
 
         logger.info("Connecting to Elasticsearch @ "+hostname+":"+port);
         RestClientBuilder restClientBuilder =  RestClient.builder(
-                new HttpHost(hostname, Integer.parseInt(port), "http"));
+                new HttpHost(hostname, Integer.parseInt(port), "http")).setRequestConfigCallback(requestConfigBuilder ->
+                requestConfigBuilder.setConnectTimeout(10000).setSocketTimeout(30000));
 
         this.client = new RestHighLevelClient(restClientBuilder);
     }
