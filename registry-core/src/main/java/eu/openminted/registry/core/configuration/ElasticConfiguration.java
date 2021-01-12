@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.web.context.annotation.RequestScope;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -66,6 +67,7 @@ public class ElasticConfiguration {
     }
 
     @Bean
+    @RequestScope
     public RestHighLevelClient getClient() {
         return this.client;
     }
