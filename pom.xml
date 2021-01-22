@@ -28,7 +28,7 @@
     </modules>
 
     <properties>
-        <logging.version>2.6.2</logging.version>
+        <logging.version>2.14.0</logging.version>
         <fasterxml.version>2.9.9.2</fasterxml.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring.version>4.3.3.RELEASE</spring.version>
