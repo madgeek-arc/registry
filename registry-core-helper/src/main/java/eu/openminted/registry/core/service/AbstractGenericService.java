@@ -5,6 +5,8 @@ import eu.openminted.registry.core.domain.index.IndexField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
  * Created by stefanos on 20/6/2017.
  */
 @Transactional
+@Component
 abstract public class AbstractGenericService<T> {
 
     @Autowired
@@ -30,7 +33,10 @@ abstract public class AbstractGenericService<T> {
     @Autowired
     public ParserService parserPool;
 
-    private Logger logger = LogManager.getLogger(AbstractGenericService.class);
+    @Value("${elastic.index.max_result_window:10000}")
+    protected int maxQuantity;
+
+    private static final Logger logger = LogManager.getLogger(AbstractGenericService.class);
     private List<String> browseBy;
 
     private Map<String, String> labels;
