@@ -62,7 +62,10 @@ public class SearchServiceImpl implements SearchService {
     @Value("${elastic.aggregation.bucketSize:100}")
     private int bucketSize;
 
-    private ObjectMapper mapper;
+    @Value("${elastic.index.max_result_window:10000}")
+    private int maxQuantity;
+
+    private final ObjectMapper mapper;
 
     public SearchServiceImpl() {
         mapper = new ObjectMapper();
@@ -356,8 +359,8 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private void validateQuantity(int quantity) {
-        if (quantity > 10000) {
-            throw new IllegalArgumentException("Quantity should be up to 10000.");
+        if (quantity > maxQuantity) {
+            throw new IllegalArgumentException(String.format("Quantity should be up to %s.", maxQuantity));
         } else if (quantity < 0) {
             throw new IllegalArgumentException("Quantity cannot be negative.");
         }
