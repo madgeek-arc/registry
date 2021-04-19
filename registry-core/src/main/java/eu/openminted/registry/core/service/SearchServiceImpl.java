@@ -62,7 +62,10 @@ public class SearchServiceImpl implements SearchService {
     @Value("${elastic.aggregation.bucketSize:100}")
     private int bucketSize;
 
-    private ObjectMapper mapper;
+    @Value("${elastic.index.max_result_window:10000}")
+    private int maxQuantity;
+
+    private final ObjectMapper mapper;
 
     public SearchServiceImpl() {
         mapper = new ObjectMapper();
@@ -143,6 +146,7 @@ public class SearchServiceImpl implements SearchService {
 
     private Paging<Resource> buildSearch(FacetFilter filter) {
         int quantity = filter.getQuantity();
+        validateQuantity(quantity);
         BoolQueryBuilder qBuilder = createQueryBuilder(filter);
         SearchRequest search = new SearchRequest(filter.getResourceType()).
                 searchType(SearchType.DFS_QUERY_THEN_FETCH);
@@ -191,6 +195,7 @@ public class SearchServiceImpl implements SearchService {
 
     @Override
     public Paging<Resource> cqlQuery(FacetFilter filter) {
+        validateQuantity(filter.getQuantity());
         CQLParser parser = new CQLParser(filter.getKeyword());
         parser.parse();
         ElasticsearchQueryGenerator generator = new ElasticsearchQueryGenerator();
@@ -233,6 +238,7 @@ public class SearchServiceImpl implements SearchService {
                                      int from,
                                      String sortByField,
                                      String sortOrder) {
+        validateQuantity(quantity);
         CQLParser parser = new CQLParser(query);
         parser.parse();
         ElasticsearchQueryGenerator generator = new ElasticsearchQueryGenerator();
@@ -350,6 +356,14 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category) {
         return buildTopHitAggregation(filter, category);
+    }
+
+    private void validateQuantity(int quantity) {
+        if (quantity > maxQuantity) {
+            throw new IllegalArgumentException(String.format("Quantity should be up to %s.", maxQuantity));
+        } else if (quantity < 0) {
+            throw new IllegalArgumentException("Quantity cannot be negative.");
+        }
     }
 
     static private class ResourcePropertyName extends PropertyNamingStrategy.PropertyNamingStrategyBase {
