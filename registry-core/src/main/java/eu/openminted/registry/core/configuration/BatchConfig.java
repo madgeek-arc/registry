@@ -1,8 +1,6 @@
 package eu.openminted.registry.core.configuration;
 
-import org.springframework.batch.core.configuration.annotation.BatchConfigurer;
-import org.springframework.batch.core.configuration.annotation.DefaultBatchConfigurer;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.*;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.SimpleJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
@@ -36,7 +34,12 @@ public class BatchConfig {
 
     @Bean
     BatchConfigurer configurer(@Qualifier("dataSource") DataSource dataSource) {
-        return new DefaultBatchConfigurer(dataSource);
+        return new DefaultBatchConfigurer(dataSource) {
+            @Override
+            public PlatformTransactionManager getTransactionManager() {
+                return transactionManager;
+            }
+        };
     }
 
     private JobRepository getJobRepository() throws Exception {
