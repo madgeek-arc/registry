@@ -200,6 +200,21 @@
         <tag>registry-2.3.0</tag>
     </scm>
 
+    <distributionManagement>
+        <repository>
+            <uniqueVersion>true</uniqueVersion>
+            <id>omtd-releases</id>
+            <layout>default</layout>
+            <url>https://repo.openminted.eu/content/repositories/releases</url>
+        </repository>
+        <snapshotRepository>
+            <uniqueVersion>true</uniqueVersion>
+            <id>omtd-snapshots</id>
+            <layout>default</layout>
+            <url>https://repo.openminted.eu/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <repositories>
         <repository>
             <id>omtd-snapshots</id>
