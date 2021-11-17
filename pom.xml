@@ -197,7 +197,6 @@
         <connection>scm:git:ssh://git@github.com/openminted/registry.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/openminted/registry.git</developerConnection>
         <url>https://github.com/openminted/registry</url>
-        <tag>registry-2.3.0</tag>
     </scm>
 
     <distributionManagement>
