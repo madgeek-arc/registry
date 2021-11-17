@@ -24,7 +24,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import javax.transaction.Transactional;
 import java.util.concurrent.Callable;
 
-@Configuration()
+@Configuration
 public class BackupConfig {
 
     @Autowired

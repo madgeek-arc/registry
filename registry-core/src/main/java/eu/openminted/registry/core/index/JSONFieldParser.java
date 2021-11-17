@@ -13,17 +13,21 @@ public class JSONFieldParser implements FieldParser {
 	
 	public Set<Object> parse(String payload, String fieldType, String path, boolean isMultiValued) {
 
-		Set<Object> response;
+		Set<Object> response = null;
 		if(isMultiValued){
 			List<String> answers = JsonPath.read(payload, path);
-			response = answers
-                    .stream()
-                    .map(answer -> FieldParser.parseField(fieldType,answer))
-                    .flatMap(Collection::stream)
-                    .collect(Collectors.toSet());
+			if (answers != null) {
+				response = answers
+						.stream()
+						.map(answer -> FieldParser.parseField(fieldType,answer))
+						.flatMap(Collection::stream)
+						.collect(Collectors.toSet());
+			}
 		}else{
 			Object answer = JsonPath.read(payload + "", path);
-			response = FieldParser.parseField(fieldType,answer.toString());
+			if (answer != null) {
+				response = FieldParser.parseField(fieldType, answer.toString());
+			}
 		}
 		return response;
 	}

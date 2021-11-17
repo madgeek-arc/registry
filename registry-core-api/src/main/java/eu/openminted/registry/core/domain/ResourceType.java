@@ -10,7 +10,9 @@ import org.hibernate.annotations.LazyCollectionOption;
 import javax.persistence.*;
 import javax.validation.constraints.Size;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(name = "ResourceType")
@@ -61,6 +63,9 @@ public class ResourceType {
     @LazyCollection(LazyCollectionOption.TRUE)
     @JsonIgnore
     private List<Version> versions;
+
+    @ElementCollection
+    private Map<String, String> properties = new HashMap<>();
 
     public ResourceType() {
 
@@ -129,6 +134,16 @@ public class ResourceType {
     public void setIndexFields(List<IndexField> indexFields) {
         this.indexFields = indexFields;
     }
+
+    public Map<String, String> getProperties() {
+        return properties;
+    }
+
+    public void setProperties(Map<String, String> properties) {
+        this.properties = properties;
+    }
+
+    public String getProperty(String name) { return this.properties.get(name); }
 
     @PrePersist
     protected void onCreate() {
