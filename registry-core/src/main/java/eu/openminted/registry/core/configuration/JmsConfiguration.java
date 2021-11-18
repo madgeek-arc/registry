@@ -2,11 +2,10 @@ package eu.openminted.registry.core.configuration;
 
 
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.jms.annotation.EnableJms;
@@ -18,8 +17,7 @@ import org.springframework.jms.support.converter.MessageType;
 
 @Configuration
 @EnableJms
-@PropertySource(value = { "classpath:application.properties", "classpath:registry.properties"} )
-@ComponentScan({"eu.openminted.registry.core.jms"})
+@PropertySource(value = {"classpath:application.properties", "classpath:registry.properties"})
 public class JmsConfiguration {
 
     private static Logger logger = LogManager.getLogger(JmsConfiguration.class);
@@ -45,7 +43,7 @@ public class JmsConfiguration {
             connectionFactory.setUserName(jmsUser);
         if (jmsPassword != null)
             connectionFactory.setPassword(jmsPassword);
-        
+
         connectionFactory.setConnectionIDPrefix(jmsPrefix);
         logger.info("ActiveMQConnection Factory created for " + jmsHost);
 
@@ -76,7 +74,7 @@ public class JmsConfiguration {
 
     @Bean
     public DefaultJmsListenerContainerFactory jmsTopicListenerContainerFactory() {
-       return getListenerContainerFactory(true);
+        return getListenerContainerFactory(true);
     }
 
     private JmsTemplate getJmsTemplate(boolean b) {
@@ -88,12 +86,12 @@ public class JmsConfiguration {
     }
 
     @Bean
-    public JmsTemplate jmsQueueTemplate(){
+    public JmsTemplate jmsQueueTemplate() {
         return getJmsTemplate(false);
     }
 
     @Bean
-    public JmsTemplate jmsTopicTemplate(){
+    public JmsTemplate jmsTopicTemplate() {
         return getJmsTemplate(true);
     }
 

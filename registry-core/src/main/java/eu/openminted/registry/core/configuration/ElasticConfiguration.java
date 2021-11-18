@@ -9,10 +9,12 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.settings.Settings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.Scope;
 import org.springframework.core.env.Environment;
 import org.springframework.retry.annotation.EnableRetry;
-import org.springframework.web.context.annotation.RequestScope;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -23,8 +25,7 @@ import java.io.IOException;
  */
 @Configuration
 @EnableRetry
-@ComponentScan({ "eu.openminted.registry.core.elasticsearch" })
-@PropertySource(value = { "classpath:application.properties", "classpath:registry.properties"} )
+@PropertySource(value = {"classpath:application.properties", "classpath:registry.properties"})
 public class ElasticConfiguration {
 
 
@@ -46,12 +47,12 @@ public class ElasticConfiguration {
         Settings.Builder settings = Settings.builder();
 
         //check if part of a cluster and add it
-        if(environment.getProperty("elasticsearch.cluster","") != "") {
+        if (environment.getProperty("elasticsearch.cluster", "") != "") {
             settings.put("cluster.name", environment.getRequiredProperty("elasticsearch.cluster"));
         }
 
-        logger.info("Connecting to Elasticsearch @ "+hostname+":"+port);
-        RestClientBuilder restClientBuilder =  RestClient.builder(
+        logger.info("Connecting to Elasticsearch @ " + hostname + ":" + port);
+        RestClientBuilder restClientBuilder = RestClient.builder(
                 new HttpHost(hostname, Integer.parseInt(port), "http")).setRequestConfigCallback(requestConfigBuilder ->
                 requestConfigBuilder.setConnectTimeout(10000).setSocketTimeout(30000));
 

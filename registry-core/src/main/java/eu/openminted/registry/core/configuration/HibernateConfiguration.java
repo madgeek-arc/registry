@@ -11,7 +11,10 @@ import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.orm.jpa.JpaTransactionManager;
@@ -27,25 +30,24 @@ import javax.sql.DataSource;
 import java.util.Properties;
 
 @Configuration
-@ComponentScan({ "eu.openminted.registry.core.dao", "eu.openminted.registry.core.service" })
-@PropertySource(value = { "classpath:application.properties", "classpath:registry.properties"} )
+@PropertySource(value = {"classpath:application.properties", "classpath:registry.properties"})
 @EnableAspectJAutoProxy
 @EnableCaching
 @EnableTransactionManagement(proxyTargetClass = true)
 public class HibernateConfiguration {
 
-	private static Logger logger = LogManager.getLogger(HibernateConfiguration.class);
+    private static Logger logger = LogManager.getLogger(HibernateConfiguration.class);
 
-	@Autowired
-	private Environment environment;
+    @Autowired
+    private Environment environment;
 
-	@Bean
-	public static PropertyPlaceholderConfigurer propertyPlaceholderConfigurer(){
-		PropertyPlaceholderConfigurer ppc = new PropertyPlaceholderConfigurer();
-		ppc.setLocations(new ClassPathResource("application.properties"),new ClassPathResource("registry.properties"));
-		ppc.setSystemPropertiesMode(PropertyPlaceholderConfigurer.SYSTEM_PROPERTIES_MODE_OVERRIDE);
-		return ppc;
-	}
+    @Bean
+    public static PropertyPlaceholderConfigurer propertyPlaceholderConfigurer() {
+        PropertyPlaceholderConfigurer ppc = new PropertyPlaceholderConfigurer();
+        ppc.setLocations(new ClassPathResource("application.properties"), new ClassPathResource("registry.properties"));
+        ppc.setSystemPropertiesMode(PropertyPlaceholderConfigurer.SYSTEM_PROPERTIES_MODE_OVERRIDE);
+        return ppc;
+    }
 
     @Bean(name = "entityManagerFactory")
     public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
@@ -61,20 +63,20 @@ public class HibernateConfiguration {
 
     @Bean
     @Autowired
-	public EntityManager entityManager(EntityManagerFactory entityManagerFactory){
-		return  entityManagerFactory.createEntityManager();
-	}
+    public EntityManager entityManager(EntityManagerFactory entityManagerFactory) {
+        return entityManagerFactory.createEntityManager();
+    }
 
     @Bean
-    public PlatformTransactionManager transactionManager(){
+    public PlatformTransactionManager transactionManager() {
         JpaTransactionManager transactionManager = new JpaTransactionManager();
         transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());
         return transactionManager;
     }
 
     @Bean
-    public HikariConfig hikariConfig(){
-	    logger.info("Connecting to Database @ "+environment.getRequiredProperty("jdbc.url"));
+    public HikariConfig hikariConfig() {
+        logger.info("Connecting to Database @ " + environment.getRequiredProperty("jdbc.url"));
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setPoolName("RegistryCP");
         hikariConfig.setConnectionTestQuery("SELECT 1");
@@ -97,36 +99,36 @@ public class HibernateConfiguration {
 
 
     @Bean
-    public DataSource dataSource(){
+    public DataSource dataSource() {
         return new HikariDataSource(hikariConfig());
     }
 
 
     private Properties hibernateProperties() {
-		Properties properties = new Properties();
-		properties.put("hibernate.dialect", environment.getRequiredProperty("hibernate.dialect"));
-		properties.put("hibernate.show_sql", environment.getRequiredProperty("hibernate.show_sql"));
-		properties.put("hibernate.format_sql", environment.getRequiredProperty("hibernate.format_sql"));
-		properties.put("hibernate.hbm2ddl.auto", environment.getRequiredProperty("hibernate.hbm2ddl.auto"));
-		properties.put("hibernate.enable_lazy_load_no_trans","true");
-		properties.put("hibernate.allow_update_outside_transaction","true");
+        Properties properties = new Properties();
+        properties.put("hibernate.dialect", environment.getRequiredProperty("hibernate.dialect"));
+        properties.put("hibernate.show_sql", environment.getRequiredProperty("hibernate.show_sql"));
+        properties.put("hibernate.format_sql", environment.getRequiredProperty("hibernate.format_sql"));
+        properties.put("hibernate.hbm2ddl.auto", environment.getRequiredProperty("hibernate.hbm2ddl.auto"));
+        properties.put("hibernate.enable_lazy_load_no_trans", "true");
+        properties.put("hibernate.allow_update_outside_transaction", "true");
 
-		return properties;
-	}
+        return properties;
+    }
 
     @Bean
     public CacheManager cacheManager() {
-        return new ConcurrentMapCacheManager("resourceTypes","resourceTypesIndexFields");
+        return new ConcurrentMapCacheManager("resourceTypes", "resourceTypesIndexFields");
     }
 
 
     @PostConstruct
-    public void flywayMigration(){
+    public void flywayMigration() {
         Flyway flyway = Flyway.configure().dataSource(dataSource()).locations("classpath:migrations").load();
         try {
             flyway.baseline();
-        }catch (FlywayException ex){
-            logger.warn("Flyway exception on baseline",ex);
+        } catch (FlywayException ex) {
+            logger.warn("Flyway exception on baseline", ex);
         }
         flyway.migrate();
     }
