@@ -7,14 +7,12 @@ import org.apache.logging.log4j.Logger;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.EnableAspectJAutoProxy;
-import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.*;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.orm.jpa.JpaTransactionManager;
@@ -49,8 +47,9 @@ public class HibernateConfiguration {
         return ppc;
     }
 
-    @Bean(name = "entityManagerFactory")
-    public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
+    @Bean(name = "registryEntityManagerFactory")
+    @Primary
+    public LocalContainerEntityManagerFactoryBean registryEntityManagerFactory() {
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource());
         em.setPackagesToScan("eu.openminted.registry.core.domain", "eu.openminted.registry.core.domain.index");
@@ -61,16 +60,17 @@ public class HibernateConfiguration {
         return em;
     }
 
-    @Bean
+    @Bean("registryEntityManager")
     @Autowired
-    public EntityManager entityManager(EntityManagerFactory entityManagerFactory) {
+    public EntityManager registryEntityManager(@Qualifier("registryEntityManagerFactory") EntityManagerFactory entityManagerFactory) {
         return entityManagerFactory.createEntityManager();
     }
 
-    @Bean
+    @Bean("registryTransactionManager")
+    @Primary
     public PlatformTransactionManager transactionManager() {
         JpaTransactionManager transactionManager = new JpaTransactionManager();
-        transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());
+        transactionManager.setEntityManagerFactory(registryEntityManagerFactory().getObject());
         return transactionManager;
     }
 
@@ -98,7 +98,8 @@ public class HibernateConfiguration {
     }
 
 
-    @Bean
+    @Bean("registryDataSource")
+    @Primary
     public DataSource dataSource() {
         return new HikariDataSource(hikariConfig());
     }

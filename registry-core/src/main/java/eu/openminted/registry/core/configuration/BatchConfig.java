@@ -24,16 +24,18 @@ import javax.sql.DataSource;
 public class BatchConfig {
 
     @Autowired
+    @Qualifier("registryTransactionManager")
     PlatformTransactionManager transactionManager;
 
     @Autowired
+    @Qualifier("registryDataSource")
     DataSource dataSource;
 
     @Value("${batch.chunkSize:10}")
     private int chunkSize;
 
     @Bean
-    BatchConfigurer configurer(@Qualifier("dataSource") DataSource dataSource) {
+    BatchConfigurer configurer(@Qualifier("registryDataSource") DataSource dataSource) {
         return new DefaultBatchConfigurer(dataSource) {
             @Override
             public PlatformTransactionManager getTransactionManager() {

@@ -1,6 +1,7 @@
 package configuration;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
@@ -48,7 +49,7 @@ public class MockDatabaseConfiguration {
     private Resource dataScript;
 
 
-    @Bean
+    @Bean("registryEntityManagerFactory")
     public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
         LocalContainerEntityManagerFactoryBean em
                 = new LocalContainerEntityManagerFactoryBean();
@@ -62,23 +63,23 @@ public class MockDatabaseConfiguration {
         return em;
     }
 
-    @Bean
+    @Bean("registryEntityManager")
     @Autowired
-    public EntityManager entityManager(EntityManagerFactory entityManagerFactory){
+    public EntityManager entityManager(@Qualifier("registryEntityManagerFactory") EntityManagerFactory entityManagerFactory){
         EntityManager entityManager = entityManagerFactory.createEntityManager();
         entityManager.setFlushMode(FlushModeType.AUTO);
         return entityManager;
     }
 
-    @Bean
+    @Bean("registryTransactionManager")
     @Autowired
-    public PlatformTransactionManager transactionManager(EntityManagerFactory emf ){
+    public PlatformTransactionManager transactionManager(@Qualifier("registryEntityManagerFactory") EntityManagerFactory emf ){
         JpaTransactionManager transactionManager = new JpaTransactionManager();
         transactionManager.setEntityManagerFactory(emf);
         return transactionManager;
     }
 
-    @Bean
+    @Bean("registryDataSource")
     public DataSource dataSource(){
 
         DriverManagerDataSource dataSource = new DriverManagerDataSource();

@@ -19,7 +19,7 @@ public abstract class AbstractDao<T> {
      
     private final Class<T> persistentClass;
 
-    @PersistenceContext
+    @PersistenceContext(unitName = "registryEntityManagerFactory")
     private EntityManager entityManager;
 
     @SuppressWarnings("unchecked")
@@ -100,5 +100,5 @@ public abstract class AbstractDao<T> {
         entityManager.remove(entity);
         entityManager.flush();
     }
-     
+
 }
