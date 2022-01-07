@@ -81,8 +81,10 @@ public class HibernateConfiguration {
         hikariConfig.setPoolName("RegistryCP");
         hikariConfig.setConnectionTestQuery("SELECT 1");
         hikariConfig.setDriverClassName(environment.getRequiredProperty("jdbc.driverClassName"));
-        hikariConfig.setMaximumPoolSize(15);
+        hikariConfig.setMaximumPoolSize(20);
+        hikariConfig.setConnectionTimeout(30000);
         hikariConfig.setIdleTimeout(120000);
+        hikariConfig.setMaxLifetime(1800000);
         hikariConfig.setMinimumIdle(5);
         hikariConfig.setJdbcUrl(environment.getRequiredProperty("jdbc.url"));
         hikariConfig.setUsername(environment.getRequiredProperty("jdbc.username"));
