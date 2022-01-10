@@ -28,7 +28,6 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.xbib.cql.CQLParser;
 import org.xbib.cql.elasticsearch.ElasticsearchQueryGenerator;
@@ -47,14 +46,8 @@ public class SearchServiceImpl implements SearchService {
 
     private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "payloadFormat", "version"};
 
-    @Autowired
-    Environment environment;
 
-    @Autowired
-    ResourceTypeService resourceTypeService;
-
-    @Autowired
-    private RestHighLevelClient restClient;
+    private final RestHighLevelClient elasticsearchClient;
 
     @Value("${elastic.aggregation.topHitsSize:100}")
     private int topHitsSize;
@@ -67,9 +60,11 @@ public class SearchServiceImpl implements SearchService {
 
     private final ObjectMapper mapper;
 
-    public SearchServiceImpl() {
+    @Autowired
+    public SearchServiceImpl(RestHighLevelClient elasticsearchClient) {
         mapper = new ObjectMapper();
         mapper.setPropertyNamingStrategy(new ResourcePropertyName());
+        this.elasticsearchClient = elasticsearchClient;
     }
 
     @Override
@@ -112,7 +107,7 @@ public class SearchServiceImpl implements SearchService {
         search.source(searchSourceBuilder);
         SearchResponse response = null;
         try {
-            response = restClient.search(search, RequestOptions.DEFAULT);
+            response = elasticsearchClient.search(search, RequestOptions.DEFAULT);
         } catch (IOException e) {
             throw new ServiceException(e.getMessage());
         }
@@ -168,7 +163,7 @@ public class SearchServiceImpl implements SearchService {
         search.source(searchSourceBuilder);
         SearchResponse response = null;
         try {
-            response = restClient.search(search, RequestOptions.DEFAULT);
+            response = elasticsearchClient.search(search, RequestOptions.DEFAULT);
         } catch (IOException e) {
             throw new ServiceException(e.getMessage());
         }
@@ -223,7 +218,7 @@ public class SearchServiceImpl implements SearchService {
         searchRequest.source(searchSourceBuilder);
         SearchResponse response = null;
         try {
-            response = restClient.search(searchRequest, RequestOptions.DEFAULT);
+            response = elasticsearchClient.search(searchRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
             throw new ServiceException(e);
         }
@@ -260,7 +255,7 @@ public class SearchServiceImpl implements SearchService {
         searchRequest.source(searchSourceBuilder);
         SearchResponse response = null;
         try {
-            response = restClient.search(searchRequest, RequestOptions.DEFAULT);
+            response = elasticsearchClient.search(searchRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
             throw new ServiceException(e);
         }
@@ -334,7 +329,7 @@ public class SearchServiceImpl implements SearchService {
         searchRequest.source(searchSourceBuilder);
         logger.debug("Search query: " + qBuilder + "in index " + resourceType);
         try {
-            SearchResponse searchResponse = restClient.search(searchRequest,RequestOptions.DEFAULT);
+            SearchResponse searchResponse = elasticsearchClient.search(searchRequest,RequestOptions.DEFAULT);
             SearchHits ss = searchResponse.getHits();
             Optional<SearchHit> hit = Optional.ofNullable(ss.getTotalHits().value == 0 ? null : ss.getAt(0));
 
