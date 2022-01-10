@@ -28,6 +28,8 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.xbib.cql.CQLParser;
 import org.xbib.cql.elasticsearch.ElasticsearchQueryGenerator;
@@ -312,7 +314,8 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public Resource searchId(String resourceType, KeyValue... ids) {
+    @Retryable(value = ServiceException.class, backoff = @Backoff(value = 200))
+    public Resource searchId(String resourceType, KeyValue... ids) throws ServiceException {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
         //iterate all key values and add them to the elastic query
         Arrays.stream(ids)
