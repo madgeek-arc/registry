@@ -316,6 +316,7 @@ public class SearchServiceImpl implements SearchService {
     @Override
     @Retryable(value = ServiceException.class, backoff = @Backoff(value = 200))
     public Resource searchId(String resourceType, KeyValue... ids) throws ServiceException {
+        logger.debug(String.format("@Retryable 'searchId(resourceType=%s, ids={%})'", resourceType, String.join(",", ids.toString())));
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
         //iterate all key values and add them to the elastic query
         Arrays.stream(ids)
@@ -342,13 +343,14 @@ public class SearchServiceImpl implements SearchService {
                     resource.setResourceTypeName(x.getIndex());
                     return resource;
                 } catch (IOException e) {
+                    logger.debug("@Retryable 'searchId' - ERROR:\n", e);
                     throw new ServiceException(e.getMessage());
                 }
             }).orElse(null);
         } catch (IOException e) {
+            logger.debug("@Retryable 'searchId' - ERROR:\n", e);
             throw new ServiceException(e.getMessage());
         }
-
     }
 
     @Override
