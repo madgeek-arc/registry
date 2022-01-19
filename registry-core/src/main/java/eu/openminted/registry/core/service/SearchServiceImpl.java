@@ -48,8 +48,8 @@ public class SearchServiceImpl implements SearchService {
 
     private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "payloadFormat", "version"};
 
-
-    private final RestHighLevelClient elasticsearchClient;
+    @Autowired
+    private RestHighLevelClient elasticsearchClient;
 
     @Value("${elastic.aggregation.topHitsSize:100}")
     private int topHitsSize;
@@ -62,11 +62,9 @@ public class SearchServiceImpl implements SearchService {
 
     private final ObjectMapper mapper;
 
-    @Autowired
-    public SearchServiceImpl(RestHighLevelClient elasticsearchClient) {
+    public SearchServiceImpl() {
         mapper = new ObjectMapper();
         mapper.setPropertyNamingStrategy(new ResourcePropertyName());
-        this.elasticsearchClient = elasticsearchClient;
     }
 
     @Override
