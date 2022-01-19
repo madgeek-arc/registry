@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>eu.openminted</groupId>
     <artifactId>registry</artifactId>
-    <version>2.3.3-SNAPSHOT</version>
+    <version>2.3.4-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -27,7 +27,7 @@
     </modules>
 
     <properties>
-        <logging.version>2.17.0</logging.version>
+        <logging.version>2.17.1</logging.version>
         <fasterxml.version>2.9.10.8</fasterxml.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring.version>4.3.3.RELEASE</spring.version>
