@@ -110,4 +110,13 @@ public class FacetFilter {
     public void setOrderBy(Map<String, Object> orderBy) {
         this.orderBy = orderBy;
     }
+
+    public void addOrderBy(String field, String order) {
+        if (orderBy == null) {
+            this.orderBy = new HashMap<>();
+        }
+        Map<String, Object> orderType = new HashMap<>();
+        orderType.put("order", order);
+        orderBy.put(field, orderType);
+    }
 }
