@@ -80,7 +80,7 @@ public class DefaultIndexMapper implements IndexMapper {
 		return res;
 	}
 
-	public Set<Object> getValue(String payload, String fieldType, String path, String payloadType, boolean isMultiValued) {
+	private Set<Object> getValue(String payload, String fieldType, String path, String payloadType, boolean isMultiValued) {
 		FieldParser fieldParser;
 
 		if (payloadType.equals("json"))
