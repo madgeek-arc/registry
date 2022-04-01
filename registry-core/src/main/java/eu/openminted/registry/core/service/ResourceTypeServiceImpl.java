@@ -58,8 +58,6 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     @Autowired
     SchemaDao schemaDao;
 
-    @Value("${registry.host}")
-    private String baseUrl;
 
     public ResourceTypeServiceImpl() {
 
@@ -285,10 +283,5 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
     public void setResourceTypeDao(ResourceTypeDao resourceTypeDao) {
         this.resourceTypeDao = resourceTypeDao;
-    }
-
-
-    protected String getBaseEnvLinkURL() {
-        return baseUrl;
     }
 }
