@@ -67,8 +67,7 @@ public class SearchServiceImpl implements SearchService {
         mapper.setPropertyNamingStrategy(new ResourcePropertyName());
     }
 
-    @Override
-    public BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
+    private BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
         if (!filter.getKeyword().equals("")) {
             qBuilder.must(QueryBuilders.matchQuery("searchableArea", filter.getKeyword()));
@@ -139,6 +138,7 @@ public class SearchServiceImpl implements SearchService {
         return results;
     }
 
+
     private Paging<Resource> buildSearch(FacetFilter filter) {
         int quantity = filter.getQuantity();
         validateQuantity(quantity);
@@ -189,6 +189,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public Paging<Resource> cqlQuery(FacetFilter filter) {
         validateQuantity(filter.getQuantity());
         CQLParser parser = new CQLParser(filter.getKeyword());
@@ -227,6 +228,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public Paging<Resource> cqlQuery(String query,
                                      String resourceType,
                                      int quantity,
@@ -294,16 +296,19 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public Paging<Resource> cqlQuery(String query, String resourceType) {
         return cqlQuery(query, resourceType, 100, 0, "", "ASC");
     }
 
     @Override
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public Paging<Resource> search(FacetFilter filter) {
         return buildSearch(filter);
     }
 
     @Override
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public Paging<Resource> searchKeyword(String resourceType, String keyword) {
         FacetFilter filter = new FacetFilter();
         filter.setResourceType(resourceType);
@@ -312,7 +317,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    @Retryable(value = ServiceException.class, backoff = @Backoff(value = 200))
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public Resource searchId(String resourceType, KeyValue... ids) throws ServiceException {
         logger.debug(String.format("@Retryable 'searchId(resourceType=%s, ids={%s})'", resourceType, String.join(",", Arrays.stream(ids).map(keyValue -> keyValue.getField() + "=" + keyValue.getValue()).collect(Collectors.toSet()))));
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
@@ -352,6 +357,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category) {
         return buildTopHitAggregation(filter, category);
     }

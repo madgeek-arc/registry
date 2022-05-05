@@ -2,40 +2,31 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>eu.openminted</groupId>
     <artifactId>registry</artifactId>
-    <version>2.3.6-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.5.6</version>
+    </parent>
 
     <modules>
-        <module>
-            registry-core
-        </module>
-        <module>
-            registry-core-api
-        </module>
-        <module>
-            registry-core-rest
-        </module>
-        <module>
-            registry-core-helper
-        </module>
-        <module>
-            registry-core-resource-sync
-        </module>
-        <module>
-            registry-core-client
-        </module>
+        <module>registry-core</module>
+        <module>registry-core-api</module>
+        <module>registry-core-rest</module>
+        <module>registry-core-helper</module>
+        <module>registry-core-resource-sync</module>
+        <module>registry-core-client</module>
     </modules>
 
     <properties>
+        <spring.boot.version>2.5.6</spring.boot.version>
         <logging.version>2.17.1</logging.version>
         <fasterxml.version>2.9.10.8</fasterxml.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring.version>4.3.3.RELEASE</spring.version>
         <hibernate.version>5.4.1.Final</hibernate.version>
         <joda-time.version>2.3</joda-time.version>
         <jaxb2_commons.version>0.8.2</jaxb2_commons.version>
-        <spring.data-jpa.version>2.1.0.RELEASE</spring.data-jpa.version>
-        <spring.security>5.1.3.RELEASE</spring.security>
     </properties>
 
     <licenses>
@@ -46,66 +37,11 @@
     </licenses>
 
     <dependencies>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-core</artifactId>
-            <version>${spring.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
-            <version>${spring.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-beans</artifactId>
-            <version>${spring.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
-            <version>${spring.version}</version>
-        </dependency>
 
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-tx</artifactId>
-            <version>${spring.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webmvc</artifactId>
-            <version>${spring.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-aop</artifactId>
-            <version>${spring.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-jms</artifactId>
-            <version>${spring.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-jpa</artifactId>
-            <version>${spring.data-jpa.version}</version>
-        </dependency>
         <dependency>
             <groupId>org.everit.json</groupId>
             <artifactId>org.everit.json.schema</artifactId>
             <version>1.3.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-orm</artifactId>
-            <version>${spring.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-jdbc</artifactId>
-            <version>${spring.version}</version>
         </dependency>
 
         <!-- Hibernate -->
@@ -119,18 +55,8 @@
             <artifactId>hibernate-entitymanager</artifactId>
             <version>${hibernate.version}</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2 -->
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-            <version>3.2.0</version>
-        </dependency>
 
-        <dependency>
-            <groupId>javax.persistence</groupId>
-            <artifactId>javax.persistence-api</artifactId>
-            <version>2.2</version>
-        </dependency>
+
         <dependency>
             <groupId>javax.persistence</groupId>
             <artifactId>javax.persistence-api</artifactId>

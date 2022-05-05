@@ -23,7 +23,7 @@ import java.io.IOException;
  * Created by stefanos on 14/11/2016.
  */
 @Configuration
-@EnableRetry
+@EnableRetry(proxyTargetClass = true)
 @PropertySource(value = {"classpath:application.properties", "classpath:registry.properties"})
 public class ElasticConfiguration {
 
