@@ -28,7 +28,7 @@
 
     <properties>
         <logging.version>2.17.1</logging.version>
-        <fasterxml.version>2.9.10.8</fasterxml.version>
+        <fasterxml.version>2.12.6.1</fasterxml.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring.version>4.3.3.RELEASE</spring.version>
         <hibernate.version>5.4.1.Final</hibernate.version>
