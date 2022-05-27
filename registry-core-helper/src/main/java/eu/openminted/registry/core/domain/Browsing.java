@@ -27,4 +27,14 @@ public class Browsing<T> extends Paging<T> {
         assert getFacets() != null;
         getFacets().forEach(x -> x.setLabel(labels.get(x.getField())));
     }
+
+    @Override
+    public boolean equals(Object object) {
+        return super.equals(object);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
 }

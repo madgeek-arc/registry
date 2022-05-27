@@ -3,6 +3,7 @@ package eu.openminted.registry.core.domain;
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class Paging<T> {
 
@@ -86,5 +87,17 @@ public class Paging<T> {
 
     public void setFacets(List<Facet> facets) {
         this.facets = facets;
+    }
+
+    public boolean equals(Object object) {
+        if (this == object) return true;
+        if (!(object instanceof Paging)) return false;
+        if (!super.equals(object)) return false;
+        Paging<?> paging = (Paging<?>) object;
+        return total == paging.total && from == paging.from && to == paging.to && java.util.Objects.equals(results, paging.results) && java.util.Objects.equals(facets, paging.facets);
+    }
+
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), total, from, to, results, facets);
     }
 }

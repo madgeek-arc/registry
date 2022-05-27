@@ -1,6 +1,7 @@
 package eu.openminted.registry.core.domain;
 
 import java.util.List;
+import java.util.Objects;
 
 public class Facet {
 
@@ -35,7 +36,16 @@ public class Facet {
 	public void setValues(List<Value> values) {
 		this.values = values;
 	}
-	 
-	 
-	
+
+	public boolean equals(Object object) {
+		if (this == object) return true;
+		if (!(object instanceof Facet)) return false;
+		if (!super.equals(object)) return false;
+		Facet facet = (Facet) object;
+		return java.util.Objects.equals(field, facet.field) && java.util.Objects.equals(label, facet.label) && java.util.Objects.equals(values, facet.values);
+	}
+
+	public int hashCode() {
+		return Objects.hash(super.hashCode(), field, label, values);
+	}
 }

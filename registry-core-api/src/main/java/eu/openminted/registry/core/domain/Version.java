@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import javax.persistence.*;
 import javax.validation.constraints.Size;
 import java.util.Date;
+import java.util.Objects;
 
 @Entity
 @Table(name="ResourceVersion")
@@ -122,5 +123,18 @@ public class Version {
 
 	public void setParentId(String parentId) {
 		this.parentId = parentId;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (!(o instanceof Version)) return false;
+		Version version1 = (Version) o;
+		return Objects.equals(id, version1.id) && Objects.equals(resource, version1.resource) && Objects.equals(parentId, version1.parentId) && Objects.equals(resourceTypeName, version1.resourceTypeName) && Objects.equals(resourceType, version1.resourceType) && Objects.equals(version, version1.version) && Objects.equals(payload, version1.payload) && Objects.equals(creationDate, version1.creationDate);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(id, resource, parentId, resourceTypeName, resourceType, version, payload, creationDate);
 	}
 }
