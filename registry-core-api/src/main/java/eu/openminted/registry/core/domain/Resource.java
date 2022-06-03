@@ -13,7 +13,6 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
 
 @Entity
 @Table(name = "Resource")
@@ -209,15 +208,4 @@ public class Resource {
         return (resourceType==null) ? resourceTypeName : resourceType.getName();
     }
 
-    public boolean equals(Object object) {
-        if (this == object) return true;
-        if (!(object instanceof Resource)) return false;
-        if (!super.equals(object)) return false;
-        Resource resource = (Resource) object;
-        return java.util.Objects.equals(getId(), resource.getId()) && java.util.Objects.equals(getResourceType(), resource.getResourceType()) && java.util.Objects.equals(getResourceTypeName(), resource.getResourceTypeName()) && java.util.Objects.equals(getVersion(), resource.getVersion()) && java.util.Objects.equals(getPayload(), resource.getPayload()) && java.util.Objects.equals(getPayloadUrl(), resource.getPayloadUrl()) && java.util.Objects.equals(getSearchableArea(), resource.getSearchableArea()) && java.util.Objects.equals(getPayloadFormat(), resource.getPayloadFormat()) && java.util.Objects.equals(getCreationDate(), resource.getCreationDate()) && java.util.Objects.equals(getModificationDate(), resource.getModificationDate()) && java.util.Objects.equals(getIndexedFields(), resource.getIndexedFields()) && java.util.Objects.equals(getVersions(), resource.getVersions());
-    }
-
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), getId(), getResourceType(), getResourceTypeName(), getVersion(), getPayload(), getPayloadUrl(), getSearchableArea(), getPayloadFormat(), getCreationDate(), getModificationDate(), getIndexedFields(), getVersions());
-    }
 }

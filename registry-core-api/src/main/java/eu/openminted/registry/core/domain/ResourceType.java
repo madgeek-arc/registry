@@ -9,7 +9,10 @@ import org.hibernate.annotations.LazyCollectionOption;
 
 import javax.persistence.*;
 import javax.validation.constraints.Size;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(name = "ResourceType")
@@ -170,15 +173,4 @@ public class ResourceType {
         this.resources = resources;
     }
 
-    public boolean equals(Object object) {
-        if (this == object) return true;
-        if (!(object instanceof ResourceType)) return false;
-        if (!super.equals(object)) return false;
-        ResourceType that = (ResourceType) object;
-        return java.util.Objects.equals(getName(), that.getName()) && java.util.Objects.equals(getSchema(), that.getSchema()) && java.util.Objects.equals(getSchemaUrl(), that.getSchemaUrl()) && java.util.Objects.equals(getPayloadType(), that.getPayloadType()) && java.util.Objects.equals(getCreationDate(), that.getCreationDate()) && java.util.Objects.equals(getModificationDate(), that.getModificationDate()) && java.util.Objects.equals(getIndexMapperClass(), that.getIndexMapperClass()) && java.util.Objects.equals(getIndexFields(), that.getIndexFields()) && java.util.Objects.equals(getAliasGroup(), that.getAliasGroup()) && java.util.Objects.equals(getResources(), that.getResources()) && java.util.Objects.equals(versions, that.versions) && java.util.Objects.equals(getProperties(), that.getProperties());
-    }
-
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), getName(), getSchema(), getSchemaUrl(), getPayloadType(), getCreationDate(), getModificationDate(), getIndexMapperClass(), getIndexFields(), getAliasGroup(), getResources(), versions, getProperties());
-    }
 }
