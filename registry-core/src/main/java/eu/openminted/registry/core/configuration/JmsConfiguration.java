@@ -4,10 +4,10 @@ package eu.openminted.registry.core.configuration;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.env.Environment;
 import org.springframework.jms.annotation.EnableJms;
 import org.springframework.jms.config.DefaultJmsListenerContainerFactory;
 import org.springframework.jms.core.JmsTemplate;
@@ -17,22 +17,22 @@ import org.springframework.jms.support.converter.MessageType;
 
 @Configuration
 @EnableJms
-@PropertySource(value = {"classpath:application.properties", "classpath:registry.properties"})
 public class JmsConfiguration {
 
     private static Logger logger = LogManager.getLogger(JmsConfiguration.class);
 
-    @Value("${jms.host}")
-    private String jmsHost;
+    private final String jmsHost;
+    private final String jmsPrefix;
+    private final String jmsUser;
+    private final String jmsPassword;
 
-    @Value("${jms.prefix:registry}")
-    private String jmsPrefix;
-
-    @Value("${jms.user:@null}")
-    private String jmsUser;
-
-    @Value("${jms.password:@null}")
-    private String jmsPassword;
+    @Autowired
+    public JmsConfiguration(Environment environment) {
+        this.jmsHost = environment.getProperty("jms.host");
+        this.jmsPrefix = environment.getProperty("jms.prefix") != null ? environment.getProperty("jms.prefix") : "registry";
+        this.jmsUser = environment.getProperty("jms.user");
+        this.jmsPassword = environment.getProperty("jms.password");
+    }
 
     @Bean
     public ActiveMQConnectionFactory activeMQConnectionFactory() {

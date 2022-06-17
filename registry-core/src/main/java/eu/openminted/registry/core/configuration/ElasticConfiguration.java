@@ -8,10 +8,8 @@ import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.settings.Settings;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.retry.annotation.EnableRetry;
 
@@ -24,20 +22,21 @@ import java.io.IOException;
  */
 @Configuration
 @EnableRetry
-@PropertySource(value = {"classpath:application.properties", "classpath:registry.properties"})
 public class ElasticConfiguration {
 
 
     private static Logger logger = LogManager.getLogger(ElasticConfiguration.class);
 
+    private final Environment environment;
+    private final String port;
+    private final String hostname;
+
     @Autowired
-    private Environment environment;
-
-    @Value("${elasticsearch.port}")
-    String port;
-
-    @Value("${elasticsearch.url}")
-    String hostname;
+    public ElasticConfiguration(Environment environment) {
+        this.hostname = environment.getProperty("elasticsearch.url");
+        this.port = environment.getProperty("elasticsearch.port");
+        this.environment = environment;
+    }
 
     private RestHighLevelClient client = null;
 

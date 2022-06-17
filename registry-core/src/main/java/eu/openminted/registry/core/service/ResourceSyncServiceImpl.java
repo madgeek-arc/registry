@@ -9,7 +9,7 @@ import eu.openminted.registry.core.resourcesync.domain.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,9 +24,15 @@ import java.util.List;
 public class ResourceSyncServiceImpl implements ResourceSyncService {
 
     private static Logger logger = LogManager.getLogger(ResourceSyncServiceImpl.class);
-
-    @Value("${registry.host}")
     private String host;
+
+    @Autowired
+    public ResourceSyncServiceImpl(Environment environment) {
+        this.host = environment.getProperty("registry.host");
+        if (this.host == null) {
+            throw new RuntimeException("Missing property 'registry.host'");
+        }
+    }
 
     @Autowired
     ResourceTypeDao resourceTypeDao;
