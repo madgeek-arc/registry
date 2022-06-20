@@ -31,7 +31,7 @@
         <fasterxml.version>2.9.10.8</fasterxml.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring.version>4.3.30.RELEASE</spring.version>
-        <hibernate.version>5.4.1.Final</hibernate.version>
+        <hibernate.version>5.4.24.Final</hibernate.version>
         <joda-time.version>2.3</joda-time.version>
         <jaxb2_commons.version>0.8.2</jaxb2_commons.version>
         <spring.data-jpa.version>2.1.0.RELEASE</spring.data-jpa.version>
