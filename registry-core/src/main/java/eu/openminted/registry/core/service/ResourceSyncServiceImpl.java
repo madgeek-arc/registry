@@ -28,7 +28,7 @@ public class ResourceSyncServiceImpl implements ResourceSyncService {
 
     @Autowired
     public ResourceSyncServiceImpl(Environment environment) {
-        this.host = environment.getProperty("registry.host");
+        this.host = environment.getRequiredProperty("registry.host");
         if (this.host == null) {
             throw new RuntimeException("Missing property 'registry.host'");
         }

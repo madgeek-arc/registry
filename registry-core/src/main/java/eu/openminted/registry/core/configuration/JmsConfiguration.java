@@ -28,7 +28,7 @@ public class JmsConfiguration {
 
     @Autowired
     public JmsConfiguration(Environment environment) {
-        this.jmsHost = environment.getProperty("jms.host");
+        this.jmsHost = environment.getRequiredProperty("jms.host");
         this.jmsPrefix = environment.getProperty("jms.prefix") != null ? environment.getProperty("jms.prefix") : "registry";
         this.jmsUser = environment.getProperty("jms.user");
         this.jmsPassword = environment.getProperty("jms.password");

@@ -33,8 +33,8 @@ public class ElasticConfiguration {
 
     @Autowired
     public ElasticConfiguration(Environment environment) {
-        this.hostname = environment.getProperty("elasticsearch.url");
-        this.port = environment.getProperty("elasticsearch.port");
+        this.hostname = environment.getRequiredProperty("elasticsearch.url");
+        this.port = environment.getRequiredProperty("elasticsearch.port");
         this.environment = environment;
     }
 
