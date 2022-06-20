@@ -41,7 +41,6 @@ import java.util.stream.StreamSupport;
 
 
 @Service("searchService")
-@PropertySource(value = {"classpath:application.properties", "classpath:registry.properties"})
 public class SearchServiceImpl implements SearchService {
 
     private static Logger logger = LogManager.getLogger(SearchServiceImpl.class);

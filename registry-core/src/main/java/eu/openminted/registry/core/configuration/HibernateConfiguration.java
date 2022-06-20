@@ -26,7 +26,6 @@ import javax.sql.DataSource;
 import java.util.Properties;
 
 @Configuration
-@PropertySource(value = {"classpath:application.properties", "classpath:registry.properties"})
 @EnableAspectJAutoProxy
 @EnableCaching
 @EnableTransactionManagement(proxyTargetClass = true)
