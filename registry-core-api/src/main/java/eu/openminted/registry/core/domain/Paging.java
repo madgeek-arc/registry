@@ -3,6 +3,8 @@ package eu.openminted.registry.core.domain;
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class Paging<T> {
 
@@ -46,6 +48,10 @@ public class Paging<T> {
         this.to = 0;
         this.results = new ArrayList<>();
         this.facets = new ArrayList<>();
+    }
+
+    public <U> Paging<? extends U> map(Function<? super T, ? extends U> converter) {
+        return new Paging<>(this, this.getResults().stream().map(converter).collect(Collectors.toList()));
     }
 
     public int getTotal() {
