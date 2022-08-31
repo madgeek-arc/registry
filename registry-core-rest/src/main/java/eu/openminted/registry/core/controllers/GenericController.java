@@ -27,7 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 public class GenericController {
 
 
-    private Logger logger = LogManager.getLogger(GenericController.class);
+    private static final Logger logger = LogManager.getLogger(GenericController.class);
 
 
     @ResponseStatus(HttpStatus.NOT_FOUND)

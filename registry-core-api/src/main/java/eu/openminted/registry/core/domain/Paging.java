@@ -50,7 +50,7 @@ public class Paging<T> {
         this.facets = new ArrayList<>();
     }
 
-    public <U> Paging<? extends U> map(Function<? super T, ? extends U> converter) {
+    public <U> Paging<U> map(Function<? super T, ? extends U> converter) {
         return new Paging<>(this, this.getResults().stream().map(converter).collect(Collectors.toList()));
     }
 
