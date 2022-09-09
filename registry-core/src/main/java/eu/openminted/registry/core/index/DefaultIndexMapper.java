@@ -90,7 +90,7 @@ public class DefaultIndexMapper implements IndexMapper {
 		else
 			fieldParser = null;
 
-		return fieldParser.parse(payload, fieldType, path,isMultiValued);
+		return fieldParser.parse(payload, fieldType, path, isMultiValued);
 	}
 
 	public void setIndexFields(List<IndexField> indexFields) {
