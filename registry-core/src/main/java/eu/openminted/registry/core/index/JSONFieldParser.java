@@ -1,6 +1,7 @@
 package eu.openminted.registry.core.index;
 
 import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
@@ -24,10 +25,12 @@ public class JSONFieldParser implements FieldParser {
                         .collect(Collectors.toSet());
             }
         } else {
-            Object answer = JsonPath.read(payload + "", path);
-            if (answer != null) {
-                response = FieldParser.parseField(fieldType, answer.toString());
-            }
+            try {
+                Object answer = JsonPath.read(payload + "", path);
+                if (answer != null) {
+                    response = FieldParser.parseField(fieldType, answer.toString());
+                }
+            } catch (PathNotFoundException e) {}
         }
         return response;
     }
