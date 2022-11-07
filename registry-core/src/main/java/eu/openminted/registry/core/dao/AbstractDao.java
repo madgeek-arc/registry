@@ -97,7 +97,6 @@ public abstract class AbstractDao<T> {
     }
 
     public void delete(T entity) {
-        entityManager.refresh(entity);
         entityManager.remove(entity);
         entityManager.flush();
     }

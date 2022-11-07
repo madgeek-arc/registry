@@ -170,7 +170,7 @@ public class ResourceServiceImpl implements ResourceService {
         if(!response)
             throw new ServiceException("Failed to validate resource with the new resource type");
 
-        deleteResource(resource.getId());
+//        deleteResource(resource.getId());
         resource.setVersion(generateVersion());
         try {
             resource.setIndexedFields(getIndexedFields(resource));
