@@ -6,13 +6,18 @@ import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.service.ServiceException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.Query;
 import java.util.*;
 
 
 @Repository("viewsDao")
+@Scope(proxyMode = ScopedProxyMode.INTERFACES)
+@Transactional
 public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
 
     private static Logger logger = LogManager.getLogger(ViewDaoImpl.class);

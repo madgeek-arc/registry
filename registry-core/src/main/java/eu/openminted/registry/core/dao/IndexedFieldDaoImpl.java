@@ -4,11 +4,16 @@ import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Repository("indexedFieldDao")
+@Scope(proxyMode = ScopedProxyMode.INTERFACES)
+@Transactional
 public class IndexedFieldDaoImpl extends AbstractDao<IndexedField> implements IndexedFieldDao {
 
     private static Logger logger = LogManager.getLogger(IndexedFieldDaoImpl.class);
@@ -20,7 +25,7 @@ public class IndexedFieldDaoImpl extends AbstractDao<IndexedField> implements In
 
     @Override
     public void deleteAllIndexedFields(Resource resource) {
-        resource.getIndexedFields().forEach(iF ->{
+        resource.getIndexedFields().forEach(iF -> {
             iF.setResource(null);
 //            persist(iF);
             getEntityManager().persist(iF);

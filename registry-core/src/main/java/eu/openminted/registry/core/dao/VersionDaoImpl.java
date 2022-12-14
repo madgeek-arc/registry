@@ -3,7 +3,10 @@ package eu.openminted.registry.core.dao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.Version;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.Query;
 import javax.persistence.criteria.CriteriaQuery;
@@ -13,6 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Repository("versionDao")
+@Scope(proxyMode = ScopedProxyMode.INTERFACES)
+@Transactional
 public class VersionDaoImpl extends AbstractDao<Version> implements VersionDao {
 
 	@Override
