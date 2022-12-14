@@ -30,7 +30,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <logging.version>2.17.2</logging.version>
         <fasterxml.version>2.14.0</fasterxml.version>
-        <spring.version>5.3.20</spring.version>
+        <spring.version>6.0.0</spring.version>
         <joda-time.version>2.3</joda-time.version>
         <hibernate.version>5.6.14.Final</hibernate.version>
         <spring.data-jpa.version>2.7.6</spring.data-jpa.version>
