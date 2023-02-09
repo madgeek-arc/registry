@@ -12,10 +12,7 @@ import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Scope;
-import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.ls.LSInput;
 import org.xml.sax.SAXException;
 import org.xmlunit.builder.Input;
@@ -33,8 +30,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.TimeUnit;
 
 @Repository("schemaDao")
-@Scope(proxyMode = ScopedProxyMode.INTERFACES)
-@Transactional
 public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
 
     private static final Logger logger = LoggerFactory.getLogger(SchemaDaoImpl.class);

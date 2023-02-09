@@ -2,10 +2,7 @@ package eu.openminted.registry.core.dao;
 
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
-import org.springframework.context.annotation.Scope;
-import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
@@ -16,8 +13,6 @@ import java.util.List;
 import java.util.Set;
 
 @Repository("resourceTypeDao")
-@Scope(proxyMode = ScopedProxyMode.INTERFACES)
-@Transactional
 public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements ResourceTypeDao {
 
 	public ResourceType getResourceType(String name) {
@@ -27,7 +22,7 @@ public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements Re
 	public List<ResourceType> getAllResourceType() {
 		return getList();
 	}
-
+	
 	@SuppressWarnings("unchecked")
 	public List<ResourceType> getAllResourceType(int from, int to) {
 

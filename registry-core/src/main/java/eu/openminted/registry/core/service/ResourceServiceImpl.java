@@ -26,8 +26,6 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 @Service("resourceService")
-//@Scope(proxyMode = ScopedProxyMode.INTERFACES)
-//@Transactional
 public class ResourceServiceImpl implements ResourceService {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceServiceImpl.class);

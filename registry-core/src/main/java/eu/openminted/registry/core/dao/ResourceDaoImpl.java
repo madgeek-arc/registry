@@ -2,11 +2,9 @@ package eu.openminted.registry.core.dao;
 
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
+import eu.openminted.registry.core.domain.Version;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
-import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaQuery;
@@ -20,8 +18,6 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 @Repository("resourceDao")
-@Scope(proxyMode = ScopedProxyMode.INTERFACES)
-@Transactional
 public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDao {
 
 
