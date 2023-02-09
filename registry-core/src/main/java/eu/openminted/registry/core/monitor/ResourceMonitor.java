@@ -4,11 +4,11 @@ import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.service.ServiceException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -23,7 +23,7 @@ import java.util.concurrent.Executors;
 @Component
 public class ResourceMonitor {
 
-    private static Logger logger = LogManager.getLogger(ResourceMonitor.class);
+    private static final Logger logger = LoggerFactory.getLogger(ResourceMonitor.class);
 
     @Autowired(required = false)
     private List<ResourceListener> resourceListeners;
@@ -50,7 +50,7 @@ public class ResourceMonitor {
                 }
             }
         } catch (Exception e) {
-            logger.fatal("fatal error in monitor", e);
+            logger.error("fatal error in monitor", e);
             throw e;
         }
         return resource;
@@ -81,7 +81,7 @@ public class ResourceMonitor {
                     }
                 }
         } catch (Exception e) {
-            logger.fatal("fatal error in monitor", e);
+            logger.error("fatal error in monitor", e);
             throw e;
         }
         return resource;

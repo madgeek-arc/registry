@@ -4,12 +4,12 @@ import configuration.MockDatabaseConfiguration;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -23,7 +23,7 @@ import javax.transaction.Transactional;
 @Transactional
 public class ResourceServiceImplTest {
 
-    private static Logger logger = LogManager.getLogger(ResourceServiceImplTest.class);
+    private static Logger logger = LoggerFactory.getLogger(ResourceServiceImplTest.class);
 
     @Autowired
     private ResourceService resourceService;

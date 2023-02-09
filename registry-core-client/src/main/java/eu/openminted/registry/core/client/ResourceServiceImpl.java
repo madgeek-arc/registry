@@ -6,8 +6,8 @@ import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.service.ResourceService;
 import eu.openminted.registry.core.service.ServiceException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -26,7 +26,7 @@ import java.util.function.Consumer;
 @Service("resourceService")
 public class ResourceServiceImpl implements ResourceService {
 
-    private static Logger logger = LogManager.getLogger(ResourceServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(ResourceServiceImpl.class);
 
     @Value("${registry.base}")
     private String registryHost;

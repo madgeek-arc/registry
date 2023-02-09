@@ -1,11 +1,10 @@
 package eu.openminted.registry.core.elasticsearch.listeners;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
 import eu.openminted.registry.core.monitor.ResourceListener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 @Component
 public class ElasticResourceListener implements ResourceListener {

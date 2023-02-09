@@ -2,8 +2,8 @@ package eu.openminted.registry.core.index;
 
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 @Component
 public class JSONFieldParser implements FieldParser {
 
-    private static final Logger logger = LogManager.getLogger(JSONFieldParser.class);
+    private static final Logger logger = LoggerFactory.getLogger(JSONFieldParser.class);
 
     public Set<Object> parse(String payload, String fieldType, String path, boolean isMultiValued) {
 
@@ -36,7 +36,7 @@ public class JSONFieldParser implements FieldParser {
                 }
             }
         } catch (PathNotFoundException e) {
-            logger.debug(e);
+            logger.debug("", e);
         }
         return response;
     }

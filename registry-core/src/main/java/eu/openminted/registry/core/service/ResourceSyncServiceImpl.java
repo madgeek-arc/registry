@@ -6,8 +6,8 @@ import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.resourcesync.domain.*;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ import java.util.List;
 @Transactional
 public class ResourceSyncServiceImpl implements ResourceSyncService {
 
-    private static Logger logger = LogManager.getLogger(ResourceSyncServiceImpl.class);
+    private static Logger logger = LoggerFactory.getLogger(ResourceSyncServiceImpl.class);
     private String host;
 
     @Autowired

@@ -7,10 +7,9 @@ import eu.openminted.registry.core.domain.Schema;
 import eu.openminted.registry.core.domain.UrlResolver;
 import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.index.DefaultIndexMapper;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.Document;
@@ -47,7 +46,7 @@ import java.util.Set;
 @Transactional
 public class ResourceTypeServiceImpl implements ResourceTypeService {
 
-    private static Logger logger = LogManager.getLogger(ResourceTypeService.class);
+    private static final Logger logger = LoggerFactory.getLogger(ResourceTypeServiceImpl.class);
 
     @Autowired
     ResourceTypeDao resourceTypeDao;

@@ -2,8 +2,8 @@ package eu.openminted.registry.core.service;
 
 import eu.openminted.registry.core.domain.*;
 import eu.openminted.registry.core.domain.index.IndexField;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  */
 @Transactional
 @Component
-abstract public class AbstractGenericService<T> {
+public abstract class AbstractGenericService<T> {
 
     @Autowired
     public SearchService searchService;
@@ -36,7 +36,7 @@ abstract public class AbstractGenericService<T> {
     @Value("${elastic.index.max_result_window:10000}")
     protected int maxQuantity;
 
-    private static final Logger logger = LogManager.getLogger(AbstractGenericService.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractGenericService.class);
     private List<String> browseBy;
 
     private Map<String, String> labels;
@@ -90,7 +90,7 @@ abstract public class AbstractGenericService<T> {
         try {
             browsing = convertToBrowsing(searchService.search(filter));
         } catch (UnknownHostException e) {
-            logger.fatal("getResults", e);
+            logger.error("getResults", e);
             throw new ServiceException(e);
         }
         return browsing;
@@ -121,7 +121,7 @@ abstract public class AbstractGenericService<T> {
             }
             return result;
         } catch (Exception e) {
-            logger.fatal(e);
+            logger.error("Error", e);
             throw new ServiceException(e);
         }
     }

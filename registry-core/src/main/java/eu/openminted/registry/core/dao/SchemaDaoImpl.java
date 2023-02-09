@@ -8,10 +8,10 @@ import eu.openminted.registry.core.domain.Schema;
 import eu.openminted.registry.core.service.ServiceException;
 import eu.openminted.registry.core.validation.SchemaInput;
 import org.apache.commons.io.IOUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Repository;
@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 @Transactional
 public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
 
-    private static Logger logger = LogManager.getLogger(SchemaDaoImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(SchemaDaoImpl.class);
 
     private LoadingCache<String, javax.xml.validation.Schema> schemaXMLLoader;
 

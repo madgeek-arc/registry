@@ -11,11 +11,9 @@ import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsServic
 import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
 import eu.openminted.registry.core.validation.ResourceValidator;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
-import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,11 +26,11 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 @Service("resourceService")
-@Scope(proxyMode = ScopedProxyMode.INTERFACES)
-@Transactional
+//@Scope(proxyMode = ScopedProxyMode.INTERFACES)
+//@Transactional
 public class ResourceServiceImpl implements ResourceService {
 
-    private static Logger logger = LogManager.getLogger(ResourceServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(ResourceServiceImpl.class);
     @Autowired
     private ResourceDao resourceDao;
 

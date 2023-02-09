@@ -3,8 +3,8 @@ package eu.openminted.registry.core.monitor;
 import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.Version;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -14,7 +14,7 @@ import java.util.UUID;
 @Component
 public class VersionMonitor implements ResourceListener {
 
-	private static Logger logger = LogManager.getLogger(VersionMonitor.class);
+	private static Logger logger = LoggerFactory.getLogger(VersionMonitor.class);
 
 	@Autowired
 	VersionDao versionDao;

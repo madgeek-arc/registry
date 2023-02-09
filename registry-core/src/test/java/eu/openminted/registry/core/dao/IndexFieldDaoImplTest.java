@@ -3,12 +3,12 @@ package eu.openminted.registry.core.dao;
 import configuration.MockDatabaseConfiguration;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.ContextConfiguration;
@@ -25,7 +25,7 @@ import java.util.List;
 @ComponentScan("eu.openminted.registry.core.dao")
 public class IndexFieldDaoImplTest {
 
-    private static Logger logger = LogManager.getLogger(IndexFieldDaoImplTest.class);
+    private static Logger logger = LoggerFactory.getLogger(IndexFieldDaoImplTest.class);
 
     @Autowired
     IndexFieldDao indexFieldDao;

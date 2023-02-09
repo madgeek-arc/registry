@@ -2,8 +2,8 @@ package eu.openminted.registry.core.backup.dump;
 
 import eu.openminted.registry.core.dao.AbstractDao;
 import eu.openminted.registry.core.domain.Resource;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.partition.support.Partitioner;
 import org.springframework.batch.item.ExecutionContext;
@@ -25,7 +25,7 @@ import java.util.stream.IntStream;
 @Transactional
 public class DumpResourcePartitioner extends AbstractDao<Resource> implements Partitioner {
 
-    private static final Logger logger = LogManager.getLogger(DumpResourcePartitioner.class);
+    private static final Logger logger = LoggerFactory.getLogger(DumpResourcePartitioner.class);
 
     private static final int THRESHOLD = 50;
 

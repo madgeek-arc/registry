@@ -2,12 +2,12 @@ package eu.openminted.registry.core.dao;
 
 import configuration.MockDatabaseConfiguration;
 import eu.openminted.registry.core.domain.Schema;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.ContextConfiguration;
@@ -23,7 +23,7 @@ import javax.transaction.Transactional;
 @ComponentScan("eu.openminted.registry.core.dao")
 public class SchemaDaoImplTest {
 
-    private static Logger logger = LogManager.getLogger(SchemaDaoImplTest.class);
+    private static Logger logger = LoggerFactory.getLogger(SchemaDaoImplTest.class);
 
     @Autowired
     SchemaDao schemaDao;

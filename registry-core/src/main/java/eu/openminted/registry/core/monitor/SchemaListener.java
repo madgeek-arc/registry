@@ -2,8 +2,8 @@ package eu.openminted.registry.core.monitor;
 
 import eu.openminted.registry.core.dao.SchemaDao;
 import eu.openminted.registry.core.domain.ResourceType;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +13,7 @@ public class SchemaListener implements ResourceTypeListener {
     @Autowired
     SchemaDao schemaDao;
 
-    private static Logger logger = LogManager.getLogger(SchemaListener.class);
+    private static Logger logger = LoggerFactory.getLogger(SchemaListener.class);
 
     @Override
     public void resourceTypeAdded(ResourceType resourceType) {

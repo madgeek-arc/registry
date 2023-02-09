@@ -2,10 +2,10 @@ package eu.openminted.registry.core.configuration;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.CacheManager;
@@ -32,7 +32,7 @@ import java.util.Properties;
 @EnableTransactionManagement(proxyTargetClass = true)
 public class HibernateConfiguration {
 
-    private static Logger logger = LogManager.getLogger(HibernateConfiguration.class);
+    private static final Logger logger = LoggerFactory.getLogger(HibernateConfiguration.class);
 
     @Autowired
     private Environment environment;

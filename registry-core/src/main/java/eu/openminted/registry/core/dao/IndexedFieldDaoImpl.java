@@ -2,8 +2,8 @@ package eu.openminted.registry.core.dao;
 
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.index.IndexedField;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Repository;
@@ -16,7 +16,7 @@ import java.util.List;
 @Transactional
 public class IndexedFieldDaoImpl extends AbstractDao<IndexedField> implements IndexedFieldDao {
 
-    private static Logger logger = LogManager.getLogger(IndexedFieldDaoImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(IndexedFieldDaoImpl.class);
 
     @Override
     public List<IndexedField> getIndexedFieldsOfResource(Resource resource) {

@@ -13,13 +13,15 @@ import eu.openminted.registry.core.index.IndexMapperFactory;
 import eu.openminted.registry.core.service.ServiceException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.item.*;
+import org.springframework.batch.item.ExecutionContext;
+import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.UnexpectedInputException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -32,7 +34,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @StepScope
 public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExecutionListener {
 
-    private static final Logger logger = LogManager.getLogger(RestoreResourceReaderStep.class);
+    private static final Logger logger = LoggerFactory.getLogger(RestoreResourceReaderStep.class);
 
     private ResourceType resourceType;
 

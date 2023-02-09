@@ -9,8 +9,8 @@ import eu.openminted.registry.core.domain.jms.ResourceJmsDeleted;
 import eu.openminted.registry.core.domain.jms.ResourceJmsUpdated;
 import eu.openminted.registry.core.monitor.ResourceListener;
 import eu.openminted.registry.core.monitor.ResourceTypeListener;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Component;
@@ -26,7 +26,7 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
 
 
 
-    private static Logger logger = LogManager.getLogger(JmsResourceListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(JmsResourceListener.class);
 
     @Override
     public void resourceAdded(Resource resource) {

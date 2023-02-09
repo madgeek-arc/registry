@@ -1,18 +1,17 @@
 package eu.openminted.registry.core.elasticsearch.listeners;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
 import eu.openminted.registry.core.monitor.ResourceTypeListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 @Component
 public class ElasticResourceTypeListener implements ResourceTypeListener {
 
-	private Logger logger = LogManager.getLogger(ElasticResourceTypeListener.class);
+	private Logger logger = LoggerFactory.getLogger(ElasticResourceTypeListener.class);
 	
 	@Autowired
 	ElasticOperationsService elasticOperationsService;

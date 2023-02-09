@@ -20,10 +20,6 @@ import java.util.Set;
 @Transactional
 public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements ResourceTypeDao {
 
-    public ResourceTypeDaoImpl() {
-        super();
-    }
-
 	public ResourceType getResourceType(String name) {
         return getSingleResult("name",name);
 	}

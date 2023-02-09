@@ -4,10 +4,10 @@ import eu.openminted.registry.core.dao.SchemaDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.service.ServiceException;
 import org.apache.commons.io.IOUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.everit.json.schema.ValidationException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +24,7 @@ import javax.xml.validation.Validator;
 @Transactional
 public class ResourceValidator {
 
-    private static Logger logger = LogManager.getLogger(ResourceValidator.class);
+    private static Logger logger = LoggerFactory.getLogger(ResourceValidator.class);
 
     private SchemaDao schemaDao;
 

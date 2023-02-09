@@ -8,9 +8,8 @@ package eu.openminted.registry.core.controllers;
 import eu.openminted.registry.core.exception.ResourceNotFoundException;
 import eu.openminted.registry.core.exception.ServerError;
 import eu.openminted.registry.core.service.ServiceException;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -27,14 +26,14 @@ import javax.servlet.http.HttpServletRequest;
 public class GenericController {
 
 
-    private static final Logger logger = LogManager.getLogger(GenericController.class);
+    private static final Logger logger = LoggerFactory.getLogger(GenericController.class);
 
 
     @ResponseStatus(HttpStatus.NOT_FOUND)
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseBody
     ServerError handleBadRequest(HttpServletRequest req, Exception ex) {
-        logger.info(ex);
+        logger.info("Not Found", ex);
         return new ServerError(req.getRequestURL().toString(),ex);
     }
 
@@ -51,7 +50,7 @@ public class GenericController {
     @ExceptionHandler(Throwable.class)
     @ResponseBody
     ServerError defaultException(HttpServletRequest req, Exception ex) {
-        logger.fatal("Default exception handler",ex);
+        logger.error("Default exception handler", ex);
         return new ServerError(req.getRequestURL().toString(),ex);
     }
 }

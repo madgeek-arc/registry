@@ -6,8 +6,8 @@ import eu.openminted.registry.core.exception.ResourceNotFoundException;
 import eu.openminted.registry.core.service.IndexFieldService;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +19,7 @@ import java.util.List;
 @RestController
 public class ResourceTypeController {
 
-	private static Logger logger = LogManager.getLogger(ResourceTypeController.class);
+	private static final Logger logger = LoggerFactory.getLogger(ResourceTypeController.class);
 
 	@Autowired
 	ResourceTypeService resourceTypeService;

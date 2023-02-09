@@ -1,14 +1,11 @@
 package eu.openminted.registry.core.elasticsearch.service;
 
-import eu.openminted.registry.core.configuration.ElasticConfiguration;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -26,6 +23,8 @@ import org.elasticsearch.client.indices.CreateIndexResponse;
 import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -40,7 +39,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class ElasticOperationsService {
 
-    private static Logger logger = LogManager.getLogger(ElasticOperationsService.class);
+    private static final Logger logger = LoggerFactory.getLogger(ElasticOperationsService.class);
 
     @Autowired
     ResourceTypeService resourceTypeService;
@@ -167,10 +166,10 @@ public class ElasticOperationsService {
         try {
             deleteResponse = client.indices().delete(new DeleteIndexRequest(name), RequestOptions.DEFAULT);
             if(!deleteResponse.isAcknowledged()){
-                logger.fatal("Error deleting index \""+name+"\"");
+                logger.error("Error deleting index \""+name+"\"");
             }
         } catch (IOException e) {
-            logger.fatal("Error deleting index: " + name,e);
+            logger.error("Error deleting index: " + name,e);
         }
 
 
