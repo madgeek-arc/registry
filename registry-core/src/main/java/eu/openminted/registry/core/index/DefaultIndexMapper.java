@@ -7,7 +7,6 @@ import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.service.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -24,11 +23,10 @@ public class DefaultIndexMapper implements IndexMapper {
 
 	private List<IndexField> indexFields;
 
-	private IndexedFieldFactory indexedFieldFactory;
-	private XMLFieldParser xmlFieldParser;
-	private JSONFieldParser jsonFieldParser;
+	private final IndexedFieldFactory indexedFieldFactory;
+	private final XMLFieldParser xmlFieldParser;
+	private final JSONFieldParser jsonFieldParser;
 
-	@Autowired
 	public DefaultIndexMapper(IndexedFieldFactory indexedFieldFactory, XMLFieldParser xmlFieldParser,
 							  JSONFieldParser jsonFieldParser) {
 		this.indexedFieldFactory = indexedFieldFactory;

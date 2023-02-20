@@ -21,7 +21,6 @@ import javax.xml.validation.Validator;
  * Created by stefanos on 30/1/2017.
  */
 @Service("resourceValidator")
-@Transactional
 public class ResourceValidator {
 
     private static Logger logger = LoggerFactory.getLogger(ResourceValidator.class);

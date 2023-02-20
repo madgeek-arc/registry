@@ -13,6 +13,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.ls.LSInput;
 import org.xml.sax.SAXException;
 import org.xmlunit.builder.Input;
@@ -34,9 +35,9 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
 
     private static final Logger logger = LoggerFactory.getLogger(SchemaDaoImpl.class);
 
-    private LoadingCache<String, javax.xml.validation.Schema> schemaXMLLoader;
+    private final LoadingCache<String, javax.xml.validation.Schema> schemaXMLLoader;
 
-    private LoadingCache<String, org.everit.json.schema.Schema> schemaJSONLoader;
+    private final LoadingCache<String, org.everit.json.schema.Schema> schemaJSONLoader;
 
     private static final String XSD_SCHEMA = XMLConstants.W3C_XML_SCHEMA_NS_URI + ".xsd";
 
@@ -61,15 +62,17 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
     }
 
     @Override
+//    @Transactional
     public void addSchema(Schema schema) {
         if (schema.getId() == null) {
             schema.setId(stringToMd5(schema.getSchema() + schema.getOriginalUrl()));
         }
         persist(schema);
-        logger.info("Added schema with url = " + schema.getOriginalUrl());
+        logger.info("Added schema with url: {}", schema.getOriginalUrl());
     }
 
     @Override
+//    @Transactional
     public void deleteSchema(Schema schema) {
         delete(schema);
     }
@@ -88,7 +91,7 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
     public LSInput resolveResource(String type, String namespaceURI,
                                    String publicId, String systemId, String baseURI) {
         try {
-            logger.info("Processing schema with systemId " + systemId);
+            logger.info("Processing schema with systemId: {}", systemId);
             eu.openminted.registry.core.domain.Schema existing;
             if(baseURI==null)
                 existing = getSchemaByUrl(systemId);
@@ -161,7 +164,7 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
 
     @Override
     public InputStream get(String schemaUrl) {
-        logger.info("Loading " + schemaUrl);
+        logger.info("Loading {}", schemaUrl);
         Schema existing = getSchemaByUrl(schemaUrl);
         if (existing != null) {
             return IOUtils.toInputStream(existing.getSchema());
@@ -189,11 +192,11 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
 
     private static class XMLSchemaLoader extends CacheLoader<String, javax.xml.validation.Schema> {
 
-        private SchemaFactory factory;
+        private final SchemaFactory factory;
 
-        private SchemaFactory xsdFactory;
+        private final SchemaFactory xsdFactory;
 
-        private SchemaDao schemaDao;
+        private final SchemaDao schemaDao;
 
         XMLSchemaLoader(SchemaDao schemaDao) {
             this.schemaDao = schemaDao;
@@ -217,7 +220,7 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
 
     private static class JSONSchemaLoader extends CacheLoader<String, org.everit.json.schema.Schema> {
 
-        private SchemaDao schemaDao;
+        private final SchemaDao schemaDao;
 
         JSONSchemaLoader(SchemaDao schemaDao) {
             this.schemaDao = schemaDao;

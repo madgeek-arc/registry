@@ -9,13 +9,23 @@ import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.index.DefaultIndexMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
+import javax.transaction.TransactionManager;
 import javax.xml.XMLConstants;
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
@@ -43,23 +53,21 @@ import java.util.Set;
  * Created by antleb on 7/14/16.
  */
 @Service("resourceTypeService")
-@Transactional
+@Scope(proxyMode = ScopedProxyMode.TARGET_CLASS)
+@Transactional(
+        isolation = Isolation.READ_COMMITTED,
+        readOnly = true)
 public class ResourceTypeServiceImpl implements ResourceTypeService {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceTypeServiceImpl.class);
 
-    @Autowired
-    ResourceTypeDao resourceTypeDao;
-
-    @Autowired
-    ResourceService resourceService;
-
-    @Autowired
-    SchemaDao schemaDao;
+    private final ResourceTypeDao resourceTypeDao;
+    private final SchemaDao schemaDao;
 
 
-    public ResourceTypeServiceImpl() {
-
+    public ResourceTypeServiceImpl(ResourceTypeDao resourceTypeDao, SchemaDao schemaDao) {
+        this.resourceTypeDao = resourceTypeDao;
+        this.schemaDao = schemaDao;
     }
 
     @Override
@@ -89,6 +97,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     }
 
     @Override
+    @Transactional
     public void deleteResourceType(String name) {
         resourceTypeDao.deleteResourceType(name);
     }
@@ -106,6 +115,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     }
 
     @Override
+    @Transactional
     public ResourceType addResourceType(ResourceType resourceType) throws ServiceException {
         Schema schema = new Schema();
 
@@ -273,14 +283,5 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
                 return 0;
             }
         }
-    }
-
-
-    public ResourceTypeDao getResourceTypeDao() {
-        return resourceTypeDao;
-    }
-
-    public void setResourceTypeDao(ResourceTypeDao resourceTypeDao) {
-        this.resourceTypeDao = resourceTypeDao;
     }
 }

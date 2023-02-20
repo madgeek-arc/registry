@@ -13,8 +13,10 @@ import eu.openminted.registry.core.index.IndexMapperFactory;
 import eu.openminted.registry.core.validation.ResourceValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.DateFormat;
@@ -26,28 +28,32 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 @Service("resourceService")
+@Scope(proxyMode = ScopedProxyMode.INTERFACES)
+@Transactional(
+        isolation = Isolation.READ_COMMITTED,
+        readOnly = true)
 public class ResourceServiceImpl implements ResourceService {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceServiceImpl.class);
-    @Autowired
-    private ResourceDao resourceDao;
 
-    @Autowired
-    private VersionDao versionDao;
+    private final ResourceDao resourceDao;
+    private final VersionDao versionDao;
+    private final ResourceTypeDao resourceTypeDao;
+    private final IndexMapperFactory indexMapperFactory;
+    private final IndexedFieldDao indexedFieldDao;
+    private final ResourceValidator resourceValidator;
+    private final ElasticOperationsService elasticOperationsService;
 
-    @Autowired
-    private ResourceTypeDao resourceTypeDao;
-    @Autowired
-    private IndexMapperFactory indexMapperFactory;
-    @Autowired
-    private ResourceValidator resourceValidator;
-    @Autowired
-    private IndexedFieldDao indexedFieldDao;
-    @Autowired
-    private ElasticOperationsService elasticOperationsService;
-
-    public ResourceServiceImpl() {
-
+    public ResourceServiceImpl(ResourceDao resourceDao, ResourceTypeDao resourceTypeDao, VersionDao versionDao,
+                               IndexMapperFactory indexMapperFactory, IndexedFieldDao indexedFieldDao,
+                               ResourceValidator resourceValidator, ElasticOperationsService elasticOperationsService) {
+        this.resourceDao = resourceDao;
+        this.resourceTypeDao = resourceTypeDao;
+        this.versionDao = versionDao;
+        this.indexMapperFactory = indexMapperFactory;
+        this.indexedFieldDao = indexedFieldDao;
+        this.resourceValidator = resourceValidator;
+        this.elasticOperationsService = elasticOperationsService;
     }
 
     @Override
@@ -78,14 +84,14 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Resource> getResource() {
         return resourceDao.getResource();
     }
 
     @Override
+    @Transactional
     public Resource addResource(Resource resource) throws ServiceException {
-
-
         if (resource.getResourceTypeName() != null && resource.getResourceType() == null) {
             resource.setResourceType(resourceTypeDao.getResourceType(resource.getResourceTypeName()));
         }
@@ -120,6 +126,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    @Transactional
     public Resource updateResource(Resource resource) throws ServiceException {
 
         if (resource.getResourceTypeName() != null && resource.getResourceType() == null) {
@@ -148,7 +155,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-
+    @Transactional
     public Resource changeResourceType(Resource resource, ResourceType resourceType) {
         if (resource.getResourceType() == null && (resource.getResourceTypeName() == null || resource.getResourceTypeName().isEmpty()))
             throw new ServiceException("Resource type not present");
@@ -190,6 +197,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    @Transactional
     public void deleteResource(String id) {
         resourceDao.deleteResource(resourceDao.getResource(id));
     }
@@ -206,22 +214,6 @@ public class ResourceServiceImpl implements ResourceService {
             throw new ServiceException(e);
         }
 
-    }
-
-    public ResourceDao getResourceDao() {
-        return resourceDao;
-    }
-
-    public void setResourceDao(ResourceDao resourceDao) {
-        this.resourceDao = resourceDao;
-    }
-
-    public ResourceTypeDao getResourceTypeDao() {
-        return resourceTypeDao;
-    }
-
-    public void setResourceTypeDao(ResourceTypeDao resourceTypeDao) {
-        this.resourceTypeDao = resourceTypeDao;
     }
 
     private Boolean checkValid(Resource resource) {

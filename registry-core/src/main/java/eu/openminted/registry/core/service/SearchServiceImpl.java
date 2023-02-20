@@ -25,7 +25,6 @@ import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -42,12 +41,11 @@ import java.util.stream.StreamSupport;
 @Service("searchService")
 public class SearchServiceImpl implements SearchService {
 
-    private static Logger logger = LoggerFactory.getLogger(SearchServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(SearchServiceImpl.class);
 
     private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "payloadFormat", "version"};
 
-    @Autowired
-    private RestHighLevelClient elasticsearchClient;
+    private final RestHighLevelClient elasticsearchClient;
 
     @Value("${elastic.aggregation.topHitsSize:100}")
     private int topHitsSize;
@@ -60,9 +58,10 @@ public class SearchServiceImpl implements SearchService {
 
     private final ObjectMapper mapper;
 
-    public SearchServiceImpl() {
+    public SearchServiceImpl(RestHighLevelClient elasticsearchClient) {
         mapper = new ObjectMapper();
         mapper.setPropertyNamingStrategy(new ResourcePropertyName());
+        this.elasticsearchClient = elasticsearchClient;
     }
 
     @Override

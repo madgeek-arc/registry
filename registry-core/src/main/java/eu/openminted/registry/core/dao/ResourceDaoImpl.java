@@ -2,9 +2,11 @@ package eu.openminted.registry.core.dao;
 
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.domain.Version;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaQuery;
@@ -18,11 +20,15 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 @Repository("resourceDao")
+@Scope(proxyMode = ScopedProxyMode.INTERFACES)
+@Transactional(
+		isolation = Isolation.READ_COMMITTED,
+		readOnly = true)
 public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDao {
 
-
-	@Autowired
-	private VersionDao versionDao;
+	public ResourceDaoImpl() {
+		super();
+	}
 
 	public Resource getResource(String id) {
 		return getSingleResult("id",id);
@@ -104,15 +110,18 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 	    return getResource(null,0,Integer.MAX_VALUE);
 	}
 
+	@Transactional
 	public void addResource(Resource resource){
 		persist(resource);
 	}
 
+	@Transactional
 	public void updateResource(Resource resource) {
 		resource.setModificationDate(new Date());
 		getEntityManager().merge(resource);
 	}
 
+	@Transactional
 	public void deleteResource(Resource resource) {
 		delete(resource);
 	}

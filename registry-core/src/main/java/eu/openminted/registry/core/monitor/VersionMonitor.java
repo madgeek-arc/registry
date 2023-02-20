@@ -5,7 +5,6 @@ import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -16,8 +15,11 @@ public class VersionMonitor implements ResourceListener {
 
 	private static Logger logger = LoggerFactory.getLogger(VersionMonitor.class);
 
-	@Autowired
-	VersionDao versionDao;
+	private final VersionDao versionDao;
+
+	public VersionMonitor(VersionDao versionDao) {
+		this.versionDao = versionDao;
+	}
 
 	@Override
 	public void resourceAdded(Resource resource) {
@@ -32,7 +34,7 @@ public class VersionMonitor implements ResourceListener {
 
 	@Override
 	public void resourceDeleted(Resource resource) {
-		logger.info("Deleting resource with id:" + resource.getId());
+		logger.info("Deleting resource with id: {}", resource.getId());
 	}
 
 	private void createVersion(Resource newResource) {

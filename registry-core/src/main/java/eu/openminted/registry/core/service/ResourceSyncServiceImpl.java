@@ -20,28 +20,27 @@ import java.util.HashMap;
 import java.util.List;
 
 @Service("resourceSyncService")
-@Transactional
+@Transactional(readOnly = true)
 public class ResourceSyncServiceImpl implements ResourceSyncService {
 
     private static Logger logger = LoggerFactory.getLogger(ResourceSyncServiceImpl.class);
+
+    private final ResourceTypeDao resourceTypeDao;
+    private final ResourceDao resourceDao;
+    private final VersionDao versionDao;
     private String host;
 
     @Autowired
-    public ResourceSyncServiceImpl(Environment environment) {
+    public ResourceSyncServiceImpl(Environment environment, ResourceTypeDao resourceTypeDao,
+                                   ResourceDao resourceDao, VersionDao versionDao) {
         this.host = environment.getRequiredProperty("registry.host");
         if (this.host == null) {
             throw new RuntimeException("Missing property 'registry.host'");
         }
+        this.resourceTypeDao = resourceTypeDao;
+        this.resourceDao = resourceDao;
+        this.versionDao = versionDao;
     }
-
-    @Autowired
-    ResourceTypeDao resourceTypeDao;
-
-    @Autowired
-    ResourceDao resourceDao;
-
-    @Autowired
-    VersionDao versionDao;
 
     @Override
     public ResourceList getResourceList(String resourceType) {
@@ -49,7 +48,7 @@ public class ResourceSyncServiceImpl implements ResourceSyncService {
         ResourceList resourceList = new ResourceList();
         resourceTypeDao.getResourceType(resourceType).getResources().stream().forEach(resource -> {
             URL entry = new URL();
-            entry.setLoc(host + "/resources/"+resourceType + "/" + resource.getId(), resource.getModificationDate());
+            entry.setLoc(host + "/resources/" + resourceType + "/" + resource.getId(), resource.getModificationDate());
             resourceList.addUrl(entry);
         });
 
@@ -63,12 +62,12 @@ public class ResourceSyncServiceImpl implements ResourceSyncService {
 
         List<ResourceType> rtList = resourceTypeDao.getAllResourceType();
         Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.MONTH,-1);
+        calendar.add(Calendar.MONTH, -1);
         Date oneMonth = calendar.getTime();
 
         rtList.forEach(rT -> {
-            capabilityList.addCapableUrl(host+"/resourcesync/"+rT.getName()+"/resourcelist.xml", ResourceSync.CAPABILITY_RESOURCELIST);
-            capabilityList.addCapableUrl(host+"/resourcesync/"+ rT.getName()+"/"+oneMonth.getTime()+"/changelist.xml", ResourceSync.CAPABILITY_CHANGELIST);
+            capabilityList.addCapableUrl(host + "/resourcesync/" + rT.getName() + "/resourcelist.xml", ResourceSync.CAPABILITY_RESOURCELIST);
+            capabilityList.addCapableUrl(host + "/resourcesync/" + rT.getName() + "/" + oneMonth.getTime() + "/changelist.xml", ResourceSync.CAPABILITY_CHANGELIST);
         });
 
 
@@ -85,28 +84,28 @@ public class ResourceSyncServiceImpl implements ResourceSyncService {
         List<Resource> resources = resourceDao.getCreatedSince(date, resourceType);
 
         resources.forEach(resource -> {
-            resourcesHash.put(resource.getId(),resource);
-            changeList.addChange(host+"/resources/"+resource.getResourceTypeName()+"/"+resource.getId(),resource.getModificationDate(),ResourceSync.CHANGE_CREATED);
+            resourcesHash.put(resource.getId(), resource);
+            changeList.addChange(host + "/resources/" + resource.getResourceTypeName() + "/" + resource.getId(), resource.getModificationDate(), ResourceSync.CHANGE_CREATED);
         });
 
-        resources = resourceDao.getModifiedSince(date,resourceType);
+        resources = resourceDao.getModifiedSince(date, resourceType);
 
-        resources.forEach(resource ->{
-            if(!resourcesHash.containsKey(resource.getId())){
-                changeList.addChange(host+"/resources/"+resource.getResourceTypeName()+"/"+resource.getId(),resource.getModificationDate(),ResourceSync.CHANGE_UPDATED);
+        resources.forEach(resource -> {
+            if (!resourcesHash.containsKey(resource.getId())) {
+                changeList.addChange(host + "/resources/" + resource.getResourceTypeName() + "/" + resource.getId(), resource.getModificationDate(), ResourceSync.CHANGE_UPDATED);
             }
         });
 
         versionDao.getOrphans().forEach(version -> {
-            changeList.addChange(host+"/resources/"+version.getResourceType().getName()+"/"+version.getParentId(),version.getCreationDate(),ResourceSync.CHANGE_DELETED);
+            changeList.addChange(host + "/resources/" + version.getResourceType().getName() + "/" + version.getParentId(), version.getCreationDate(), ResourceSync.CHANGE_DELETED);
         });
 
         return changeList;
     }
 
     @PostConstruct
-    public void onConstruct(){
-        host = (host.substring(host.length() - 1).equals("/") ? host.substring(0, host.length()-1) : host);
+    public void onConstruct() {
+        host = (host.substring(host.length() - 1).equals("/") ? host.substring(0, host.length() - 1) : host);
         System.out.println(host);
     }
 }

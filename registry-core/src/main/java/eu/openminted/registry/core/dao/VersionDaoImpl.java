@@ -3,7 +3,11 @@ package eu.openminted.registry.core.dao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.Version;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.Query;
 import javax.persistence.criteria.CriteriaQuery;
@@ -13,6 +17,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Repository("versionDao")
+@Scope(proxyMode = ScopedProxyMode.INTERFACES)
+@Transactional(
+		isolation = Isolation.READ_COMMITTED,
+		readOnly = true)
 public class VersionDaoImpl extends AbstractDao<Version> implements VersionDao {
 
 	@Override
@@ -57,16 +65,19 @@ public class VersionDaoImpl extends AbstractDao<Version> implements VersionDao {
 	}
 
 	@Override
+	@Transactional
 	public void addVersion(Version version) {
 		persist(version);
 	}
 
 	@Override
+	@Transactional
 	public void updateVersion(Version version) {
 		update(version);
 	}
 
 	@Override
+	@Transactional
 	public void updateParent(Resource resource, ResourceType oldResourceType, ResourceType newResourceType) {
 		Query query = getEntityManager().createNativeQuery("UPDATE resourceversion SET parent_id='"+resource.getId()+"', reference_id='"+resource.getId()+"',fk_name_version='"+newResourceType.getName()+"', resourcetype_name='"+newResourceType.getName()+"' WHERE parent_id='"+resource.getId()+"' OR reference_id='"+resource.getId()+"'");
 		getEntityManager().joinTransaction();
@@ -74,6 +85,7 @@ public class VersionDaoImpl extends AbstractDao<Version> implements VersionDao {
 	}
 
 	@Override
+	@Transactional
 	public void deleteVersion(Version version) {
 		delete(version);
 	}

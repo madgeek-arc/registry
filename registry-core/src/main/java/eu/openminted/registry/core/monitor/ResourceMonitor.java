@@ -9,12 +9,9 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Created by antleb on 5/26/16.
@@ -25,16 +22,16 @@ public class ResourceMonitor {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceMonitor.class);
 
-    @Autowired(required = false)
-    private List<ResourceListener> resourceListeners;
+    private final List<ResourceListener> resourceListeners;
+    private final List<ResourceTypeListener> resourceTypeListeners;
+    private final ResourceDao resourceDao;
 
-    @Autowired(required = false)
-    private List<ResourceTypeListener> resourceTypeListeners;
-
-    @Autowired
-    private ResourceDao resourceDao;
-
-    private ExecutorService executorService = Executors.newFixedThreadPool(5);
+    public ResourceMonitor(List<ResourceListener> resourceListeners, List<ResourceTypeListener> resourceTypeListeners,
+                           ResourceDao resourceDao) {
+        this.resourceListeners = resourceListeners;
+        this.resourceTypeListeners = resourceTypeListeners;
+        this.resourceDao = resourceDao;
+    }
 
     @Around("execution (* eu.openminted.registry.core.service.ResourceService.addResource(eu.openminted.registry.core.domain.Resource)) && args(resource)")
     public Resource resourceAdded(ProceedingJoinPoint pjp, Resource resource) throws Throwable {
@@ -61,7 +58,7 @@ public class ResourceMonitor {
     public Resource resourceUpdated(ProceedingJoinPoint pjp, Resource resource) throws Throwable {
 
         try {
-            if(resource.getId()==null || resource.getId().isEmpty()) {
+            if (resource.getId() == null || resource.getId().isEmpty()) {
                 throw new ServiceException("Empty resource ID");
             }
 

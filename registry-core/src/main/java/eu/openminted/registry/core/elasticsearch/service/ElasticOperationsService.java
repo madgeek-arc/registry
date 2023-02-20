@@ -25,7 +25,6 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
@@ -41,11 +40,8 @@ public class ElasticOperationsService {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticOperationsService.class);
 
-    @Autowired
-    ResourceTypeService resourceTypeService;
-
-    @Autowired
-    private RestHighLevelClient client;
+    private final ResourceTypeService resourceTypeService;
+    private final RestHighLevelClient client;
 
     private static final Map<String, String> FIELD_TYPES_MAP;
 
@@ -60,6 +56,11 @@ public class ElasticOperationsService {
         FIELD_TYPES_MAP = Collections.unmodifiableMap(unmodifiableMap);
     }
 
+    public ElasticOperationsService(ResourceTypeService resourceTypeService, RestHighLevelClient client) {
+        this.resourceTypeService = resourceTypeService;
+        this.client = client;
+    }
+
     public void addBulk(List<Resource> resources){
         BulkRequest bulkRequest = new BulkRequest();
 
@@ -70,7 +71,7 @@ public class ElasticOperationsService {
                         .id(resource.getId()));
         }
 
-        logger.info("Sending bulk request for " + resources.size() + " resources");
+        logger.info("Sending bulk request for {} resources", resources.size());
         bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
         BulkResponse bulkResponse = null;
         try {
@@ -140,7 +141,9 @@ public class ElasticOperationsService {
         Map<String, Object> jsonObjectForMapping = createMapping(resourceType.getIndexFields());
 
         JSONObject parameters = new JSONObject(jsonObjectForMapping);
-        logger.debug(parameters.toString(2));
+        if (logger.isDebugEnabled()) {
+            logger.debug(parameters.toString(2));
+        }
 
         request.mapping(jsonObjectForMapping);
 
@@ -166,7 +169,7 @@ public class ElasticOperationsService {
         try {
             deleteResponse = client.indices().delete(new DeleteIndexRequest(name), RequestOptions.DEFAULT);
             if(!deleteResponse.isAcknowledged()){
-                logger.error("Error deleting index \""+name+"\"");
+                logger.error("Error deleting index \"{}\"", name);
             }
         } catch (IOException e) {
             logger.error("Error deleting index: " + name,e);
@@ -179,7 +182,7 @@ public class ElasticOperationsService {
         try {
             GetIndexRequest request = new GetIndexRequest(indexName);
             boolean result = client.indices().exists(request, RequestOptions.DEFAULT);
-            logger.info("Existence of index '" + indexName + "' result is " + result);
+            logger.info("Existence of index '{}' result is: {}", indexName, result);
             return result;
         } catch (IOException e) {
             logger.error("Exception at waiting for IndicesExistsResponse", e);
@@ -271,7 +274,7 @@ public class ElasticOperationsService {
         return jsonObjectField.toString();
     }
 
-    static private String strip(String input, String format) {
+    private static String strip(String input, String format) {
         if ( "xml".equals(format)) {
             return input.replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ");
         } else if ("json".equals(format)) {
