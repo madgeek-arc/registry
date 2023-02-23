@@ -174,7 +174,7 @@ public class ResourceServiceImpl implements ResourceService {
         if (!response)
             throw new ServiceException("Failed to validate resource with the new resource type");
 
-//        deleteResource(resource.getId());
+        deleteResource(resource.getId());
         resource.setVersion(generateVersion());
         try {
             resource.setIndexedFields(getIndexedFields(resource));
@@ -182,10 +182,10 @@ public class ResourceServiceImpl implements ResourceService {
             for (IndexedField indexedField : resource.getIndexedFields())
                 indexedField.setResource(resource);
             resource.setResourceType(oldResourceType);
-            elasticOperationsService.delete(resource);
             resource.setResourceType(resourceType);
             //using DAO in order to keep the ID of the Resource
             resourceDao.updateResource(resource);
+            elasticOperationsService.delete(resource.getId(), oldResourceType.getName());
             elasticOperationsService.add(resource);
             versionDao.updateParent(resource, oldResourceType, resourceType);
         } catch (Exception e) {

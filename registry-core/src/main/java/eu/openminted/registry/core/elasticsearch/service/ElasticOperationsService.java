@@ -117,6 +117,16 @@ public class ElasticOperationsService {
     }
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    public void delete(String resourceId, String resourceType) {
+        DeleteRequest deleteRequest = new DeleteRequest(resourceType, resourceId);
+        try {
+            client.delete(deleteRequest,RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            throw new ServiceException(e);
+        }
+    }
+
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void delete(Resource resource) {
         DeleteRequest deleteRequest = new DeleteRequest(resource.getResourceType().getName(), resource.getId());
         try {
