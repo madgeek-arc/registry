@@ -55,7 +55,7 @@ public class IndexedFieldDaoImplTest {
     }
 
     @Test
-    public void deleteIndexedField_OK(){
+    public void deleteIndexedField_OK() {
         indexedFieldDao.deleteAllIndexedFields(testingResource);
         Assert.assertEquals(indexedFieldDao.getIndexedFieldsOfResource(testingResource).size(),0);
     }

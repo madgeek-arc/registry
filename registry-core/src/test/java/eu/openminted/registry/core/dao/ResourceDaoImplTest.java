@@ -45,7 +45,7 @@ public class ResourceDaoImplTest {
     private Resource testingResource;
 
     @Before
-    public void initialize(){
+    public void initialize() {
         testingResourceType = resourceTypeDao.getResourceType("employee");
         testingResource = resourceDao.getResource().get(0);
     }
@@ -54,38 +54,38 @@ public class ResourceDaoImplTest {
     @Test
     public void getResource_OK() {
         Resource resource = resourceDao.getResource("e98db949-f3e3-4d30-9894-7dd2e291fbef");
-        Assert.assertEquals(resource,testingResource);
+        Assert.assertEquals(resource, testingResource);
     }
 
     @Test
     public void getResource_WRONG_ID() {
         Resource resource = resourceDao.getResource("f98db949-f3e3-4d30-9894-7dd2e291fbef");
-        Assert.assertNotEquals(resource,testingResource);
+        Assert.assertNotEquals(resource, testingResource);
     }
 
     @Test
     public void getModifiedSince_OK() throws ParseException {
         Date date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-18 15:59:22.122");
         List<Resource> resources = resourceDao.getModifiedSince(date);
-        Assert.assertNotEquals(resources.size(),0);
+        Assert.assertNotEquals(resources.size(), 0);
 
-        Assert.assertEquals(resources.get(0),testingResource);
+        Assert.assertEquals(resources.get(0), testingResource);
     }
 
     @Test
     public void getModifiedSince_NOTHING_MODIFIED_SINCE() throws ParseException {
         Date date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-20 15:59:22.122");
         List<Resource> resources = resourceDao.getModifiedSince(date);
-        Assert.assertEquals(resources.size(),0);
+        Assert.assertEquals(resources.size(), 0);
     }
 
     @Test
     public void getCreatedSince_OK() throws ParseException {
         Date date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-18 15:59:22.122");
         List<Resource> resources = resourceDao.getCreatedSince(date);
-        Assert.assertNotEquals(resources.size(),0);
+        Assert.assertNotEquals(resources.size(), 0);
 
-        Assert.assertEquals(resources.get(0),testingResource);
+        Assert.assertEquals(resources.get(0), testingResource);
         return;
     }
 
@@ -93,37 +93,37 @@ public class ResourceDaoImplTest {
     public void getCreatedSince_NOTHING_CREATED_SINCE() throws ParseException {
         Date date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-20 15:59:22.122");
         List<Resource> resources = resourceDao.getCreatedSince(date);
-        Assert.assertEquals(resources.size(),0);
+        Assert.assertEquals(resources.size(), 0);
     }
 
     @Test
     public void getResourceByResourceType_OK() {
-        Assert.assertNotEquals(resourceDao.getResource(testingResourceType).size(),0);
+        Assert.assertNotEquals(resourceDao.getResource(testingResourceType).size(), 0);
     }
 
     @Test
     public void getResourceByResourceType_NO_RESOURCETYPE_FOUND() {
-        Assert.assertEquals(resourceDao.getResource(resourceTypeDao.getResourceType("event")).size(),0);
+        Assert.assertEquals(resourceDao.getResource(resourceTypeDao.getResourceType("event")).size(), 0);
     }
 
     @Test
     public void getResourceByResourceTypeFromTo_OK() {
-        Assert.assertNotEquals(resourceDao.getResource(testingResourceType,0,10).size(),0);
+        Assert.assertNotEquals(resourceDao.getResource(testingResourceType, 0, 10).size(), 0);
     }
 
     @Test
     public void getResourceByResourceTypeFromTo_OUT_OF_RANGE() {
-        Assert.assertEquals(resourceDao.getResource(testingResourceType,2,10).size(),0);
+        Assert.assertEquals(resourceDao.getResource(testingResourceType, 2, 10).size(), 0);
     }
 
     @Test
     public void getResourcesFromTo_OK() {
-        Assert.assertNotEquals(resourceDao.getResource(0,10).size(),0);
+        Assert.assertNotEquals(resourceDao.getResource(0, 10).size(), 0);
     }
 
     @Test
     public void getResourcesFromTo_OUT_OF_RANGE() {
-        Assert.assertEquals(resourceDao.getResource(2,10).size(),0);
+        Assert.assertEquals(resourceDao.getResource(2, 10).size(), 0);
     }
 
     @Test
@@ -140,7 +140,7 @@ public class ResourceDaoImplTest {
 
         resourceDao.addResource(resource);
 
-        Assert.assertEquals(resourceDao.getResource().size(),2);
+        Assert.assertEquals(resourceDao.getResource().size(), 2);
     }
 
     @Test(expected = PersistenceException.class)
@@ -165,13 +165,13 @@ public class ResourceDaoImplTest {
 
         Resource resource = resourceDao.getResource("e98db949-f3e3-4d30-9894-7dd2e291fbef");
 
-        Assert.assertEquals(resource,testingResource);
+        Assert.assertEquals(resource, testingResource);
 
     }
 
     @Test
     public void deleteResource() {
         resourceDao.deleteResource(testingResource);
-        Assert.assertEquals(resourceDao.getResource().size(),0);
+        Assert.assertEquals(resourceDao.getResource().size(), 0);
     }
 }
