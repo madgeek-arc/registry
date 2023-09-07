@@ -141,7 +141,11 @@ public class ResourceServiceImpl implements ResourceService {
 
         Resource oldResource = resourceDao.getResource(resource.getId());
         indexedFieldDao.deleteAllIndexedFields(oldResource);
-        resource.setIndexedFields(getIndexedFields(resource));
+
+        // Adding new indexedFields in list.
+        // Warning: using the setter method ( setIndexedFields() ) breaks the cascade="all-delete-orphan" rule.
+        resource.getIndexedFields().addAll(getIndexedFields(resource));
+
         for (IndexedField indexedField : resource.getIndexedFields()) {
             indexedField.setResource(resource);
         }
