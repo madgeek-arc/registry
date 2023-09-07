@@ -7,8 +7,10 @@
 -- Data for Name: resourcetype; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.resourcetype (name, aliasgroup, creation_date, indexmapperclass, modification_date, payloadtype, schema, schemaurl)
-VALUES ('employee', 'resourceTypes', '2018-12-03 13:03:59.871', 'eu.openminted.registry.core.index.DefaultIndexMapper', '2018-12-03 13:03:59.871', 'xml', '
+INSERT INTO public.resourcetype (name, aliasgroup, creation_date, indexmapperclass, modification_date, payloadtype,
+                                 schema, schemaurl)
+VALUES ('employee', 'resourceTypes', '2018-12-03 13:03:59.871', 'eu.openminted.registry.core.index.DefaultIndexMapper',
+        '2018-12-03 13:03:59.871', 'xml', '
 
 <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <xs:element name="employee">
@@ -56,7 +58,7 @@ VALUES (123123, false);
 --
 
 INSERT INTO public.dateindexedfield (id, name, resource_id)
-VALUES (123123, 'birthday', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+VALUES (123124, 'birthday', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 
 
 --
@@ -64,7 +66,7 @@ VALUES (123123, 'birthday', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 --
 
 INSERT INTO public.dateindexedfield_values (dateindexedfield_id, "values")
-VALUES (123123, '1990-06-16 17:00:21');
+VALUES (123124, '1990-06-16 17:00:21');
 
 
 --
@@ -72,7 +74,7 @@ VALUES (123123, '1990-06-16 17:00:21');
 --
 
 INSERT INTO public.floatindexedfield (id, name, resource_id)
-VALUES (123123, 'salary', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+VALUES (123125, 'salary', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 
 
 --
@@ -80,34 +82,14 @@ VALUES (123123, 'salary', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 --
 
 INSERT INTO public.floatindexedfield_values (floatindexedfield_id, "values")
-VALUES (123123, 1292.12300000000005);
-
-
-
---
--- Data for Name: indexfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
---
-
-INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
-VALUES ('first_name', NULL, 'first_name', false, '//*[local-name()=''author'']/text()', true, 'java.lang.String', 'employee');
-INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
-VALUES ('age', NULL, 'age', false, '//*[local-name()=''age'']/text()', false, 'java.lang.Integer', 'employee');
-INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
-VALUES ('single', NULL, 'single', false, '//*[local-name()=''single'']/text()', false, 'java.lang.Boolean', 'employee');
-INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
-VALUES ('birthday', NULL, 'birthday', false, '//*[local-name()=''birthday'']/text()', false, 'java.util.Date', 'employee');
-INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
-VALUES ('salary', NULL, 'salary', false, '//*[local-name()=''salary'']/text()', false, 'java.lang.Float', 'employee');
-INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
-VALUES ('amka', NULL, 'amka', false, '//*[local-name()=''amka'']/text()', false, 'java.lang.Long', 'employee');
-
+VALUES (123125, 1292.12300000000005);
 
 --
 -- Data for Name: integerindexedfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
 INSERT INTO public.integerindexedfield (id, name, resource_id)
-VALUES (123123, 'age', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+VALUES (123126, 'age', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 
 
 --
@@ -115,7 +97,7 @@ VALUES (123123, 'age', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 --
 
 INSERT INTO public.integerindexedfield_values (integerindexedfield_id, "values")
-VALUES (123123, 28);
+VALUES (123126, 28);
 
 
 --
@@ -123,7 +105,7 @@ VALUES (123123, 28);
 --
 
 INSERT INTO public.longindexedfield (id, name, resource_id)
-VALUES (123123, 'amka', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+VALUES (123127, 'amka', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 
 
 --
@@ -131,8 +113,42 @@ VALUES (123123, 'amka', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 --
 
 INSERT INTO public.longindexedfield_values (longindexedfield_id, "values")
-VALUES (123123, 51417010293821);
+VALUES (123127, 51417010293821);
 
+
+--
+-- Data for Name: stringindexedfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
+--
+
+INSERT INTO public.stringindexedfield (id, name, resource_id)
+VALUES (123128, 'first_name', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+
+
+--
+-- Data for Name: stringindexedfield_values; Type: TABLE DATA; Schema: public; Owner: vrasidas
+--
+
+INSERT INTO public.stringindexedfield_values (stringindexedfield_id, "values")
+VALUES (123128, 'Jodeee');
+
+--
+-- Data for Name: indexfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
+--
+
+INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
+VALUES ('first_name', NULL, 'first_name', false, '//*[local-name()=''author'']/text()', true, 'java.lang.String',
+        'employee');
+INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
+VALUES ('age', NULL, 'age', false, '//*[local-name()=''age'']/text()', false, 'java.lang.Integer', 'employee');
+INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
+VALUES ('single', NULL, 'single', false, '//*[local-name()=''single'']/text()', false, 'java.lang.Boolean', 'employee');
+INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
+VALUES ('birthday', NULL, 'birthday', false, '//*[local-name()=''birthday'']/text()', false, 'java.util.Date',
+        'employee');
+INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
+VALUES ('salary', NULL, 'salary', false, '//*[local-name()=''salary'']/text()', false, 'java.lang.Float', 'employee');
+INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
+VALUES ('amka', NULL, 'amka', false, '//*[local-name()=''amka'']/text()', false, 'java.lang.Long', 'employee');
 
 --
 -- Data for Name: resourcetype_indexfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
@@ -157,7 +173,6 @@ VALUES ('employee', 'employee', 'amka');
 --
 
 
-
 --
 -- Data for Name: schemadatabase; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
@@ -179,22 +194,6 @@ VALUES ('cccbd2ae2abfd0bb0d1c6c2216116ed1', 'employee', '
     </xs:complexType>
   </xs:element>
 </xs:schema>');
-
-
---
--- Data for Name: stringindexedfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
---
-
-INSERT INTO public.stringindexedfield (id, name, resource_id)
-VALUES (123123,'first_name', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
-
-
---
--- Data for Name: stringindexedfield_values; Type: TABLE DATA; Schema: public; Owner: vrasidas
---
-
-INSERT INTO public.stringindexedfield_values (stringindexedfield_id, "values")
-VALUES (123123, 'Jodeee');
 
 
 --
