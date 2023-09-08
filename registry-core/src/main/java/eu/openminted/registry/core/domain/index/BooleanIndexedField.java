@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 @Table
 public class BooleanIndexedField extends IndexedField<Boolean> {
 
-    @Column
+    @Column/*(name = "vals")*/ // TODO: change column name because "values" is a db reserved keyword.
     @ElementCollection
     private Set<Boolean> values;
 

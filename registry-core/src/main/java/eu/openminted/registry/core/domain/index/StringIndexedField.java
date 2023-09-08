@@ -20,7 +20,7 @@ public class StringIndexedField extends IndexedField<String> {
 
 	private static final Logger logger = LoggerFactory.getLogger(StringIndexedField.class);
 
-	@Column(columnDefinition = "text")
+	@Column(columnDefinition = "text"/*, name = "vals"*/) // TODO: change column name because "values" is a db reserved keyword.
 //	@CollectionTable(name="string_values", joinColumns=@JoinColumn(name="stringindexedfield_id"))
 	@ElementCollection
 	private Set<String> values;
