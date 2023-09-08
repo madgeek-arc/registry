@@ -22,7 +22,8 @@ import javax.servlet.http.HttpServletRequest;
  * @author stefanos
  * It is a base controller for Error handling messages;
  */
-@ControllerAdvice
+@Deprecated
+//@ControllerAdvice
 public class GenericController {
 
 
