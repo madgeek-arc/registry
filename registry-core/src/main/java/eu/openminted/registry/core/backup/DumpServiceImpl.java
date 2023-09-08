@@ -5,8 +5,8 @@ import eu.openminted.registry.core.service.DumpService;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
 import joptsimple.internal.Strings;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParametersBuilder;
@@ -28,7 +28,7 @@ import java.util.zip.ZipOutputStream;
 @Service("dumpService")
 public class DumpServiceImpl implements DumpService {
 
-    private static final Logger logger = LogManager.getLogger(DumpServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(DumpServiceImpl.class);
 
     @Autowired
     JobLauncher mySyncJobLauncher;

@@ -1,14 +1,10 @@
 package configuration;
 
+import eu.openminted.registry.core.configuration.HibernateConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.*;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -32,17 +28,19 @@ import java.util.Properties;
 
 @Configuration
 @EnableJpaRepositories(basePackages = "eu.openminted.registry.core.dao")
-@PropertySource("classpath:application-test.properties")
 @EnableTransactionManagement
-@ComponentScan({
+@ComponentScan(value = {
         "eu.openminted.registry.core.*"
+}, excludeFilters = {
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, value = HibernateConfiguration.class)
 })
+@PropertySource("classpath:application.properties")
 public class MockDatabaseConfiguration {
 
     @Autowired
     private Environment env;
 
-    @Value("classpath:migrations/V1.1__Create_batch_tables.sql")
+    @Value("classpath:dummy.sql")
     private Resource schemaScript;
 
     @Value("classpath:data.sql")
@@ -65,28 +63,28 @@ public class MockDatabaseConfiguration {
 
     @Bean("registryEntityManager")
     @Autowired
-    public EntityManager entityManager(@Qualifier("registryEntityManagerFactory") EntityManagerFactory entityManagerFactory){
+    public EntityManager entityManager(@Qualifier("registryEntityManagerFactory") EntityManagerFactory entityManagerFactory) {
         EntityManager entityManager = entityManagerFactory.createEntityManager();
         entityManager.setFlushMode(FlushModeType.AUTO);
         return entityManager;
     }
 
     @Bean("registryTransactionManager")
-    @Autowired
-    public PlatformTransactionManager transactionManager(@Qualifier("registryEntityManagerFactory") EntityManagerFactory emf ){
+    @Primary
+    public PlatformTransactionManager transactionManager(@Qualifier("registryEntityManagerFactory") EntityManagerFactory emf) {
         JpaTransactionManager transactionManager = new JpaTransactionManager();
         transactionManager.setEntityManagerFactory(emf);
         return transactionManager;
     }
 
     @Bean("registryDataSource")
-    public DataSource dataSource(){
+    public DataSource dataSource() {
 
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName(env.getProperty("jdbc.driverClassName"));
         dataSource.setUrl(env.getProperty("jdbc.url"));
-        dataSource.setUsername(env.getProperty("jdbc.user"));
-        dataSource.setPassword(env.getProperty("jdbc.pass"));
+        dataSource.setUsername(env.getProperty("jdbc.username"));
+        dataSource.setPassword(env.getProperty("jdbc.password"));
 
         return dataSource;
 
@@ -108,20 +106,13 @@ public class MockDatabaseConfiguration {
     }
 
 
-
     private Properties hibernateProperties() {
         Properties properties = new Properties();
         properties.put("hibernate.dialect", env.getRequiredProperty("hibernate.dialect"));
         properties.put("hibernate.show_sql", env.getRequiredProperty("hibernate.show_sql"));
         properties.put("hibernate.format_sql", env.getRequiredProperty("hibernate.format_sql"));
         properties.put("hibernate.hbm2ddl.auto", env.getRequiredProperty("hibernate.hbm2ddl.auto"));
-        properties.put("hibernate.enable_lazy_load_no_trans","true");
+        properties.put("hibernate.enable_lazy_load_no_trans", "true");
         return properties;
     }
-
-    @Bean
-    public CacheManager cacheManager() {
-        return new ConcurrentMapCacheManager("resourceTypes","resourceTypesIndexFields");
-    }
-
 }

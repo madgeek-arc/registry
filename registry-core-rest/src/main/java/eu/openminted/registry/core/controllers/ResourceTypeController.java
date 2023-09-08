@@ -6,9 +6,8 @@ import eu.openminted.registry.core.exception.ResourceNotFoundException;
 import eu.openminted.registry.core.service.IndexFieldService;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,16 +18,18 @@ import java.util.List;
 @RestController
 public class ResourceTypeController {
 
-	private static Logger logger = LogManager.getLogger(ResourceTypeController.class);
+	private static final Logger logger = LoggerFactory.getLogger(ResourceTypeController.class);
 
-	@Autowired
-	ResourceTypeService resourceTypeService;
+	private final ResourceTypeService resourceTypeService;
+	private final IndexFieldService indexFieldService;
 
-	@Autowired
-	IndexFieldService indexFieldService;
+	public ResourceTypeController(ResourceTypeService resourceTypeService, IndexFieldService indexFieldService) {
+		this.resourceTypeService = resourceTypeService;
+		this.indexFieldService = indexFieldService;
+	}
 
 	@RequestMapping(value = "/resourceType/index/{name}", method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity getResourceTypeIndexFields(@PathVariable("name") String name) throws ResourceNotFoundException {
+	public ResponseEntity getResourceTypeIndexFields(@PathVariable("name") String name) {
 		return new ResponseEntity(indexFieldService.getIndexFields(name),HttpStatus.OK);
 	}
 

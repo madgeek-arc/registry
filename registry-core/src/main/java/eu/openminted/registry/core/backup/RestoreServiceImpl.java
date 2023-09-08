@@ -5,8 +5,8 @@ import eu.openminted.registry.core.domain.BatchResult;
 import eu.openminted.registry.core.service.RestoreService;
 import eu.openminted.registry.core.service.ServiceException;
 import org.apache.commons.io.IOUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.job.AbstractJob;
 import org.springframework.batch.core.launch.JobLauncher;
@@ -27,7 +27,7 @@ import java.util.zip.ZipInputStream;
 @Service("restoreService")
 public class RestoreServiceImpl implements RestoreService {
 
-    private static final Logger logger = LogManager.getLogger(RestoreServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(RestoreServiceImpl.class);
 
     @Autowired
     JobLauncher mySyncJobLauncher;
@@ -70,7 +70,7 @@ public class RestoreServiceImpl implements RestoreService {
                 JobExecution job = mySyncJobLauncher.run(restoreJob,builder.toJobParameters());
                 restoreJobListener.registerJob(job);
             }
-            logger.info(restoreJobListener.waitResults());
+            logger.info("{}", restoreJobListener.waitResults());
             return restoreJobListener.getJobs().stream().map(this::convertJob).collect(Collectors.toMap(BatchResult::getResourceType, Function.identity()));
         } catch (Exception e) {
             logger.debug(e.getMessage(),e);

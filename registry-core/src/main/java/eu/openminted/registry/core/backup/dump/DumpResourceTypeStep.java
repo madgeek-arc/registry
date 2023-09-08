@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.StepExecution;
@@ -39,7 +39,7 @@ public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
                     PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission
                             .OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE));
 
-    private static final Logger logger = LogManager.getLogger(DumpResourceTypeStep.class);
+    private static final Logger logger = LoggerFactory.getLogger(DumpResourceTypeStep.class);
 
     private ResourceTypeService resourceTypeService;
 

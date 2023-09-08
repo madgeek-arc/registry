@@ -1,7 +1,6 @@
 package eu.openminted.registry.core.index;
 
 import eu.openminted.registry.core.domain.ResourceType;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Repository;
 
@@ -11,8 +10,11 @@ import org.springframework.stereotype.Repository;
 @Repository("indexMapperFactory")
 public class IndexMapperFactory{
 
-	@Autowired
-	private ApplicationContext context;
+	private final ApplicationContext context;
+
+	public IndexMapperFactory(ApplicationContext context) {
+		this.context = context;
+	}
 
 	public IndexMapper createIndexMapper(ResourceType resourceType) throws Exception {
 

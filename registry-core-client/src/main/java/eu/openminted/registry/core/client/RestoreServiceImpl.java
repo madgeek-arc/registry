@@ -2,8 +2,8 @@ package eu.openminted.registry.core.client;
 
 import eu.openminted.registry.core.domain.BatchResult;
 import eu.openminted.registry.core.service.RestoreService;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -20,7 +20,7 @@ import java.util.Map;
 @Service("restoreService")
 public class RestoreServiceImpl implements RestoreService {
 
-    private static Logger logger = LogManager.getLogger(RestoreServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(RestoreServiceImpl.class);
 
     @Value("${registry.base}")
     private String registryHost;

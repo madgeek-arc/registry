@@ -5,8 +5,8 @@ import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
 import org.apache.commons.io.FileUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.StepExecution;
@@ -27,7 +27,7 @@ import java.util.Optional;
 @StepScope
 public class RestoreResourceTypeStep implements Tasklet, StepExecutionListener {
 
-    private static final Logger logger = LogManager.getLogger(RestoreResourceTypeStep.class);
+    private static final Logger logger = LoggerFactory.getLogger(RestoreResourceTypeStep.class);
 
     private static final String schemaName = "schema.json";
 

@@ -17,7 +17,8 @@ import java.io.StringWriter;
 @Component("parserPool")
 public class ParserPool implements ParserService {
 
-    private JAXBContext jaxbContext;
+    private final JAXBContext jaxbContext;
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Autowired
     public ParserPool(JAXBContext jaxbContext) {
@@ -38,7 +39,6 @@ public class ParserPool implements ParserService {
                     type = (T) unmarshaller.unmarshal(new StringReader(resource.getPayload()));
                     break;
                 case "json":
-                    ObjectMapper mapper = new ObjectMapper();
                     type = mapper.readValue(resource.getPayload(), returnType);
                     break;
                 default:
@@ -58,7 +58,6 @@ public class ParserPool implements ParserService {
                 marshaller.marshal(resource, sw);
                 return sw.toString();
             } else if (mediaType == ParserServiceTypes.JSON) {
-                ObjectMapper mapper = new ObjectMapper();
                 return mapper.writeValueAsString(resource);
             } else {
                 throw new ServiceException("Unsupported media type");

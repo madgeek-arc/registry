@@ -5,9 +5,8 @@ import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.service.ServiceException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -20,15 +19,14 @@ import java.util.Set;
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class DefaultIndexMapper implements IndexMapper {
 
-	private static Logger logger = LogManager.getLogger(DefaultIndexMapper.class);
+	private static final Logger logger = LoggerFactory.getLogger(DefaultIndexMapper.class);
 
 	private List<IndexField> indexFields;
 
-	private IndexedFieldFactory indexedFieldFactory;
-	private XMLFieldParser xmlFieldParser;
-	private JSONFieldParser jsonFieldParser;
+	private final IndexedFieldFactory indexedFieldFactory;
+	private final XMLFieldParser xmlFieldParser;
+	private final JSONFieldParser jsonFieldParser;
 
-	@Autowired
 	public DefaultIndexMapper(IndexedFieldFactory indexedFieldFactory, XMLFieldParser xmlFieldParser,
 							  JSONFieldParser jsonFieldParser) {
 		this.indexedFieldFactory = indexedFieldFactory;

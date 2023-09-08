@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.Version;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
@@ -29,7 +29,7 @@ import static eu.openminted.registry.core.backup.dump.DumpResourceTypeStep.PERMI
 @StepScope
 public class DumpResourceWriterStep implements ItemWriter<Resource>, StepExecutionListener {
 
-    private static final Logger logger = LogManager.getLogger(DumpResourceWriterStep.class);
+    private static final Logger logger = LoggerFactory.getLogger(DumpResourceWriterStep.class);
 
     private boolean raw;
 

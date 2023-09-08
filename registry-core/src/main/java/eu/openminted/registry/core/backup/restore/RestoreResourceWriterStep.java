@@ -6,8 +6,8 @@ import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
 import eu.openminted.registry.core.service.ResourceService;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
@@ -24,7 +24,7 @@ import java.util.List;
 @StepScope
 public class RestoreResourceWriterStep implements ItemWriter<Resource>, StepExecutionListener {
 
-    private static final Logger logger = LogManager.getLogger(RestoreResourceWriterStep.class);
+    private static final Logger logger = LoggerFactory.getLogger(RestoreResourceWriterStep.class);
 
     private ResourceType resourceType;
 

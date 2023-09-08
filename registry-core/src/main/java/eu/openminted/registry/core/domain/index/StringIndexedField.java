@@ -1,7 +1,7 @@
 package eu.openminted.registry.core.domain.index;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
@@ -18,9 +18,9 @@ import java.util.stream.Collectors;
 @Table
 public class StringIndexedField extends IndexedField<String> {
 
-	private static Logger logger = LogManager.getLogger(StringIndexedField.class);
+	private static final Logger logger = LoggerFactory.getLogger(StringIndexedField.class);
 
-	@Column(columnDefinition = "text")
+	@Column(columnDefinition = "text"/*, name = "vals"*/) // TODO: change column name because "values" is a db reserved keyword.
 //	@CollectionTable(name="string_values", joinColumns=@JoinColumn(name="stringindexedfield_id"))
 	@ElementCollection
 	private Set<String> values;

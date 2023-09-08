@@ -2,10 +2,10 @@ package eu.openminted.registry.core.monitor;
 
 import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
+import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.Version;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -14,10 +14,13 @@ import java.util.UUID;
 @Component
 public class VersionMonitor implements ResourceListener {
 
-	private static Logger logger = LogManager.getLogger(VersionMonitor.class);
+	private static Logger logger = LoggerFactory.getLogger(VersionMonitor.class);
 
-	@Autowired
-	VersionDao versionDao;
+	private final VersionDao versionDao;
+
+	public VersionMonitor(VersionDao versionDao) {
+		this.versionDao = versionDao;
+	}
 
 	@Override
 	public void resourceAdded(Resource resource) {
@@ -31,8 +34,13 @@ public class VersionMonitor implements ResourceListener {
 	}
 
 	@Override
+	public void resourceChangedType(Resource resource, ResourceType previousResourceType, ResourceType resourceType) {
+		versionDao.updateParent(resource, previousResourceType, resource.getResourceType());
+	}
+
+	@Override
 	public void resourceDeleted(Resource resource) {
-		logger.info("Deleting resource with id:" + resource.getId());
+		logger.info("Deleting resource with id: {}", resource.getId());
 	}
 
 	private void createVersion(Resource newResource) {

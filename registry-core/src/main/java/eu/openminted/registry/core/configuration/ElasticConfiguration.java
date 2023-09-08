@@ -1,12 +1,12 @@
 package eu.openminted.registry.core.configuration;
 
 import org.apache.http.HttpHost;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.settings.Settings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,7 +25,7 @@ import java.io.IOException;
 public class ElasticConfiguration {
 
 
-    private static Logger logger = LogManager.getLogger(ElasticConfiguration.class);
+    private static final Logger logger = LoggerFactory.getLogger(ElasticConfiguration.class);
 
     private final Environment environment;
     private final String port;
@@ -45,11 +45,11 @@ public class ElasticConfiguration {
         Settings.Builder settings = Settings.builder();
 
         //check if part of a cluster and add it
-        if (environment.getProperty("elasticsearch.cluster", "") != "") {
+        if (!"".equals(environment.getProperty("elasticsearch.cluster", ""))) {
             settings.put("cluster.name", environment.getRequiredProperty("elasticsearch.cluster"));
         }
 
-        logger.info("Connecting to Elasticsearch @ " + hostname + ":" + port);
+        logger.info("Connecting to Elasticsearch @ {}:{}", hostname, port);
         RestClientBuilder restClientBuilder = RestClient.builder(new HttpHost(hostname, Integer.parseInt(port), "http"));
 //                .setRequestConfigCallback(requestConfigBuilder ->
 //                requestConfigBuilder.setConnectTimeout(10000).setSocketTimeout(30000));

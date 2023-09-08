@@ -3,20 +3,18 @@ package eu.openminted.registry.core.service;
 import eu.openminted.registry.core.dao.IndexedFieldDao;
 import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
-import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexedField;
-import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
 import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
 import eu.openminted.registry.core.validation.ResourceValidator;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.DateFormat;
@@ -28,29 +26,28 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 @Service("resourceService")
-@Transactional
+@Scope(proxyMode = ScopedProxyMode.INTERFACES)
+@Transactional(
+        isolation = Isolation.READ_COMMITTED,
+        readOnly = true)
 public class ResourceServiceImpl implements ResourceService {
 
-    private static Logger logger = LogManager.getLogger(ResourceServiceImpl.class);
-    @Autowired
-    private ResourceDao resourceDao;
+    private static final Logger logger = LoggerFactory.getLogger(ResourceServiceImpl.class);
 
-    @Autowired
-    private VersionDao versionDao;
+    private final ResourceDao resourceDao;
+    private final ResourceTypeDao resourceTypeDao;
+    private final IndexMapperFactory indexMapperFactory;
+    private final IndexedFieldDao indexedFieldDao;
+    private final ResourceValidator resourceValidator;
 
-    @Autowired
-    private ResourceTypeDao resourceTypeDao;
-    @Autowired
-    private IndexMapperFactory indexMapperFactory;
-    @Autowired
-    private ResourceValidator resourceValidator;
-    @Autowired
-    private IndexedFieldDao indexedFieldDao;
-    @Autowired
-    private ElasticOperationsService elasticOperationsService;
-
-    public ResourceServiceImpl() {
-
+    public ResourceServiceImpl(ResourceDao resourceDao, ResourceTypeDao resourceTypeDao,
+                               IndexMapperFactory indexMapperFactory, IndexedFieldDao indexedFieldDao,
+                               ResourceValidator resourceValidator) {
+        this.resourceDao = resourceDao;
+        this.resourceTypeDao = resourceTypeDao;
+        this.indexMapperFactory = indexMapperFactory;
+        this.indexedFieldDao = indexedFieldDao;
+        this.resourceValidator = resourceValidator;
     }
 
     @Override
@@ -81,18 +78,18 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Resource> getResource() {
         return resourceDao.getResource();
     }
 
     @Override
+    @Transactional
     public Resource addResource(Resource resource) throws ServiceException {
-
-
-        if(resource.getResourceTypeName() != null && resource.getResourceType() == null) {
+        if (resource.getResourceTypeName() != null && resource.getResourceType() == null) {
             resource.setResourceType(resourceTypeDao.getResourceType(resource.getResourceTypeName()));
         }
-        if(resource.getResourceType() == null) {
+        if (resource.getResourceType() == null) {
             throw new ServiceException("Resource type does not exist");
         }
         if (resource.getPayloadUrl() != null ^ resource.getPayload() != null) {
@@ -123,21 +120,26 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    @Transactional
     public Resource updateResource(Resource resource) throws ServiceException {
 
-        if(resource.getResourceTypeName() != null  && resource.getResourceType() == null) {
+        if (resource.getResourceTypeName() != null && resource.getResourceType() == null) {
             resource.setResourceType(resourceTypeDao.getResourceType(resource.getResourceTypeName()));
         }
-        if(resource.getResourceType() == null) {
+        if (resource.getResourceType() == null) {
             throw new ServiceException("Resource type does not exist");
         }
 
-        if(resource.getId()==null || resource.getId().isEmpty())
+        if (resource.getId() == null || resource.getId().isEmpty())
             throw new ServiceException("Resource ID cannot be empty");
 
         Resource oldResource = resourceDao.getResource(resource.getId());
         indexedFieldDao.deleteAllIndexedFields(oldResource);
-        resource.setIndexedFields(getIndexedFields(resource));
+
+        // Adding new indexedFields in list.
+        // Warning: using the setter method ( setIndexedFields() ) breaks the cascade="all-delete-orphan" rule.
+        resource.getIndexedFields().addAll(getIndexedFields(resource));
+
         for (IndexedField indexedField : resource.getIndexedFields()) {
             indexedField.setResource(resource);
         }
@@ -151,23 +153,23 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-
+    @Transactional
     public Resource changeResourceType(Resource resource, ResourceType resourceType) {
-        if(resource.getResourceType() == null && (resource.getResourceTypeName()==null || resource.getResourceTypeName().isEmpty()))
+        if (resource.getResourceType() == null && (resource.getResourceTypeName() == null || resource.getResourceTypeName().isEmpty()))
             throw new ServiceException("Resource type not present");
         ResourceType oldResourceType = null;
-        if(resource.getResourceType()!=null)
+        if (resource.getResourceType() != null)
             oldResourceType = resource.getResourceType();
         else
             oldResourceType = resourceTypeDao.getResourceType(resource.getResourceTypeName());
 
-        if(oldResourceType==null)
+        if (oldResourceType == null)
             throw new ServiceException("Resource type not found");
 
         resource.setResourceType(resourceType);
 
         Boolean response = checkValid(resource);
-        if(!response)
+        if (!response)
             throw new ServiceException("Failed to validate resource with the new resource type");
 
         deleteResource(resource.getId());
@@ -177,13 +179,10 @@ public class ResourceServiceImpl implements ResourceService {
 
             for (IndexedField indexedField : resource.getIndexedFields())
                 indexedField.setResource(resource);
-            resource.setResourceType(oldResourceType);
-            elasticOperationsService.delete(resource);
+
             resource.setResourceType(resourceType);
-            //using DAO in order to keep the ID of the Resource
+            // Save resource using DAO in order to keep the ID of the Resource
             resourceDao.updateResource(resource);
-            elasticOperationsService.add(resource);
-            versionDao.updateParent(resource,oldResourceType,resourceType);
         } catch (Exception e) {
             logger.error("Error saving resource", e);
             throw new ServiceException(e);
@@ -193,10 +192,12 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    @Transactional
     public void deleteResource(String id) {
         resourceDao.deleteResource(resourceDao.getResource(id));
     }
-    private List<IndexedField> getIndexedFields(Resource resource) throws ServiceException{
+
+    private List<IndexedField> getIndexedFields(Resource resource) throws ServiceException {
 
         ResourceType resourceType = resourceTypeDao.getResourceType(resource.getResourceType().getName());
         IndexMapper indexMapper = null;
@@ -208,22 +209,6 @@ public class ResourceServiceImpl implements ResourceService {
             throw new ServiceException(e);
         }
 
-    }
-
-    public ResourceDao getResourceDao() {
-        return resourceDao;
-    }
-
-    public void setResourceDao(ResourceDao resourceDao) {
-        this.resourceDao = resourceDao;
-    }
-
-    public ResourceTypeDao getResourceTypeDao() {
-        return resourceTypeDao;
-    }
-
-    public void setResourceTypeDao(ResourceTypeDao resourceTypeDao) {
-        this.resourceTypeDao = resourceTypeDao;
     }
 
     private Boolean checkValid(Resource resource) {
@@ -264,7 +249,7 @@ public class ResourceServiceImpl implements ResourceService {
         return true;
     }
 
-    private String generateVersion(){
+    private String generateVersion() {
         DateFormat df = new SimpleDateFormat("MMddyyyyHHmmss");
         return df.format(Calendar.getInstance().getTime());
     }

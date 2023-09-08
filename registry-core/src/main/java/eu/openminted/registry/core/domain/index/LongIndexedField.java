@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 @Table
 public class LongIndexedField extends IndexedField<Long> {
 
-    @Column
+    @Column/*(name = "vals")*/ // TODO: change column name because "values" is a db reserved keyword.
     @ElementCollection
     private Set<Long> values;
 

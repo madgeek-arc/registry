@@ -4,17 +4,14 @@ import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.service.ServiceException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Created by antleb on 5/26/16.
@@ -23,18 +20,18 @@ import java.util.concurrent.Executors;
 @Component
 public class ResourceMonitor {
 
-    private static Logger logger = LogManager.getLogger(ResourceMonitor.class);
+    private static final Logger logger = LoggerFactory.getLogger(ResourceMonitor.class);
 
-    @Autowired(required = false)
-    private List<ResourceListener> resourceListeners;
+    private final List<ResourceListener> resourceListeners;
+    private final List<ResourceTypeListener> resourceTypeListeners;
+    private final ResourceDao resourceDao;
 
-    @Autowired(required = false)
-    private List<ResourceTypeListener> resourceTypeListeners;
-
-    @Autowired
-    private ResourceDao resourceDao;
-
-    private ExecutorService executorService = Executors.newFixedThreadPool(5);
+    public ResourceMonitor(List<ResourceListener> resourceListeners, List<ResourceTypeListener> resourceTypeListeners,
+                           ResourceDao resourceDao) {
+        this.resourceListeners = resourceListeners;
+        this.resourceTypeListeners = resourceTypeListeners;
+        this.resourceDao = resourceDao;
+    }
 
     @Around("execution (* eu.openminted.registry.core.service.ResourceService.addResource(eu.openminted.registry.core.domain.Resource)) && args(resource)")
     public Resource resourceAdded(ProceedingJoinPoint pjp, Resource resource) throws Throwable {
@@ -50,7 +47,7 @@ public class ResourceMonitor {
                 }
             }
         } catch (Exception e) {
-            logger.fatal("fatal error in monitor", e);
+            logger.error("fatal error in monitor", e);
             throw e;
         }
         return resource;
@@ -61,7 +58,7 @@ public class ResourceMonitor {
     public Resource resourceUpdated(ProceedingJoinPoint pjp, Resource resource) throws Throwable {
 
         try {
-            if(resource.getId()==null || resource.getId().isEmpty()) {
+            if (resource.getId() == null || resource.getId().isEmpty()) {
                 throw new ServiceException("Empty resource ID");
             }
 
@@ -81,7 +78,30 @@ public class ResourceMonitor {
                     }
                 }
         } catch (Exception e) {
-            logger.fatal("fatal error in monitor", e);
+            logger.error("fatal error in monitor", e);
+            throw e;
+        }
+        return resource;
+    }
+
+    @Around(("execution (* eu.openminted.registry.core.service.ResourceService.changeResourceType(..)) && args(resource, resourceType)"))
+    public Resource changeResourceType(ProceedingJoinPoint pjp, Resource resource, ResourceType resourceType) throws Throwable {
+        ResourceType previousResourceType = resource.getResourceType();
+
+        try {
+            pjp.proceed();
+
+            if (resourceListeners != null)
+                for (ResourceListener listener : resourceListeners) {
+                    try {
+                        listener.resourceChangedType(resource, previousResourceType, resourceType);
+                        logger.debug("Notified listener : " + listener.getClass().getSimpleName() + " for update");
+                    } catch (Exception e) {
+                        logger.error("Error notifying listener", e);
+                    }
+                }
+        } catch (Exception e) {
+            logger.error("fatal error in monitor", e);
             throw e;
         }
         return resource;

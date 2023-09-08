@@ -1,6 +1,5 @@
 package eu.openminted.registry.core.dao;
 
-import eu.openminted.registry.core.service.ServiceException;
 import org.springframework.context.annotation.Scope;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,37 +15,38 @@ import java.util.List;
 import java.util.stream.Stream;
 
 public abstract class AbstractDao<T> {
-     
+
     private final Class<T> persistentClass;
 
     @PersistenceContext(unitName = "registryEntityManagerFactory")
     private EntityManager entityManager;
 
     @SuppressWarnings("unchecked")
-    public AbstractDao(){
-        this.persistentClass =(Class<T>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+    public AbstractDao() {
+        this.persistentClass = (Class<T>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
     }
 
     @Scope("request")
-    protected CriteriaBuilder getCriteriaBuilder(){
+    protected CriteriaBuilder getCriteriaBuilder() {
         return entityManager.getCriteriaBuilder();
     }
 
     @Scope("request")
-    protected CriteriaQuery<T> getCriteriaQuery(){
+    protected CriteriaQuery<T> getCriteriaQuery() {
         return getCriteriaBuilder().createQuery(persistentClass);
     }
 
-    protected EntityManager getEntityManager(){
+    protected EntityManager getEntityManager() {
         return this.entityManager;
     }
+
     @SuppressWarnings("unchecked")
     public T getSingleResult(String key, Object value) {
         CriteriaQuery<T> criteriaQuery = getCriteriaQuery();
         Root<T> root = criteriaQuery.from(persistentClass);
 
         criteriaQuery.distinct(true);
-        criteriaQuery.select(root).where(getCriteriaBuilder().equal(root.get(key),value));
+        criteriaQuery.select(root).where(getCriteriaBuilder().equal(root.get(key), value));
         TypedQuery<T> query = entityManager.createQuery(criteriaQuery);
 
         return query.getResultList().isEmpty() ? null : query.getSingleResult();
@@ -57,7 +57,7 @@ public abstract class AbstractDao<T> {
         Root<T> root = criteriaQuery.from(persistentClass);
 
         criteriaQuery.distinct(true);
-        criteriaQuery.select(root).where(getCriteriaBuilder().equal(root.get(key),value));
+        criteriaQuery.select(root).where(getCriteriaBuilder().equal(root.get(key), value));
         TypedQuery<T> query = entityManager.createQuery(criteriaQuery);
         return query.getResultList();
     }
@@ -81,23 +81,20 @@ public abstract class AbstractDao<T> {
         return query.getResultStream();
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
     public T update(T entity) {
         return entityManager.merge(entity);
     }
 
 
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional(propagation = Propagation.MANDATORY)
     public void persist(T entity) {
-        try {
-            entityManager.persist(entity);
-            entityManager.flush();
-        }catch (Exception e){
-            throw new ServiceException(e);
-        }
+        entityManager.persist(entity);
+        entityManager.flush();
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
     public void delete(T entity) {
-        entityManager.refresh(entity);
         entityManager.remove(entity);
         entityManager.flush();
     }

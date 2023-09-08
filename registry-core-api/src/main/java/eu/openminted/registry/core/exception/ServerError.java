@@ -3,6 +3,7 @@ package eu.openminted.registry.core.exception;
 /**
  * Created by stefanos on 15-Nov-16.
  */
+@Deprecated
 public class ServerError {
 
     public final String url;

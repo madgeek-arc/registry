@@ -4,29 +4,33 @@ import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.Version;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service("versionService")
-@Transactional
+@Scope(proxyMode = ScopedProxyMode.INTERFACES)
+@Transactional(readOnly = true)
 public class VersionServiceImpl implements VersionService {
 
-    private static Logger logger = LogManager.getLogger(VersionServiceImpl.class);
+    private static Logger logger = LoggerFactory.getLogger(VersionServiceImpl.class);
 
-    @Autowired
-    VersionDao versionDao;
+    private final VersionDao versionDao;
+    private final ResourceService resourceService;
+    private final ResourceTypeService resourceTypeService;
 
-    @Autowired
-    ResourceService resourceService;
-
-    @Autowired
-    ResourceTypeService resourceTypeService;
-
+    public VersionServiceImpl(VersionDao versionDao, ResourceService resourceService,
+                              ResourceTypeService resourceTypeService) {
+        this.versionDao = versionDao;
+        this.resourceService = resourceService;
+        this.resourceTypeService = resourceTypeService;
+    }
 
     @Override
     public Version getVersion(String resource_id, String version) {

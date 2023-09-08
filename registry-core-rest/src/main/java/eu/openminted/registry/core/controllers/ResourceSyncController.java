@@ -1,8 +1,8 @@
 package eu.openminted.registry.core.controllers;
 
 import eu.openminted.registry.core.service.ResourceSyncService;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +16,7 @@ import java.util.Date;
 @RestController
 public class ResourceSyncController {
 
-	private static Logger logger = LogManager.getLogger(ResourceSyncController.class);
+	private static final Logger logger = LoggerFactory.getLogger(ResourceSyncController.class);
 
 	@Autowired
     ResourceSyncService resourceSyncService;

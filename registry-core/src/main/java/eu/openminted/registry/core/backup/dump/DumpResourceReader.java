@@ -6,8 +6,8 @@ import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
@@ -30,7 +30,7 @@ import java.util.List;
 @Transactional
 public class DumpResourceReader extends AbstractDao<Resource> implements ItemReader<Resource>, StepExecutionListener {
 
-    private static final Logger logger = LogManager.getLogger(DumpResourceReader.class);
+    private static final Logger logger = LoggerFactory.getLogger(DumpResourceReader.class);
 
     private List<Resource> resources;
 

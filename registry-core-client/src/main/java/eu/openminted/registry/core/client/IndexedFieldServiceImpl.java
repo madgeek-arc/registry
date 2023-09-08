@@ -2,8 +2,8 @@ package eu.openminted.registry.core.client;
 
 import eu.openminted.registry.core.domain.index.IndexedField;
 import eu.openminted.registry.core.service.IndexedFieldService;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
@@ -17,7 +17,7 @@ import java.util.List;
 @Service("indexedFieldService")
 public class IndexedFieldServiceImpl implements IndexedFieldService {
 
-    private static Logger logger = LogManager.getLogger(IndexedFieldServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(IndexedFieldServiceImpl.class);
 
     @Value("${registry.base}")
     private String registryHost;

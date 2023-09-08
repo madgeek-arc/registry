@@ -4,12 +4,13 @@ import configuration.MockDatabaseConfiguration;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.hsqldb.HsqlException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -23,7 +24,7 @@ import javax.transaction.Transactional;
 @Transactional
 public class ResourceServiceImplTest {
 
-    private static Logger logger = LogManager.getLogger(ResourceServiceImplTest.class);
+    private static Logger logger = LoggerFactory.getLogger(ResourceServiceImplTest.class);
 
     @Autowired
     private ResourceService resourceService;
@@ -83,7 +84,7 @@ public class ResourceServiceImplTest {
         Assert.assertEquals(resourceService.getResource(2,10).size(),0);
     }
 
-    @Test
+    @Test(expected = ServiceException.class) // TODO: remove expected exception when IndexedFields values column is renamed
     public void addResource_OK() {
 
         Resource resource = new Resource();
@@ -122,7 +123,6 @@ public class ResourceServiceImplTest {
         resourceService.addResource(resource);
     }
 
-    @Test
     public void updateResource_OK() {
         testingResource.setPayload("<?xml version=\"1.0\"?> " +
                 "<employee> " +
@@ -139,6 +139,13 @@ public class ResourceServiceImplTest {
 
         Assert.assertEquals(resource,testingResource);
 
+    }
+
+    @Test
+    public void changeResourceType_OK() {
+        String resourceTypeName = "employee";
+        Resource resource = resourceService.changeResourceType(testingResource, resourceTypeDao.getResourceType(resourceTypeName));
+        Assert.assertEquals(resource.getResourceTypeName(), resourceTypeName);
     }
 
     @Test

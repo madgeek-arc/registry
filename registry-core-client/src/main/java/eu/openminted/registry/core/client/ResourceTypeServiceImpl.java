@@ -1,16 +1,13 @@
 package eu.openminted.registry.core.client;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openminted.registry.core.domain.Paging;
-import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.Schema;
 import eu.openminted.registry.core.domain.index.IndexField;
-import eu.openminted.registry.core.service.ResourceService;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -21,16 +18,14 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
 
 @Service("resourceTypeService")
 public class ResourceTypeServiceImpl implements ResourceTypeService {
 
-    private static Logger logger = LogManager.getLogger(ResourceTypeServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(ResourceTypeServiceImpl.class);
 
     @Value("${registry.base}")
     private String registryHost;

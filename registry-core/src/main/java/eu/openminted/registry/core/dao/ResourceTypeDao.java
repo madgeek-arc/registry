@@ -2,7 +2,6 @@ package eu.openminted.registry.core.dao;
 
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
-import eu.openminted.registry.core.service.ServiceException;
 
 import java.util.List;
 import java.util.Set;
@@ -15,7 +14,7 @@ public interface ResourceTypeDao {
 	
 	List<ResourceType> getAllResourceType(int from, int to);
 	
-	void addResourceType(ResourceType resource) throws ServiceException;
+	void addResourceType(ResourceType resource);
 
 	Set<IndexField> getResourceTypeIndexFields(String name);
 

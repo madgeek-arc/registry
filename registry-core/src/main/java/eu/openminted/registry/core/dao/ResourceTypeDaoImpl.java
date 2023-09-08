@@ -2,20 +2,31 @@ package eu.openminted.registry.core.dao;
 
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Repository("resourceTypeDao")
+@Scope(proxyMode = ScopedProxyMode.INTERFACES)
+@Transactional(
+		isolation = Isolation.READ_COMMITTED,
+		readOnly = true)
 public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements ResourceTypeDao {
 
-    public ResourceTypeDaoImpl() {
-        super();
-    }
+	public ResourceTypeDaoImpl() {
+		super();
+	}
 
 	public ResourceType getResourceType(String name) {
         return getSingleResult("name",name);
@@ -43,8 +54,10 @@ public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements Re
 		return typedQuery.getResultList();
 	}
 
+	@Override
+	@Transactional
 	public void addResourceType(ResourceType resourceType) {
-		persist(resourceType);
+		super.persist(resourceType);
 	}
 
 	@Override
@@ -58,8 +71,9 @@ public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements Re
 	}
 
 	@Override
+	@Transactional
 	public void deleteResourceType(String resourceType) {
-		delete(getResourceType(resourceType));
+		super.delete(getResourceType(resourceType));
 	}
 
 }
