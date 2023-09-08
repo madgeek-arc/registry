@@ -3,11 +3,9 @@ package eu.openminted.registry.core.service;
 import eu.openminted.registry.core.dao.IndexedFieldDao;
 import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
-import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexedField;
-import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
 import eu.openminted.registry.core.index.IndexMapper;
 import eu.openminted.registry.core.index.IndexMapperFactory;
 import eu.openminted.registry.core.validation.ResourceValidator;
@@ -37,23 +35,19 @@ public class ResourceServiceImpl implements ResourceService {
     private static final Logger logger = LoggerFactory.getLogger(ResourceServiceImpl.class);
 
     private final ResourceDao resourceDao;
-    private final VersionDao versionDao;
     private final ResourceTypeDao resourceTypeDao;
     private final IndexMapperFactory indexMapperFactory;
     private final IndexedFieldDao indexedFieldDao;
     private final ResourceValidator resourceValidator;
-    private final ElasticOperationsService elasticOperationsService;
 
-    public ResourceServiceImpl(ResourceDao resourceDao, ResourceTypeDao resourceTypeDao, VersionDao versionDao,
+    public ResourceServiceImpl(ResourceDao resourceDao, ResourceTypeDao resourceTypeDao,
                                IndexMapperFactory indexMapperFactory, IndexedFieldDao indexedFieldDao,
-                               ResourceValidator resourceValidator, ElasticOperationsService elasticOperationsService) {
+                               ResourceValidator resourceValidator) {
         this.resourceDao = resourceDao;
         this.resourceTypeDao = resourceTypeDao;
-        this.versionDao = versionDao;
         this.indexMapperFactory = indexMapperFactory;
         this.indexedFieldDao = indexedFieldDao;
         this.resourceValidator = resourceValidator;
-        this.elasticOperationsService = elasticOperationsService;
     }
 
     @Override
@@ -185,13 +179,10 @@ public class ResourceServiceImpl implements ResourceService {
 
             for (IndexedField indexedField : resource.getIndexedFields())
                 indexedField.setResource(resource);
-            resource.setResourceType(oldResourceType);
+
             resource.setResourceType(resourceType);
-            //using DAO in order to keep the ID of the Resource
+            // Save resource using DAO in order to keep the ID of the Resource
             resourceDao.updateResource(resource);
-            elasticOperationsService.delete(resource.getId(), oldResourceType.getName());
-            elasticOperationsService.add(resource);
-            versionDao.updateParent(resource, oldResourceType, resourceType);
         } catch (Exception e) {
             logger.error("Error saving resource", e);
             throw new ServiceException(e);

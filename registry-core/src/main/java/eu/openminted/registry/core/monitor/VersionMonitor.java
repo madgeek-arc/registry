@@ -2,6 +2,7 @@ package eu.openminted.registry.core.monitor;
 
 import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
+import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,11 @@ public class VersionMonitor implements ResourceListener {
 	public void resourceUpdated(Resource previousResource, Resource newResource) {
 		//previousResource.id==newResource.id so we can send either one
 		createVersion(newResource);
+	}
+
+	@Override
+	public void resourceChangedType(Resource resource, ResourceType previousResourceType, ResourceType resourceType) {
+		versionDao.updateParent(resource, previousResourceType, resource.getResourceType());
 	}
 
 	@Override

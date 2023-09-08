@@ -84,6 +84,29 @@ public class ResourceMonitor {
         return resource;
     }
 
+    @Around(("execution (* eu.openminted.registry.core.service.ResourceService.changeResourceType(..)) && args(resource, resourceType)"))
+    public Resource changeResourceType(ProceedingJoinPoint pjp, Resource resource, ResourceType resourceType) throws Throwable {
+        ResourceType previousResourceType = resource.getResourceType();
+
+        try {
+            pjp.proceed();
+
+            if (resourceListeners != null)
+                for (ResourceListener listener : resourceListeners) {
+                    try {
+                        listener.resourceChangedType(resource, previousResourceType, resourceType);
+                        logger.debug("Notified listener : " + listener.getClass().getSimpleName() + " for update");
+                    } catch (Exception e) {
+                        logger.error("Error notifying listener", e);
+                    }
+                }
+        } catch (Exception e) {
+            logger.error("fatal error in monitor", e);
+            throw e;
+        }
+        return resource;
+    }
+
     @Around(("execution (* eu.openminted.registry.core.service.ResourceService.deleteResource(..)) && args(resourceId)"))
     public void resourceDeleted(ProceedingJoinPoint pjp, String resourceId) throws Throwable {
 
