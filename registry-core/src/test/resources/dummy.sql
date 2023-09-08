@@ -6,6 +6,8 @@
 -- Dumped by pg_dump version 10.6 (Ubuntu 10.6-0ubuntu0.18.04.1)
 
 
+CREATE SEQUENCE IF NOT EXISTS hibernate_sequence START WITH 1;
+
 
 CREATE TABLE IF NOT EXISTS booleanindexedfield (
     id integer NOT NULL,
