@@ -148,6 +148,12 @@ public class ElasticOperationsService {
             request.alias(new Alias(resourceType.getAliasGroup()));
         }
 
+        if (resourceType.getAliases() != null) {
+            for (String alias : resourceType.getAliases()) {
+                request.alias(new Alias(alias));
+            }
+        }
+
         Map<String, Object> jsonObjectForMapping = createMapping(resourceType.getIndexFields());
 
         JSONObject parameters = new JSONObject(jsonObjectForMapping);

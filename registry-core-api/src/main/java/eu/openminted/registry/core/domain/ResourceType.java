@@ -9,10 +9,7 @@ import org.hibernate.annotations.LazyCollectionOption;
 
 import javax.persistence.*;
 import javax.validation.constraints.Size;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Entity
 @Table(name = "ResourceType")
@@ -51,8 +48,18 @@ public class ResourceType {
     @Column
     private List<IndexField> indexFields;
 
+    /**
+     * @deprecated
+     * This field has been replaced with the multivalued 'aliases' field.
+     */
+    @Deprecated
     @Column
     private String aliasGroup;
+
+    @ElementCollection
+//    @CollectionTable(name = "resourcetype_aliases", joinColumns = @JoinColumn(name = "resourcetype_name"))
+    @Column(name = "aliases")
+    private Set<String> aliases = new HashSet<>();
 
     @OneToMany(mappedBy = "resourceType", cascade = {CascadeType.ALL}, orphanRemoval = true)
     @JsonIgnore
@@ -162,6 +169,14 @@ public class ResourceType {
 
     public void setAliasGroup(String aliasGroup) {
         this.aliasGroup = aliasGroup;
+    }
+
+    public Set<String> getAliases() {
+        return aliases;
+    }
+
+    public void setAliases(Set<String> aliasGroups) {
+        this.aliases = aliasGroups;
     }
 
     @JsonIgnore
