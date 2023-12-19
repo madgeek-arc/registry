@@ -4,6 +4,7 @@ import eu.openminted.registry.core.backup.restore.RestoreJobListener;
 import eu.openminted.registry.core.domain.BatchResult;
 import eu.openminted.registry.core.service.RestoreService;
 import eu.openminted.registry.core.service.ServiceException;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +55,7 @@ public class RestoreServiceImpl implements RestoreService {
         /**
          * save file to temp
          */
-        List<BatchResult> ret = new ArrayList<>();
+        Map<String, BatchResult> ret;
         try {
             File tempDirFile = unzipFile(zipFile);
             Optional<File[]> f = Optional.ofNullable(tempDirFile.listFiles());
@@ -71,11 +72,19 @@ public class RestoreServiceImpl implements RestoreService {
                 restoreJobListener.registerJob(job);
             }
             logger.info("{}", restoreJobListener.waitResults());
-            return restoreJobListener.getJobs().stream().map(this::convertJob).collect(Collectors.toMap(BatchResult::getResourceType, Function.identity()));
+            ret = restoreJobListener.getJobs().stream().map(this::convertJob).collect(Collectors.toMap(BatchResult::getResourceType, Function.identity()));
+
+            // clean up temp folder
+            FileUtils.cleanDirectory(tempDirFile);
+            if (!tempDirFile.delete()) {
+                logger.warn("Could not delete temporary folder '{}'", tempDirFile.getAbsolutePath());
+            }
         } catch (Exception e) {
-            logger.debug(e.getMessage(),e);
+            logger.debug(e.getMessage(), e);
             throw new ServiceException("Failed to restore data from zip", e);
         }
+
+        return ret;
     }
 
     private BatchResult convertJob(JobExecution j) {
