@@ -5,6 +5,7 @@ import eu.openminted.registry.core.service.DumpService;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
 import joptsimple.internal.Strings;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;
@@ -60,17 +61,34 @@ public class DumpServiceImpl implements DumpService {
         } catch (Exception e) {
            throw new ServiceException(e);
         }
-        Throwable ex = job.getAllFailureExceptions().stream().reduce(new Exception(),(e1, e2) -> {e1.addSuppressed(e2); return e1;});
+
+        if (logger.isDebugEnabled()) {
+            Throwable ex = job.getAllFailureExceptions().stream().reduce(new Exception(), (e1, e2) -> {
+                e1.addSuppressed(e2);
+                return e1;
+            });
+            logger.debug("All Job Failures: ", ex);
+        }
+
         String directory = job.getExecutionContext().getString("directory");
+
+        File zip;
+        File contents = new File(directory);
         try {
-            return pack(directory);
+            zip = pack(directory);
+            FileUtils.cleanDirectory(contents);
         } catch (IOException e) {
             throw new ServiceException(e);
+        } finally {
+            if (!contents.delete()) {
+                logger.warn("Could not delete temporary folder '{}'", contents.getAbsolutePath());
+            }
         }
+        return zip;
     }
 
     private static File pack(String sourceDirPath) throws IOException {
-        Path p = Files.createTempFile("dump", new Date().toString());
+        Path p = Files.createTempFile("dump-", "-" + new Date().getTime());
         try (ZipOutputStream zs = new ZipOutputStream(Files.newOutputStream(p))) {
             Path pp = Paths.get(sourceDirPath);
             Files.walk(pp)
@@ -82,7 +100,7 @@ public class DumpServiceImpl implements DumpService {
                             Files.copy(path, zs);
                             zs.closeEntry();
                         } catch (IOException e) {
-                            System.err.println(e);
+                            logger.error(e.getMessage(), e);
                         }
                     });
         }
