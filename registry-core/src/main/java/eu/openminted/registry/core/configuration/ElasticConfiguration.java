@@ -1,6 +1,9 @@
 package eu.openminted.registry.core.configuration;
 
 import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -30,11 +33,17 @@ public class ElasticConfiguration {
     private final Environment environment;
     private final String port;
     private final String hostname;
+    private final String username;
+    private final String password;
+    private final String scheme;
 
     @Autowired
     public ElasticConfiguration(Environment environment) {
         this.hostname = environment.getRequiredProperty("elasticsearch.url");
         this.port = environment.getRequiredProperty("elasticsearch.port");
+        this.username = environment.getProperty("elasticsearch.username", "");
+        this.password = environment.getProperty("elasticsearch.password", "");
+        this.scheme = environment.getProperty("elasticsearch.scheme", "http");
         this.environment = environment;
     }
 
@@ -49,10 +58,13 @@ public class ElasticConfiguration {
             settings.put("cluster.name", environment.getRequiredProperty("elasticsearch.cluster"));
         }
 
-        logger.info("Connecting to Elasticsearch @ {}:{}", hostname, port);
-        RestClientBuilder restClientBuilder = RestClient.builder(new HttpHost(hostname, Integer.parseInt(port), "http"));
-//                .setRequestConfigCallback(requestConfigBuilder ->
-//                requestConfigBuilder.setConnectTimeout(10000).setSocketTimeout(30000));
+        logger.info("Connecting to Elasticsearch @ {}:{} as user {}", hostname, port, username);
+
+        BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
+        RestClientBuilder restClientBuilder = RestClient.builder(new HttpHost(hostname, Integer.parseInt(port), scheme))
+                .setHttpClientConfigCallback(httpClientBuilder ->
+                        httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));;
 
         this.client = new RestHighLevelClient(restClientBuilder);
     }
