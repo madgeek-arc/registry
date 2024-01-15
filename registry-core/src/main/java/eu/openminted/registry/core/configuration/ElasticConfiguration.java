@@ -35,13 +35,15 @@ public class ElasticConfiguration {
     private final String hostname;
     private final String username;
     private final String password;
+    private final String scheme;
 
     @Autowired
     public ElasticConfiguration(Environment environment) {
         this.hostname = environment.getRequiredProperty("elasticsearch.url");
         this.port = environment.getRequiredProperty("elasticsearch.port");
-        this.username = environment.getRequiredProperty("elasticsearch.username");
-        this.password = environment.getRequiredProperty("elasticsearch.password");
+        this.username = environment.getProperty("elasticsearch.username", "");
+        this.password = environment.getProperty("elasticsearch.password", "");
+        this.scheme = environment.getProperty("elasticsearch.scheme", "http");
         this.environment = environment;
     }
 
@@ -60,11 +62,9 @@ public class ElasticConfiguration {
 
         BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
-        RestClientBuilder restClientBuilder = RestClient.builder(new HttpHost(hostname, Integer.parseInt(port), "http"))
+        RestClientBuilder restClientBuilder = RestClient.builder(new HttpHost(hostname, Integer.parseInt(port), scheme))
                 .setHttpClientConfigCallback(httpClientBuilder ->
                         httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));;
-//                .setRequestConfigCallback(requestConfigBuilder ->
-//                requestConfigBuilder.setConnectTimeout(10000).setSocketTimeout(30000));
 
         this.client = new RestHighLevelClient(restClientBuilder);
     }
