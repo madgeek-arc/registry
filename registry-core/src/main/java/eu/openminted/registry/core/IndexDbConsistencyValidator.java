@@ -5,11 +5,11 @@ import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
 import eu.openminted.registry.core.service.ResourceService;
 import eu.openminted.registry.core.service.ResourceTypeService;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.*;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
@@ -18,6 +18,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -49,26 +50,21 @@ public class IndexDbConsistencyValidator {
         this.dataSource = dataSource;
     }
 
-    //    @Scheduled(cron = "0 0 0 * * *") // At midnight every day
-//    @Scheduled(fixedDelay = 5 * 60 * 1000)
-    private void scheduledValidation() {
-        List<String> resourceTypeNames = resourceTypeService.getAllResourceType(0, 100)
-                .stream().map(ResourceType::getName).collect(Collectors.toList());
-        //TODO: use elastic scroll if we need to check events too (>10k)
-        resourceTypeNames.remove("event");
-        for (String resourceTypeName : resourceTypeNames) {
-            validate(resourceTypeName, true);
-            validate(resourceTypeName, false);
-        }
+    @PostConstruct
+    private void checkUponInit() {
+        performCheck();
     }
 
-    public void validate(String resourceType, boolean validateDBtoElastic) {
-        // retrieve from DB
-        List<String> databaseResources = fetchResourceIdsFromDB(resourceType);
-        // retrieve from Elastic
-        List<String> elasticResources = fetchResourceIdsFromElastic(resourceType);
+    public void performCheck() {
+        List<String> resourceTypeNames = resourceTypeService.getAllResourceType()
+                .stream()
+                .map(ResourceType::getName)
+                .collect(Collectors.toList());
 
-        validateDBAndElasticEntries(databaseResources, elasticResources, resourceType, validateDBtoElastic);
+        for (String resourceTypeName : resourceTypeNames) {
+            enforceIndexConsistency(resourceTypeName);
+            checkDBConsistency(resourceTypeName);
+        }
     }
 
     private List<String> fetchResourceIdsFromDB(String resourceType) {
@@ -79,66 +75,102 @@ public class IndexDbConsistencyValidator {
         String query = "SELECT id FROM " + resourceType + "_view";
 
         List<Map<String, Object>> records = namedParameterJdbcTemplate.queryForList(query, in);
-        if (records != null && !records.isEmpty()) {
-            for (Map<String, Object> record : records) {
-                databaseResources.add((String) record.get("id"));
-            }
+        if (!records.isEmpty()) {
+            databaseResources.addAll(records
+                    .stream()
+                    .map(r -> (String) r.get("id"))
+                    .collect(Collectors.toList())
+            );
         }
         return databaseResources;
     }
 
-    private List<String> fetchResourceIdsFromElastic(String resourceType) {
+    private List<String> findAllResourceIdsFromIndex(String resourceType) throws IOException {
         List<String> resourceIds = new ArrayList<>();
-        SearchRequest searchRequest = new SearchRequest();
+
+        final Scroll scroll = new Scroll(TimeValue.timeValueSeconds(1L));
+        SearchRequest searchRequest = new SearchRequest(resourceType);
+        searchRequest.scroll(scroll);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder
-                .from(0)
                 .size(10000)
                 .docValueField("*_id")
                 .fetchSource(false)
-                .explain(true)
-                .query(QueryBuilders.boolQuery().must(QueryBuilders.matchQuery("_index", resourceType)));
+                .explain(true);
         searchRequest.source(searchSourceBuilder);
 
-        SearchResponse response;
+        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+        String scrollId = searchResponse.getScrollId();
+        SearchHit[] searchHits = searchResponse.getHits().getHits();
+
+        while (searchHits != null && searchHits.length > 0) {
+            resourceIds.addAll(
+                    Arrays.stream(searchHits)
+                            .map(hit -> (String) hit.getFields().get("_id").getValue())
+                            .collect(Collectors.toList())
+            );
+
+            SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
+            scrollRequest.scroll(scroll);
+            searchResponse = client.scroll(scrollRequest, RequestOptions.DEFAULT);
+            scrollId = searchResponse.getScrollId();
+            searchHits = searchResponse.getHits().getHits();
+        }
+
+        ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
+        clearScrollRequest.addScrollId(scrollId);
+        ClearScrollResponse clearScrollResponse = client.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
+        boolean succeeded = clearScrollResponse.isSucceeded();
+        if (!succeeded) {
+            logger.error("clear scroll request failed...");
+        }
+
+        return resourceIds;
+    }
+
+    private List<String> fetchResourceIdsFromIndex(String resourceType) {
+        List<String> resourceIds = new ArrayList<>();
+
         try {
-            response = client.search(searchRequest, RequestOptions.DEFAULT);
-            List<SearchHit> hits = Arrays.stream(response.getHits().getHits()).collect(Collectors.toList());
-            for (SearchHit hit : hits) {
-                resourceIds.add(hit.getFields().get("_id").getValue());
-            }
+            resourceIds = findAllResourceIdsFromIndex(resourceType);
         } catch (IOException e) {
-            logger.error("Error retrieving _id value from Elastic.", e);
+            logger.error(e.getMessage(), e);
         }
         return resourceIds;
     }
 
-    private void validateDBAndElasticEntries(List<String> databaseResources, List<String> elasticResources,
-                                             String resourceType, boolean validateDBtoElastic) {
-        if (validateDBtoElastic) {
-            List<String> missingElasticIds = new ArrayList<>(databaseResources);
-            missingElasticIds.removeAll(elasticResources);
-            if (!missingElasticIds.isEmpty()) {
-                indexMissingElasticIds(missingElasticIds, resourceType);
-            } else {
-                logger.info("Elastic is consistent with Database on {}", resourceType);
-            }
+    private void enforceIndexConsistency(String resourceType) {
+        List<String> indexResources = fetchResourceIdsFromIndex(resourceType);
+        List<String> databaseResources = fetchResourceIdsFromDB(resourceType);
+
+        List<String> missingIndexIds = new ArrayList<>(databaseResources);
+        missingIndexIds.removeAll(indexResources);
+        if (!missingIndexIds.isEmpty()) {
+            logger.debug("Reindexing missing resources [{}] on {}", missingIndexIds, resourceType);
+            indexMissingIds(missingIndexIds, resourceType);
         } else {
-            List<String> missingDBIds = new ArrayList<>(elasticResources);
-            missingDBIds.removeAll(databaseResources);
-            if (!missingDBIds.isEmpty()) {
-                //TODO: Add missing resources to DB
-                logger.info("Database is missing the following resources {} on {}", missingDBIds, resourceType);
-            } else {
-                logger.info("Database is consistent with Elastic on {}", resourceType);
-            }
+            logger.debug("Index is consistent with Database on {}", resourceType);
         }
     }
 
-    private void indexMissingElasticIds(List<String> missingElasticIds, String resourceType) {
-        logger.info("Adding {} missing indexes for {}", missingElasticIds.size(), resourceType);
-        for (String missingElasticId : missingElasticIds) {
-            Resource resource = resourceService.getResource(missingElasticId);
+    private void checkDBConsistency(String resourceType) {
+        List<String> indexResources = fetchResourceIdsFromIndex(resourceType);
+        List<String> databaseResources = fetchResourceIdsFromDB(resourceType);
+
+        List<String> missingDBIds = new ArrayList<>(indexResources);
+        missingDBIds.removeAll(databaseResources);
+        if (!missingDBIds.isEmpty()) {
+            //TODO: Add missing resources to DB
+            logger.error("Database is missing the following resources [{}] on {}", missingDBIds, resourceType);
+        } else {
+            logger.debug("Database is consistent with Index on {}", resourceType);
+        }
+    }
+
+    private void indexMissingIds(List<String> missingIds, String resourceType) {
+        logger.info("Adding {} missing indexes for {}", missingIds.size(), resourceType);
+        for (String missingId : missingIds) {
+            Resource resource = resourceService.getResource(missingId);
             elasticOperationsService.add(resource);
         }
     }
