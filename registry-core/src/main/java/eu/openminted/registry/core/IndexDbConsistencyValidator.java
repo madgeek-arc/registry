@@ -51,23 +51,41 @@ public class IndexDbConsistencyValidator {
     }
 
     @PostConstruct
-    private void checkUponInit() {
-        performCheck();
+    private void reindexOnInit() {
+        ensureDatabaseIndexConsistency();
     }
 
-    public void performCheck() {
-        List<String> resourceTypeNames = resourceTypeService.getAllResourceType()
-                .stream()
-                .map(ResourceType::getName)
-                .collect(Collectors.toList());
-
-        for (String resourceTypeName : resourceTypeNames) {
-            enforceIndexConsistency(resourceTypeName);
-            checkDBConsistency(resourceTypeName);
-        }
+    /**
+     * <p>
+     * Performs the following two operations to ensure data integrity.
+     * </p>
+     * <p>1. Reindexes all {@link Resource resources} from Database to Elastic.</p>
+     * <p>2. Checks Database for missing resources and prints errors.</p>
+     */
+    public void ensureDatabaseIndexConsistency() {
+        resourceTypeService.getAllResourceType()
+                .forEach(resourceType -> {
+                    reindex(resourceType.getName());
+                    checkDatabaseConsistency(resourceType.getName());
+                });
     }
 
-    private List<String> fetchResourceIdsFromDB(String resourceType) {
+    /**
+     * Reindex all Database {@link Resource resources} to Elastic.
+     */
+    public void reindex() {
+        resourceTypeService.getAllResourceType()
+                .forEach(resourceType -> reindex(resourceType.getName()));
+    }
+
+    /**
+     * Fetches the ids of all {@link Resource resources} of a given {@link ResourceType resource type}
+     * from the Database.
+     *
+     * @param resourceType The {@link ResourceType} to search.
+     * @return {@link List}
+     */
+    private List<String> fetchResourceIdsFromDatabase(String resourceType) {
         List<String> databaseResources = new ArrayList<>();
         NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
         MapSqlParameterSource in = new MapSqlParameterSource();
@@ -85,7 +103,14 @@ public class IndexDbConsistencyValidator {
         return databaseResources;
     }
 
-    private List<String> findAllResourceIdsFromIndex(String resourceType) throws IOException {
+    /**
+     * Returns all resource ids of the requested index ({@link ResourceType}) from Elastic.
+     *
+     * @param resourceType The {@link ResourceType} describing the index.
+     * @return {@link List}
+     * @throws IOException
+     */
+    private List<String> findAllResourceIdsFromElasticIndex(String resourceType) throws IOException {
         List<String> resourceIds = new ArrayList<>();
 
         final Scroll scroll = new Scroll(TimeValue.timeValueSeconds(1L));
@@ -128,49 +153,70 @@ public class IndexDbConsistencyValidator {
         return resourceIds;
     }
 
+    /**
+     * Returns all resource ids of an index.
+     *
+     * @param resourceType The {@link ResourceType} describing the index.
+     * @return {@link List}
+     */
     private List<String> fetchResourceIdsFromIndex(String resourceType) {
         List<String> resourceIds = new ArrayList<>();
 
         try {
-            resourceIds = findAllResourceIdsFromIndex(resourceType);
+            resourceIds = findAllResourceIdsFromElasticIndex(resourceType);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
         }
         return resourceIds;
     }
 
-    private void enforceIndexConsistency(String resourceType) {
+    /**
+     * Reindex missing resources of a {@link ResourceType}.
+     *
+     * @param resourceType The {@link ResourceType} describing the index to populate.
+     */
+    private void reindex(String resourceType) {
         List<String> indexResources = fetchResourceIdsFromIndex(resourceType);
-        List<String> databaseResources = fetchResourceIdsFromDB(resourceType);
+        List<String> databaseResources = fetchResourceIdsFromDatabase(resourceType);
 
         List<String> missingIndexIds = new ArrayList<>(databaseResources);
         missingIndexIds.removeAll(indexResources);
         if (!missingIndexIds.isEmpty()) {
             logger.debug("Reindexing missing resources [{}] on {}", missingIndexIds, resourceType);
-            indexMissingIds(missingIndexIds, resourceType);
+            reindexByIds(missingIndexIds);
         } else {
             logger.debug("Index is consistent with Database on {}", resourceType);
         }
     }
 
-    private void checkDBConsistency(String resourceType) {
+    /**
+     * Checks whether every resource of an index ({@link ResourceType}) exists in the database.
+     *
+     * @param resourceType The {@link ResourceType} to perform the check on.
+     */
+    private void checkDatabaseConsistency(String resourceType) {
         List<String> indexResources = fetchResourceIdsFromIndex(resourceType);
-        List<String> databaseResources = fetchResourceIdsFromDB(resourceType);
+        List<String> databaseResources = fetchResourceIdsFromDatabase(resourceType);
 
         List<String> missingDBIds = new ArrayList<>(indexResources);
         missingDBIds.removeAll(databaseResources);
         if (!missingDBIds.isEmpty()) {
-            //TODO: Add missing resources to DB
             logger.error("Database is missing the following resources [{}] on {}", missingDBIds, resourceType);
         } else {
             logger.debug("Database is consistent with Index on {}", resourceType);
         }
     }
 
-    private void indexMissingIds(List<String> missingIds, String resourceType) {
-        logger.info("Adding {} missing indexes for {}", missingIds.size(), resourceType);
-        for (String missingId : missingIds) {
+    /**
+     * Reindex {@link Resource resources}.
+     *
+     * @param ids The resources' ids to reindex.
+     */
+    private void reindexByIds(List<String> ids) {
+        logger.info("Reindexing {} missing resources.", ids.size());
+        for (String missingId : ids) {
             Resource resource = resourceService.getResource(missingId);
+            logger.trace("Adding resource with id '{}' to index '{}'", resource.getId(), resource.getResourceTypeName());
             elasticOperationsService.add(resource);
         }
     }
