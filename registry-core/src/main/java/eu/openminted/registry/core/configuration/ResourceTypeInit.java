@@ -30,13 +30,15 @@ public class ResourceTypeInit {
     }
 
     @PostConstruct
-    void addResourceTypes() throws IOException {
+    void addResourceTypes() {
         Resource[] resources = loadResources("classpath:resourceTypes/*.json");
-        for (Resource resource : resources) {
-            try {
-                addResourceTypeFromFile(resource);
-            } catch (IOException e) {
-                logger.error(String.format("Could not add Resource Type from file [filename=%s]", resource.getFilename()), e);
+        if (resources != null) {
+            for (Resource resource : resources) {
+                try {
+                    addResourceTypeFromFile(resource);
+                } catch (IOException e) {
+                    logger.error(String.format("Could not add Resource Type from file [filename=%s]", resource.getFilename()), e);
+                }
             }
         }
     }
@@ -48,8 +50,13 @@ public class ResourceTypeInit {
      * @return
      * @throws IOException
      */
-    private Resource[] loadResources(String pattern) throws IOException {
-        return ResourcePatternUtils.getResourcePatternResolver(resourceLoader).getResources(pattern);
+    private Resource[] loadResources(String pattern) {
+        try {
+            return ResourcePatternUtils.getResourcePatternResolver(resourceLoader).getResources(pattern);
+        } catch (IOException e) {
+            logger.warn("Could not find resourceTypes in '{}'", pattern, e);
+        }
+        return null;
     }
 
     /**
