@@ -21,7 +21,7 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.CreateIndexResponse;
 import org.elasticsearch.client.indices.GetIndexRequest;
-import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.xcontent.XContentType;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,7 +67,7 @@ public class ElasticOperationsService {
 
         for(Resource resource : resources){
             bulkRequest.add(new IndexRequest(resource.getResourceType().getName())
-                        .source(createDocumentForInsert(resource),XContentType.JSON)
+                        .source(createDocumentForInsert(resource), XContentType.JSON)
                         .id(resource.getId()));
         }
 
