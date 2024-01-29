@@ -1,10 +1,12 @@
 package eu.openminted.registry.core;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
 import eu.openminted.registry.core.service.ResourceService;
 import eu.openminted.registry.core.service.ResourceTypeService;
+import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.search.*;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -14,6 +16,8 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.core.io.support.ResourcePatternUtils;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -21,10 +25,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,17 +38,38 @@ public class IndexDbConsistencyValidator {
     private final ResourceTypeService resourceTypeService;
     private final ResourceService resourceService;
     private final DataSource dataSource;
+    private final ResourceLoader resourceLoader;
+    private List<ResourceType> resourceTypes;
 
     public IndexDbConsistencyValidator(RestHighLevelClient client,
                                        ElasticOperationsService elasticOperationsService,
                                        ResourceTypeService resourceTypeService,
                                        ResourceService resourceService,
-                                       DataSource dataSource) {
+                                       DataSource dataSource,
+                                       ResourceLoader resourceLoader) {
         this.client = client;
         this.elasticOperationsService = elasticOperationsService;
         this.resourceTypeService = resourceTypeService;
         this.resourceService = resourceService;
         this.dataSource = dataSource;
+        this.resourceLoader = resourceLoader;
+    }
+
+    @PostConstruct
+    private void initializeResourceTypesList() {
+        resourceTypes = new ArrayList<>();
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            org.springframework.core.io.Resource[] resources = ResourcePatternUtils
+                    .getResourcePatternResolver(resourceLoader)
+                    .getResources("classpath:resourceTypes/*.json");
+            for (org.springframework.core.io.Resource resource : resources) {
+                ResourceType resourceType = mapper.readValue(resource.getInputStream(), ResourceType.class);
+                resourceTypes.add(resourceType);
+            }
+        } catch (IOException e) {
+            logger.warn("Could not find resourceTypes in classpath:resourceTypes/*.json", e);
+        }
     }
 
     @PostConstruct
@@ -124,33 +146,48 @@ public class IndexDbConsistencyValidator {
                 .explain(true);
         searchRequest.source(searchSourceBuilder);
 
-        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-        String scrollId = searchResponse.getScrollId();
-        SearchHit[] searchHits = searchResponse.getHits().getHits();
+        try {
+            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+            String scrollId = searchResponse.getScrollId();
+            SearchHit[] searchHits = searchResponse.getHits().getHits();
 
-        while (searchHits != null && searchHits.length > 0) {
-            resourceIds.addAll(
-                    Arrays.stream(searchHits)
-                            .map(hit -> (String) hit.getFields().get("_id").getValue())
-                            .collect(Collectors.toList())
-            );
+            while (searchHits != null && searchHits.length > 0) {
+                resourceIds.addAll(
+                        Arrays.stream(searchHits)
+                                .map(hit -> (String) hit.getFields().get("_id").getValue())
+                                .collect(Collectors.toList())
+                );
 
-            SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
-            scrollRequest.scroll(scroll);
-            searchResponse = client.scroll(scrollRequest, RequestOptions.DEFAULT);
-            scrollId = searchResponse.getScrollId();
-            searchHits = searchResponse.getHits().getHits();
-        }
+                SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
+                scrollRequest.scroll(scroll);
+                searchResponse = client.scroll(scrollRequest, RequestOptions.DEFAULT);
+                scrollId = searchResponse.getScrollId();
+                searchHits = searchResponse.getHits().getHits();
+            }
 
-        ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
-        clearScrollRequest.addScrollId(scrollId);
-        ClearScrollResponse clearScrollResponse = client.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
-        boolean succeeded = clearScrollResponse.isSucceeded();
-        if (!succeeded) {
-            logger.error("clear scroll request failed...");
+            ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
+            clearScrollRequest.addScrollId(scrollId);
+            ClearScrollResponse clearScrollResponse = client.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
+            boolean succeeded = clearScrollResponse.isSucceeded();
+            if (!succeeded) {
+                logger.error("clear scroll request failed...");
+            }
+        } catch (ElasticsearchStatusException e) {
+            postMissingResourceType(resourceType, e);
         }
 
         return resourceIds;
+    }
+
+    private void postMissingResourceType(String resourceType, ElasticsearchStatusException e) {
+        for (ResourceType rt : resourceTypes) {
+            if (rt.getName().equals(resourceType)) {
+                logger.info(String.format("Adding [resourceType=%s]", rt.getName()));
+                rt.setCreationDate(new Date());
+                rt.setModificationDate(new Date());
+                resourceTypeService.addResourceType(rt);
+            }
+        }
     }
 
     /**
@@ -213,7 +250,7 @@ public class IndexDbConsistencyValidator {
      * @param ids The resources' ids to reindex.
      */
     private void reindexByIds(List<String> ids) {
-        logger.info("Reindexing {} missing resources.", ids.size());
+        logger.info("Reindexing {} missing resource{}.", ids.size(), ids.size() == 1 ? "" : "s");
         for (String missingId : ids) {
             Resource resource = resourceService.getResource(missingId);
             logger.trace("Adding resource with id '{}' to index '{}'", resource.getId(), resource.getResourceTypeName());
