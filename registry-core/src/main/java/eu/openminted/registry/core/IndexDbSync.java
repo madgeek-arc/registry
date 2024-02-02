@@ -25,13 +25,16 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-public class IndexDbConsistencyValidator {
+public class IndexDbSync {
 
-    private static final Logger logger = LoggerFactory.getLogger(IndexDbConsistencyValidator.class);
+    private static final Logger logger = LoggerFactory.getLogger(IndexDbSync.class);
 
     private final RestHighLevelClient client;
     private final ElasticOperationsService elasticOperationsService;
@@ -41,12 +44,12 @@ public class IndexDbConsistencyValidator {
     private final ResourceLoader resourceLoader;
     private List<ResourceType> resourceTypes;
 
-    public IndexDbConsistencyValidator(RestHighLevelClient client,
-                                       ElasticOperationsService elasticOperationsService,
-                                       ResourceTypeService resourceTypeService,
-                                       ResourceService resourceService,
-                                       DataSource dataSource,
-                                       ResourceLoader resourceLoader) {
+    public IndexDbSync(RestHighLevelClient client,
+                       ElasticOperationsService elasticOperationsService,
+                       ResourceTypeService resourceTypeService,
+                       ResourceService resourceService,
+                       DataSource dataSource,
+                       ResourceLoader resourceLoader) {
         this.client = client;
         this.elasticOperationsService = elasticOperationsService;
         this.resourceTypeService = resourceTypeService;
@@ -131,8 +134,9 @@ public class IndexDbConsistencyValidator {
      * @param resourceType The {@link ResourceType} describing the index.
      * @return {@link List}
      * @throws IOException
+     * @throws ElasticsearchStatusException - When index is missing
      */
-    private List<String> findAllResourceIdsFromElasticIndex(String resourceType) throws IOException {
+    private List<String> findAllResourceIdsFromElasticIndex(String resourceType) throws IOException, ElasticsearchStatusException {
         List<String> resourceIds = new ArrayList<>();
 
         final Scroll scroll = new Scroll(TimeValue.timeValueSeconds(1L));
@@ -146,52 +150,37 @@ public class IndexDbConsistencyValidator {
                 .explain(true);
         searchRequest.source(searchSourceBuilder);
 
-        try {
-            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-            String scrollId = searchResponse.getScrollId();
-            SearchHit[] searchHits = searchResponse.getHits().getHits();
+        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+        String scrollId = searchResponse.getScrollId();
+        SearchHit[] searchHits = searchResponse.getHits().getHits();
 
-            while (searchHits != null && searchHits.length > 0) {
-                resourceIds.addAll(
-                        Arrays.stream(searchHits)
-                                .map(hit -> (String) hit.getFields().get("_id").getValue())
-                                .collect(Collectors.toList())
-                );
+        while (searchHits != null && searchHits.length > 0) {
+            resourceIds.addAll(
+                    Arrays.stream(searchHits)
+                            .map(hit -> (String) hit.getFields().get("_id").getValue())
+                            .collect(Collectors.toList())
+            );
 
-                SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
-                scrollRequest.scroll(scroll);
-                searchResponse = client.scroll(scrollRequest, RequestOptions.DEFAULT);
-                scrollId = searchResponse.getScrollId();
-                searchHits = searchResponse.getHits().getHits();
-            }
+            SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
+            scrollRequest.scroll(scroll);
+            searchResponse = client.scroll(scrollRequest, RequestOptions.DEFAULT);
+            scrollId = searchResponse.getScrollId();
+            searchHits = searchResponse.getHits().getHits();
+        }
 
-            ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
-            clearScrollRequest.addScrollId(scrollId);
-            ClearScrollResponse clearScrollResponse = client.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
-            boolean succeeded = clearScrollResponse.isSucceeded();
-            if (!succeeded) {
-                logger.error("clear scroll request failed...");
-            }
-        } catch (ElasticsearchStatusException e) {
-            postMissingResourceType(resourceType, e);
+        ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
+        clearScrollRequest.addScrollId(scrollId);
+        ClearScrollResponse clearScrollResponse = client.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
+        boolean succeeded = clearScrollResponse.isSucceeded();
+        if (!succeeded) {
+            logger.error("clear scroll request failed...");
         }
 
         return resourceIds;
     }
 
-    private void postMissingResourceType(String resourceType, ElasticsearchStatusException e) {
-        for (ResourceType rt : resourceTypes) {
-            if (rt.getName().equals(resourceType)) {
-                logger.info(String.format("Adding [resourceType=%s]", rt.getName()));
-                rt.setCreationDate(new Date());
-                rt.setModificationDate(new Date());
-                resourceTypeService.addResourceType(rt);
-            }
-        }
-    }
-
     /**
-     * Returns all resource ids of an index.
+     * Returns all resource ids of an index. If index is missing, the method creates it.
      *
      * @param resourceType The {@link ResourceType} describing the index.
      * @return {@link List}
@@ -201,7 +190,7 @@ public class IndexDbConsistencyValidator {
 
         try {
             resourceIds = findAllResourceIdsFromElasticIndex(resourceType);
-        } catch (IOException e) {
+        } catch (IOException | ElasticsearchStatusException e) {
             logger.error(e.getMessage(), e);
         }
         return resourceIds;
