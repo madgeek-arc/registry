@@ -1,19 +1,23 @@
 package eu.openminted.registry.core;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
 import eu.openminted.registry.core.service.ResourceService;
 import eu.openminted.registry.core.service.ResourceTypeService;
+import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.search.*;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.core.TimeValue;
 import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.core.io.support.ResourcePatternUtils;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -28,26 +32,47 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-public class IndexDbConsistencyValidator {
+public class IndexDbSync {
 
-    private static final Logger logger = LoggerFactory.getLogger(IndexDbConsistencyValidator.class);
+    private static final Logger logger = LoggerFactory.getLogger(IndexDbSync.class);
 
     private final RestHighLevelClient client;
     private final ElasticOperationsService elasticOperationsService;
     private final ResourceTypeService resourceTypeService;
     private final ResourceService resourceService;
     private final DataSource dataSource;
+    private final ResourceLoader resourceLoader;
+    private List<ResourceType> resourceTypes;
 
-    public IndexDbConsistencyValidator(RestHighLevelClient client,
-                                       ElasticOperationsService elasticOperationsService,
-                                       ResourceTypeService resourceTypeService,
-                                       ResourceService resourceService,
-                                       DataSource dataSource) {
+    public IndexDbSync(RestHighLevelClient client,
+                       ElasticOperationsService elasticOperationsService,
+                       ResourceTypeService resourceTypeService,
+                       ResourceService resourceService,
+                       DataSource dataSource,
+                       ResourceLoader resourceLoader) {
         this.client = client;
         this.elasticOperationsService = elasticOperationsService;
         this.resourceTypeService = resourceTypeService;
         this.resourceService = resourceService;
         this.dataSource = dataSource;
+        this.resourceLoader = resourceLoader;
+    }
+
+    @PostConstruct
+    private void initializeResourceTypesList() {
+        resourceTypes = new ArrayList<>();
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            org.springframework.core.io.Resource[] resources = ResourcePatternUtils
+                    .getResourcePatternResolver(resourceLoader)
+                    .getResources("classpath:resourceTypes/*.json");
+            for (org.springframework.core.io.Resource resource : resources) {
+                ResourceType resourceType = mapper.readValue(resource.getInputStream(), ResourceType.class);
+                resourceTypes.add(resourceType);
+            }
+        } catch (IOException e) {
+            logger.warn("Could not find resourceTypes in classpath:resourceTypes/*.json", e);
+        }
     }
 
     @PostConstruct
@@ -109,8 +134,9 @@ public class IndexDbConsistencyValidator {
      * @param resourceType The {@link ResourceType} describing the index.
      * @return {@link List}
      * @throws IOException
+     * @throws ElasticsearchStatusException - When index is missing
      */
-    private List<String> findAllResourceIdsFromElasticIndex(String resourceType) throws IOException {
+    private List<String> findAllResourceIdsFromElasticIndex(String resourceType) throws IOException, ElasticsearchStatusException {
         List<String> resourceIds = new ArrayList<>();
 
         final Scroll scroll = new Scroll(TimeValue.timeValueSeconds(1L));
@@ -154,7 +180,7 @@ public class IndexDbConsistencyValidator {
     }
 
     /**
-     * Returns all resource ids of an index.
+     * Returns all resource ids of an index. If index is missing, the method creates it.
      *
      * @param resourceType The {@link ResourceType} describing the index.
      * @return {@link List}
@@ -164,7 +190,7 @@ public class IndexDbConsistencyValidator {
 
         try {
             resourceIds = findAllResourceIdsFromElasticIndex(resourceType);
-        } catch (IOException e) {
+        } catch (IOException | ElasticsearchStatusException e) {
             logger.error(e.getMessage(), e);
         }
         return resourceIds;
@@ -182,7 +208,7 @@ public class IndexDbConsistencyValidator {
         List<String> missingIndexIds = new ArrayList<>(databaseResources);
         missingIndexIds.removeAll(indexResources);
         if (!missingIndexIds.isEmpty()) {
-            logger.debug("Reindexing missing resources [{}] on {}", missingIndexIds, resourceType);
+            logger.info("Reindexing missing resources [{}] on {}", missingIndexIds, resourceType);
             reindexByIds(missingIndexIds);
         } else {
             logger.debug("Index is consistent with Database on {}", resourceType);
@@ -213,7 +239,7 @@ public class IndexDbConsistencyValidator {
      * @param ids The resources' ids to reindex.
      */
     private void reindexByIds(List<String> ids) {
-        logger.info("Reindexing {} missing resources.", ids.size());
+        logger.info("Reindexing {} missing resource{}.", ids.size(), ids.size() == 1 ? "" : "s");
         for (String missingId : ids) {
             Resource resource = resourceService.getResource(missingId);
             logger.trace("Adding resource with id '{}' to index '{}'", resource.getId(), resource.getResourceTypeName());
