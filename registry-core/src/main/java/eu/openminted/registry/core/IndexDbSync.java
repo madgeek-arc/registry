@@ -165,6 +165,7 @@ public class IndexDbSync {
         List<String> resourceIds = new ArrayList<>();
 
         boolean done = false;
+        short retries = 5;
         do {
             try {
                 resourceIds = findAllResourceIdsFromElasticIndex(resourceType);
@@ -176,7 +177,8 @@ public class IndexDbSync {
                 // index must be missing - add it
                 resourceTypeService.addResourceType(resourceTypeService.getResourceType(resourceType));
             }
-        } while (!done);
+            retries--;
+        } while (!done && retries > 0);
         return resourceIds;
     }
 
