@@ -74,11 +74,6 @@ public class ResourceTypeInit {
             resourceTypeService.addResourceType(resourceType);
         } else {
             logger.debug(String.format("Found [resourceType=%s]", resourceType.getName()));
-            // ensure resource type exists in index
-            ResourceType existing = resourceTypeService.getResourceType(resourceType.getName());
-            // if resourceType exists in db it is not changed
-            // this method is called to make use of ResourceMonitor which adds the resourceType in Elastic
-            resourceTypeService.addResourceType(existing);
         }
     }
 }

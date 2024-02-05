@@ -1,6 +1,5 @@
 package eu.openminted.registry.core;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
@@ -16,8 +15,6 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.ResourceLoader;
-import org.springframework.core.io.support.ResourcePatternUtils;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -41,38 +38,17 @@ public class IndexDbSync {
     private final ResourceTypeService resourceTypeService;
     private final ResourceService resourceService;
     private final DataSource dataSource;
-    private final ResourceLoader resourceLoader;
-    private List<ResourceType> resourceTypes;
 
     public IndexDbSync(RestHighLevelClient client,
                        ElasticOperationsService elasticOperationsService,
                        ResourceTypeService resourceTypeService,
                        ResourceService resourceService,
-                       DataSource dataSource,
-                       ResourceLoader resourceLoader) {
+                       DataSource dataSource) {
         this.client = client;
         this.elasticOperationsService = elasticOperationsService;
         this.resourceTypeService = resourceTypeService;
         this.resourceService = resourceService;
         this.dataSource = dataSource;
-        this.resourceLoader = resourceLoader;
-    }
-
-    @PostConstruct
-    private void initializeResourceTypesList() {
-        resourceTypes = new ArrayList<>();
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            org.springframework.core.io.Resource[] resources = ResourcePatternUtils
-                    .getResourcePatternResolver(resourceLoader)
-                    .getResources("classpath:resourceTypes/*.json");
-            for (org.springframework.core.io.Resource resource : resources) {
-                ResourceType resourceType = mapper.readValue(resource.getInputStream(), ResourceType.class);
-                resourceTypes.add(resourceType);
-            }
-        } catch (IOException e) {
-            logger.warn("Could not find resourceTypes in classpath:resourceTypes/*.json", e);
-        }
     }
 
     @PostConstruct
@@ -188,11 +164,19 @@ public class IndexDbSync {
     private List<String> fetchResourceIdsFromIndex(String resourceType) {
         List<String> resourceIds = new ArrayList<>();
 
-        try {
-            resourceIds = findAllResourceIdsFromElasticIndex(resourceType);
-        } catch (IOException | ElasticsearchStatusException e) {
-            logger.error(e.getMessage(), e);
-        }
+        boolean done = false;
+        do {
+            try {
+                resourceIds = findAllResourceIdsFromElasticIndex(resourceType);
+                done = true;
+            } catch (IOException e) {
+                logger.error(e.getMessage(), e);
+            } catch (ElasticsearchStatusException e) {
+                logger.warn(e.getMessage());
+                // index must be missing - add it
+                resourceTypeService.addResourceType(resourceTypeService.getResourceType(resourceType));
+            }
+        } while (!done);
         return resourceIds;
     }
 
