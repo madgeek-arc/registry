@@ -38,9 +38,9 @@
 	</dependencies>
 	<distributionManagement>
 		<repository>
-			<id>omtd-releases</id>
+			<id>madgik-releases</id>
 			<layout>default</layout>
-			<url>https://repo.openminted.eu/content/repositories/releases</url>
+			<url>https://repo.madgik.di.uoa.gr/content/repositories/releases</url>
 		</repository>
 	</distributionManagement>
 
