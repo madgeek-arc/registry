@@ -6,7 +6,7 @@
     <parent>
         <groupId>eu.openminted</groupId>
         <artifactId>registry</artifactId>
-        <version>2.7.4-SNAPSHOT</version>
+        <version>3.0.0-SNAPSHOT</version>
     </parent>
 
     <licenses>

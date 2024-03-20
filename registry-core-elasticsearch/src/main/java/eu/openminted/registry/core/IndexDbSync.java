@@ -2,7 +2,7 @@ package eu.openminted.registry.core;
 
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
+import eu.openminted.registry.core.service.IndexOperationsService;
 import eu.openminted.registry.core.service.ResourceService;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import org.elasticsearch.ElasticsearchStatusException;
@@ -34,18 +34,18 @@ public class IndexDbSync {
     private static final Logger logger = LoggerFactory.getLogger(IndexDbSync.class);
 
     private final RestHighLevelClient client;
-    private final ElasticOperationsService elasticOperationsService;
+    private final IndexOperationsService indexOperationsService;
     private final ResourceTypeService resourceTypeService;
     private final ResourceService resourceService;
     private final DataSource dataSource;
 
     public IndexDbSync(RestHighLevelClient client,
-                       ElasticOperationsService elasticOperationsService,
+                       IndexOperationsService indexOperationsService,
                        ResourceTypeService resourceTypeService,
                        ResourceService resourceService,
                        DataSource dataSource) {
         this.client = client;
-        this.elasticOperationsService = elasticOperationsService;
+        this.indexOperationsService = indexOperationsService;
         this.resourceTypeService = resourceTypeService;
         this.resourceService = resourceService;
         this.dataSource = dataSource;
@@ -229,7 +229,7 @@ public class IndexDbSync {
         for (String missingId : ids) {
             Resource resource = resourceService.getResource(missingId);
             logger.trace("Adding resource with id '{}' to index '{}'", resource.getId(), resource.getResourceTypeName());
-            elasticOperationsService.add(resource);
+            indexOperationsService.add(resource);
         }
     }
 }

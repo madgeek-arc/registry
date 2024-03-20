@@ -1,7 +1,7 @@
 package eu.openminted.registry.core.elasticsearch.listeners;
 
 import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
+import eu.openminted.registry.core.service.IndexOperationsService;
 import eu.openminted.registry.core.monitor.ResourceTypeListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,20 +12,20 @@ public class ElasticResourceTypeListener implements ResourceTypeListener {
 
 	private Logger logger = LoggerFactory.getLogger(ElasticResourceTypeListener.class);
 
-	private final ElasticOperationsService elasticOperationsService;
+	private final IndexOperationsService indexOperationsService;
 
-	public ElasticResourceTypeListener(ElasticOperationsService elasticOperationsService) {
-		this.elasticOperationsService = elasticOperationsService;
+	public ElasticResourceTypeListener(IndexOperationsService indexOperationsService) {
+		this.indexOperationsService = indexOperationsService;
 	}
 
 	@Override
 	public void resourceTypeAdded(ResourceType resourceType) {
-		elasticOperationsService.createIndex(resourceType);
+		indexOperationsService.createIndex(resourceType);
 	}
 
 	@Override
 	public void resourceTypeDelete(String name) {
-		elasticOperationsService.deleteIndex(name);
+		indexOperationsService.deleteIndex(name);
 	}
 
 }

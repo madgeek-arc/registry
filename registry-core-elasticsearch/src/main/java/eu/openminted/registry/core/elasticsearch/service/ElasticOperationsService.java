@@ -4,6 +4,7 @@ import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.domain.index.IndexedField;
+import eu.openminted.registry.core.service.IndexOperationsService;
 import eu.openminted.registry.core.service.ResourceTypeService;
 import eu.openminted.registry.core.service.ServiceException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
@@ -25,18 +26,21 @@ import org.elasticsearch.xcontent.XContentType;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Primary;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Service("elasticOperationsService")
+@Service
 @Transactional
-public class ElasticOperationsService {
+@Primary
+public class ElasticOperationsService implements IndexOperationsService {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticOperationsService.class);
 
@@ -54,6 +58,11 @@ public class ElasticOperationsService {
         unmodifiableMap.put("java.lang.String", "keyword");
         unmodifiableMap.put("java.util.Date", "date");
         FIELD_TYPES_MAP = Collections.unmodifiableMap(unmodifiableMap);
+    }
+
+    @PostConstruct
+    void test() {
+        logger.info("test");
     }
 
     public ElasticOperationsService(ResourceTypeService resourceTypeService, RestHighLevelClient client) {

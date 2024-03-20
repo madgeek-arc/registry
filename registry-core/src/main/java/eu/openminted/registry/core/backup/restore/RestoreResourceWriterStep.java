@@ -4,7 +4,7 @@ import eu.openminted.registry.core.dao.ResourceDao;
 import eu.openminted.registry.core.dao.VersionDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
-import eu.openminted.registry.core.elasticsearch.service.ElasticOperationsService;
+import eu.openminted.registry.core.index.NoopIndexOperationsService;
 import eu.openminted.registry.core.service.ResourceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,17 +34,17 @@ public class RestoreResourceWriterStep implements ItemWriter<Resource>, StepExec
 
     private VersionDao versionDao;
 
-    private ElasticOperationsService elasticOperationsService;
+    private NoopIndexOperationsService indexOperationsService;
 
     @Autowired
     public RestoreResourceWriterStep(ResourceService resourceService,
                                      ResourceDao resourceDao,
                                      VersionDao versionDao,
-                                     ElasticOperationsService elasticOperationsService) {
+                                     NoopIndexOperationsService indexOperationsService) {
         this.resourceService = resourceService;
         this.resourceDao = resourceDao;
         this.versionDao = versionDao;
-        this.elasticOperationsService = elasticOperationsService;
+        this.indexOperationsService = indexOperationsService;
     }
 
     @Override
@@ -78,7 +78,7 @@ public class RestoreResourceWriterStep implements ItemWriter<Resource>, StepExec
                 resources.add(addedResource);
 
             }
-            elasticOperationsService.addBulk(resources);
+            indexOperationsService.addBulk(resources);
         } catch (Exception e) {
             logger.info(e.getMessage(),e);
         }
