@@ -20,9 +20,27 @@
     <dependencies>
         <dependency>
             <groupId>eu.openminted</groupId>
-            <artifactId>registry-core-resource-sync</artifactId>
-            <version>${project.version}</version>
+            <artifactId>registry-core-api</artifactId>
         </dependency>
+
+        <!-- Spring -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+
         <dependency>
             <groupId>org.xbib</groupId>
             <artifactId>cql-elasticsearch</artifactId>
@@ -49,17 +67,7 @@
             <artifactId>transport</artifactId>
             <version>${elasticsearch.version}</version>
         </dependency>
-        <dependency>
-            <groupId>eu.openminted</groupId>
-            <artifactId>registry-core-api</artifactId>
-            <version>${project.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.elasticsearch</groupId>
-                    <artifactId>elasticsearch</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-client</artifactId>
@@ -79,11 +87,6 @@
             <groupId>com.jayway.jsonpath</groupId>
             <artifactId>json-path</artifactId>
             <version>2.9.0</version>
-        </dependency>
-        <dependency>
-            <groupId>javax.annotation</groupId>
-            <artifactId>javax.annotation-api</artifactId>
-            <version>1.3.2</version>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -140,16 +143,28 @@
             <artifactId>hsqldb</artifactId>
             <version>2.7.2</version>
         </dependency>
+
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-tx</artifactId>
-            <version>5.1.5.RELEASE</version>
-            <scope>compile</scope>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <version>7.7.3</version>
         </dependency>
         <dependency>
             <groupId>net.sf.saxon</groupId>
             <artifactId>Saxon-HE</artifactId>
             <version>10.2</version>
+        </dependency>
+
+        <!-- Test-->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
