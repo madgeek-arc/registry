@@ -22,16 +22,17 @@ public class VersionServiceImpl implements VersionService {
     @Value("${registry.base}")
     private String registryHost;
 
-    private List<Version> getListVersions(String url){
+    private List<Version> getListVersions(String url) {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<List<Version>> response = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
                 null,
-                new ParameterizedTypeReference<List<Version>>(){});
-        if(response.getStatusCode().is2xxSuccessful()){
+                new ParameterizedTypeReference<List<Version>>() {
+                });
+        if (response.getStatusCode().is2xxSuccessful()) {
             return response.getBody();
-        }else{
+        } else {
             return new ArrayList<>();
         }
     }
@@ -41,27 +42,27 @@ public class VersionServiceImpl implements VersionService {
     public Version getVersion(String resource_id, String version) {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<Version> response = restTemplate.
-                getForEntity(registryHost+"/version/whatever/"+resource_id+"/"+version, Version.class);
-        if(response.getStatusCode().is2xxSuccessful()){
+                getForEntity(registryHost + "/version/whatever/" + resource_id + "/" + version, Version.class);
+        if (response.getStatusCode().is2xxSuccessful()) {
             return response.getBody();
-        }else{
+        } else {
             return null;
         }
     }
 
     @Override
     public List<Version> getVersionsByResource(String resource_id) {
-        return getListVersions(registryHost+"/version/whatever/"+resource_id);
+        return getListVersions(registryHost + "/version/whatever/" + resource_id);
     }
 
     @Override
     public List<Version> getVersionsByResourceType(String resourceType_name) {
-        return getListVersions(registryHost+"/version/"+resourceType_name);
+        return getListVersions(registryHost + "/version/" + resourceType_name);
     }
 
     @Override
     public List<Version> getAllVersions() {
-        return getListVersions(registryHost+"/version");
+        return getListVersions(registryHost + "/version");
     }
 
 }

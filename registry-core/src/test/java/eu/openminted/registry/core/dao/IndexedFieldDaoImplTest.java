@@ -37,7 +37,7 @@ public class IndexedFieldDaoImplTest {
 
 
     @Before
-    public void initialize(){
+    public void initialize() {
         testingResource = resourceDao.getResource("e98db949-f3e3-4d30-9894-7dd2e291fbef");
     }
 
@@ -45,21 +45,20 @@ public class IndexedFieldDaoImplTest {
     @Test
     public void getIndexedFields_OK() {
         List<IndexedField> indexedFields = indexedFieldDao.getIndexedFieldsOfResource(testingResource);
-        Assert.assertEquals(indexedFields.size(),6);
+        Assert.assertEquals(indexedFields.size(), 6);
     }
 
     @Test
     public void getIndexedFields_NONE() {
         List<IndexedField> indexedFields = indexedFieldDao.getIndexedFieldsOfResource(resourceDao.getResource("e98db949-f3e3-4d30-9894-7dd2e291fbeg"));
-        Assert.assertNotEquals(indexedFields.size(),6);
+        Assert.assertNotEquals(indexedFields.size(), 6);
     }
 
     @Test
     public void deleteIndexedField_OK() {
         indexedFieldDao.deleteAllIndexedFields(testingResource);
-        Assert.assertEquals(indexedFieldDao.getIndexedFieldsOfResource(testingResource).size(),0);
+        Assert.assertEquals(indexedFieldDao.getIndexedFieldsOfResource(testingResource).size(), 0);
     }
-
 
 
 }

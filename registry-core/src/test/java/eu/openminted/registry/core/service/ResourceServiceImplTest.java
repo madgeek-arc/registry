@@ -4,7 +4,6 @@ import configuration.MockDatabaseConfiguration;
 import eu.openminted.registry.core.dao.ResourceTypeDao;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.domain.ResourceType;
-import org.hsqldb.HsqlException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,7 +36,7 @@ public class ResourceServiceImplTest {
     private ResourceType testingResourceType;
 
     @Before
-    public void initialize(){
+    public void initialize() {
         testingResource = resourceService.getResource("e98db949-f3e3-4d30-9894-7dd2e291fbef");
         testingResourceType = resourceTypeDao.getResourceType("employee");
     }
@@ -45,46 +44,47 @@ public class ResourceServiceImplTest {
     @Test
     public void getResource_OK() {
         Resource resource = resourceService.getResource("e98db949-f3e3-4d30-9894-7dd2e291fbef");
-        Assert.assertEquals(resource,testingResource);
+        Assert.assertEquals(resource, testingResource);
     }
 
     @Test
     public void getResource_WRONG_ID() {
         Resource resource = resourceService.getResource("f98db949-f3e3-4d30-9894-7dd2e291fbef");
-        Assert.assertNotEquals(resource,testingResource);
+        Assert.assertNotEquals(resource, testingResource);
     }
 
     @Test
     public void getResourceByResourceType_OK() {
-        Assert.assertNotEquals(resourceService.getResource(testingResourceType).size(),0);
+        Assert.assertNotEquals(resourceService.getResource(testingResourceType).size(), 0);
     }
 
     @Test
     public void getResourceByResourceType_NO_RESOURCETYPE_FOUND() {
-        Assert.assertEquals(resourceService.getResource(resourceTypeDao.getResourceType("event")).size(),0);
+        Assert.assertEquals(resourceService.getResource(resourceTypeDao.getResourceType("event")).size(), 0);
     }
 
     @Test
     public void getResourceByResourceTypeFromTo_OK() {
-        Assert.assertNotEquals(resourceService.getResource(testingResourceType,0,10).size(),0);
+        Assert.assertNotEquals(resourceService.getResource(testingResourceType, 0, 10).size(), 0);
     }
 
     @Test
     public void getResourceByResourceTypeFromTo_OUT_OF_RANGE() {
-        Assert.assertEquals(resourceService.getResource(testingResourceType,2,10).size(),0);
+        Assert.assertEquals(resourceService.getResource(testingResourceType, 2, 10).size(), 0);
     }
 
     @Test
     public void getResourcesFromTo_OK() {
-        Assert.assertNotEquals(resourceService.getResource(0,10).size(),0);
+        Assert.assertNotEquals(resourceService.getResource(0, 10).size(), 0);
     }
 
     @Test
     public void getResourcesFromTo_OUT_OF_RANGE() {
-        Assert.assertEquals(resourceService.getResource(2,10).size(),0);
+        Assert.assertEquals(resourceService.getResource(2, 10).size(), 0);
     }
 
-    @Test(expected = ServiceException.class) // TODO: remove expected exception when IndexedFields values column is renamed
+    @Test(expected = ServiceException.class)
+    // TODO: remove expected exception when IndexedFields values column is renamed
     public void addResource_OK() {
 
         Resource resource = new Resource();
@@ -102,7 +102,7 @@ public class ResourceServiceImplTest {
 
         resourceService.addResource(resource);
 
-        Assert.assertEquals(resourceService.getResource().size(),2);
+        Assert.assertEquals(resourceService.getResource().size(), 2);
     }
 
     @Test(expected = ServiceException.class)
@@ -137,7 +137,7 @@ public class ResourceServiceImplTest {
 
         Resource resource = resourceService.getResource("e98db949-f3e3-4d30-9894-7dd2e291fbef");
 
-        Assert.assertEquals(resource,testingResource);
+        Assert.assertEquals(resource, testingResource);
 
     }
 
@@ -151,7 +151,7 @@ public class ResourceServiceImplTest {
     @Test
     public void deleteResource() {
         resourceService.deleteResource("e98db949-f3e3-4d30-9894-7dd2e291fbef");
-        Assert.assertEquals(resourceService.getResource().size(),0);
+        Assert.assertEquals(resourceService.getResource().size(), 0);
     }
 
 }

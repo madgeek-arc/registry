@@ -12,8 +12,7 @@ import java.text.SimpleDateFormat;
 /**
  * @author Richard Jones
  */
-public class ResourceSync
-{
+public class ResourceSync {
     // namespaces
     public static Namespace NS_SITEMAP = Namespace.getNamespace("sm", "http://www.sitemaps.org/schemas/sitemap/0.9");
     public static Namespace NS_RS = Namespace.getNamespace("rs", "http://www.openarchives.org/rs/terms/");

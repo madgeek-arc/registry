@@ -14,8 +14,8 @@ public interface ParserService {
     String serialize(Object resource, ParserServiceTypes mediaType);
 
     enum ParserServiceTypes {
-        JSON  ("json"),
-        XML   ("xml");
+        JSON("json"),
+        XML("xml");
 
         private final String type;
 
@@ -23,15 +23,15 @@ public interface ParserService {
             this.type = type;
         }
 
-        public String getKey() {
-            return type;
-        }
-
         public static ParserServiceTypes fromString(String s) throws IllegalArgumentException {
             return Arrays.stream(ParserServiceTypes.values())
                     .filter(v -> v.type.equalsIgnoreCase(s))
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("unknown value: " + s));
+        }
+
+        public String getKey() {
+            return type;
         }
     }
 }

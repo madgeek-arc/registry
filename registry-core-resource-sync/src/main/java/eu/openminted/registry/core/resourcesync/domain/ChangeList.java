@@ -10,43 +10,35 @@ import java.util.Date;
 /**
  * @author Richard Jones
  */
-public class ChangeList extends UrlSet
-{
-	
+public class ChangeList extends UrlSet {
 
-    public ChangeList()
-    {
+
+    public ChangeList() {
         this(null, null, null, null);
     }
 
-    public ChangeList(Date from, Date until)
-    {
+    public ChangeList(Date from, Date until) {
         this(from, until, null, null);
     }
 
-    public ChangeList(String capabilityList)
-    {
+    public ChangeList(String capabilityList) {
         this(null, null, capabilityList, null);
     }
 
-    public ChangeList(Date from, Date until, String capabilityList)
-    {
+    public ChangeList(Date from, Date until, String capabilityList) {
         this(from, until, capabilityList, null);
     }
 
-    public ChangeList(Date from, Date until, String capabilityList, String changeListArchive)
-    {
+    public ChangeList(Date from, Date until, String capabilityList, String changeListArchive) {
         super(ResourceSync.CAPABILITY_CHANGELIST);
         this.setFromUntil(from, until);
 
-        if (capabilityList != null)
-        {
+        if (capabilityList != null) {
             this.addLn(ResourceSync.REL_UP, capabilityList);
         }
     }
 
-    public void inChangeListArchive(String changeListArchive)
-    {
+    public void inChangeListArchive(String changeListArchive) {
         // FIXME: this currently doesn't do anything .. we need to resolve
         // how to link from a change list to a changelist archive
         //
@@ -56,30 +48,22 @@ public class ChangeList extends UrlSet
         // this.addLn(ResourceSync.REL_UP, changeListArchive);
     }
 
-    public void addChange(URL change)
-    {
-        if (this.getFrom() == null)
-        {
+    public void addChange(URL change) {
+        if (this.getFrom() == null) {
             this.setFrom(change.getLastModified());
-        }
-        else if (change.getLastModified().getTime() < this.getFrom().getTime())
-        {
+        } else if (change.getLastModified().getTime() < this.getFrom().getTime()) {
             this.setFrom(change.getLastModified());
         }
 
-        if (this.getUntil() == null)
-        {
+        if (this.getUntil() == null) {
             this.setUntil(change.getLastModified());
-        }
-        else if (change.getLastModified().getTime() > this.getUntil().getTime())
-        {
+        } else if (change.getLastModified().getTime() > this.getUntil().getTime()) {
             this.setUntil(change.getLastModified());
         }
         this.addUrl(change);
     }
 
-    public URL addChange(String loc, Date lastMod, String change)
-    {
+    public URL addChange(String loc, Date lastMod, String change) {
         URL url = new URL();
         url.setLoc(loc);
         url.setLastModified(lastMod);

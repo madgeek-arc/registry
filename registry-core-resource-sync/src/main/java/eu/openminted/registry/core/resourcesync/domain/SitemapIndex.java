@@ -14,38 +14,31 @@ import java.util.List;
 /**
  * @author Richard Jones
  */
-public class SitemapIndex extends ResourceSyncDocument
-{
-    public SitemapIndex(String capability)
-    {
+public class SitemapIndex extends ResourceSyncDocument {
+    public SitemapIndex(String capability) {
         super("sitemapindex", capability, null);
     }
 
-    public SitemapIndex(String capability, InputStream in)
-    {
+    public SitemapIndex(String capability, InputStream in) {
         super("sitemapindex", capability, in);
     }
 
     @Override
     protected void populateEntries(Element element)
-            throws ParseException
-    {
+            throws ParseException {
         List<Element> sitemaps = element.getChildren("sitemap", ResourceSync.NS_SITEMAP);
-        for (Element sitemap : sitemaps)
-        {
+        for (Element sitemap : sitemaps) {
             Sitemap sm = new Sitemap();
             sm.populateObject(sitemap);
             this.addSitemap(sm);
         }
     }
 
-    public void addSitemap(Sitemap sitemap)
-    {
+    public void addSitemap(Sitemap sitemap) {
         this.addEntry(sitemap);
     }
 
-    public List<ResourceSyncEntry> getSitemaps()
-    {
+    public List<ResourceSyncEntry> getSitemaps() {
         return this.getEntries();
     }
 }

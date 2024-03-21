@@ -14,71 +14,71 @@ import java.util.Set;
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
 public abstract class IndexedField<T extends Object> implements Serializable {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	private Integer id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer id;
 
-	@ManyToOne(fetch = FetchType.EAGER)
-	@JsonIgnore
-	private Resource resource;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JsonIgnore
+    private Resource resource;
 
-	@Column
-	private String name;
+    @Column
+    private String name;
 
-	public IndexedField() {
-	}
+    public IndexedField() {
+    }
 
-	public IndexedField(String name, Set<T> values) {
-		setName(name);
-		setValues(values);
-	}
+    public IndexedField(String name, Set<T> values) {
+        setName(name);
+        setValues(values);
+    }
 
-	public abstract Set<T> getValues();
+    public abstract Set<T> getValues();
 
-	public abstract void setValues(Set<T> value);
+    public abstract void setValues(Set<T> value);
 
-	public String getName() {
-		return name;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public Resource getResource() {
-		return resource;
-	}
+    public Resource getResource() {
+        return resource;
+    }
 
-	public void setResource(Resource resource) {
-		this.resource = resource;
-	}
+    public void setResource(Resource resource) {
+        this.resource = resource;
+    }
 
-	public Integer getId() {
-		return id;
-	}
+    public Integer getId() {
+        return id;
+    }
 
-	public void setId(Integer id) {
-		this.id = id;
-	}
+    public void setId(Integer id) {
+        this.id = id;
+    }
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
 
-		IndexedField<?> that = (IndexedField<?>) o;
+        IndexedField<?> that = (IndexedField<?>) o;
 
-		if (resource != null ? !resource.equals(that.resource) : that.resource != null) return false;
-		if (name != null ? !name.equals(that.name) : that.name != null) return false;
-		return getValues() != null ? getValues().equals(this.getValues()) : that.getValues() == null;
+        if (resource != null ? !resource.equals(that.resource) : that.resource != null) return false;
+        if (name != null ? !name.equals(that.name) : that.name != null) return false;
+        return getValues() != null ? getValues().equals(this.getValues()) : that.getValues() == null;
 
-	}
+    }
 
-	@Override
-	public int hashCode() {
-		int result = resource != null ? resource.hashCode() : 0;
-		result = 31 * result + (name != null ? name.hashCode() : 0);
-		result = 31 * result + (getValues() != null ? getValues().hashCode() : 0);
-		return result;
-	}
+    @Override
+    public int hashCode() {
+        int result = resource != null ? resource.hashCode() : 0;
+        result = 31 * result + (name != null ? name.hashCode() : 0);
+        result = 31 * result + (getValues() != null ? getValues().hashCode() : 0);
+        return result;
+    }
 }

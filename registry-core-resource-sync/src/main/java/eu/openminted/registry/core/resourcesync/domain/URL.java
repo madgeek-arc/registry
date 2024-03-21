@@ -4,13 +4,12 @@
  * tree
  */
 package eu.openminted.registry.core.resourcesync.domain;
+
 /**
  * @author Richard Jones
  */
-public class URL extends ResourceSyncEntry
-{
-    public URL()
-    {
+public class URL extends ResourceSyncEntry {
+    public URL() {
         this.root = "url";
     }
 }

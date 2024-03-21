@@ -49,8 +49,8 @@ public class BackupConfig {
     Callable<TaskExecutor> threadPoolExecutor(@Value("#{jobParameters['resourceType']}") String resourceType) {
         return () -> {
             ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-            executor.setCorePoolSize(2* Runtime.getRuntime().availableProcessors()-1);
-            executor.setMaxPoolSize(2* Runtime.getRuntime().availableProcessors()-1);
+            executor.setCorePoolSize(2 * Runtime.getRuntime().availableProcessors() - 1);
+            executor.setMaxPoolSize(2 * Runtime.getRuntime().availableProcessors() - 1);
             executor.setThreadNamePrefix(resourceType + "_job_pool_");
             executor.initialize();
             return executor;
@@ -65,7 +65,7 @@ public class BackupConfig {
             Callable<TaskExecutor> threadPoolExecutor
     ) throws Exception {
         return steps.get("resourcesChunkStep")
-                .<Resource,Resource>chunk(chunkSize)
+                .<Resource, Resource>chunk(chunkSize)
                 .reader(reader)
                 .writer(writer)
                 .faultTolerant()
@@ -78,7 +78,7 @@ public class BackupConfig {
     @Transactional
     Step resourcesDumpStep(DumpResourceReader reader, DumpResourceWriterStep writer) {
         return steps.get("resourcesDumpChunkStep")
-                .<Resource,Resource>chunk(chunkSize)
+                .<Resource, Resource>chunk(chunkSize)
                 .reader(reader).faultTolerant()
                 .retryPolicy(new AlwaysRetryPolicy())
                 .writer(writer)
@@ -101,7 +101,7 @@ public class BackupConfig {
                       Callable<TaskExecutor> threadPoolExecutor
     ) throws Exception {
         return steps.get("resourcePartitioner")
-                .partitioner("resourcePartitioner",resourcePartitioner)
+                .partitioner("resourcePartitioner", resourcePartitioner)
                 .step(resourcesDumpStep)
                 .taskExecutor(threadPoolExecutor.call())
                 .build();
@@ -123,7 +123,6 @@ public class BackupConfig {
                 .next(resourcesStep)
                 .build();
     }
-
 
 
     @Bean

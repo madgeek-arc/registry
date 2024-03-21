@@ -19,6 +19,14 @@ public class SchemaInput implements LSInput {
     private String systemId;
 
     private String baseUri;
+    private BufferedInputStream inputStream;
+
+    public SchemaInput(String publicId, String sysId, InputStream input, String baseUri) {
+        this.publicId = publicId;
+        this.systemId = sysId;
+        this.inputStream = new BufferedInputStream(input);
+        this.baseUri = baseUri;
+    }
 
     public String getPublicId() {
         return publicId;
@@ -32,20 +40,36 @@ public class SchemaInput implements LSInput {
         return baseUri;
     }
 
+    public void setBaseURI(String baseURI) {
+        this.baseUri = baseURI;
+    }
+
     public InputStream getByteStream() {
         return null;
+    }
+
+    public void setByteStream(InputStream byteStream) {
     }
 
     public boolean getCertifiedText() {
         return false;
     }
 
+    public void setCertifiedText(boolean certifiedText) {
+    }
+
     public Reader getCharacterStream() {
         return null;
     }
 
+    public void setCharacterStream(Reader characterStream) {
+    }
+
     public String getEncoding() {
         return null;
+    }
+
+    public void setEncoding(String encoding) {
     }
 
     public String getStringData() {
@@ -61,22 +85,6 @@ public class SchemaInput implements LSInput {
                 return null;
             }
         }
-    }
-
-    public void setBaseURI(String baseURI) {
-        this.baseUri = baseURI;
-    }
-
-    public void setByteStream(InputStream byteStream) {
-    }
-
-    public void setCertifiedText(boolean certifiedText) {
-    }
-
-    public void setCharacterStream(Reader characterStream) {
-    }
-
-    public void setEncoding(String encoding) {
     }
 
     public void setStringData(String stringData) {
@@ -96,15 +104,6 @@ public class SchemaInput implements LSInput {
 
     public void setInputStream(BufferedInputStream inputStream) {
         this.inputStream = inputStream;
-    }
-
-    private BufferedInputStream inputStream;
-
-    public SchemaInput (String publicId, String sysId, InputStream input, String baseUri) {
-        this.publicId = publicId;
-        this.systemId = sysId;
-        this.inputStream = new BufferedInputStream(input);
-        this.baseUri = baseUri;
     }
 }
 

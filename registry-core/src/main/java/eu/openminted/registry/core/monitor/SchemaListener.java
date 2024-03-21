@@ -19,7 +19,7 @@ public class SchemaListener implements ResourceTypeListener {
 
     @Override
     public void resourceTypeAdded(ResourceType resourceType) {
-            //do-nothing
+        //do-nothing
     }
 
     @Override

@@ -43,9 +43,9 @@ public class DumpResourceWriterStep implements ItemWriter<Resource>, StepExecuti
 
     @Override
     public void write(List<? extends Resource> items) throws Exception {
-        for(Resource resource : items) {
+        for (Resource resource : items) {
             storeResource(resource);
-            if(versions) {
+            if (versions) {
                 storeVersions(resource);
             }
         }
@@ -57,9 +57,9 @@ public class DumpResourceWriterStep implements ItemWriter<Resource>, StepExecuti
         raw = Boolean.parseBoolean(stepExecution.getJobExecution().getJobParameters().getString("raw"));
         versions = Boolean.parseBoolean(stepExecution.getJobExecution().getJobParameters().getString("versions"));
         String directory = stepExecution.getJobExecution().getExecutionContext().getString("directory");
-        resourceTypeDirectory = Paths.get(directory,resourceTypeName);
+        resourceTypeDirectory = Paths.get(directory, resourceTypeName);
         objectMapper = new ObjectMapper().configure(MapperFeature.USE_ANNOTATIONS, true);
-        objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS,false);
+        objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
     }
 
     @Override
@@ -85,14 +85,14 @@ public class DumpResourceWriterStep implements ItemWriter<Resource>, StepExecuti
     }
 
     private void storeVersions(Resource resource) throws IOException {
-        if(resource.getVersions() == null || resource.getVersions().isEmpty())
+        if (resource.getVersions() == null || resource.getVersions().isEmpty())
             return;
         File versionDir = new File(resourceTypeDirectory + "/" + resource.getId() + "-version");
         if (!versionDir.exists()) {
             Files.createDirectory(versionDir.toPath(), PERMISSIONS);
         }
         for (Version version : resource.getVersions()) {
-            File openFileVersion = new File(versionDir,version.getId() + ".json");
+            File openFileVersion = new File(versionDir, version.getId() + ".json");
             Path filePathVersion = Files.createFile(openFileVersion.toPath(), PERMISSIONS);
             FileWriter fileVersion = new FileWriter(filePathVersion.toFile());
             fileVersion.write(objectMapper.writeValueAsString(version));

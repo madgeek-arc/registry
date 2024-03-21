@@ -6,13 +6,13 @@ import java.util.List;
 
 public interface VersionService {
 
-	Version getVersion(String resource_id, String version);
+    Version getVersion(String resource_id, String version);
 
-	List<Version> getVersionsByResource(String resource_id);
+    List<Version> getVersionsByResource(String resource_id);
 
-	List<Version> getVersionsByResourceType(String resourceType_name);
+    List<Version> getVersionsByResourceType(String resourceType_name);
 
-	List<Version> getAllVersions();
+    List<Version> getAllVersions();
 
 }
 

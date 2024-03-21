@@ -7,5 +7,5 @@ import java.util.Map;
 
 public interface RestoreService {
 
-	Map<String,BatchResult> restoreDataFromZip(MultipartFile file);
+    Map<String, BatchResult> restoreDataFromZip(MultipartFile file);
 }

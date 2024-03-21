@@ -19,68 +19,68 @@ import java.util.stream.Collectors;
 @RestController
 public class VersionController {
 
-	@Autowired
-	VersionService versionService;
+    @Autowired
+    VersionService versionService;
 
-	@Autowired
-	ResourceTypeService resourceTypeService;
+    @Autowired
+    ResourceTypeService resourceTypeService;
 
-	@Autowired
-	ResourceService resourceService;
+    @Autowired
+    ResourceService resourceService;
 
-	@RequestMapping(value = "/version/{resourceType}", method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity<List<Version>> getVersionsByResourceType(@PathVariable("resourceType") String resourceType) {
+    @RequestMapping(value = "/version/{resourceType}", method = RequestMethod.GET, headers = "Accept=application/json")
+    public ResponseEntity<List<Version>> getVersionsByResourceType(@PathVariable("resourceType") String resourceType) {
 
-	   	List<Version> versions = versionService.getVersionsByResourceType(resourceType);
+        List<Version> versions = versionService.getVersionsByResourceType(resourceType);
 
-	   	if(versions==null || versions.isEmpty()){
-			throw new VersionNotFoundException();
-	   	}else{
-	   		return new ResponseEntity<>(versions, HttpStatus.OK);
-	   	}
+        if (versions == null || versions.isEmpty()) {
+            throw new VersionNotFoundException();
+        } else {
+            return new ResponseEntity<>(versions, HttpStatus.OK);
+        }
 
-	}
+    }
 
-	@RequestMapping(value = "/version/{resourceType}/{resource}", method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity<List<Version>> getVersionsByResource(@PathVariable("resourceType") String resourceType,
-															   @PathVariable("resource") String resource) {
-		List<Version> versions = versionService.getVersionsByResource(resource);
-		versions.stream().filter(v -> v.getVersion()=="1").collect(Collectors.toList());
+    @RequestMapping(value = "/version/{resourceType}/{resource}", method = RequestMethod.GET, headers = "Accept=application/json")
+    public ResponseEntity<List<Version>> getVersionsByResource(@PathVariable("resourceType") String resourceType,
+                                                               @PathVariable("resource") String resource) {
+        List<Version> versions = versionService.getVersionsByResource(resource);
+        versions.stream().filter(v -> v.getVersion() == "1").collect(Collectors.toList());
 
-		if(versions==null || versions.isEmpty()){
-			throw new VersionNotFoundException();
-		}else{
-			return new ResponseEntity<>(versions, HttpStatus.OK);
-		}
+        if (versions == null || versions.isEmpty()) {
+            throw new VersionNotFoundException();
+        } else {
+            return new ResponseEntity<>(versions, HttpStatus.OK);
+        }
 
-	}
+    }
 
-	@RequestMapping(value = "/version/{resourceType}/{resource}/{version}", method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity<Version> getVersion(@PathVariable("resourceType") String resourceType,
-											  @PathVariable("resource") String resource,
-											  @PathVariable("version") String versionNumber) {
+    @RequestMapping(value = "/version/{resourceType}/{resource}/{version}", method = RequestMethod.GET, headers = "Accept=application/json")
+    public ResponseEntity<Version> getVersion(@PathVariable("resourceType") String resourceType,
+                                              @PathVariable("resource") String resource,
+                                              @PathVariable("version") String versionNumber) {
 
-		Version version = versionService.getVersion(resource,versionNumber);
+        Version version = versionService.getVersion(resource, versionNumber);
 
-		if(version==null){
-			throw new VersionNotFoundException();
-		}else{
-			return new ResponseEntity<>(version, HttpStatus.OK);
-		}
+        if (version == null) {
+            throw new VersionNotFoundException();
+        } else {
+            return new ResponseEntity<>(version, HttpStatus.OK);
+        }
 
-	}
+    }
 
-	@RequestMapping(value = "/version", method = RequestMethod.GET, headers = "Accept=application/json")
-	public ResponseEntity<List<Version>> getVersions() {
+    @RequestMapping(value = "/version", method = RequestMethod.GET, headers = "Accept=application/json")
+    public ResponseEntity<List<Version>> getVersions() {
 
-		List<Version> versions = versionService.getAllVersions();
+        List<Version> versions = versionService.getAllVersions();
 
-		if(versions==null || versions.isEmpty()){
-			throw new VersionNotFoundException();
-		}else{
-			return new ResponseEntity<>(versions, HttpStatus.OK);
-		}
+        if (versions == null || versions.isEmpty()) {
+            throw new VersionNotFoundException();
+        } else {
+            return new ResponseEntity<>(versions, HttpStatus.OK);
+        }
 
-	}
+    }
 
 }

@@ -6,7 +6,6 @@ import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Service;
@@ -35,16 +34,16 @@ public class VersionServiceImpl implements VersionService {
     @Override
     public Version getVersion(String resource_id, String version) {
         Resource resource = resourceService.getResource(resource_id);
-        if(resource == null)
+        if (resource == null)
             return null;
         else
-            return versionDao.getVersion(resource,version);
+            return versionDao.getVersion(resource, version);
     }
 
     @Override
     public List<Version> getVersionsByResource(String resource_id) {
         Resource resource = resourceService.getResource(resource_id);
-        if(resource==null)
+        if (resource == null)
             return null;
         else
             return versionDao.getVersionsByResource(resource);
@@ -53,7 +52,7 @@ public class VersionServiceImpl implements VersionService {
     @Override
     public List<Version> getVersionsByResourceType(String resourceType_name) {
         ResourceType resourceType = resourceTypeService.getResourceType(resourceType_name);
-        if(resourceType==null)
+        if (resourceType == null)
             return null;
         else
             return versionDao.getVersionsByResourceType(resourceType);

@@ -47,6 +47,15 @@ public class RestoreResourceTypeStep implements Tasklet, StepExecutionListener {
         resourceTypeExists = false;
     }
 
+    private static ResourceType readResourceType(File file) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.readValue(FileUtils
+                        .readFileToString(file)
+                        .replaceAll("^\t$", "")
+                        .replaceAll("^\n$", "")
+                , ResourceType.class);
+    }
+
     @Override
     public void beforeStep(StepExecution stepExecution) {
         String resourceTypeDir = stepExecution.getJobExecution().getJobParameters().getString("resourceTypeDir");
@@ -59,15 +68,15 @@ public class RestoreResourceTypeStep implements Tasklet, StepExecutionListener {
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
         ResourceType resourceType = existingResourceType.orElse(null);
-        if(resourceType == null) {
+        if (resourceType == null) {
             return ExitStatus.FAILED;
         }
         Optional<File[]> resources = Optional.ofNullable(
                 resourceTypeDirFile.listFiles(f -> !f.getName().equalsIgnoreCase("schema.json") && !f.isDirectory())
         );
         stepExecution.getJobExecution().getExecutionContext().put("resources", resources.orElse(new File[]{}));
-        stepExecution.getJobExecution().getExecutionContext().put("resourceType",resourceType);
-        if(schemaFile.exists())
+        stepExecution.getJobExecution().getExecutionContext().put("resourceType", resourceType);
+        if (schemaFile.exists())
             return ExitStatus.COMPLETED;
         else
             return ExitStatus.NOOP;
@@ -82,25 +91,16 @@ public class RestoreResourceTypeStep implements Tasklet, StepExecutionListener {
                 resourceTypeService.deleteResourceType(r.getName());
             });
             logger.info("Adding resource type " + resourceType.getName());
-            if("not_set".equals(resourceType.getSchemaUrl())) {
+            if ("not_set".equals(resourceType.getSchemaUrl())) {
                 resourceType.setSchemaUrl(null);
             }
             if (!StringUtils.isEmpty(resourceType.getSchemaUrl()))
                 resourceType.setSchema(null);
             existingResourceType = Optional.of(resourceTypeService.addResourceType(resourceType));
         }
-        String name = existingResourceType.orElseThrow(()->new ServiceException("Resource Type not provided")).getName();
+        String name = existingResourceType.orElseThrow(() -> new ServiceException("Resource Type not provided")).getName();
         logger.info("Resource type " + name + " added");
         return RepeatStatus.FINISHED;
-    }
-
-    private static ResourceType readResourceType(File file) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        return mapper.readValue(FileUtils
-                        .readFileToString(file)
-                        .replaceAll("^\t$", "")
-                        .replaceAll("^\n$", "")
-                , ResourceType.class);
     }
 
 }

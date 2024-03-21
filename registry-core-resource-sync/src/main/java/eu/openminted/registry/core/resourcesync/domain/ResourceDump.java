@@ -11,31 +11,25 @@ import java.util.Date;
 /**
  * @author Richard Jones
  */
-public class ResourceDump extends UrlSet
-{
+public class ResourceDump extends UrlSet {
 
-    public ResourceDump(Date from, String resourceSync)
-    {
+    public ResourceDump(Date from, String resourceSync) {
         super(ResourceSync.CAPABILITY_RESOURCEDUMP);
         this.setFrom(from);
-        if (resourceSync != null)
-        {
+        if (resourceSync != null) {
             this.addLn(ResourceSync.REL_UP, resourceSync);
         }
     }
 
-    public ResourceDump()
-    {
+    public ResourceDump() {
         this(new Date(), null);
     }
 
-    public void addResourceZip(URL zip)
-    {
+    public void addResourceZip(URL zip) {
         this.addUrl(zip);
     }
 
-    public URL addResourceZip(String zipUrl, Date lastMod, String type, long length)
-    {
+    public URL addResourceZip(String zipUrl, Date lastMod, String type, long length) {
         URL url = new URL();
         url.setLoc(zipUrl);
         url.setLastModified(lastMod);
@@ -44,8 +38,8 @@ public class ResourceDump extends UrlSet
         this.addResourceZip(url);
         return url;
     }
-    public URL addResourceZip(String zipUrl, Date lastMod, String type)
-    {
+
+    public URL addResourceZip(String zipUrl, Date lastMod, String type) {
         URL url = new URL();
         url.setLoc(zipUrl);
         url.setLastModified(lastMod);

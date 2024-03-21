@@ -10,31 +10,25 @@ import java.util.Date;
 /**
  * @author Richard Jones
  */
-public class ChangeDump extends UrlSet
-{
+public class ChangeDump extends UrlSet {
 
-    public ChangeDump(Date from, String resourceSync)
-    {
+    public ChangeDump(Date from, String resourceSync) {
         super(ResourceSync.CAPABILITY_CHANGEDUMP);
         this.setFrom(from);
-        if (resourceSync != null)
-        {
+        if (resourceSync != null) {
             this.addLn(ResourceSync.CAPABILITY_RESOURCESYNC, resourceSync);
         }
     }
 
-    public ChangeDump()
-    {
+    public ChangeDump() {
         this(new Date(), null);
     }
 
-    public void addResourceZip(URL zip)
-    {
+    public void addResourceZip(URL zip) {
         this.addUrl(zip);
     }
 
-    public URL addResourceZip(String zipUrl, Date lastMod, String type, long length)
-    {
+    public URL addResourceZip(String zipUrl, Date lastMod, String type, long length) {
         URL url = new URL();
         url.setLoc(zipUrl);
         url.setLastModified(lastMod);

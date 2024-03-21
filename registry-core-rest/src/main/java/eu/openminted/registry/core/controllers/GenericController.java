@@ -11,7 +11,6 @@ import eu.openminted.registry.core.service.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -35,15 +34,15 @@ public class GenericController {
     @ResponseBody
     ServerError handleBadRequest(HttpServletRequest req, Exception ex) {
         logger.info("Not Found", ex);
-        return new ServerError(req.getRequestURL().toString(),ex);
+        return new ServerError(req.getRequestURL().toString(), ex);
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(ServiceException.class)
     @ResponseBody
     ServerError handleServiceException(HttpServletRequest req, Exception ex) {
-        logger.info("service exception",ex);
-        return new ServerError(req.getRequestURL().toString(),ex);
+        logger.info("service exception", ex);
+        return new ServerError(req.getRequestURL().toString(), ex);
     }
 
 
@@ -52,6 +51,6 @@ public class GenericController {
     @ResponseBody
     ServerError defaultException(HttpServletRequest req, Exception ex) {
         logger.error("Default exception handler", ex);
-        return new ServerError(req.getRequestURL().toString(),ex);
+        return new ServerError(req.getRequestURL().toString(), ex);
     }
 }

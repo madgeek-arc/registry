@@ -18,29 +18,30 @@ import java.util.stream.Collectors;
 @Table
 public class StringIndexedField extends IndexedField<String> {
 
-	private static final Logger logger = LoggerFactory.getLogger(StringIndexedField.class);
+    private static final Logger logger = LoggerFactory.getLogger(StringIndexedField.class);
 
-	@Column(columnDefinition = "text"/*, name = "vals"*/) // TODO: change column name because "values" is a db reserved keyword.
+    @Column(columnDefinition = "text"/*, name = "vals"*/)
+    // TODO: change column name because "values" is a db reserved keyword.
 //	@CollectionTable(name="string_values", joinColumns=@JoinColumn(name="stringindexedfield_id"))
-	@ElementCollection
-	private Set<String> values;
+    @ElementCollection
+    private Set<String> values;
 
-	public StringIndexedField() {
-	}
+    public StringIndexedField() {
+    }
 
-	@Override
-	public Set<String> getValues() {
-		return values;
-	}
+    public StringIndexedField(String name, Set<Object> values) {
+        setName(name);
+        setValues(values.stream().map(x -> ((String) x)).collect(Collectors.toSet()));
+    }
 
-	@Override
-	public void setValues(Set<String> value) {
-		this.values = value;
-	}
+    @Override
+    public Set<String> getValues() {
+        return values;
+    }
 
-	public StringIndexedField(String name, Set<Object> values) {
-		setName(name);
-		setValues(values.stream().map(x -> ((String)x)).collect(Collectors.toSet()));
-	}
+    @Override
+    public void setValues(Set<String> value) {
+        this.values = value;
+    }
 
 }

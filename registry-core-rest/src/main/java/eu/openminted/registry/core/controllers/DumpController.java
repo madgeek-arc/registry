@@ -36,31 +36,30 @@ public class DumpController {
     }
 
 
-
     @RequestMapping(value = "/dump/", method = RequestMethod.GET)
     @ResponseBody
     public void dumpAll(
-                        @RequestParam(value="raw", required = false, defaultValue = "false") String raw,
-                        @RequestParam(value = "schema", required = false, defaultValue = "false") String schema,
-                        @RequestParam(value = "version", required = false, defaultValue = "false") String version,
-                        @RequestParam(value = "resourceTypes", required = false, defaultValue = "") String[] resourceTypes,
-                        HttpServletRequest request,
-                        HttpServletResponse response ) {
+            @RequestParam(value = "raw", required = false, defaultValue = "false") String raw,
+            @RequestParam(value = "schema", required = false, defaultValue = "false") String schema,
+            @RequestParam(value = "version", required = false, defaultValue = "false") String version,
+            @RequestParam(value = "resourceTypes", required = false, defaultValue = "") String[] resourceTypes,
+            HttpServletRequest request,
+            HttpServletResponse response) {
 
         ServletContext context = request.getServletContext();
         String appPath = context.getRealPath("");
 
         // construct the complete absolute path of the file
         boolean wantVersion = false;
-        if(version.equals("true"))
-            wantVersion=true;
+        if (version.equals("true"))
+            wantVersion = true;
 
         boolean isRaw = false;
-        if(raw.equals("true"))
-            isRaw=true;
+        if (raw.equals("true"))
+            isRaw = true;
 
         boolean wantSchema = false;
-        if(schema.equals("true"))
+        if (schema.equals("true"))
             wantSchema = true;
 
 

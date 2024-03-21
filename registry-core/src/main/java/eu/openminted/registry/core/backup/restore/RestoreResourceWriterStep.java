@@ -80,7 +80,7 @@ public class RestoreResourceWriterStep implements ItemWriter<Resource>, StepExec
             }
             indexOperationsService.addBulk(resources);
         } catch (Exception e) {
-            logger.info(e.getMessage(),e);
+            logger.info(e.getMessage(), e);
         }
     }
 }

@@ -53,8 +53,8 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
         this.resourceDao = resourceDao;
         this.indexMapperFactory = indexMapperFactory;
         this.mapper = new ObjectMapper();
-        this.mapper.configure(MapperFeature.USE_ANNOTATIONS,true);
-        this.mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS,false);
+        this.mapper.configure(MapperFeature.USE_ANNOTATIONS, true);
+        this.mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
     }
 
     @Override
@@ -89,7 +89,7 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
                 try {
                     resource = mapper.readValue(file, Resource.class);
                 } catch (Exception e) {
-                    logger.info("Exception",e);
+                    logger.info("Exception", e);
                 }
 
                 break;
@@ -107,17 +107,17 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
                 throw new UnexpectedInputException("Not A supported file transformation");
 
         }
-        if(resourceDao.getResource(resource.getId())!=null) {
+        if (resourceDao.getResource(resource.getId()) != null) {
             logger.debug("Skipping resource " + resource.getId() + " already exists");
             throw new ServiceException("Existing resource");
         }
         final Resource lambdaResource = resource;
         resource.setResourceType(resourceType);
         resource.setPayloadFormat(resourceType.getPayloadType());
-        resource.setIndexedFields(indexMapper.getValues(resource.getPayload(),resourceType));
-        resource.getIndexedFields().forEach(x->x.setResource(lambdaResource));
-        resource.setVersions(readResourceVersions(file,resource));
-        resource.getVersions().forEach(x->x.setResource(lambdaResource));
+        resource.setIndexedFields(indexMapper.getValues(resource.getPayload(), resourceType));
+        resource.getIndexedFields().forEach(x -> x.setResource(lambdaResource));
+        resource.setVersions(readResourceVersions(file, resource));
+        resource.getVersions().forEach(x -> x.setResource(lambdaResource));
         resource.setCreationDate(lambdaResource.getCreationDate());
         return resource;
     }
@@ -126,11 +126,11 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
         List<Version> ret = new ArrayList<>();
         String id = FilenameUtils.removeExtension(resourceDir.getName());
         File version = new File(FilenameUtils.removeExtension(resourceDir.getAbsolutePath()) + "-version");
-        if(version.exists() && version.isDirectory()) {
-            logger.debug(id + " " +version);
+        if (version.exists() && version.isDirectory()) {
+            logger.debug(id + " " + version);
             Optional<File[]> files = Optional.ofNullable(version.listFiles());
-            for(File f : files.orElse(new File[]{})) {
-                Version v = mapper.readValue(f,Version.class);
+            for (File f : files.orElse(new File[]{})) {
+                Version v = mapper.readValue(f, Version.class);
                 v.setResource(resource);
                 v.setResourceType(resourceType);
                 v.setVersion(UUID.randomUUID().toString());

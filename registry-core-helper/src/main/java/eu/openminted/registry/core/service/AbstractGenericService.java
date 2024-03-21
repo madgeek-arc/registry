@@ -22,27 +22,21 @@ import java.util.stream.Collectors;
 @Component
 public abstract class AbstractGenericService<T> {
 
+    private static final Logger logger = LoggerFactory.getLogger(AbstractGenericService.class);
+    protected final Class<T> typeParameterClass;
     @Autowired
     public SearchService searchService;
-
     @Autowired
     public ResourceService resourceService;
-
     @Autowired
     public ResourceTypeService resourceTypeService;
     @Autowired
     public ParserService parserPool;
-
     @Value("${elastic.index.max_result_window:10000}")
     protected int maxQuantity;
-
-    private static final Logger logger = LoggerFactory.getLogger(AbstractGenericService.class);
-    private List<String> browseBy;
-
-    private Map<String, String> labels;
-
     protected ResourceType resourceType;
-    protected final Class<T> typeParameterClass;
+    private List<String> browseBy;
+    private Map<String, String> labels;
 
     public AbstractGenericService(Class<T> typeParameterClass) {
         this.typeParameterClass = typeParameterClass;

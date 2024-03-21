@@ -13,19 +13,20 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 public class SchemaController {
 
-	private static final Logger logger = LoggerFactory.getLogger(ResourceTypeController.class);
+    private static final Logger logger = LoggerFactory.getLogger(ResourceTypeController.class);
 
-	@Autowired
-	ResourceTypeService resourceTypeService;
+    @Autowired
+    ResourceTypeService resourceTypeService;
 
-	@RequestMapping(value = "/schemaService/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_XML_VALUE)
-	@ResponseBody public ResponseEntity getSchemaByName(@PathVariable("id") String id) throws ResourceNotFoundException {
-		Schema schema = resourceTypeService.getSchema(id);
-		if(schema==null){
-			throw new ResourceNotFoundException();
-		}else{
-			return ResponseEntity.ok(schema.getSchema());
-		}
-	}
+    @RequestMapping(value = "/schemaService/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_XML_VALUE)
+    @ResponseBody
+    public ResponseEntity getSchemaByName(@PathVariable("id") String id) throws ResourceNotFoundException {
+        Schema schema = resourceTypeService.getSchema(id);
+        if (schema == null) {
+            throw new ResourceNotFoundException();
+        } else {
+            return ResponseEntity.ok(schema.getSchema());
+        }
+    }
 
 }

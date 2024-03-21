@@ -9,10 +9,10 @@ import java.util.Date;
 
 public interface ResourceSyncService {
 
-	ResourceList getResourceList(String resourceType);
+    ResourceList getResourceList(String resourceType);
 
-	CapabilityList getCapabilityList();
+    CapabilityList getCapabilityList();
 
-	ChangeList getChangeList(String resourceType, Date date);
+    ChangeList getChangeList(String resourceType, Date date);
 
 }

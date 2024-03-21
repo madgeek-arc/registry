@@ -46,31 +46,31 @@ public class DumpResourcePartitioner extends AbstractDao<Resource> implements Pa
         CriteriaQuery<Long> criteriaQuery = qb.createQuery(Long.class);
         Root<Resource> root = criteriaQuery.from(Resource.class);
         criteriaQuery.select(qb.count(root));
-        criteriaQuery.where(qb.equal(root.get("resourceType").get("name"),resourceType));
+        criteriaQuery.where(qb.equal(root.get("resourceType").get("name"), resourceType));
         Query query = getEntityManager().createQuery(criteriaQuery);
         Long size = (Long) query.getSingleResult();
         logger.info("Found " + size + " resources for resource type " + this.resourceType);
-        return splitRange(size.intValue(),gridSize);
+        return splitRange(size.intValue(), gridSize);
     }
 
     private Map<String, ExecutionContext> splitRange(int size, int partitions) {
         Map<String, ExecutionContext> versionMap = new HashMap<>(partitions);
-        int diff = (int)Math.ceil((double)size/(double)partitions);
-        if(diff < THRESHOLD) {
+        int diff = (int) Math.ceil((double) size / (double) partitions);
+        if (diff < THRESHOLD) {
             ExecutionContext context = new ExecutionContext();
-            context.putInt("from",0);
-            context.putInt("to",size);
-            context.putString("resourceType",resourceType);
-            versionMap.put(String.format("%s[%d-%d]",resourceType,0,size-1),context);
-            logger.info(String.format("%s[%d-%d]",resourceType,0,size));
+            context.putInt("from", 0);
+            context.putInt("to", size);
+            context.putString("resourceType", resourceType);
+            versionMap.put(String.format("%s[%d-%d]", resourceType, 0, size - 1), context);
+            logger.info(String.format("%s[%d-%d]", resourceType, 0, size));
         } else {
-            IntStream.range(0,partitions).map(x -> x * diff).forEach(from -> {
+            IntStream.range(0, partitions).map(x -> x * diff).forEach(from -> {
                 ExecutionContext context = new ExecutionContext();
                 int to = from + diff;
-                context.putInt("from",from);
-                context.putInt("to",(to >= size) ? size : to);
-                context.putString("resourceType",resourceType);
-                versionMap.put(String.format("%s[%d-%d]",resourceType,from,to),context);
+                context.putInt("from", from);
+                context.putInt("to", (to >= size) ? size : to);
+                context.putString("resourceType", resourceType);
+                versionMap.put(String.format("%s[%d-%d]", resourceType, from, to), context);
             });
         }
         return versionMap;

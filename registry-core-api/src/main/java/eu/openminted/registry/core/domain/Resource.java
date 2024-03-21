@@ -67,13 +67,6 @@ public class Resource {
     @JsonIgnore
     private List<Version> versions;
 
-    @PreRemove
-    public void removeReferenceOfChildren(){
-        for (Version v : versions) {
-            v.setResource(null);
-        }
-    }
-
     public Resource(String id, ResourceType resourceType, String version, String payload, String payloadFormat) {
         this.id = id;
         this.resourceType = resourceType;
@@ -94,7 +87,7 @@ public class Resource {
         this.id = string;
     }
 
-//    @JsonIgnore
+    //    @JsonIgnore
     public ResourceType getResourceType() {
         return resourceType;
     }
@@ -170,10 +163,10 @@ public class Resource {
     @PrePersist
     protected void onCreate() {
 
-        if(creationDate==null)
+        if (creationDate == null)
             creationDate = new Date();
 
-        if(modificationDate==null)
+        if (modificationDate == null)
             modificationDate = new Date();
 
         version = generateVersion();
@@ -186,6 +179,13 @@ public class Resource {
         version = generateVersion();
     }
 
+    @PreRemove
+    public void removeReferenceOfChildren() {
+        for (Version v : versions) {
+            v.setResource(null);
+        }
+    }
+
     @JsonIgnore
     public List<Version> getVersions() {
         return versions;
@@ -195,17 +195,17 @@ public class Resource {
         this.versions = versions;
     }
 
-    public void setResourceTypeName(String resourceTypeName) {
-        this.resourceTypeName = resourceTypeName;
-    }
-
     private String generateVersion() {
         DateFormat df = new SimpleDateFormat("MMddyyyyHHmmss");
         return df.format(Calendar.getInstance().getTime());
     }
 
     public String getResourceTypeName() {
-        return (resourceType==null) ? resourceTypeName : resourceType.getName();
+        return (resourceType == null) ? resourceTypeName : resourceType.getName();
+    }
+
+    public void setResourceTypeName(String resourceTypeName) {
+        this.resourceTypeName = resourceTypeName;
     }
 
 }

@@ -35,7 +35,7 @@ public class RestoreServiceImpl implements RestoreService {
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<MultiValueMap<String, Object>>(body, headers);
 
         RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<String> response = restTemplate.postForEntity(registryHost+"/restore", requestEntity, String.class);
+        ResponseEntity<String> response = restTemplate.postForEntity(registryHost + "/restore", requestEntity, String.class);
 
         logger.info(response.getBody());
 

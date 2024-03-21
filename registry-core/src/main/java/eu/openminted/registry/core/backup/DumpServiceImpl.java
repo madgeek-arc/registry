@@ -40,26 +40,46 @@ public class DumpServiceImpl implements DumpService {
     @Autowired
     ResourceTypeService resourceTypeService;
 
+    private static File pack(String sourceDirPath) throws IOException {
+        Path p = Files.createTempFile("dump-", "-" + new Date().getTime());
+        try (ZipOutputStream zs = new ZipOutputStream(Files.newOutputStream(p))) {
+            Path pp = Paths.get(sourceDirPath);
+            Files.walk(pp)
+                    .filter(path -> !Files.isDirectory(path))
+                    .forEach(path -> {
+                        ZipEntry zipEntry = new ZipEntry(pp.relativize(path).toString());
+                        try {
+                            zs.putNextEntry(zipEntry);
+                            Files.copy(path, zs);
+                            zs.closeEntry();
+                        } catch (IOException e) {
+                            logger.error(e.getMessage(), e);
+                        }
+                    });
+        }
+        return p.toFile();
+    }
+
     @Override
     public File dump(boolean isRaw, boolean wantSchema, String[] resourceTypes, boolean wantVersion) {
 
         String resourceTypesList;
         JobExecution job;
-        if(resourceTypes.length==0)
+        if (resourceTypes.length == 0)
             resourceTypesList = resourceTypeService.getAllResourceType().stream().map(ResourceType::getName).collect(Collectors.joining(","));
         else
-            resourceTypesList = Strings.join(resourceTypes,",");
+            resourceTypesList = Strings.join(resourceTypes, ",");
 
         JobParametersBuilder builder = new JobParametersBuilder();
-        builder.addDate("date",new Date());
-        builder.addString("resourceTypes",resourceTypesList);
-        builder.addString("save",Boolean.toString(wantSchema));
-        builder.addString("raw",Boolean.toString(isRaw));
-        builder.addString("versions",Boolean.toString(wantVersion));
+        builder.addDate("date", new Date());
+        builder.addString("resourceTypes", resourceTypesList);
+        builder.addString("save", Boolean.toString(wantSchema));
+        builder.addString("raw", Boolean.toString(isRaw));
+        builder.addString("versions", Boolean.toString(wantVersion));
         try {
-            job = mySyncJobLauncher.run(dumpJob,builder.toJobParameters());
+            job = mySyncJobLauncher.run(dumpJob, builder.toJobParameters());
         } catch (Exception e) {
-           throw new ServiceException(e);
+            throw new ServiceException(e);
         }
 
         if (logger.isDebugEnabled()) {
@@ -85,25 +105,5 @@ public class DumpServiceImpl implements DumpService {
             }
         }
         return zip;
-    }
-
-    private static File pack(String sourceDirPath) throws IOException {
-        Path p = Files.createTempFile("dump-", "-" + new Date().getTime());
-        try (ZipOutputStream zs = new ZipOutputStream(Files.newOutputStream(p))) {
-            Path pp = Paths.get(sourceDirPath);
-            Files.walk(pp)
-                    .filter(path -> !Files.isDirectory(path))
-                    .forEach(path -> {
-                        ZipEntry zipEntry = new ZipEntry(pp.relativize(path).toString());
-                        try {
-                            zs.putNextEntry(zipEntry);
-                            Files.copy(path, zs);
-                            zs.closeEntry();
-                        } catch (IOException e) {
-                            logger.error(e.getMessage(), e);
-                        }
-                    });
-        }
-        return p.toFile();
     }
 }

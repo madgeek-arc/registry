@@ -32,22 +32,22 @@ public class ResourceTypeDaoImplTest {
 
 
     @Before
-    public void initialize(){
+    public void initialize() {
         testingResourceType = resourceTypeDao.getResourceType("employee");
     }
 
     @Test
-    public void getResourceTypeIndexFields_OK(){
+    public void getResourceTypeIndexFields_OK() {
         Assert.assertEquals(resourceTypeDao.getResourceTypeIndexFields("employee").size(), testingResourceType.getIndexFields().size());
     }
 
     @Test
-    public void getResourceTypeIndexFields_NOT_FOUND(){
-        Assert.assertNotEquals(resourceTypeDao.getResourceTypeIndexFields("event"),testingResourceType.getIndexFields());
+    public void getResourceTypeIndexFields_NOT_FOUND() {
+        Assert.assertNotEquals(resourceTypeDao.getResourceTypeIndexFields("event"), testingResourceType.getIndexFields());
     }
 
     @Test
-    public void deleteResourceType(){
+    public void deleteResourceType() {
 //        resourceTypeDao.deleteResourceType(testingResourceType);
 //        Assert.assertNull(resourceTypeDao.getResourceType("employee"));
     }

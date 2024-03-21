@@ -53,17 +53,13 @@ public class ElasticSearchService implements SearchService {
     private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "payloadFormat", "version"};
 
     private final RestHighLevelClient elasticsearchClient;
-
+    private final ObjectMapper mapper;
     @Value("${elastic.aggregation.topHitsSize:100}")
     private int topHitsSize;
-
     @Value("${elastic.aggregation.bucketSize:100}")
     private int bucketSize;
-
     @Value("${elastic.index.max_result_window:10000}")
     private int maxQuantity;
-
-    private final ObjectMapper mapper;
 
     public ElasticSearchService(RestHighLevelClient elasticsearchClient) {
         mapper = new ObjectMapper();
@@ -122,11 +118,11 @@ public class ElasticSearchService implements SearchService {
                 .collect(Collectors.toMap(
                         MultiBucketsAggregation.Bucket::getKeyAsString,
                         y -> StreamSupport.stream(
-                                ((TopHits) y.getAggregations()
-                                        .get("documents"))
-                                        .getHits()
-                                        .spliterator(), true
-                        )
+                                        ((TopHits) y.getAggregations()
+                                                .get("documents"))
+                                                .getHits()
+                                                .spliterator(), true
+                                )
                                 .map(r -> {
                                     try {
                                         Resource resource = mapper.readValue(r.getSourceAsString(), Resource.class);
@@ -149,7 +145,7 @@ public class ElasticSearchService implements SearchService {
         SearchRequest search = new SearchRequest(filter.getResourceType()).
                 searchType(SearchType.DFS_QUERY_THEN_FETCH);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-                searchSourceBuilder.query(qBuilder)
+        searchSourceBuilder.query(qBuilder)
                 .fetchSource(INCLUDES, null)
                 .from(filter.getFrom()).size(quantity).explain(false);
 
@@ -334,7 +330,7 @@ public class ElasticSearchService implements SearchService {
         searchRequest.source(searchSourceBuilder);
         logger.debug("Search query: " + qBuilder + "in index " + resourceType);
         try {
-            SearchResponse searchResponse = elasticsearchClient.search(searchRequest,RequestOptions.DEFAULT);
+            SearchResponse searchResponse = elasticsearchClient.search(searchRequest, RequestOptions.DEFAULT);
             SearchHits ss = searchResponse.getHits();
             Optional<SearchHit> hit = Optional.ofNullable(ss.getTotalHits().value == 0 ? null : ss.getAt(0));
 

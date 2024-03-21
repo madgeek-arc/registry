@@ -27,17 +27,13 @@ public class DefaultSearchService implements SearchService {
     private static final Logger logger = LoggerFactory.getLogger(DefaultSearchService.class);
 
     private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "payloadFormat", "version"};
-
+    private final ObjectMapper mapper;
     @Value("${elastic.aggregation.topHitsSize:100}")
     private int topHitsSize;
-
     @Value("${elastic.aggregation.bucketSize:100}")
     private int bucketSize;
-
     @Value("${elastic.index.max_result_window:10000}")
     private int maxQuantity;
-
-    private final ObjectMapper mapper;
 
     public DefaultSearchService() {
         mapper = new ObjectMapper();

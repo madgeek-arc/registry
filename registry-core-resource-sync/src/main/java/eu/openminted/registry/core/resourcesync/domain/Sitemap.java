@@ -4,13 +4,12 @@
  * tree
  */
 package eu.openminted.registry.core.resourcesync.domain;
+
 /**
  * @author Richard Jones
  */
-public class Sitemap extends ResourceSyncEntry
-{
-    public Sitemap()
-    {
+public class Sitemap extends ResourceSyncEntry {
+    public Sitemap() {
         this.root = "sitemap";
     }
 }

@@ -27,13 +27,14 @@ public class IndexedFieldServiceImpl implements IndexedFieldService {
         RestTemplate restTemplate = new RestTemplate();
 
         ResponseEntity<List<IndexedField>> response = restTemplate.exchange(
-                registryHost+"/resources/indexed/"+resourceId,
+                registryHost + "/resources/indexed/" + resourceId,
                 HttpMethod.GET,
                 null,
-                new ParameterizedTypeReference<List<IndexedField>>(){});
-        if(response.getStatusCode().is2xxSuccessful()){
-                return response.getBody();
-        }else{
+                new ParameterizedTypeReference<List<IndexedField>>() {
+                });
+        if (response.getStatusCode().is2xxSuccessful()) {
+            return response.getBody();
+        } else {
             return new ArrayList<>();
         }
     }

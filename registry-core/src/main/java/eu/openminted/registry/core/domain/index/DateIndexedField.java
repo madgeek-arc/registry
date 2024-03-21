@@ -17,8 +17,13 @@ public class DateIndexedField extends IndexedField<Date> {
     private Set<Date> values;
 
 
-    public DateIndexedField(){
+    public DateIndexedField() {
 
+    }
+
+    public DateIndexedField(String name, Set<Object> values) {
+        setName(name);
+        setValues(values.stream().map(x -> ((Date) x)).collect(Collectors.toSet()));
     }
 
     @Override
@@ -29,10 +34,5 @@ public class DateIndexedField extends IndexedField<Date> {
     @Override
     public void setValues(Set<Date> value) {
         this.values = value;
-    }
-
-    public DateIndexedField(String name, Set<Object> values) {
-        setName(name);
-        setValues(values.stream().map(x -> ((Date) x)).collect(Collectors.toSet()));
     }
 }

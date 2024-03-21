@@ -30,16 +30,16 @@ public class SearchServiceImpl implements SearchService {
     public Paging<Resource> query(String query, String resourceType, int quantity, int from, String sortByField, String sortOrder) {
         RestTemplate restTemplate = new RestTemplate();
 
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/cql/"+resourceType+"/"+query+"/")
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/cql/" + resourceType + "/" + query + "/")
                 .queryParam("from", from)
                 .queryParam("quantity", quantity)
                 .queryParam("sortBy", sortByField)
                 .queryParam("sortByType", sortOrder);
 
         ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
-        if(response.getStatusCode().is2xxSuccessful()){
+        if (response.getStatusCode().is2xxSuccessful()) {
             return response.getBody();
-        }else{
+        } else {
             return new Paging<>();
         }
     }
@@ -47,10 +47,10 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public Paging<Resource> query(String query, String resourceType) {
         RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<Paging> response = restTemplate.getForEntity(registryHost + "/search/cql/"+resourceType+"/"+query+"/", Paging.class);
-        if(response.getStatusCode().is2xxSuccessful()){
+        ResponseEntity<Paging> response = restTemplate.getForEntity(registryHost + "/search/cql/" + resourceType + "/" + query + "/", Paging.class);
+        if (response.getStatusCode().is2xxSuccessful()) {
             return response.getBody();
-        }else{
+        } else {
             return new Paging<>();
         }
     }
@@ -58,23 +58,23 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public Paging<Resource> query(FacetFilter filter) {
         Map.Entry<String, Object> orderBy = filter.getOrderBy().entrySet().iterator().next();
-        return query(filter.getKeyword(),filter.getResourceType(),filter.getQuantity(),filter.getFrom(),orderBy.getKey(), orderBy.getValue().toString().toUpperCase());
+        return query(filter.getKeyword(), filter.getResourceType(), filter.getQuantity(), filter.getFrom(), orderBy.getKey(), orderBy.getValue().toString().toUpperCase());
     }
 
     @Override
     public Paging<Resource> search(FacetFilter filter) throws ServiceException, UnknownHostException {
         RestTemplate restTemplate = new RestTemplate();
 
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/"+filter.getResourceType()+"/*/")
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + filter.getResourceType() + "/*/")
                 .queryParam("keyword", filter.getKeyword())
                 .queryParam("from", filter.getFrom())
                 .queryParam("quantity", filter.getQuantity())
                 .queryParam("browseBy", filter.getBrowseBy());
 
         ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
-        if(response.getStatusCode().is2xxSuccessful()){
+        if (response.getStatusCode().is2xxSuccessful()) {
             return response.getBody();
-        }else{
+        } else {
             return new Paging<>();
         }
     }
@@ -82,13 +82,13 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException, UnknownHostException {
         RestTemplate restTemplate = new RestTemplate();
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/"+resourceType+"/*/")
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + resourceType + "/*/")
                 .queryParam("keyword", keyword);
 
         ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
-        if(response.getStatusCode().is2xxSuccessful()){
+        if (response.getStatusCode().is2xxSuccessful()) {
             return response.getBody();
-        }else{
+        } else {
             return new Paging<>();
         }
     }
@@ -96,10 +96,10 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public Resource searchId(String resourceType, KeyValue... ids) throws ServiceException, UnknownHostException {
         String query = "";
-        for(KeyValue keyValue : ids)
-            query=query.concat(keyValue.getField()+"="+keyValue.getValue() + " AND ");
-        List<Resource> resources = query(query, resourceType).getResults() ;
-        if(resources.size()!=0)
+        for (KeyValue keyValue : ids)
+            query = query.concat(keyValue.getField() + "=" + keyValue.getValue() + " AND ");
+        List<Resource> resources = query(query, resourceType).getResults();
+        if (resources.size() != 0)
             return resources.get(0);
         else
             return null;

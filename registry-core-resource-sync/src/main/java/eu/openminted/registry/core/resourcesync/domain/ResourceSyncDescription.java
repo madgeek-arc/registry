@@ -10,40 +10,32 @@ import java.util.List;
 /**
  * @author Richard Jones
  */
-public class ResourceSyncDescription extends UrlSet
-{
-    public ResourceSyncDescription()
-    {
+public class ResourceSyncDescription extends UrlSet {
+    public ResourceSyncDescription() {
         super(ResourceSync.CAPABILITY_RESOURCESYNC);
     }
 
-    public ResourceSyncDescription(String describedby, String describedByContentType)
-    {
+    public ResourceSyncDescription(String describedby, String describedByContentType) {
         this();
         ResourceSyncLn ln = this.addLn(ResourceSync.REL_DESCRIBED_BY, describedby);
         ln.setType(describedByContentType);
     }
 
-    public void addCapabilityList(URL caplist)
-    {
-        if (!ResourceSync.CAPABILITY_CAPABILITYLIST.equals(caplist.getCapability()))
-        {
+    public void addCapabilityList(URL caplist) {
+        if (!ResourceSync.CAPABILITY_CAPABILITYLIST.equals(caplist.getCapability())) {
             throw new SpecComplianceException("URL added to ResourceSyncDescription is not a Capability List");
         }
         this.addUrl(caplist);
     }
 
-    public URL addCapabilityList(String loc)
-    {
+    public URL addCapabilityList(String loc) {
         return this.addCapabilityList(loc, null);
     }
 
-    public URL addCapabilityList(String loc, String describedby)
-    {
+    public URL addCapabilityList(String loc, String describedby) {
         URL caplist = new URL();
         caplist.setLoc(loc);
-        if (describedby != null)
-        {
+        if (describedby != null) {
             caplist.addLn(ResourceSync.REL_DESCRIBED_BY, describedby);
         }
         caplist.setCapability(ResourceSync.CAPABILITY_CAPABILITYLIST);
@@ -51,30 +43,26 @@ public class ResourceSyncDescription extends UrlSet
         return caplist;
     }
 
-    public List<ResourceSyncEntry> getCapabilityLists()
-    {
+    public List<ResourceSyncEntry> getCapabilityLists() {
         return this.getUrls();
     }
-    public void addSourceDescription(URL sourceDesc)
-    {
-        if (!ResourceSync.CAPABILITY_RESOURCESYNC.equals(sourceDesc.getCapability()))
-        {
+
+    public void addSourceDescription(URL sourceDesc) {
+        if (!ResourceSync.CAPABILITY_RESOURCESYNC.equals(sourceDesc.getCapability())) {
             throw new SpecComplianceException("URL added to ResourceSyncDescription is not a Capability List");
         }
         this.addUrl(sourceDesc);
     }
-    public URL addSourceDescription(String loc)
-    {
+
+    public URL addSourceDescription(String loc) {
         return this.addSourceDescription(loc, null);
     }
 
-    public URL addSourceDescription(String loc, String describedby)
-    {
+    public URL addSourceDescription(String loc, String describedby) {
         URL sourceDesc = new URL();
         sourceDesc.setLoc(loc);
-        if (describedby != null)
-        {
-        	sourceDesc.addLn(ResourceSync.REL_DESCRIBED_BY, describedby);
+        if (describedby != null) {
+            sourceDesc.addLn(ResourceSync.REL_DESCRIBED_BY, describedby);
         }
         sourceDesc.setCapability(ResourceSync.CAPABILITY_RESOURCESYNC);
         this.addSourceDescription(sourceDesc);

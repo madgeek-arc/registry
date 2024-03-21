@@ -2,7 +2,6 @@ package eu.openminted.registry.core.dao;
 
 import eu.openminted.registry.core.domain.ResourceType;
 import eu.openminted.registry.core.domain.index.IndexField;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Repository;
@@ -20,60 +19,60 @@ import java.util.Set;
 @Repository("resourceTypeDao")
 @Scope(proxyMode = ScopedProxyMode.INTERFACES)
 @Transactional(
-		isolation = Isolation.READ_COMMITTED,
-		readOnly = true)
+        isolation = Isolation.READ_COMMITTED,
+        readOnly = true)
 public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements ResourceTypeDao {
 
-	public ResourceTypeDaoImpl() {
-		super();
-	}
+    public ResourceTypeDaoImpl() {
+        super();
+    }
 
-	public ResourceType getResourceType(String name) {
-        return getSingleResult("name",name);
-	}
+    public ResourceType getResourceType(String name) {
+        return getSingleResult("name", name);
+    }
 
-	public List<ResourceType> getAllResourceType() {
-		return getList();
-	}
-	
-	@SuppressWarnings("unchecked")
-	public List<ResourceType> getAllResourceType(int from, int to) {
+    public List<ResourceType> getAllResourceType() {
+        return getList();
+    }
 
-		CriteriaQuery<ResourceType> criteriaQuery = getCriteriaQuery();
-		Root<ResourceType> root = criteriaQuery.from(ResourceType.class);
-		criteriaQuery.distinct(true);
-		criteriaQuery.select(root);
+    @SuppressWarnings("unchecked")
+    public List<ResourceType> getAllResourceType(int from, int to) {
 
-		TypedQuery<ResourceType> typedQuery = getEntityManager().createQuery(criteriaQuery);
-		if (to == 0) {
-			typedQuery.setFirstResult(from);
-		} else {
-			typedQuery.setFirstResult(from);
-			typedQuery.setMaxResults((to-from)+1);
-		}
-		return typedQuery.getResultList();
-	}
+        CriteriaQuery<ResourceType> criteriaQuery = getCriteriaQuery();
+        Root<ResourceType> root = criteriaQuery.from(ResourceType.class);
+        criteriaQuery.distinct(true);
+        criteriaQuery.select(root);
 
-	@Override
-	@Transactional
-	public void addResourceType(ResourceType resourceType) {
-		super.persist(resourceType);
-	}
+        TypedQuery<ResourceType> typedQuery = getEntityManager().createQuery(criteriaQuery);
+        if (to == 0) {
+            typedQuery.setFirstResult(from);
+        } else {
+            typedQuery.setFirstResult(from);
+            typedQuery.setMaxResults((to - from) + 1);
+        }
+        return typedQuery.getResultList();
+    }
 
-	@Override
-	public Set<IndexField> getResourceTypeIndexFields(String name) {
-		Set<IndexField> indexFields = new HashSet<>();
-		Query query = getEntityManager().createQuery("from IndexField where resourceType in " +
-				"(from ResourceType where name = :name or aliasGroup = :name)");
-		query.setParameter("name",name);
-		indexFields.addAll(query.getResultList());
-		return indexFields;
-	}
+    @Override
+    @Transactional
+    public void addResourceType(ResourceType resourceType) {
+        super.persist(resourceType);
+    }
 
-	@Override
-	@Transactional
-	public void deleteResourceType(String resourceType) {
-		super.delete(getResourceType(resourceType));
-	}
+    @Override
+    public Set<IndexField> getResourceTypeIndexFields(String name) {
+        Set<IndexField> indexFields = new HashSet<>();
+        Query query = getEntityManager().createQuery("from IndexField where resourceType in " +
+                "(from ResourceType where name = :name or aliasGroup = :name)");
+        query.setParameter("name", name);
+        indexFields.addAll(query.getResultList());
+        return indexFields;
+    }
+
+    @Override
+    @Transactional
+    public void deleteResourceType(String resourceType) {
+        super.delete(getResourceType(resourceType));
+    }
 
 }

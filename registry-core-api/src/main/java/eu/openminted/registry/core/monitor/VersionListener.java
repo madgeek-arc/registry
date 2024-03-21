@@ -7,8 +7,8 @@ import eu.openminted.registry.core.domain.Resource;
  */
 public interface VersionListener {
 
-	void versionAdded(Resource resource);
+    void versionAdded(Resource resource);
 
-	void versionUpdated(Resource previousResource, Resource newResource);
+    void versionUpdated(Resource previousResource, Resource newResource);
 
 }

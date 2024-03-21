@@ -16,7 +16,7 @@ public class RestoreJobListener implements JobExecutionListener {
 
     private static final Logger logger = LoggerFactory.getLogger(RestoreJobListener.class);
 
-    private Map<String,JobExecution> registeredJobs;
+    private Map<String, JobExecution> registeredJobs;
 
     public RestoreJobListener() {
         registeredJobs = new ConcurrentHashMap<>();
@@ -36,15 +36,15 @@ public class RestoreJobListener implements JobExecutionListener {
     }
 
     public void registerJob(JobExecution job) {
-        registeredJobs.put(job.getJobParameters().getString("resourceType"),job);
+        registeredJobs.put(job.getJobParameters().getString("resourceType"), job);
     }
 
     public Collection<JobExecution> getJobs() {
-        return  registeredJobs.values();
+        return registeredJobs.values();
     }
 
     synchronized public List<BatchStatus> waitResults() throws InterruptedException {
-        while(registeredJobs.values().stream().anyMatch(JobExecution::isRunning)) {
+        while (registeredJobs.values().stream().anyMatch(JobExecution::isRunning)) {
             logger.info("Awaiting");
             wait();
         }

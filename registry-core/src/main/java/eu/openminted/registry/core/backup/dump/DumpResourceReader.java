@@ -84,7 +84,7 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
         resources = query.getResultList();
 
         try {
-            logger.info("Just read "+ resources.size() + " resources for " + resourceType.getName());
+            logger.info("Just read " + resources.size() + " resources for " + resourceType.getName());
             indexMapper = indexMapperFactory.createIndexMapper(resourceType);
         } catch (Exception e) {
             logger.error("ResourceReader failed on beforeStep with message :" + e.getMessage(), e);
@@ -94,13 +94,13 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
         logger.info(String.format(
-                "Read resources of %s [%4d -%4d] skipped=%d retries=%d total=%d",
-                resourceType.getName(),
-                from,
-                to,
-                stepExecution.getSkipCount(),
-                stepExecution.getRollbackCount(),
-                stepExecution.getWriteCount()
+                        "Read resources of %s [%4d -%4d] skipped=%d retries=%d total=%d",
+                        resourceType.getName(),
+                        from,
+                        to,
+                        stepExecution.getSkipCount(),
+                        stepExecution.getRollbackCount(),
+                        stepExecution.getWriteCount()
                 )
         );
         return ExitStatus.COMPLETED;

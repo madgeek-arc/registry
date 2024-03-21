@@ -9,23 +9,15 @@ import eu.openminted.registry.core.domain.index.IndexField;
 import eu.openminted.registry.core.index.DefaultIndexMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
-import javax.transaction.TransactionManager;
 import javax.xml.XMLConstants;
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
@@ -68,6 +60,25 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     public ResourceTypeServiceImpl(ResourceTypeDao resourceTypeDao, SchemaDao schemaDao) {
         this.resourceTypeDao = resourceTypeDao;
         this.schemaDao = schemaDao;
+    }
+
+    private static int isValidUrl(String Url, boolean isFromUrl) {
+        URI u;
+        try {
+            u = new URI(Url);
+        } catch (URISyntaxException e) {
+            return 0;
+        }
+
+        if (u.isAbsolute()) {
+            return 1;
+        } else {
+            if (isFromUrl) {
+                return 2;
+            } else {
+                return 0;
+            }
+        }
     }
 
     @Override
@@ -131,7 +142,6 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
         }
 
 
-
         if (resourceType.getSchemaUrl() == null || "not_set".equals(resourceType.getSchemaUrl())) {
             resourceType.setSchemaUrl("not_set");
         } else {
@@ -140,7 +150,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
                 resourceType.setSchema(schemaStr);
                 ArrayList<String> recursionPaths = new ArrayList<>();
                 validate(resourceType.getSchemaUrl());
-                exportIncludes(resourceType, resourceType.getSchemaUrl(),recursionPaths);
+                exportIncludes(resourceType, resourceType.getSchemaUrl(), recursionPaths);
             } catch (Exception e) {
                 throw new ServiceException(e.getMessage());
             }
@@ -171,7 +181,6 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
         return resourceType;
     }
-
 
     private void exportIncludes(ResourceType resourceType, String baseUrl, ArrayList<String> recursionPaths) throws ServiceException {
         String type = resourceType.getPayloadType();
@@ -249,6 +258,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
             }
         }
     }
+
     private String documentToString(Document document) {
         try {
             StringWriter sw = new StringWriter();
@@ -263,25 +273,6 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
             return sw.toString();
         } catch (Exception ex) {
             throw new RuntimeException("Error converting to String", ex);
-        }
-    }
-
-    private static int isValidUrl(String Url, boolean isFromUrl) {
-        URI u;
-        try {
-            u = new URI(Url);
-        } catch (URISyntaxException e) {
-            return 0;
-        }
-
-        if (u.isAbsolute()) {
-            return 1;
-        } else {
-            if (isFromUrl) {
-                return 2;
-            } else {
-                return 0;
-            }
         }
     }
 }

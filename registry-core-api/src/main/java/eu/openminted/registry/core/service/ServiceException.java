@@ -5,37 +5,37 @@ package eu.openminted.registry.core.service;
  */
 public class ServiceException extends RuntimeException {
 
-	private String error;
+    private String error;
 
-	private String errorDescription;
+    private String errorDescription;
 
-	public ServiceException() {
-	}
+    public ServiceException() {
+    }
 
-	public ServiceException(String error, String errorDescription) {
-		super(error + " : " + errorDescription);
-		this.error = error;
-		this.errorDescription = errorDescription;
+    public ServiceException(String error, String errorDescription) {
+        super(error + " : " + errorDescription);
+        this.error = error;
+        this.errorDescription = errorDescription;
 
-	}
+    }
 
-	public ServiceException(String message) {
-		super(message);
-	}
+    public ServiceException(String message) {
+        super(message);
+    }
 
-	public ServiceException(String message, Throwable cause) {
-		super(message, cause);
-	}
+    public ServiceException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
-	public ServiceException(Throwable cause) {
-		super(cause);
-	}
+    public ServiceException(Throwable cause) {
+        super(cause);
+    }
 
-	public String getError() {
-		return error;
-	}
+    public String getError() {
+        return error;
+    }
 
-	public String getErrorDescription() {
-		return errorDescription;
-	}
+    public String getErrorDescription() {
+        return errorDescription;
+    }
 }

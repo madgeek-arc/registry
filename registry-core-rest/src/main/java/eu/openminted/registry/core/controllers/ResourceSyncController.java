@@ -16,25 +16,25 @@ import java.util.Date;
 @RestController
 public class ResourceSyncController {
 
-	private static final Logger logger = LoggerFactory.getLogger(ResourceSyncController.class);
+    private static final Logger logger = LoggerFactory.getLogger(ResourceSyncController.class);
 
-	@Autowired
+    @Autowired
     ResourceSyncService resourceSyncService;
 
 
-	@RequestMapping(value = "/resourcesync/{name}/resourcelist.xml", method = RequestMethod.GET, headers = "Accept=application/xml")
-	public ResponseEntity getResourceListController(@PathVariable("name") String name){
-		return new ResponseEntity(resourceSyncService.getResourceList(name).serialise(), HttpStatus.OK);
-	}
+    @RequestMapping(value = "/resourcesync/{name}/resourcelist.xml", method = RequestMethod.GET, headers = "Accept=application/xml")
+    public ResponseEntity getResourceListController(@PathVariable("name") String name) {
+        return new ResponseEntity(resourceSyncService.getResourceList(name).serialise(), HttpStatus.OK);
+    }
 
-	@RequestMapping(value = "/resourcesync/", method = RequestMethod.GET, headers = "Accept=application/xml")
-	public ResponseEntity getCapabilityListController(){
-		return new ResponseEntity(resourceSyncService.getCapabilityList().serialise(),HttpStatus.OK);
-	}
+    @RequestMapping(value = "/resourcesync/", method = RequestMethod.GET, headers = "Accept=application/xml")
+    public ResponseEntity getCapabilityListController() {
+        return new ResponseEntity(resourceSyncService.getCapabilityList().serialise(), HttpStatus.OK);
+    }
 
-	@RequestMapping(value = "/resourcesync/{resourceType}/{date}/changelist.xml", method = RequestMethod.GET, headers = "Accept=application/xml")
-	public ResponseEntity getChangeListController(@PathVariable("resourceType") String resourceType, @PathVariable("date") Long date){
-		return new ResponseEntity(resourceSyncService.getChangeList(resourceType, new Date(date)).serialise(),HttpStatus.OK);
-	}
+    @RequestMapping(value = "/resourcesync/{resourceType}/{date}/changelist.xml", method = RequestMethod.GET, headers = "Accept=application/xml")
+    public ResponseEntity getChangeListController(@PathVariable("resourceType") String resourceType, @PathVariable("date") Long date) {
+        return new ResponseEntity(resourceSyncService.getChangeList(resourceType, new Date(date)).serialise(), HttpStatus.OK);
+    }
 
 }

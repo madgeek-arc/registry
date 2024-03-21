@@ -37,7 +37,7 @@ public class IndexFieldDaoImplTest {
 
 
     @Before
-    public void initialize(){
+    public void initialize() {
         testingResourceType = resourceTypeDao.getResourceType("employee");
     }
 
@@ -45,13 +45,13 @@ public class IndexFieldDaoImplTest {
     @Test
     public void getIndexFields_OK() {
         List<IndexField> indexFields = indexFieldDao.getIndexFieldsOfResourceType(testingResourceType);
-        Assert.assertEquals(indexFields.size(),6);
+        Assert.assertEquals(indexFields.size(), 6);
     }
 
     @Test
     public void getIndexFields_NONE() {
         List<IndexField> indexFields = indexFieldDao.getIndexFieldsOfResourceType(resourceTypeDao.getResourceType("event"));
-        Assert.assertNotEquals(indexFields.size(),6);
+        Assert.assertNotEquals(indexFields.size(), 6);
     }
 
 }

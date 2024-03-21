@@ -7,7 +7,7 @@ import eu.openminted.registry.core.domain.ResourceType;
  */
 public interface ResourceTypeListener {
 
-	public void resourceTypeAdded(ResourceType resourceType);
+    public void resourceTypeAdded(ResourceType resourceType);
 
-	public void resourceTypeDelete(String name);
+    public void resourceTypeDelete(String name);
 }

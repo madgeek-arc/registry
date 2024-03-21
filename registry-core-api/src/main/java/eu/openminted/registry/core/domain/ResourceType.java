@@ -49,8 +49,7 @@ public class ResourceType {
     private List<IndexField> indexFields;
 
     /**
-     * @deprecated
-     * This field has been replaced with the multivalued 'aliases' field.
+     * @deprecated This field has been replaced with the multivalued 'aliases' field.
      */
     @Deprecated
     @Column
@@ -66,7 +65,7 @@ public class ResourceType {
     @LazyCollection(LazyCollectionOption.TRUE)
     private List<Resource> resources;
 
-    @OneToMany(mappedBy = "resourceType",cascade = {CascadeType.ALL}, orphanRemoval = true)
+    @OneToMany(mappedBy = "resourceType", cascade = {CascadeType.ALL}, orphanRemoval = true)
     @LazyCollection(LazyCollectionOption.TRUE)
     @JsonIgnore
     private List<Version> versions;
@@ -150,7 +149,9 @@ public class ResourceType {
         this.properties = properties;
     }
 
-    public String getProperty(String name) { return this.properties.get(name); }
+    public String getProperty(String name) {
+        return this.properties.get(name);
+    }
 
     @PrePersist
     protected void onCreate() {

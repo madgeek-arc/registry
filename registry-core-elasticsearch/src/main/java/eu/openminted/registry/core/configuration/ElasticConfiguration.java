@@ -60,7 +60,8 @@ public class ElasticConfiguration {
         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
         RestClientBuilder restClientBuilder = RestClient.builder(new HttpHost(hostname, Integer.parseInt(port), scheme))
                 .setHttpClientConfigCallback(httpClientBuilder ->
-                        httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));;
+                        httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
+        ;
 
         this.client = new RestHighLevelClient(restClientBuilder);
     }

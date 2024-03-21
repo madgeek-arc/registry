@@ -8,11 +8,11 @@ import eu.openminted.registry.core.domain.ResourceType;
  */
 public interface ResourceListener {
 
-	void resourceAdded(Resource resource);
+    void resourceAdded(Resource resource);
 
-	void resourceUpdated(Resource previousResource, Resource newResource);
+    void resourceUpdated(Resource previousResource, Resource newResource);
 
-	void resourceChangedType(Resource resource, ResourceType previousResourceType, ResourceType resourceType);
+    void resourceChangedType(Resource resource, ResourceType previousResourceType, ResourceType resourceType);
 
-	void resourceDeleted(Resource resource);
+    void resourceDeleted(Resource resource);
 }

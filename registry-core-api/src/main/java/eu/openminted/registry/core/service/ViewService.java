@@ -4,9 +4,9 @@ import eu.openminted.registry.core.domain.ResourceType;
 
 public interface ViewService {
 
-	void createView(ResourceType resourceType);
+    void createView(ResourceType resourceType);
 
-	void deleteView(String resourceType);
+    void deleteView(String resourceType);
 
 }
 

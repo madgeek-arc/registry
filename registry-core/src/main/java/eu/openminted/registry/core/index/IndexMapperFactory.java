@@ -8,23 +8,23 @@ import org.springframework.stereotype.Repository;
  * Created by antleb on 5/21/16.
  */
 @Repository("indexMapperFactory")
-public class IndexMapperFactory{
+public class IndexMapperFactory {
 
-	private final ApplicationContext context;
+    private final ApplicationContext context;
 
-	public IndexMapperFactory(ApplicationContext context) {
-		this.context = context;
-	}
+    public IndexMapperFactory(ApplicationContext context) {
+        this.context = context;
+    }
 
-	public IndexMapper createIndexMapper(ResourceType resourceType) throws Exception {
+    public IndexMapper createIndexMapper(ResourceType resourceType) throws Exception {
 
-		IndexMapper indexMapper = (IndexMapper) context.getBean(Class.forName(resourceType.getIndexMapperClass()));
+        IndexMapper indexMapper = (IndexMapper) context.getBean(Class.forName(resourceType.getIndexMapperClass()));
 
-		if (DefaultIndexMapper.class.isAssignableFrom(Class.forName(resourceType.getIndexMapperClass())))
-			((DefaultIndexMapper) indexMapper).setIndexFields(resourceType.getIndexFields());
+        if (DefaultIndexMapper.class.isAssignableFrom(Class.forName(resourceType.getIndexMapperClass())))
+            ((DefaultIndexMapper) indexMapper).setIndexFields(resourceType.getIndexFields());
 
-		return indexMapper;
-	}
+        return indexMapper;
+    }
 
 
 }

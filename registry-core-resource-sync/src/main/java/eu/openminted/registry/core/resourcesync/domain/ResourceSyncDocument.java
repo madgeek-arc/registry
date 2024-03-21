@@ -24,8 +24,7 @@ import java.util.TreeMap;
 /**
  * @author Richard Jones
  */
-public abstract class ResourceSyncDocument
-{
+public abstract class ResourceSyncDocument {
     // these options should be provided by the extending class through the constructor overrides
     protected String capability;
     protected String root;
@@ -38,53 +37,42 @@ public abstract class ResourceSyncDocument
     protected List<ResourceSyncEntry> unorderedEntries = new ArrayList<ResourceSyncEntry>();
     protected TreeMap<Date, List<ResourceSyncEntry>> orderedEntries = new TreeMap<Date, List<ResourceSyncEntry>>();
     protected List<ResourceSyncLn> lns = new ArrayList<ResourceSyncLn>();
-    
+
     private String changeType = null;
 
-    public String getChangeType() {
-		return changeType;
-	}
-
-	public void setChangeType(String changeType) {
-		if (changeType.toLowerCase().equals("create")) {
-			this.changeType = ResourceSync.CHANGE_CREATED;
-		}else if (changeType.toLowerCase().equals("update")) {
-			this.changeType = ResourceSync.CHANGE_UPDATED;
-		}else if (changeType.toLowerCase().equals("delete")) {
-			this.changeType = ResourceSync.CHANGE_DELETED;
-		}
-	}
-    
-    
-    public ResourceSyncDocument(String root, String capability, InputStream in)
-    {
+    public ResourceSyncDocument(String root, String capability, InputStream in) {
         this.root = root;
         this.capability = capability;
 
-        try
-        {
-            if (in != null)
-            {
+        try {
+            if (in != null) {
                 Element element = this.parse(in);
                 this.populateDocument(element);
             }
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             // do nothing, at least for the time being
-        }
-        catch (JDOMException e)
-        {
+        } catch (JDOMException e) {
             // do nothing, at least for the time being
-        }
-        catch (ParseException e)
-        {
+        } catch (ParseException e) {
             // do nothing, at least for the time being
         }
     }
 
-    public ResourceSyncLn addLn(String rel, String href)
-    {
+    public String getChangeType() {
+        return changeType;
+    }
+
+    public void setChangeType(String changeType) {
+        if (changeType.toLowerCase().equals("create")) {
+            this.changeType = ResourceSync.CHANGE_CREATED;
+        } else if (changeType.toLowerCase().equals("update")) {
+            this.changeType = ResourceSync.CHANGE_UPDATED;
+        } else if (changeType.toLowerCase().equals("delete")) {
+            this.changeType = ResourceSync.CHANGE_DELETED;
+        }
+    }
+
+    public ResourceSyncLn addLn(String rel, String href) {
         // rs:ln elements are repeatable and can have multiple ones with the same rel
         ResourceSyncLn ln = new ResourceSyncLn();
         ln.setRel(rel);
@@ -93,16 +81,13 @@ public abstract class ResourceSyncDocument
         return ln;
     }
 
-    public void addLn(ResourceSyncLn ln)
-    {
+    public void addLn(ResourceSyncLn ln) {
         this.lns.add(ln);
     }
 
-    public void addEntry(ResourceSyncEntry entry)
-    {
+    public void addEntry(ResourceSyncEntry entry) {
         Date key = entry.getLastModified() == null ? new Date(0) : entry.getLastModified();
-        if (!this.orderedEntries.containsKey(key))
-        {
+        if (!this.orderedEntries.containsKey(key)) {
             this.orderedEntries.put(key, new ArrayList<ResourceSyncEntry>());
         }
         this.orderedEntries.get(key).add(entry);
@@ -112,102 +97,87 @@ public abstract class ResourceSyncDocument
         this.unorderedEntries.add(entry);
     }
 
-    public List<ResourceSyncEntry> getEntries()
-    {
+    public List<ResourceSyncEntry> getEntries() {
         return this.unorderedEntries;
     }
 
-    public List<ResourceSyncLn> getLns()
-    {
+    public List<ResourceSyncLn> getLns() {
         return lns;
     }
 
-    public Date getLastModified()
-    {
+    public Date getLastModified() {
         return this.getFrom();
     }
 
-    public void setLastModified(Date lastModified)
-    {
+    public void setLastModified(Date lastModified) {
         this.setFrom(lastModified);
     }
 
-    public void setFrom(Date from)
-    {
-        this.from = from;
-    }
-
-    public Date getFrom()
-    {
+    public Date getFrom() {
         return this.from;
     }
 
-    public void setUntil(Date until)
-    {
-        this.until = until;
+    public void setFrom(Date from) {
+        this.from = from;
     }
 
-    public Date getUntil()
-    {
+    public Date getUntil() {
         return this.until;
     }
 
-    public void setFromUntil(Date from, Date until)
-    {
+    public void setUntil(Date until) {
+        this.until = until;
+    }
+
+    public void setFromUntil(Date from, Date until) {
         this.setFrom(from);
         this.setUntil(until);
     }
 
     public Date getAt() {
-		return this.at;
-	}
+        return this.at;
+    }
 
-	public void setAt(Date at) {
-		this.at = at;
-	}
+    public void setAt(Date at) {
+        this.at = at;
+    }
 
-	public Date getCompleted() {
-		return this.completed;
-	}
+    public Date getCompleted() {
+        return this.completed;
+    }
 
-	public void setCompleted(Date completed) {
-		this.completed = completed;
-	}
+    public void setCompleted(Date completed) {
+        this.completed = completed;
+    }
 
-	public String getCapability()
-    {
+    public String getCapability() {
         return capability;
     }
 
     protected void populateDocument(Element element)
-            throws ParseException
-    {
+            throws ParseException {
         // metadata element
         Element mdElement = element.getChild("md", ResourceSync.NS_RS);
 
-        if (mdElement != null)
-        {
+        if (mdElement != null) {
             // - capability
             String capability = mdElement.getAttributeValue("capability");
-            if (!"".equals(capability))
-            {
+            if (!"".equals(capability)) {
                 this.capability = capability;
             }
 
             // - from
             String modified = mdElement.getAttributeValue("from");
-            if (modified != null && !"".equals(modified))
-            {
+            if (modified != null && !"".equals(modified)) {
                 Date lastMod = ResourceSync.DATE_FORMAT.parse(modified);
                 this.setFrom(lastMod);
             }
 
             // - until
             String until = mdElement.getAttributeValue("until");
-            
-            
-            if (until != null && !"".equals(until))
-            {
+
+
+            if (until != null && !"".equals(until)) {
                 Date ud = ResourceSync.DATE_FORMAT.parse(until);
                 this.setUntil(ud);
             }
@@ -215,14 +185,12 @@ public abstract class ResourceSyncDocument
 
         // rs:ln elements
         List<Element> lns = element.getChildren("ln", ResourceSync.NS_RS);
-        for (Element ln : lns)
-        {
+        for (Element ln : lns) {
             String rel = ln.getAttributeValue("rel");
             String href = ln.getAttributeValue("href");
-            if (rel != null && !"".equals(rel) && href != null && !"".equals(href))
-            {
+            if (rel != null && !"".equals(rel) && href != null && !"".equals(href)) {
                 this.addLn(rel, href);
-                
+
             }
         }
 
@@ -232,38 +200,32 @@ public abstract class ResourceSyncDocument
 
     protected abstract void populateEntries(Element element) throws ParseException;
 
-    public Element getElement()
-    {
+    public Element getElement() {
         Element root = new Element(this.root, ResourceSync.NS_SITEMAP);
         root.addNamespaceDeclaration(ResourceSync.NS_RS);
 
         // set the capability of the document in the rs:md
         Element md = new Element("md", ResourceSync.NS_RS);
         md.setAttribute("capability", this.capability);
-        if (this.from != null)
-        {
+        if (this.from != null) {
             md.setAttribute("from", ResourceSync.DATE_FORMAT.format(this.from));
         }
-        if (this.until != null)
-        {
+        if (this.until != null) {
             md.setAttribute("until", ResourceSync.DATE_FORMAT.format(this.until));
         }
         root.addContent(md);
 
         // serialise the rs:ln elements
-        for (ResourceSyncLn ln : this.lns)
-        {
+        for (ResourceSyncLn ln : this.lns) {
             Element lnEl = new Element("ln", ResourceSync.NS_RS);
             lnEl.setAttribute("rel", ln.getRel());
             lnEl.setAttribute("href", ln.getHref());
             root.addContent(lnEl);
         }
 
-        for (Date date : this.orderedEntries.keySet())
-        {
+        for (Date date : this.orderedEntries.keySet()) {
             List<ResourceSyncEntry> entries = this.orderedEntries.get(date);
-            for (ResourceSyncEntry entry : entries)
-            {
+            for (ResourceSyncEntry entry : entries) {
                 Element entryElement = entry.getElement();
                 root.addContent(entryElement);
             }
@@ -272,8 +234,7 @@ public abstract class ResourceSyncDocument
         return root;
     }
 
-    public String serialise()
-    {
+    public String serialise() {
         Element element = this.getElement();
         Document doc = new Document(element);
         XMLOutputter out = new XMLOutputter(Format.getPrettyFormat());
@@ -281,18 +242,16 @@ public abstract class ResourceSyncDocument
     }
 
     public void serialise(OutputStream out)
-            throws IOException
-    {
+            throws IOException {
         Element element = this.getElement();
-        
+
         Document doc = new Document(element);
         XMLOutputter xmlOutputter = new XMLOutputter(Format.getPrettyFormat());
         xmlOutputter.output(doc, out);
     }
 
     protected Element parse(InputStream in)
-            throws IOException, JDOMException
-    {
+            throws IOException, JDOMException {
         SAXBuilder sax = new SAXBuilder();
         Document doc = sax.build(in);
         Element element = doc.getRootElement();

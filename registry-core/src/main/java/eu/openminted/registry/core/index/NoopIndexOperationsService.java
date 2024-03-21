@@ -23,12 +23,12 @@ public class NoopIndexOperationsService implements IndexOperationsService {
 
     private static final Logger logger = LoggerFactory.getLogger(NoopIndexOperationsService.class);
 
+    public NoopIndexOperationsService() {
+    }
+
     @PostConstruct
     void test() {
         logger.info("test no-op");
-    }
-
-    public NoopIndexOperationsService() {
     }
 
     public void addBulk(List<Resource> resources) {

@@ -10,100 +10,100 @@ import java.io.Serializable;
  * Created by antleb on 5/20/16.
  */
 @Entity
-public class IndexField implements Serializable{
+public class IndexField implements Serializable {
 
-	@ManyToOne(fetch = FetchType.EAGER)
-	@Id
-	@JsonBackReference(value = "resourcetype-indexfields")
-	private ResourceType resourceType;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @Id
+    @JsonBackReference(value = "resourcetype-indexfields")
+    private ResourceType resourceType;
 
-	@Column
-	@Id
-	private String name;
+    @Column
+    @Id
+    private String name;
 
-	@Column
-	private String path;
+    @Column
+    private String path;
 
-	@Column
-	private String type;
+    @Column
+    private String type;
 
-	@Column
-	private String label;
+    @Column
+    private String label;
 
-	@Column
-	private String defaultValue;
+    @Column
+    private String defaultValue;
 
-	@Column
-	private boolean multivalued;
+    @Column
+    private boolean multivalued;
 
-	@Column
-	private boolean primaryKey = false;
+    @Column
+    private boolean primaryKey = false;
 
-	public IndexField() {
-	}
+    public IndexField() {
+    }
 
-	public String getName() {
-		return name;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public String getPath() {
-		return path;
-	}
+    public String getPath() {
+        return path;
+    }
 
-	public void setPath(String path) {
-		this.path = path;
-	}
+    public void setPath(String path) {
+        this.path = path;
+    }
 
-	public String getType() {
-		return type;
-	}
+    public String getType() {
+        return type;
+    }
 
-	public void setType(String type) {
-		this.type = type;
-	}
+    public void setType(String type) {
+        this.type = type;
+    }
 
-	public ResourceType getResourceType() {
-		return resourceType;
-	}
+    public ResourceType getResourceType() {
+        return resourceType;
+    }
 
-	public void setResourceType(ResourceType resourceType) {
-		this.resourceType = resourceType;
-	}
+    public void setResourceType(ResourceType resourceType) {
+        this.resourceType = resourceType;
+    }
 
-	public boolean isMultivalued() {
-		return multivalued;
-	}
+    public boolean isMultivalued() {
+        return multivalued;
+    }
 
-	public void setMultivalued(boolean multivalued) {
-		this.multivalued = multivalued;
-	}
+    public void setMultivalued(boolean multivalued) {
+        this.multivalued = multivalued;
+    }
 
-	public String getDefaultValue() {
-		return defaultValue;
-	}
+    public String getDefaultValue() {
+        return defaultValue;
+    }
 
-	public void setDefaultValue(String defaultValue) {
-		this.defaultValue = defaultValue;
-	}
+    public void setDefaultValue(String defaultValue) {
+        this.defaultValue = defaultValue;
+    }
 
-	public String getLabel() {
-		return label;
-	}
+    public String getLabel() {
+        return label;
+    }
 
-	public void setLabel(String label) {
-		this.label = label;
-	}
+    public void setLabel(String label) {
+        this.label = label;
+    }
 
-	public boolean isPrimaryKey() {
-		return primaryKey;
-	}
+    public boolean isPrimaryKey() {
+        return primaryKey;
+    }
 
-	public void setPrimaryKey(boolean primaryKey) {
-		this.primaryKey = primaryKey;
-	}
+    public void setPrimaryKey(boolean primaryKey) {
+        this.primaryKey = primaryKey;
+    }
 
 }

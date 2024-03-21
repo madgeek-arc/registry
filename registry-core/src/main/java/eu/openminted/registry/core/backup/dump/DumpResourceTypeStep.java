@@ -40,17 +40,11 @@ public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
                             .OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE));
 
     private static final Logger logger = LoggerFactory.getLogger(DumpResourceTypeStep.class);
-
-    private ResourceTypeService resourceTypeService;
-
-    private boolean saveSchema;
-
-    private List<String> resourceTypeNames;
-
-    private Path masterDirectory;
-
     private static final String FILENAME_FOR_SCHEMA = "schema.json";
-
+    private ResourceTypeService resourceTypeService;
+    private boolean saveSchema;
+    private List<String> resourceTypeNames;
+    private Path masterDirectory;
     private ObjectMapper mapper;
 
     private List<String> stepResourceTypes = new ArrayList<>();
@@ -62,20 +56,34 @@ public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
         mapper = new ObjectMapper().configure(MapperFeature.USE_ANNOTATIONS, true);
     }
 
+    private static Path createBasicPath() {
+        Path masterDirectory = null;
+        try {
+            Calendar today = Calendar.getInstance();
+            today.set(Calendar.HOUR_OF_DAY, 0);
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd");
+            masterDirectory = Files.createTempDirectory(dateFormat.format(today.getTime()), PERMISSIONS);
+        } catch (IOException e1) {
+            throw new ServiceException(e1.getMessage());
+        }
+
+        return masterDirectory;
+    }
+
     @Override
     public void beforeStep(StepExecution stepExecution) {
         String resourceTypes = stepExecution.getJobExecution().getJobParameters().getString("resourceTypes");
         saveSchema = Boolean.parseBoolean(stepExecution.getJobExecution().getJobParameters().getString("save"));
         resourceTypeNames = new ArrayList<>(Arrays.asList(resourceTypes.split(",")));
         masterDirectory = createBasicPath();
-        stepExecution.getJobExecution().getExecutionContext().putString("directory",masterDirectory.toString());
+        stepExecution.getJobExecution().getExecutionContext().putString("directory", masterDirectory.toString());
         logger.info(masterDirectory.toString());
     }
 
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
-        stepExecution.getJobExecution().getExecutionContext().put("addedResourceTypes",stepResourceTypes);
-        if(saveSchema)
+        stepExecution.getJobExecution().getExecutionContext().put("addedResourceTypes", stepResourceTypes);
+        if (saveSchema)
             return ExitStatus.COMPLETED;
         else
             return ExitStatus.NOOP;
@@ -83,37 +91,23 @@ public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
 
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-        if(resourceTypeNames.isEmpty())
+        if (resourceTypeNames.isEmpty())
             return RepeatStatus.FINISHED;
         String resourceTypeName = resourceTypeNames.remove(0);
-        Path resourceTypePath = Files.createDirectory(Paths.get(masterDirectory.toString(),resourceTypeName),PERMISSIONS);
+        Path resourceTypePath = Files.createDirectory(Paths.get(masterDirectory.toString(), resourceTypeName), PERMISSIONS);
         logger.info("Saving " + resourceTypeName);
         ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
         stepResourceTypes.add(resourceTypeName);
-        if(!saveSchema)
+        if (!saveSchema)
             return RepeatStatus.CONTINUABLE;
         resourceType.setSchema(resourceType.getSchema());
-        Path tempFile = Paths.get(resourceTypePath.toString(),FILENAME_FOR_SCHEMA);
-        Files.createFile(tempFile,PERMISSIONS);
+        Path tempFile = Paths.get(resourceTypePath.toString(), FILENAME_FOR_SCHEMA);
+        Files.createFile(tempFile, PERMISSIONS);
         FileWriter file = new FileWriter(tempFile.toFile());
         file.write(mapper.writeValueAsString(resourceType));
         file.flush();
         file.close();
         return RepeatStatus.CONTINUABLE;
-    }
-
-    private static Path createBasicPath(){
-        Path masterDirectory = null;
-        try {
-            Calendar today = Calendar.getInstance();
-            today.set(Calendar.HOUR_OF_DAY, 0);
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd") ;
-            masterDirectory = Files.createTempDirectory(dateFormat.format(today.getTime()),PERMISSIONS);
-        } catch (IOException e1) {
-            throw new ServiceException(e1.getMessage());
-        }
-
-        return masterDirectory;
     }
 
 }

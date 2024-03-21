@@ -30,12 +30,12 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     @Value("${registry.base}")
     private String registryHost;
 
-    private List<ResourceType> getListResourceTypes(String url){
+    private List<ResourceType> getListResourceTypes(String url) {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<Paging> response = restTemplate.getForEntity(url, Paging.class);
-        if(response.getStatusCode().is2xxSuccessful()){
+        if (response.getStatusCode().is2xxSuccessful()) {
             return response.getBody().getResults();
-        }else{
+        } else {
             return new ArrayList<>();
         }
     }
@@ -44,9 +44,9 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     public Schema getSchema(String id) {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<Schema> response = restTemplate.getForEntity(registryHost + "/schemaService/" + id, Schema.class);
-        if(response.getStatusCode().is2xxSuccessful()){
+        if (response.getStatusCode().is2xxSuccessful()) {
             return response.getBody();
-        }else{
+        } else {
             return null;
         }
     }
@@ -55,21 +55,21 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     public ResourceType getResourceType(String name) {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<ResourceType> response = restTemplate.getForEntity(registryHost + "/resourceType/" + name, ResourceType.class);
-        if(response.getStatusCode().is2xxSuccessful()){
+        if (response.getStatusCode().is2xxSuccessful()) {
             return response.getBody();
-        }else{
+        } else {
             return null;
         }
     }
 
     @Override
     public List<ResourceType> getAllResourceType() {
-        return getListResourceTypes(registryHost+"/resourceType/");
+        return getListResourceTypes(registryHost + "/resourceType/");
     }
 
     @Override
     public List<ResourceType> getAllResourceType(int from, int to) {
-        return getListResourceTypes(registryHost+"/resourceType/?from="+from+"&to="+to);
+        return getListResourceTypes(registryHost + "/resourceType/?from=" + from + "&to=" + to);
     }
 
     @Override
@@ -80,11 +80,11 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
         headers.add("Content-Type", MediaType.APPLICATION_JSON_UTF8_VALUE);
 
 
-        HttpEntity<ResourceType> request = new HttpEntity<>(resourceType,headers);
+        HttpEntity<ResourceType> request = new HttpEntity<>(resourceType, headers);
         ResponseEntity<ResourceType> response = restTemplate
-                .exchange(registryHost+"/resourceType", HttpMethod.POST, request, ResourceType.class);
+                .exchange(registryHost + "/resourceType", HttpMethod.POST, request, ResourceType.class);
 
-        if(response.getStatusCode().is2xxSuccessful())
+        if (response.getStatusCode().is2xxSuccessful())
             return response.getBody();
         else
             return null;
@@ -98,6 +98,6 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     @Override
     public void deleteResourceType(String name) {
         RestTemplate restTemplate = new RestTemplate();
-        restTemplate.delete(registryHost+"/resourceType/"+name);
+        restTemplate.delete(registryHost + "/resourceType/" + name);
     }
 }

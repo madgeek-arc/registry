@@ -43,10 +43,6 @@ import java.util.stream.Collectors;
 public class ElasticOperationsService implements IndexOperationsService {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticOperationsService.class);
-
-    private final ResourceTypeService resourceTypeService;
-    private final RestHighLevelClient client;
-
     private static final Map<String, String> FIELD_TYPES_MAP;
 
     static {
@@ -60,24 +56,37 @@ public class ElasticOperationsService implements IndexOperationsService {
         FIELD_TYPES_MAP = Collections.unmodifiableMap(unmodifiableMap);
     }
 
-    @PostConstruct
-    void test() {
-        logger.info("test");
-    }
+    private final ResourceTypeService resourceTypeService;
+    private final RestHighLevelClient client;
 
     public ElasticOperationsService(ResourceTypeService resourceTypeService, RestHighLevelClient client) {
         this.resourceTypeService = resourceTypeService;
         this.client = client;
     }
 
-    public void addBulk(List<Resource> resources){
+    private static String strip(String input, String format) {
+        if ("xml".equals(format)) {
+            return input.replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ");
+        } else if ("json".equals(format)) {
+            return input;
+        } else {
+            throw new ServiceException("Invalid format type, supported are json and xml");
+        }
+    }
+
+    @PostConstruct
+    void test() {
+        logger.info("test");
+    }
+
+    public void addBulk(List<Resource> resources) {
         BulkRequest bulkRequest = new BulkRequest();
 
 
-        for(Resource resource : resources){
+        for (Resource resource : resources) {
             bulkRequest.add(new IndexRequest(resource.getResourceType().getName())
-                        .source(createDocumentForInsert(resource), XContentType.JSON)
-                        .id(resource.getId()));
+                    .source(createDocumentForInsert(resource), XContentType.JSON)
+                    .id(resource.getId()));
         }
 
         logger.info("Sending bulk request for {} resources", resources.size());
@@ -89,7 +98,7 @@ public class ElasticOperationsService implements IndexOperationsService {
             logger.error("Elastic bulk request ended up with some errors");
         }
 
-        if(bulkResponse.hasFailures()){
+        if (bulkResponse.hasFailures()) {
             logger.error("Elastic bulk request ended up with some errors");
         }
     }
@@ -100,7 +109,7 @@ public class ElasticOperationsService implements IndexOperationsService {
 
         IndexRequest indexRequest = new IndexRequest(resource.getResourceType().getName());
         indexRequest.id(resource.getId());
-        indexRequest.source(payload,XContentType.JSON);
+        indexRequest.source(payload, XContentType.JSON);
         indexRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
         try {
@@ -117,7 +126,7 @@ public class ElasticOperationsService implements IndexOperationsService {
         updateRequest.index(newResource.getResourceType().getName());
         updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
         updateRequest.id(previousResource.getId());
-        updateRequest.doc(createDocumentForInsert(newResource),XContentType.JSON);
+        updateRequest.doc(createDocumentForInsert(newResource), XContentType.JSON);
         try {
             client.update(updateRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
@@ -129,7 +138,7 @@ public class ElasticOperationsService implements IndexOperationsService {
     public void delete(String resourceId, String resourceType) {
         DeleteRequest deleteRequest = new DeleteRequest(resourceType, resourceId);
         try {
-            client.delete(deleteRequest,RequestOptions.DEFAULT);
+            client.delete(deleteRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
             throw new ServiceException(e);
         }
@@ -139,7 +148,7 @@ public class ElasticOperationsService implements IndexOperationsService {
     public void delete(Resource resource) {
         DeleteRequest deleteRequest = new DeleteRequest(resource.getResourceType().getName(), resource.getId());
         try {
-            client.delete(deleteRequest,RequestOptions.DEFAULT);
+            client.delete(deleteRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
             throw new ServiceException(e);
         }
@@ -173,12 +182,12 @@ public class ElasticOperationsService implements IndexOperationsService {
         request.mapping(jsonObjectForMapping);
 
         try {
-            CreateIndexResponse putMappingResponse = client.indices().create(request,RequestOptions.DEFAULT); //request, RequestOptions.DEFAULT);
+            CreateIndexResponse putMappingResponse = client.indices().create(request, RequestOptions.DEFAULT); //request, RequestOptions.DEFAULT);
             if (!putMappingResponse.isAcknowledged()) {
                 logger.error("Error creating result");
             }
         } catch (IOException e) {
-           throw new ServiceException(e);
+            throw new ServiceException(e);
         }
 
     }
@@ -187,17 +196,17 @@ public class ElasticOperationsService implements IndexOperationsService {
     public void deleteIndex(String name) {
         logger.info("Deleting index");
 
-        if(!exists(name)) {
+        if (!exists(name)) {
             return;
         }
         AcknowledgedResponse deleteResponse = null;
         try {
             deleteResponse = client.indices().delete(new DeleteIndexRequest(name), RequestOptions.DEFAULT);
-            if(!deleteResponse.isAcknowledged()){
+            if (!deleteResponse.isAcknowledged()) {
                 logger.error("Error deleting index \"{}\"", name);
             }
         } catch (IOException e) {
-            logger.error("Error deleting index: " + name,e);
+            logger.error("Error deleting index: " + name, e);
         }
 
 
@@ -223,8 +232,8 @@ public class ElasticOperationsService implements IndexOperationsService {
             for (IndexField indexField : indexFields) {
                 Map<String, Object> typeMap = new HashMap<>();
                 typeMap.put("type", FIELD_TYPES_MAP.get(indexField.getType()));
-                if(indexField.getType().equals("java.util.Date"))
-                    typeMap.put("format","epoch_millis");
+                if (indexField.getType().equals("java.util.Date"))
+                    typeMap.put("format", "epoch_millis");
                 jsonObjectProperties.put(indexField.getName(), typeMap);
             }
         }
@@ -243,8 +252,8 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectProperties.put("searchableArea", textMap);
         jsonObjectProperties.put("payloadFormat", typeMap);
         jsonObjectProperties.put("resourceType", typeMap);
-        jsonObjectProperties.put("creation_date",dateMap);
-        jsonObjectProperties.put("modification_date",dateMap);
+        jsonObjectProperties.put("creation_date", dateMap);
+        jsonObjectProperties.put("modification_date", dateMap);
 
         jsonObjectGeneral.put("properties", jsonObjectProperties);
         return jsonObjectGeneral;
@@ -259,53 +268,43 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectField.put("payload", resource.getPayload());
         jsonObjectField.put("payloadFormat", resource.getPayloadFormat());
         jsonObjectField.put("version", resource.getVersion());
-        jsonObjectField.put("searchableArea", strip(resource.getPayload(),resource.getPayloadFormat()));
+        jsonObjectField.put("searchableArea", strip(resource.getPayload(), resource.getPayloadFormat()));
         jsonObjectField.put("modification_date", resource.getModificationDate().getTime());
         //The creation date exists and should not be updated
-        if(resource.getCreationDate() != null) {
+        if (resource.getCreationDate() != null) {
             jsonObjectField.put("creation_date", resource.getCreationDate().getTime());
         }
-        Map<String,IndexField> indexMap = resourceTypeService.getResourceTypeIndexFields(
-                resource.getResourceType().getName()).
-                stream().collect(Collectors.toMap(IndexField::getName, p->p)
-        );
+        Map<String, IndexField> indexMap = resourceTypeService.getResourceTypeIndexFields(
+                        resource.getResourceType().getName()).
+                stream().collect(Collectors.toMap(IndexField::getName, p -> p)
+                );
         if (resource.getIndexedFields() != null) {
             for (IndexedField<?> field : resource.getIndexedFields()) {
-                if(!indexMap.get(field.getName()).isMultivalued()) {
+                if (!indexMap.get(field.getName()).isMultivalued()) {
                     for (Object value : field.getValues()) {
                         String fieldType = indexMap.get(field.getName()).getType();
-                        if(fieldType.equals("java.lang.String")){
+                        if (fieldType.equals("java.lang.String")) {
                             jsonObjectField.put(field.getName(), value);
-                        }else if(fieldType.equals("java.lang.Integer")){
-                            jsonObjectField.put(field.getName(),value);
-                        }else if(fieldType.equals("java.lang.Long")){
-                            jsonObjectField.put(field.getName(),value);
-                        }else if(fieldType.equals("java.lang.Float")){
-                            jsonObjectField.put(field.getName(),value);
-                        }else if(fieldType.equals("java.util.Date")){
+                        } else if (fieldType.equals("java.lang.Integer")) {
+                            jsonObjectField.put(field.getName(), value);
+                        } else if (fieldType.equals("java.lang.Long")) {
+                            jsonObjectField.put(field.getName(), value);
+                        } else if (fieldType.equals("java.lang.Float")) {
+                            jsonObjectField.put(field.getName(), value);
+                        } else if (fieldType.equals("java.util.Date")) {
                             Date date = (Date) value;
                             jsonObjectField.put(field.getName(), date.getTime());
-                        }else if (fieldType.equals("java.lang.Boolean")){
-                            jsonObjectField.put(field.getName(),value);
+                        } else if (fieldType.equals("java.lang.Boolean")) {
+                            jsonObjectField.put(field.getName(), value);
                         }
                     }
                 } else {
                     List<Object> values = new ArrayList<>(field.getValues());
-                    jsonObjectField.put(field.getName(),values);
+                    jsonObjectField.put(field.getName(), values);
 
                 }
             }
         }
         return jsonObjectField.toString();
-    }
-
-    private static String strip(String input, String format) {
-        if ( "xml".equals(format)) {
-            return input.replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ");
-        } else if ("json".equals(format)) {
-            return input;
-        } else {
-            throw new ServiceException("Invalid format type, supported are json and xml");
-        }
     }
 }

@@ -18,20 +18,18 @@ import java.util.Properties;
 public class DumpResourceTypePartitioner implements Partitioner {
 
     private static final Logger logger = LoggerFactory.getLogger(DumpResourceTypePartitioner.class);
-
-    @Value("#{jobExecutionContext['addedResourceTypes']}")
-    private List<String> resourceTypes;
-
     @Value("#{jobExecutionContext}")
     Properties jobExecution;
+    @Value("#{jobExecutionContext['addedResourceTypes']}")
+    private List<String> resourceTypes;
 
     @Override
     public Map<String, ExecutionContext> partition(int gridSize) {
         Map<String, ExecutionContext> versionMap = new HashMap<>(gridSize);
-        for(String resourceType : resourceTypes) {
+        for (String resourceType : resourceTypes) {
             ExecutionContext context = new ExecutionContext();
             context.put("resourceType", resourceType);
-            versionMap.put(resourceType,context);
+            versionMap.put(resourceType, context);
         }
         return versionMap;
     }

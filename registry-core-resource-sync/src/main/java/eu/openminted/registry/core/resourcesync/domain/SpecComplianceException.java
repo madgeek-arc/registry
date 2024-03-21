@@ -4,28 +4,24 @@
  * tree
  */
 package eu.openminted.registry.core.resourcesync.domain;
+
 /**
  * @author Richard Jones
  */
-public class SpecComplianceException extends RuntimeException
-{
-    public SpecComplianceException()
-    {
+public class SpecComplianceException extends RuntimeException {
+    public SpecComplianceException() {
         super();
     }
 
-    public SpecComplianceException(String message)
-    {
+    public SpecComplianceException(String message) {
         super(message);
     }
 
-    public SpecComplianceException(String message, Throwable cause)
-    {
+    public SpecComplianceException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public SpecComplianceException(Throwable cause)
-    {
+    public SpecComplianceException(Throwable cause) {
         super(cause);
     }
 }

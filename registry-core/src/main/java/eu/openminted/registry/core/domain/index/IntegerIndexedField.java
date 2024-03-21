@@ -15,8 +15,13 @@ public class IntegerIndexedField extends IndexedField<Long> {
     @ElementCollection
     private Set<Long> values;
 
-    public IntegerIndexedField(){
+    public IntegerIndexedField() {
 
+    }
+
+    public IntegerIndexedField(String name, Set<Object> values) {
+        setName(name);
+        setValues(values.stream().map(x -> ((Long) x)).collect(Collectors.toSet()));
     }
 
     @Override
@@ -27,11 +32,6 @@ public class IntegerIndexedField extends IndexedField<Long> {
     @Override
     public void setValues(Set<Long> value) {
         this.values = value;
-    }
-
-    public IntegerIndexedField(String name, Set<Object> values) {
-        setName(name);
-        setValues(values.stream().map(x -> ((Long) x)).collect(Collectors.toSet()));
     }
 
 }

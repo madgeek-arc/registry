@@ -11,11 +11,9 @@ import java.util.Set;
  * Created by antleb on 5/21/16.
  */
 public interface FieldParser {
-	Set<Object> parse(String payload, String fieldType, String path, boolean isMultiValued);
-
-	static Set<Object> parseField(String fieldType, String typeValue){
-	    Set<Object> values = new HashSet<>();
-        if(!StringUtils.isEmpty(typeValue)) {
+    static Set<Object> parseField(String fieldType, String typeValue) {
+        Set<Object> values = new HashSet<>();
+        if (!StringUtils.isEmpty(typeValue)) {
             switch (fieldType) {
                 case "java.lang.String":
                     values.add(typeValue);
@@ -36,6 +34,8 @@ public interface FieldParser {
                     break;
             }
         }
-		return values;
-	}
+        return values;
+    }
+
+    Set<Object> parse(String payload, String fieldType, String path, boolean isMultiValued);
 }

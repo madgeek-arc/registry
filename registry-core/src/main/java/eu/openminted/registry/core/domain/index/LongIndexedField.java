@@ -15,8 +15,13 @@ public class LongIndexedField extends IndexedField<Long> {
     @ElementCollection
     private Set<Long> values;
 
-    public LongIndexedField(){
+    public LongIndexedField() {
 
+    }
+
+    public LongIndexedField(String name, Set<Object> values) {
+        setName(name);
+        setValues(values.stream().map(Object::toString).mapToLong(Long::parseLong).boxed().collect(Collectors.toSet()));
     }
 
     @Override
@@ -27,11 +32,6 @@ public class LongIndexedField extends IndexedField<Long> {
     @Override
     public void setValues(Set<Long> value) {
         this.values = value;
-    }
-
-    public LongIndexedField(String name, Set<Object> values) {
-        setName(name);
-        setValues(values.stream().map(Object::toString).mapToLong(Long::parseLong).boxed().collect(Collectors.toSet()));
     }
 
 }

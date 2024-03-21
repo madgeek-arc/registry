@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
@@ -31,6 +30,7 @@ public class ResourceValidator {
     ResourceValidator(SchemaDao schemaDao) {
         this.schemaDao = schemaDao;
     }
+
     public boolean validateXML(Resource resource) {
         Schema schema;
         try {
@@ -48,7 +48,7 @@ public class ResourceValidator {
         try {
             schema.validate(new JSONObject(resource.getPayload())); // throws a ValidationException if this object is invalid
         } catch (ValidationException e) {
-            logger.error("Error validation JSON payload",e);
+            logger.error("Error validation JSON payload", e);
             throw new ServiceException(e.getMessage());
         }
         return true;

@@ -17,7 +17,7 @@ public class RestoreController {
 
     @RequestMapping(value = "/restore/", method = RequestMethod.POST)
     @ResponseBody
-    public Map<String,BatchResult> restoreAll(@RequestParam("datafile") MultipartFile file ) {
+    public Map<String, BatchResult> restoreAll(@RequestParam("datafile") MultipartFile file) {
         return restoreService.restoreDataFromZip(file);
     }
 

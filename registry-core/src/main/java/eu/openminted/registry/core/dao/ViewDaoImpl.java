@@ -26,7 +26,7 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
     public void createView(ResourceType resourceType) {
         if (resourceType.getIndexFields() != null) {
             // create datatype maps
-            Map<String,String> dataTypeMap = new HashMap< String,String>();
+            Map<String, String> dataTypeMap = new HashMap<String, String>();
             dataTypeMap.put("floatindexedfield", "float");
             dataTypeMap.put("integerindexedfield", "bigint");
             dataTypeMap.put("stringindexedfield", "text");
@@ -38,8 +38,8 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
             resourceType.getIndexFields().sort(Comparator.comparing(IndexField::getName));
 
             // create maps to store single- and multi-valued index names
-            Map<String, List<String>> singleVal_indexMap = new HashMap< String,List<String>>();
-            Map<String,List<String>> multiVal_indexMap = new HashMap< String,List<String>>();
+            Map<String, List<String>> singleVal_indexMap = new HashMap<String, List<String>>();
+            Map<String, List<String>> multiVal_indexMap = new HashMap<String, List<String>>();
 
             for (IndexField indexField : resourceType.getIndexFields()) {
                 String indexFieldString = "";
@@ -176,18 +176,18 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
                 getEntityManager().joinTransaction();
                 query.executeUpdate();
             } catch (Exception e) {
-                logger.info("View was not created",e);
+                logger.info("View was not created", e);
             }
         }
     }
 
-	@Override
-	public void deleteView(String resourceType) {
-	    logger.info("Deleting view ");
-	    getEntityManager().joinTransaction();
-		getEntityManager().createNativeQuery("DROP VIEW IF EXISTS "+resourceType+"_view").executeUpdate();
-		getEntityManager().flush();
-	}
+    @Override
+    public void deleteView(String resourceType) {
+        logger.info("Deleting view ");
+        getEntityManager().joinTransaction();
+        getEntityManager().createNativeQuery("DROP VIEW IF EXISTS " + resourceType + "_view").executeUpdate();
+        getEntityManager().flush();
+    }
 
 
 }

@@ -25,16 +25,16 @@ public class DumpServiceImpl implements DumpService {
     @Override
     public File dump(boolean isRaw, boolean schemaless, String[] resourceTypes, boolean wantVersion) {
         RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<byte[]> response = restTemplate.getForEntity(registryHost + "/dump/?schema="+schemaless+"&raw="+isRaw+ ((resourceTypes.length==0) ? "" : "&resourceTypes="+String.join(",",resourceTypes)), byte[].class);
-        if(response.getStatusCode().is2xxSuccessful()){
+        ResponseEntity<byte[]> response = restTemplate.getForEntity(registryHost + "/dump/?schema=" + schemaless + "&raw=" + isRaw + ((resourceTypes.length == 0) ? "" : "&resourceTypes=" + String.join(",", resourceTypes)), byte[].class);
+        if (response.getStatusCode().is2xxSuccessful()) {
             FileOutputStream output = null;
             try {
-                File file = File.createTempFile("dump-"+(new Date().getTime()),".zip");
+                File file = File.createTempFile("dump-" + (new Date().getTime()), ".zip");
                 output = new FileOutputStream(file);
                 IOUtils.write(response.getBody(), output);
                 return file;
             } catch (IOException e) {
-                logger.debug("Could not get file from REST",e);
+                logger.debug("Could not get file from REST", e);
             }
         }
         return null;

@@ -51,7 +51,7 @@ public class RestoreServiceImpl implements RestoreService {
     }
 
     @Override
-    public Map<String,BatchResult> restoreDataFromZip(MultipartFile zipFile) {
+    public Map<String, BatchResult> restoreDataFromZip(MultipartFile zipFile) {
         /**
          * save file to temp
          */
@@ -64,11 +64,11 @@ public class RestoreServiceImpl implements RestoreService {
             RestoreJobListener restoreJobListener = new RestoreJobListener();
             for (File file : resourceTypeFiles) {
                 JobParametersBuilder builder = new JobParametersBuilder();
-                builder.addString("resourceType",file.getName());
-                builder.addString("resourceTypeDir",file.getAbsolutePath());
-                builder.addDate("date",date);
+                builder.addString("resourceType", file.getName());
+                builder.addString("resourceTypeDir", file.getAbsolutePath());
+                builder.addDate("date", date);
                 ((AbstractJob) restoreJob).registerJobExecutionListener(restoreJobListener);
-                JobExecution job = mySyncJobLauncher.run(restoreJob,builder.toJobParameters());
+                JobExecution job = mySyncJobLauncher.run(restoreJob, builder.toJobParameters());
                 restoreJobListener.registerJob(job);
             }
             logger.info("{}", restoreJobListener.waitResults());

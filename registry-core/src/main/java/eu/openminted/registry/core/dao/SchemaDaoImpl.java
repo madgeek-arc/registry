@@ -13,7 +13,6 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.ls.LSInput;
 import org.xml.sax.SAXException;
 import org.xmlunit.builder.Input;
@@ -34,12 +33,9 @@ import java.util.concurrent.TimeUnit;
 public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
 
     private static final Logger logger = LoggerFactory.getLogger(SchemaDaoImpl.class);
-
-    private final LoadingCache<String, javax.xml.validation.Schema> schemaXMLLoader;
-
-    private final LoadingCache<String, org.everit.json.schema.Schema> schemaJSONLoader;
-
     private static final String XSD_SCHEMA = XMLConstants.W3C_XML_SCHEMA_NS_URI + ".xsd";
+    private final LoadingCache<String, javax.xml.validation.Schema> schemaXMLLoader;
+    private final LoadingCache<String, org.everit.json.schema.Schema> schemaJSONLoader;
 
     public SchemaDaoImpl() {
         super();
@@ -51,14 +47,31 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
         schemaJSONLoader = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build(jsonLoader);
     }
 
+    private static String stringToMd5(String schema) {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("MD5");
+            md.update(schema.getBytes());
+            byte[] digest = md.digest();
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b & 0xff));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            logger.error("MD5 not found", e);
+            return null;
+        }
+    }
+
     @Override
     public Schema getSchema(String id) {
-        return getSingleResult("id",id);
+        return getSingleResult("id", id);
     }
 
     @Override
     public Schema getSchemaByUrl(String originalURL) {
-        return getSingleResult("originalUrl",originalURL);
+        return getSingleResult("originalUrl", originalURL);
     }
 
     @Override
@@ -93,7 +106,7 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
         try {
             logger.info("Processing schema with systemId: {}", systemId);
             eu.openminted.registry.core.domain.Schema existing;
-            if(baseURI==null)
+            if (baseURI == null)
                 existing = getSchemaByUrl(systemId);
             else
                 existing = getSchemaByUrl(replaceLastSegment(baseURI, systemId));
@@ -102,7 +115,7 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
                 return new SchemaInput(publicId, systemId, IOUtils.toInputStream(existing.getSchema()), baseURI);
 
             URL schemaURL;
-            if(baseURI!=null) {
+            if (baseURI != null) {
                 schemaURL = new URL(new URL(baseURI), systemId);
             } else {
                 schemaURL = new URL(systemId);
@@ -113,8 +126,8 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
                 if (getSchema(md5) == null) {
                     Schema schema = new Schema();
                     schema.setSchema(schemaStr);
-                    if(baseURI!=null)
-                        schema.setOriginalUrl(replaceLastSegment(baseURI,systemId));
+                    if (baseURI != null)
+                        schema.setOriginalUrl(replaceLastSegment(baseURI, systemId));
                     else
                         schema.setOriginalUrl(systemId);
                     schema.setId(md5);
@@ -127,8 +140,8 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
         }
     }
 
-    public String replaceLastSegment(String url, String replacingPath){
-        return url.replace(url.substring(url.lastIndexOf('/')+1), replacingPath);
+    public String replaceLastSegment(String url, String replacingPath) {
+        return url.replace(url.substring(url.lastIndexOf('/') + 1), replacingPath);
     }
 
     private boolean validateXML(String schema) throws IOException {
@@ -139,27 +152,10 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
         try {
             validator.validate(new StreamSource(IOUtils.toInputStream(schema)));
         } catch (SAXException e) {
-            logger.error("Error validating xsd",e);
+            logger.error("Error validating xsd", e);
             return false;
         }
         return true;
-    }
-
-    private static String stringToMd5(String schema) {
-        MessageDigest md;
-        try {
-            md = MessageDigest.getInstance("MD5");
-            md.update(schema.getBytes());
-            byte[] digest = md.digest();
-            StringBuilder sb = new StringBuilder();
-            for (byte b : digest) {
-                sb.append(String.format("%02x", b & 0xff));
-            }
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            logger.error("MD5 not found",e);
-            return null;
-        }
     }
 
     @Override

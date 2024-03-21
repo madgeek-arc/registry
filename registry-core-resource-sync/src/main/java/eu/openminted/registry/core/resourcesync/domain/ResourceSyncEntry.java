@@ -14,9 +14,8 @@ import java.util.*;
 /**
  * @author Richard Jones
  */
-public abstract class ResourceSyncEntry
-{
-	
+public abstract class ResourceSyncEntry {
+
     protected String root;
 
     protected String loc = null;
@@ -33,80 +32,33 @@ public abstract class ResourceSyncEntry
 
     protected List<ResourceSyncLn> lns = new ArrayList<ResourceSyncLn>();
 
-    public void setLoc(String url, Date lastModified, String changefreq)
-    {
+    public void setLoc(String url, Date lastModified, String changefreq) {
         this.loc = url;
         this.lastModified = lastModified;
         this.changeFreq = changefreq;
     }
 
-    public void setLoc(String url, Date lastModified)
-    {
-       this.setLoc(url, lastModified, null);
+    public void setLoc(String url, Date lastModified) {
+        this.setLoc(url, lastModified, null);
     }
 
-    public void setLoc(String url)
-    {
-        this.setLoc(url, null, null);
-    }
-
-    public void setLastModified(Date lastModified)
-    {
-        this.lastModified = lastModified;
-    }
-
-    public void setChangeFreq(String changeFreq)
-    {
-        this.changeFreq = changeFreq;
-    }
-
-    public void setCapability(String capability)
-    {
-        this.capability = capability;
-    }
-
-    public void setChange(String change)
-    {
-        this.change = change;
-    }
-
-    public void setLength(long length)
-    {
-        this.length = length;
-    }
-
-    public void setPath(String path)
-    {
-        this.path = path;
-    }
-
-    public void setType(String type)
-    {
-        this.type = type;
-    }
-
-    public String getEncoding()
-    {
+    public String getEncoding() {
         return encoding;
     }
 
-    public void setEncoding(String encoding)
-    {
+    public void setEncoding(String encoding) {
         this.encoding = encoding;
     }
 
-    public void addHash(String type, String hex)
-    {
+    public void addHash(String type, String hex) {
         this.hashes.put(type, hex);
     }
 
-    public void calculateHash(String type, InputStream stream)
-    {
+    public void calculateHash(String type, InputStream stream) {
         // TODO: could do this when we're a bit further down the development path
     }
 
-    public ResourceSyncLn addLn(String rel, String href)
-    {
+    public ResourceSyncLn addLn(String rel, String href) {
         ResourceSyncLn ln = new ResourceSyncLn();
         ln.setRel(rel);
         ln.setHref(href);
@@ -114,230 +66,225 @@ public abstract class ResourceSyncEntry
         return ln;
     }
 
-    public void addLn(ResourceSyncLn ln)
-    {
+    public void addLn(ResourceSyncLn ln) {
         this.lns.add(ln);
     }
 
-    public String getLoc()
-    {
+    public String getLoc() {
         return loc;
     }
 
-    public Date getLastModified()
-    {
+    public void setLoc(String url) {
+        this.setLoc(url, null, null);
+    }
+
+    public Date getLastModified() {
         return lastModified;
     }
 
-    public String getChangeFreq()
-    {
+    public void setLastModified(Date lastModified) {
+        this.lastModified = lastModified;
+    }
+
+    public String getChangeFreq() {
         return changeFreq;
     }
 
-    public String getCapability()
-    {
+    public void setChangeFreq(String changeFreq) {
+        this.changeFreq = changeFreq;
+    }
+
+    public String getCapability() {
         return capability;
     }
 
-    public String getChange()
-    {
+    public void setCapability(String capability) {
+        this.capability = capability;
+    }
+
+    public String getChange() {
         return change;
     }
 
-    public Map<String, String> getHashes()
-    {
+    public void setChange(String change) {
+        this.change = change;
+    }
+
+    public Map<String, String> getHashes() {
         return hashes;
     }
 
-    public long getLength()
-    {
+    public long getLength() {
         return length;
     }
 
-    public String getPath()
-    {
+    public void setLength(long length) {
+        this.length = length;
+    }
+
+    public String getPath() {
         return path;
     }
 
-    public String getType()
-    {
+    public void setPath(String path) {
+        this.path = path;
+    }
+
+    public String getType() {
         return type;
     }
 
-    public List<ResourceSyncLn> getLns()
-    {
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public List<ResourceSyncLn> getLns() {
         return lns;
     }
 
     public void populateObject(Element element)
-            throws ParseException
-    {
+            throws ParseException {
         // loc
         Element locEl = element.getChild("loc", ResourceSync.NS_SITEMAP);
-        if (locEl != null)
-        {
+        if (locEl != null) {
             this.setLoc(locEl.getText().trim());
         }
 
         // lastmod
         Element lmEl = element.getChild("lastmod", ResourceSync.NS_SITEMAP);
-        if (lmEl != null)
-        {
+        if (lmEl != null) {
             Date lm = ResourceSync.DATE_FORMAT.parse(lmEl.getText().trim());
             this.setLastModified(lm);
         }
 
         // changefreq
         Element cfEl = element.getChild("changefreq", ResourceSync.NS_SITEMAP);
-        if (cfEl != null)
-        {
+        if (cfEl != null) {
             this.setChangeFreq(cfEl.getText().trim());
         }
 
         // the metadata element
         Element mdElement = element.getChild("md", ResourceSync.NS_RS);
 
-        if (mdElement != null)
-        {
+        if (mdElement != null) {
             // - capability
             String capability = mdElement.getAttributeValue("capability");
-            if (capability != null && !"".equals(capability))
-            {
+            if (capability != null && !"".equals(capability)) {
                 this.setCapability(capability);
             }
 
             // - change
             String change = mdElement.getAttributeValue("change");
-            if (change != null && !"".equals(change))
-            {
+            if (change != null && !"".equals(change)) {
                 this.setChange(change);
             }
 
             // - hash
             String hashAttr = mdElement.getAttributeValue("hash");
-            if (hashAttr != null && !"".equals(hashAttr))
-            {
+            if (hashAttr != null && !"".equals(hashAttr)) {
                 this.addHashesFromAttr(hashAttr);
             }
 
             // - length
             String length = mdElement.getAttributeValue("length");
-            if (length != null && !"".equals(length))
-            {
+            if (length != null && !"".equals(length)) {
                 long l = Long.parseLong(length);
                 this.setLength(l);
             }
 
             // - path
             String path = mdElement.getAttributeValue("path");
-            if (path != null && !"".equals(path))
-            {
+            if (path != null && !"".equals(path)) {
                 this.setPath(path);
             }
 
             // - type
             String type = mdElement.getAttributeValue("type");
-            if (type != null && !"".equals(type))
-            {
+            if (type != null && !"".equals(type)) {
                 this.setType(type);
             }
 
             // -encoding
             String encoding = mdElement.getAttributeValue("encoding");
-            if (encoding != null && !"".equals(encoding))
-            {
+            if (encoding != null && !"".equals(encoding)) {
                 this.setEncoding(encoding);
             }
         }
 
         // all the rs:ln elements
         List<Element> lns = element.getChildren("ln", ResourceSync.NS_RS);
-        for (Element ln : lns)
-        {
+        for (Element ln : lns) {
             String rel = ln.getAttributeValue("rel");
             String href = ln.getAttributeValue("href");
-            if (rel != null && !"".equals(rel) && href != null && !"".equals(href))
-            {
+            if (rel != null && !"".equals(rel) && href != null && !"".equals(href)) {
                 ResourceSyncLn link = this.addLn(rel, href);
 
                 // hash
                 String lnHashAttr = ln.getAttributeValue("hash");
-                if (lnHashAttr != null && !"".equals(lnHashAttr))
-                {
+                if (lnHashAttr != null && !"".equals(lnHashAttr)) {
                     Map<String, String> hashMap = this.getHashesFromAttr(lnHashAttr);
-                    for (String key : hashMap.keySet())
-                    {
+                    for (String key : hashMap.keySet()) {
                         link.addHash(key, hashMap.get(key));
                     }
                 }
 
                 // length
                 String lnLength = ln.getAttributeValue("length");
-                if (lnLength != null && !"".equals(length))
-                {
+                if (lnLength != null && !"".equals(length)) {
                     long lnl = Long.parseLong(lnLength);
                     link.setLength(lnl);
                 }
 
                 // modified
                 String modified = ln.getAttributeValue("modified");
-                if (modified != null && !"".equals(modified))
-                {
+                if (modified != null && !"".equals(modified)) {
                     Date modDate = ResourceSync.DATE_FORMAT.parse(modified);
                     link.setModified(modDate);
                 }
 
                 // path
                 String lnPath = ln.getAttributeValue("path");
-                if (lnPath != null && !"".equals(lnPath))
-                {
+                if (lnPath != null && !"".equals(lnPath)) {
                     link.setPath(lnPath);
                 }
 
                 // pri
                 String pri = ln.getAttributeValue("pri");
-                if (pri != null && !"".equals(pri))
-                {
+                if (pri != null && !"".equals(pri)) {
                     link.setPri(Integer.parseInt(pri));
                 }
 
                 // type
                 String lnType = ln.getAttributeValue("type");
-                if (lnType != null && !"".equals(lnType))
-                {
+                if (lnType != null && !"".equals(lnType)) {
                     link.setType(lnType);
                 }
 
                 // encoding
                 String lnEncoding = ln.getAttributeValue("encoding");
-                if (lnEncoding != null && !"".equals(lnEncoding))
-                {
+                if (lnEncoding != null && !"".equals(lnEncoding)) {
                     link.setEncoding(lnEncoding);
                 }
             }
         }
     }
 
-    public Element getElement()
-    {
+    public Element getElement() {
         Element root = new Element(this.root, ResourceSync.NS_SITEMAP);
 
-        if (this.loc != null)
-        {
+        if (this.loc != null) {
             Element loc = new Element("loc", ResourceSync.NS_SITEMAP);
             loc.setText(this.loc);
             root.addContent(loc);
         }
 
-        if (this.lastModified != null)
-        {
+        if (this.lastModified != null) {
             Element lm = new Element("lastmod", ResourceSync.NS_SITEMAP);
             lm.setText(ResourceSync.DATE_FORMAT.format(this.lastModified));
             root.addContent(lm);
         }
 
-        if (this.changeFreq != null)
-        {
+        if (this.changeFreq != null) {
             Element cf = new Element("changefreq", ResourceSync.NS_SITEMAP);
             cf.setText(this.changeFreq);
             root.addContent(cf);
@@ -346,100 +293,81 @@ public abstract class ResourceSyncEntry
         // set the metadata element
         Element md = new Element("md", ResourceSync.NS_RS);
         boolean trip = false;
-        if (this.capability != null)
-        {
+        if (this.capability != null) {
             md.setAttribute("capability", this.capability);
             trip = true;
         }
-        if (this.change != null)
-        {
+        if (this.change != null) {
             md.setAttribute("change", this.change);
             trip = true;
         }
         String hashAttr = this.getHashAttr(this.hashes);
-        if (!"".equals(hashAttr))
-        {
+        if (!"".equals(hashAttr)) {
             md.setAttribute("hash", hashAttr);
             trip = true;
         }
-        if (this.length > -1)
-        {
+        if (this.length > -1) {
             md.setAttribute("length", Long.toString(this.length));
             trip = true;
         }
-        if (this.path != null)
-        {
+        if (this.path != null) {
             md.setAttribute("path", this.path);
             trip = true;
         }
-        if (this.type != null)
-        {
+        if (this.type != null) {
             md.setAttribute("type", this.type);
             trip = true;
         }
-        if (this.encoding != null)
-        {
+        if (this.encoding != null) {
             md.setAttribute("encoding", this.encoding);
             trip = true;
         }
-        if (trip)
-        {
+        if (trip) {
             root.addContent(md);
         }
 
         // set the link elements
-        for (ResourceSyncLn ln : this.lns)
-        {
+        for (ResourceSyncLn ln : this.lns) {
             trip = false;
             Element link = new Element("ln", ResourceSync.NS_RS);
             String lnHash = this.getHashAttr(ln.getHashes());
-            if (!"".equals(lnHash))
-            {
+            if (!"".equals(lnHash)) {
                 link.setAttribute("hash", lnHash);
                 trip = true;
             }
-            if (ln.getHref() != null)
-            {
+            if (ln.getHref() != null) {
                 link.setAttribute("href", ln.getHref());
                 trip = true;
             }
-            if (ln.getLength() > -1)
-            {
+            if (ln.getLength() > -1) {
                 link.setAttribute("length", Long.toString(ln.getLength()));
                 trip = true;
             }
-            if (ln.getModified() != null)
-            {
+            if (ln.getModified() != null) {
                 link.setAttribute("modified", ResourceSync.DATE_FORMAT.format(ln.getModified()));
                 trip = true;
             }
-            if (ln.getPath() != null)
-            {
+            if (ln.getPath() != null) {
                 link.setAttribute("path", ln.getPath());
                 trip = true;
             }
-            if (ln.getRel() != null)
-            {
+            if (ln.getRel() != null) {
                 link.setAttribute("rel", ln.getRel());
                 trip = true;
             }
-            if (ln.getPri() > 0)
-            {
+            if (ln.getPri() > 0) {
                 link.setAttribute("pri", Integer.toString(ln.getPri()));
                 trip = true;
             }
-            if (ln.getType() != null)
-            {
+            if (ln.getType() != null) {
                 link.setAttribute("type", ln.getType());
                 trip = true;
             }
-            if (ln.getEncoding() != null)
-            {
+            if (ln.getEncoding() != null) {
                 link.setAttribute("encoding", ln.getEncoding());
                 trip = true;
             }
-            if (trip)
-            {
+            if (trip) {
                 root.addContent(link);
             }
         }
@@ -447,11 +375,9 @@ public abstract class ResourceSyncEntry
         return root;
     }
 
-    private String getHashAttr(Map<String, String> hashes)
-    {
+    private String getHashAttr(Map<String, String> hashes) {
         StringBuilder sb = new StringBuilder();
-        for (String type : hashes.keySet())
-        {
+        for (String type : hashes.keySet()) {
             String hash = hashes.get(type);
             sb.append(type).append(":").append(hash).append(" ");
         }
@@ -459,24 +385,19 @@ public abstract class ResourceSyncEntry
         return attr;
     }
 
-    protected void addHashesFromAttr(String hashAttr)
-    {
+    protected void addHashesFromAttr(String hashAttr) {
         Map<String, String> hashMap = this.getHashesFromAttr(hashAttr);
-        for (String key : hashMap.keySet())
-        {
+        for (String key : hashMap.keySet()) {
             this.addHash(key, hashMap.get(key));
         }
     }
 
-    protected Map<String, String> getHashesFromAttr(String hashAttr)
-    {
+    protected Map<String, String> getHashesFromAttr(String hashAttr) {
         Map<String, String> map = new HashMap<String, String>();
         String[] bits = hashAttr.split(" ");
-        for (String bit : bits)
-        {
+        for (String bit : bits) {
             String[] parts = bit.split(":");
-            if (parts.length == 2)
-            {
+            if (parts.length == 2) {
                 map.put(parts[0], parts[1]);
             }
         }

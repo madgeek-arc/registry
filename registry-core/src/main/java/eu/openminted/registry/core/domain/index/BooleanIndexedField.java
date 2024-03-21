@@ -21,6 +21,11 @@ public class BooleanIndexedField extends IndexedField<Boolean> {
     public BooleanIndexedField() {
     }
 
+    public BooleanIndexedField(String name, Set<Object> values) {
+        setName(name);
+        setValues(values.stream().map(x -> ((Boolean) x)).collect(Collectors.toSet()));
+    }
+
     @Override
     public Set<Boolean> getValues() {
         return values;
@@ -29,10 +34,5 @@ public class BooleanIndexedField extends IndexedField<Boolean> {
     @Override
     public void setValues(Set<Boolean> value) {
         this.values = value;
-    }
-
-    public BooleanIndexedField(String name, Set<Object> values) {
-        setName(name);
-        setValues(values.stream().map(x -> ((Boolean) x)).collect(Collectors.toSet()));
     }
 }

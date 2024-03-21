@@ -31,19 +31,19 @@ public class ResourceServiceImpl implements ResourceService {
     @Value("${registry.base}")
     private String registryHost;
 
-    private List<Resource> getListResources(String url){
+    private List<Resource> getListResources(String url) {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-        if(response.getStatusCode().is2xxSuccessful()){
+        if (response.getStatusCode().is2xxSuccessful()) {
             ObjectMapper objectMapper = new ObjectMapper();
             try {
-                Paging<Resource> paging = objectMapper.readValue(response.getBody(),Paging.class);
+                Paging<Resource> paging = objectMapper.readValue(response.getBody(), Paging.class);
                 return paging.getResults();
             } catch (IOException e) {
-                logger.debug("Failed to deserialize response to Resource object",e);
+                logger.debug("Failed to deserialize response to Resource object", e);
                 return new ArrayList<>();
             }
-        }else{
+        } else {
             return new ArrayList<>();
         }
     }
@@ -52,22 +52,22 @@ public class ResourceServiceImpl implements ResourceService {
     public Resource getResource(String id) {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> response = restTemplate.getForEntity(registryHost + "/resources/whatever/" + id, String.class);
-        if(response.getStatusCode().is2xxSuccessful()){
+        if (response.getStatusCode().is2xxSuccessful()) {
             ObjectMapper objectMapper = new ObjectMapper();
             try {
                 return objectMapper.readValue(response.getBody(), Resource.class);
             } catch (IOException e) {
-                logger.debug("Failed to deserialize response to Resource object",e);
+                logger.debug("Failed to deserialize response to Resource object", e);
                 return null;
             }
-        }else{
+        } else {
             return null;
         }
     }
 
     @Override
     public List<Resource> getResource(ResourceType resourceType) {
-        return getListResources(registryHost+"/resources/"+resourceType.getName());
+        return getListResources(registryHost + "/resources/" + resourceType.getName());
     }
 
     @Override
@@ -77,17 +77,17 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public List<Resource> getResource(ResourceType resourceType, int from, int to) {
-        return getListResources(registryHost+"/resources/"+resourceType.getName()+"/?from="+from+"&to="+to);
+        return getListResources(registryHost + "/resources/" + resourceType.getName() + "/?from=" + from + "&to=" + to);
     }
 
     @Override
     public List<Resource> getResource(int from, int to) {
-        return getListResources(registryHost+"/resources/"+"?from="+from+"&to="+to);
+        return getListResources(registryHost + "/resources/" + "?from=" + from + "&to=" + to);
     }
 
     @Override
     public List<Resource> getResource() {
-        return getListResources(registryHost+"/resources/");
+        return getListResources(registryHost + "/resources/");
     }
 
     @Override
@@ -98,11 +98,11 @@ public class ResourceServiceImpl implements ResourceService {
         headers.add("Content-Type", MediaType.APPLICATION_JSON_UTF8_VALUE);
 
 
-        HttpEntity<Resource> request = new HttpEntity<>(resource,headers);
+        HttpEntity<Resource> request = new HttpEntity<>(resource, headers);
         ResponseEntity<Resource> response = restTemplate
-                .exchange(registryHost+"/resources", HttpMethod.POST, request, Resource.class);
+                .exchange(registryHost + "/resources", HttpMethod.POST, request, Resource.class);
 
-        if(response.getStatusCode().is2xxSuccessful())
+        if (response.getStatusCode().is2xxSuccessful())
             return response.getBody();
         else
             return null;
@@ -116,12 +116,12 @@ public class ResourceServiceImpl implements ResourceService {
         headers.add("Content-Type", MediaType.APPLICATION_JSON_UTF8_VALUE);
 
 
-        HttpEntity<Resource> request = new HttpEntity<>(resource,headers);
+        HttpEntity<Resource> request = new HttpEntity<>(resource, headers);
 
         ResponseEntity<Resource> response = restTemplate
-                .exchange(registryHost+"/resources", HttpMethod.PUT, request, Resource.class);
+                .exchange(registryHost + "/resources", HttpMethod.PUT, request, Resource.class);
 
-        if(response.getStatusCode().is2xxSuccessful())
+        if (response.getStatusCode().is2xxSuccessful())
             return response.getBody();
         else
             return null;
@@ -135,12 +135,12 @@ public class ResourceServiceImpl implements ResourceService {
         headers.add("Content-Type", MediaType.APPLICATION_JSON_UTF8_VALUE);
 
 
-        HttpEntity<Resource> request = new HttpEntity<>(resource,headers);
+        HttpEntity<Resource> request = new HttpEntity<>(resource, headers);
 
         ResponseEntity<Resource> response = restTemplate
-                .exchange(registryHost+"/resource/"+resource.getId()+"/"+resourceType.getName(), HttpMethod.POST, request, Resource.class);
+                .exchange(registryHost + "/resource/" + resource.getId() + "/" + resourceType.getName(), HttpMethod.POST, request, Resource.class);
 
-        if(response.getStatusCode().is2xxSuccessful())
+        if (response.getStatusCode().is2xxSuccessful())
             return response.getBody();
         else
             return null;
@@ -149,7 +149,7 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     public void deleteResource(String id) {
         RestTemplate restTemplate = new RestTemplate();
-        restTemplate.delete(registryHost+"/resources/"+id);
+        restTemplate.delete(registryHost + "/resources/" + id);
     }
 
 }
