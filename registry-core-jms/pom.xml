@@ -1,13 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>registry-core-jms</artifactId>
-    <packaging>jar</packaging>
-
     <parent>
         <groupId>eu.openminted</groupId>
         <artifactId>registry</artifactId>
         <version>3.0.0-SNAPSHOT</version>
     </parent>
+    <artifactId>registry-core-jms</artifactId>
+    <packaging>jar</packaging>
+    <name>registry-core-jms</name>
+    <description>Registry Core JMS plugin providing JMS messages on add/update/delete operations of each resource.
+    </description>
 
     <licenses>
         <license>
@@ -29,35 +32,4 @@
         </dependency>
     </dependencies>
 
-    <distributionManagement>
-        <repository>
-            <id>madgik-releases</id>
-            <layout>default</layout>
-            <url>https://repo.madgik.di.uoa.gr/content/repositories/releases</url>
-        </repository>
-    </distributionManagement>
-
-    <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <configuration>
-                        <argLine>-Xmx1024m -Xms1024m -XX:MaxMetaspaceSize=512m -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-                <excludes>
-                    <exclude>**/application.properties</exclude>
-                </excludes>
-            </resource>
-        </resources>
-        <finalName>RegistryService-JMS</finalName>
-    </build>
 </project>
