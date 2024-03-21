@@ -10,7 +10,6 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -21,12 +20,11 @@ import javax.annotation.PreDestroy;
 import java.io.IOException;
 
 /**
- * Created by stefanos on 14/11/2016.
+ * Creates RestHighLevelClient Bean
  */
 @Configuration
 @EnableRetry
 public class ElasticConfiguration {
-
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticConfiguration.class);
 
@@ -36,8 +34,8 @@ public class ElasticConfiguration {
     private final String username;
     private final String password;
     private final String scheme;
+    private RestHighLevelClient client = null;
 
-    @Autowired
     public ElasticConfiguration(Environment environment) {
         this.hostname = environment.getRequiredProperty("elasticsearch.url");
         this.port = environment.getRequiredProperty("elasticsearch.port");
@@ -46,8 +44,6 @@ public class ElasticConfiguration {
         this.scheme = environment.getProperty("elasticsearch.scheme", "http");
         this.environment = environment;
     }
-
-    private RestHighLevelClient client = null;
 
     @PostConstruct
     private void init() {

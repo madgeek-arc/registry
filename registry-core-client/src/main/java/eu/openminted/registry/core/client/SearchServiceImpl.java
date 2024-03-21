@@ -5,7 +5,6 @@ import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
 import eu.openminted.registry.core.service.SearchService;
 import eu.openminted.registry.core.service.ServiceException;
-import org.elasticsearch.index.query.QueryBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,12 +27,7 @@ public class SearchServiceImpl implements SearchService {
 
 
     @Override
-    public QueryBuilder createQueryBuilder(FacetFilter facetFilter) {
-        return null;
-    }
-
-    @Override
-    public Paging<Resource> cqlQuery(String query, String resourceType, int quantity, int from, String sortByField, String sortOrder) {
+    public Paging<Resource> query(String query, String resourceType, int quantity, int from, String sortByField, String sortOrder) {
         RestTemplate restTemplate = new RestTemplate();
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/cql/"+resourceType+"/"+query+"/")
@@ -51,7 +45,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public Paging<Resource> cqlQuery(String query, String resourceType) {
+    public Paging<Resource> query(String query, String resourceType) {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<Paging> response = restTemplate.getForEntity(registryHost + "/search/cql/"+resourceType+"/"+query+"/", Paging.class);
         if(response.getStatusCode().is2xxSuccessful()){
@@ -62,9 +56,9 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public Paging<Resource> cqlQuery(FacetFilter filter) {
+    public Paging<Resource> query(FacetFilter filter) {
         Map.Entry<String, Object> orderBy = filter.getOrderBy().entrySet().iterator().next();
-        return cqlQuery(filter.getKeyword(),filter.getResourceType(),filter.getQuantity(),filter.getFrom(),orderBy.getKey(), orderBy.getValue().toString().toUpperCase());
+        return query(filter.getKeyword(),filter.getResourceType(),filter.getQuantity(),filter.getFrom(),orderBy.getKey(), orderBy.getValue().toString().toUpperCase());
     }
 
     @Override
@@ -104,7 +98,7 @@ public class SearchServiceImpl implements SearchService {
         String query = "";
         for(KeyValue keyValue : ids)
             query=query.concat(keyValue.getField()+"="+keyValue.getValue() + " AND ");
-        List<Resource> resources = cqlQuery(query, resourceType).getResults() ;
+        List<Resource> resources = query(query, resourceType).getResults() ;
         if(resources.size()!=0)
             return resources.get(0);
         else

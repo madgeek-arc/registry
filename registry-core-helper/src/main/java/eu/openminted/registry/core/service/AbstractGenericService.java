@@ -81,7 +81,7 @@ public abstract class AbstractGenericService<T> {
 
     protected Browsing<T> cqlQuery(FacetFilter filter) {
         filter.setResourceType(getResourceType());
-        return convertToBrowsing(searchService.cqlQuery(filter));
+        return convertToBrowsing(searchService.query(filter));
     }
 
     protected Browsing<T> getResults(FacetFilter filter) {

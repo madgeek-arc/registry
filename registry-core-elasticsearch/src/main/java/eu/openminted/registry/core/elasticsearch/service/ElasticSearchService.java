@@ -1,4 +1,4 @@
-package eu.openminted.registry.core.service;
+package eu.openminted.registry.core.elasticsearch.service;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,6 +7,8 @@ import eu.openminted.registry.core.domain.Facet;
 import eu.openminted.registry.core.domain.FacetFilter;
 import eu.openminted.registry.core.domain.Paging;
 import eu.openminted.registry.core.domain.Resource;
+import eu.openminted.registry.core.service.SearchService;
+import eu.openminted.registry.core.service.ServiceException;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
@@ -26,6 +28,9 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Primary;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
@@ -38,10 +43,12 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 
-@Service("searchService")
-public class SearchServiceImpl implements SearchService {
+@Service
+@Primary
+@Order(Ordered.HIGHEST_PRECEDENCE)
+public class ElasticSearchService implements SearchService {
 
-    private static final Logger logger = LoggerFactory.getLogger(SearchServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(ElasticSearchService.class);
 
     private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "payloadFormat", "version"};
 
@@ -58,13 +65,12 @@ public class SearchServiceImpl implements SearchService {
 
     private final ObjectMapper mapper;
 
-    public SearchServiceImpl(RestHighLevelClient elasticsearchClient) {
+    public ElasticSearchService(RestHighLevelClient elasticsearchClient) {
         mapper = new ObjectMapper();
         mapper.setPropertyNamingStrategy(new ResourcePropertyName());
         this.elasticsearchClient = elasticsearchClient;
     }
 
-    @Override
     public BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
         if (!filter.getKeyword().equals("")) {
@@ -186,7 +192,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public Paging<Resource> cqlQuery(FacetFilter filter) {
+    public Paging<Resource> query(FacetFilter filter) {
         validateQuantity(filter.getQuantity());
         CQLParser parser = new CQLParser(filter.getKeyword());
         parser.parse();
@@ -224,12 +230,12 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public Paging<Resource> cqlQuery(String query,
-                                     String resourceType,
-                                     int quantity,
-                                     int from,
-                                     String sortByField,
-                                     String sortOrder) {
+    public Paging<Resource> query(String query,
+                                  String resourceType,
+                                  int quantity,
+                                  int from,
+                                  String sortByField,
+                                  String sortOrder) {
         validateQuantity(quantity);
         CQLParser parser = new CQLParser(query);
         parser.parse();
@@ -291,8 +297,8 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public Paging<Resource> cqlQuery(String query, String resourceType) {
-        return cqlQuery(query, resourceType, 100, 0, "", "ASC");
+    public Paging<Resource> query(String query, String resourceType) {
+        return query(query, resourceType, 100, 0, "", "ASC");
     }
 
     @Override
