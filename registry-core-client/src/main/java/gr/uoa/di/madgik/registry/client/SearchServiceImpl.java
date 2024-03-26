@@ -56,12 +56,6 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public Paging<Resource> query(FacetFilter filter) {
-        Map.Entry<String, Object> orderBy = filter.getOrderBy().entrySet().iterator().next();
-        return query(filter.getKeyword(), filter.getResourceType(), filter.getQuantity(), filter.getFrom(), orderBy.getKey(), orderBy.getValue().toString().toUpperCase());
-    }
-
-    @Override
     public Paging<Resource> search(FacetFilter filter) throws ServiceException, UnknownHostException {
         RestTemplate restTemplate = new RestTemplate();
 
@@ -94,9 +88,9 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public Resource searchId(String resourceType, KeyValue... ids) throws ServiceException, UnknownHostException {
+    public Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException, UnknownHostException {
         String query = "";
-        for (KeyValue keyValue : ids)
+        for (KeyValue keyValue : fields)
             query = query.concat(keyValue.getField() + "=" + keyValue.getValue() + " AND ");
         List<Resource> resources = query(query, resourceType).getResults();
         if (resources.size() != 0)

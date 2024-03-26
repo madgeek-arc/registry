@@ -26,7 +26,7 @@ public interface SearchService {
     Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException, UnknownHostException;
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
-    Resource searchId(String resourceType, KeyValue... ids) throws ServiceException, UnknownHostException;
+    Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException, UnknownHostException;
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category);

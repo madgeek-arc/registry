@@ -312,11 +312,11 @@ public class ElasticSearchService implements SearchService {
 
     @Override
     @Retryable(value = ServiceException.class, backoff = @Backoff(value = 200))
-    public Resource searchId(String resourceType, KeyValue... ids) throws ServiceException {
-        logger.debug(String.format("@Retryable 'searchId(resourceType=%s, ids={%s})'", resourceType, String.join(",", Arrays.stream(ids).map(keyValue -> keyValue.getField() + "=" + keyValue.getValue()).collect(Collectors.toSet()))));
+    public Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException {
+        logger.debug(String.format("@Retryable 'searchId(resourceType=%s, ids={%s})'", resourceType, String.join(",", Arrays.stream(fields).map(keyValue -> keyValue.getField() + "=" + keyValue.getValue()).collect(Collectors.toSet()))));
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
         //iterate all key values and add them to the elastic query
-        Arrays.stream(ids)
+        Arrays.stream(fields)
                 .map(kv -> QueryBuilders.termsQuery(kv.getField(), kv.getValue()))
                 .forEach(qBuilder::must);
 

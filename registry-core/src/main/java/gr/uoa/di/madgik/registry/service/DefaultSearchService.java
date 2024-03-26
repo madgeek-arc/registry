@@ -140,8 +140,8 @@ public class DefaultSearchService implements SearchService {
 
     @Override
     @Retryable(value = ServiceException.class, backoff = @Backoff(value = 200))
-    public Resource searchId(String resourceType, KeyValue... ids) throws ServiceException {
-        logger.debug(String.format("@Retryable 'searchId(resourceType=%s, ids={%s})'", resourceType, String.join(",", Arrays.stream(ids).map(keyValue -> keyValue.getField() + "=" + keyValue.getValue()).collect(Collectors.toSet()))));
+    public Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException {
+        logger.debug(String.format("@Retryable 'searchId(resourceType=%s, ids={%s})'", resourceType, String.join(",", Arrays.stream(fields).map(keyValue -> keyValue.getField() + "=" + keyValue.getValue()).collect(Collectors.toSet()))));
         MapSqlParameterSource params = new MapSqlParameterSource();
 
         String query = "SELECT * FROM resource WHERE id IN (%s) LIMIT 1";
@@ -153,16 +153,16 @@ public class DefaultSearchService implements SearchService {
 
         StringBuilder whereClause = new StringBuilder();
         boolean dirty = false;
-        for (KeyValue entry : ids) {
-            if (StringUtils.hasText(entry.getValue())) {
+        for (KeyValue field : fields) {
+            if (StringUtils.hasText(field.getValue())) {
                 if (dirty) {
                     whereClause.append(" AND ");
                 }
                 dirty = true;
-                params.addValue(entry.getField(), entry.getValue());
-                whereClause.append(entry.getField()).append("=")
+                params.addValue(field.getField(), field.getValue());
+                whereClause.append(field.getField()).append("=")
                         .append("'")
-                        .append(entry.getValue())
+                        .append(field.getValue())
                         .append("'");
             } else {
                 dirty = false;
