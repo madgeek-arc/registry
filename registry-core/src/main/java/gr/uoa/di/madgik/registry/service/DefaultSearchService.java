@@ -1,22 +1,15 @@
 package gr.uoa.di.madgik.registry.service;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.querydsl.core.Query;
-import com.querydsl.core.QueryFactory;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -25,12 +18,11 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import javax.persistence.EntityManager;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
 import javax.sql.DataSource;
-import java.sql.ResultSet;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 
@@ -43,12 +35,7 @@ public class DefaultSearchService implements SearchService {
     private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "payloadFormat", "version"};
     private final NamedParameterJdbcTemplate npJdbcTemplate;
     private final ObjectMapper mapper;
-    @Value("${elastic.aggregation.topHitsSize:100}")
-    private int topHitsSize;
-    @Value("${elastic.aggregation.bucketSize:100}")
-    private int bucketSize;
-    @Value("${elastic.index.max_result_window:10000}")
-    private int maxQuantity;
+
 
     public DefaultSearchService(@Qualifier("registryDataSource") DataSource dataSource) {
         this.npJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
@@ -81,10 +68,17 @@ public class DefaultSearchService implements SearchService {
 
     @Override
     public Paging<Resource> search(FacetFilter filter) {
+        validateQuantity(filter.getQuantity());
         MapSqlParameterSource params = new MapSqlParameterSource();
 
-        String query = "SELECT * FROM resource WHERE id IN (%s)";
-        String countQuery = "SELECT COUNT(*) FROM resource WHERE id IN (%s)";
+        if (StringUtils.hasText(filter.getKeyword())) {
+            filter.setKeyword("%" + filter.getKeyword() + "%");
+        } else {
+            filter.setKeyword("%");
+        }
+
+        String query = "SELECT * FROM resource WHERE id IN (%s) AND payload LIKE '%s' OFFSET %s LIMIT %s";
+        String countQuery = "SELECT COUNT(*) FROM resource WHERE id IN (%s) AND payload LIKE '%s'";
         StringBuilder nestedQuery = new StringBuilder();
         nestedQuery.append("SELECT DISTINCT(id) FROM ");
         nestedQuery.append(filter.getResourceType()).append("_view ");
@@ -112,16 +106,20 @@ public class DefaultSearchService implements SearchService {
             nestedQuery.append(whereClause);
         }
 
-        // TODO: implement ORDER BY
-//        nestedQuery.append(" ORDER BY ").append()).append();
+        if (filter.getOrderBy() != null && !filter.getOrderBy().isEmpty()) {
+            nestedQuery.append(" ORDER BY ");
+            List<String> orderBy = new ArrayList<>();
+            for (Map.Entry<String, Object> entry : filter.getOrderBy().entrySet()) {
+                orderBy.add(String.format("%s %s", entry.getKey(), ((Map<String, Object>) entry.getValue()).get("order")));
+            }
+            nestedQuery.append(String.join(",", orderBy));
+        }
+        params.addValue("payload", filter.getKeyword());
 
-        countQuery = String.format(countQuery, nestedQuery);
+        countQuery = String.format(countQuery, nestedQuery, filter.getKeyword());
         Integer total = npJdbcTemplate.queryForObject(countQuery, params, new SingleColumnRowMapper<>(Integer.class));
 
-        nestedQuery.append(" OFFSET ").append(filter.getFrom());
-        nestedQuery.append(" LIMIT ").append(filter.getQuantity());
-
-        query = String.format(query, nestedQuery);
+        query = String.format(query, nestedQuery, filter.getKeyword(), filter.getFrom(), filter.getQuantity());
 
         List<Map<String, Object>> results = npJdbcTemplate.queryForList(query, params);
         List<Resource> resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).collect(Collectors.toList());
@@ -130,14 +128,61 @@ public class DefaultSearchService implements SearchService {
 
     @Override
     public Paging<Resource> searchKeyword(String resourceType, String keyword) {
-        throw new UnsupportedOperationException("Not implemented yet!");
+        MapSqlParameterSource params = new MapSqlParameterSource();
+
+        String query = "SELECT * FROM resource WHERE fk_name='%s' AND payload LIKE '%%s%'";
+        String countQuery = "SELECT COUNT(*) FROM resource WHERE fk_name='%s' AND payload LIKE '%%s%'";
+
+        countQuery = String.format(countQuery, resourceType, keyword != null ? keyword : "");
+        Integer total = npJdbcTemplate.queryForObject(countQuery, params, new SingleColumnRowMapper<>(Integer.class));
+
+
+        query = String.format(query, resourceType, keyword != null ? keyword : "");
+        List<Map<String, Object>> results = npJdbcTemplate.queryForList(query, params);
+
+        List<Resource> resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).collect(Collectors.toList());
+        return new Paging<>(total, 0, total, resources, new ArrayList<>());
     }
 
     @Override
     @Retryable(value = ServiceException.class, backoff = @Backoff(value = 200))
     public Resource searchId(String resourceType, KeyValue... ids) throws ServiceException {
         logger.debug(String.format("@Retryable 'searchId(resourceType=%s, ids={%s})'", resourceType, String.join(",", Arrays.stream(ids).map(keyValue -> keyValue.getField() + "=" + keyValue.getValue()).collect(Collectors.toSet()))));
-        throw new UnsupportedOperationException("Not implemented yet!");
+        MapSqlParameterSource params = new MapSqlParameterSource();
+
+        String query = "SELECT * FROM resource WHERE id IN (%s) LIMIT 1";
+
+        StringBuilder nestedQuery = new StringBuilder();
+        nestedQuery.append("SELECT id FROM ");
+        nestedQuery.append(resourceType).append("_view ");
+
+
+        StringBuilder whereClause = new StringBuilder();
+        boolean dirty = false;
+        for (KeyValue entry : ids) {
+            if (StringUtils.hasText(entry.getValue())) {
+                if (dirty) {
+                    whereClause.append(" AND ");
+                }
+                dirty = true;
+                params.addValue(entry.getField(), entry.getValue());
+                whereClause.append(entry.getField()).append("=")
+                        .append("'")
+                        .append(entry.getValue())
+                        .append("'");
+            } else {
+                dirty = false;
+            }
+        }
+        if (StringUtils.hasText(whereClause)) {
+            nestedQuery.append("WHERE ");
+            nestedQuery.append(whereClause);
+        }
+
+        query = String.format(query, nestedQuery);
+
+        Resource result = npJdbcTemplate.queryForObject(query, params, Resource.class);
+        return result;
     }
 
     @Override
@@ -146,37 +191,9 @@ public class DefaultSearchService implements SearchService {
     }
 
     private void validateQuantity(int quantity) {
-        if (quantity > maxQuantity) {
-            throw new IllegalArgumentException(String.format("Quantity should be up to %s.", maxQuantity));
-        } else if (quantity < 0) {
+        if (quantity < 0) {
             throw new IllegalArgumentException("Quantity cannot be negative.");
         }
-    }
-
-    private String buildQuery(FacetFilter facetFilter) {
-        String query = "SELECT * FROM resource WHERE id IN (%s)";
-        StringBuilder nestedQuery = new StringBuilder();
-        nestedQuery.append("SELECT DISTINCT(id) FROM ");
-        nestedQuery.append(facetFilter.getResourceType()).append("_view ");
-        nestedQuery.append("WHERE ");
-
-        StringBuilder whereClause = new StringBuilder();
-        boolean dirty = false;
-        for (Map.Entry<String, Object> entry : facetFilter.getFilter().entrySet()) {
-            if (entry.getValue() instanceof String) { // only resolves string values
-                if (dirty) {
-                    whereClause.append(" AND ");
-                }
-                dirty = true;
-                whereClause.append(entry.getKey()).append("=").append(entry.getValue());
-            } else { // TODO: create logic when value is a composite
-                dirty = false;
-            }
-        }
-        nestedQuery.append(whereClause);
-//        nestedQuery.append(" ORDER BY ").append()).append();
-
-        return String.format(query, nestedQuery);
     }
 
     static private class ResourcePropertyName extends PropertyNamingStrategy.PropertyNamingStrategyBase {
