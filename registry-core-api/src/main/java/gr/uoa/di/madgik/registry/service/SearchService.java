@@ -20,9 +20,6 @@ public interface SearchService {
     Paging<Resource> query(String query, String resourceType);
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
-    Paging<Resource> query(FacetFilter filter);
-
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Paging<Resource> search(FacetFilter filter) throws ServiceException, UnknownHostException;
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))

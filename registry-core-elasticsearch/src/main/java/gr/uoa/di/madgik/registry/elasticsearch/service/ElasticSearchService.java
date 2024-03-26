@@ -187,7 +187,7 @@ public class ElasticSearchService implements SearchService {
         return facet;
     }
 
-    @Override
+
     public Paging<Resource> query(FacetFilter filter) {
         validateQuantity(filter.getQuantity());
         CQLParser parser = new CQLParser(filter.getKeyword());

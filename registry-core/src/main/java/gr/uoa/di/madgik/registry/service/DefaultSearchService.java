@@ -45,12 +45,6 @@ public class DefaultSearchService implements SearchService {
     }
 
     @Override
-    public Paging<Resource> query(FacetFilter filter) {
-        validateQuantity(filter.getQuantity());
-        throw new UnsupportedOperationException("Not implemented yet!");
-    }
-
-    @Override
     public Paging<Resource> query(String query,
                                   String resourceType,
                                   int quantity,

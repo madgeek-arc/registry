@@ -73,11 +73,6 @@ public abstract class AbstractGenericService<T> {
         logger.info("Generated generic service for " + getResourceType() + "[" + getClass().getSimpleName() + "]");
     }
 
-    protected Browsing<T> cqlQuery(FacetFilter filter) {
-        filter.setResourceType(getResourceType());
-        return convertToBrowsing(searchService.query(filter));
-    }
-
     protected Browsing<T> getResults(FacetFilter filter) {
         Browsing<T> browsing;
         filter.setResourceType(getResourceType());
