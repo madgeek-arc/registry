@@ -1,5 +1,6 @@
 package gr.uoa.di.madgik.registry.service;
 
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
@@ -45,19 +46,19 @@ public class DefaultSearchService implements SearchService {
     }
 
     @Override
-    public Paging<Resource> query(String query,
-                                  String resourceType,
-                                  int quantity,
-                                  int from,
-                                  String sortByField,
-                                  String sortOrder) {
+    public Paging<Resource> cqlQuery(String query,
+                                     String resourceType,
+                                     int quantity,
+                                     int from,
+                                     String sortByField,
+                                     String sortOrder) {
         validateQuantity(quantity);
         throw new UnsupportedOperationException("Not implemented yet!");
     }
 
     @Override
-    public Paging<Resource> query(String query, String resourceType) {
-        return query(query, resourceType, 100, 0, "", "ASC");
+    public Paging<Resource> cqlQuery(String query, String resourceType) {
+        return cqlQuery(query, resourceType, 100, 0, "", "ASC");
     }
 
     @Override

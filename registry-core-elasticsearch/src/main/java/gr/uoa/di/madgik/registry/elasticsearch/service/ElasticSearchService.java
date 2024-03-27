@@ -188,7 +188,7 @@ public class ElasticSearchService implements SearchService {
     }
 
 
-    public Paging<Resource> query(FacetFilter filter) {
+    public Paging<Resource> cqlQuery(FacetFilter filter) {
         validateQuantity(filter.getQuantity());
         CQLParser parser = new CQLParser(filter.getKeyword());
         parser.parse();
@@ -226,12 +226,12 @@ public class ElasticSearchService implements SearchService {
     }
 
     @Override
-    public Paging<Resource> query(String query,
-                                  String resourceType,
-                                  int quantity,
-                                  int from,
-                                  String sortByField,
-                                  String sortOrder) {
+    public Paging<Resource> cqlQuery(String query,
+                                     String resourceType,
+                                     int quantity,
+                                     int from,
+                                     String sortByField,
+                                     String sortOrder) {
         validateQuantity(quantity);
         CQLParser parser = new CQLParser(query);
         parser.parse();
@@ -293,8 +293,8 @@ public class ElasticSearchService implements SearchService {
     }
 
     @Override
-    public Paging<Resource> query(String query, String resourceType) {
-        return query(query, resourceType, 100, 0, "", "ASC");
+    public Paging<Resource> cqlQuery(String query, String resourceType) {
+        return cqlQuery(query, resourceType, 100, 0, "", "ASC");
     }
 
     @Override

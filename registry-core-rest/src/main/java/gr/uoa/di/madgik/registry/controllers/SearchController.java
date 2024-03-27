@@ -43,7 +43,7 @@ public class SearchController {
                                       @RequestParam(value = "sortBy", required = false, defaultValue = "") String sortBy,
                                       @RequestParam(value = "sortByType", required = false, defaultValue = "ASC") String sortByType) {
         if (sortByType.equals("DESC") || sortByType.equals("ASC"))
-            return new ResponseEntity<>(searchService.query(query, resourceType, quantity, from, sortBy, sortByType), HttpStatus.OK);
+            return new ResponseEntity<>(searchService.cqlQuery(query, resourceType, quantity, from, sortBy, sortByType), HttpStatus.OK);
         else
             throw new ServiceException("Unsupported order by type");
     }

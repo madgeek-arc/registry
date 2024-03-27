@@ -14,10 +14,10 @@ import java.util.Map;
 public interface SearchService {
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
-    Paging<Resource> query(String query, String resourceType, int quantity, int from, String sortByField, String sortOrder);
+    Paging<Resource> cqlQuery(String query, String resourceType, int quantity, int from, String sortByField, String sortOrder);
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
-    Paging<Resource> query(String query, String resourceType);
+    Paging<Resource> cqlQuery(String query, String resourceType);
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Paging<Resource> search(FacetFilter filter) throws ServiceException, UnknownHostException;

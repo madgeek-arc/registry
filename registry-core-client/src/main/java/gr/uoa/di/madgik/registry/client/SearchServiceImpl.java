@@ -27,7 +27,7 @@ public class SearchServiceImpl implements SearchService {
 
 
     @Override
-    public Paging<Resource> query(String query, String resourceType, int quantity, int from, String sortByField, String sortOrder) {
+    public Paging<Resource> cqlQuery(String query, String resourceType, int quantity, int from, String sortByField, String sortOrder) {
         RestTemplate restTemplate = new RestTemplate();
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/cql/" + resourceType + "/" + query + "/")
@@ -45,7 +45,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public Paging<Resource> query(String query, String resourceType) {
+    public Paging<Resource> cqlQuery(String query, String resourceType) {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<Paging> response = restTemplate.getForEntity(registryHost + "/search/cql/" + resourceType + "/" + query + "/", Paging.class);
         if (response.getStatusCode().is2xxSuccessful()) {
@@ -92,7 +92,7 @@ public class SearchServiceImpl implements SearchService {
         String query = "";
         for (KeyValue keyValue : fields)
             query = query.concat(keyValue.getField() + "=" + keyValue.getValue() + " AND ");
-        List<Resource> resources = query(query, resourceType).getResults();
+        List<Resource> resources = cqlQuery(query, resourceType).getResults();
         if (resources.size() != 0)
             return resources.get(0);
         else
