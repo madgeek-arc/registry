@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 
 
 @Service
-@Order(Ordered.LOWEST_PRECEDENCE)
 public class DefaultSearchService implements SearchService {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultSearchService.class);
@@ -53,7 +52,28 @@ public class DefaultSearchService implements SearchService {
                                      String sortByField,
                                      String sortOrder) {
         validateQuantity(quantity);
-        throw new UnsupportedOperationException("Not implemented yet!");
+        MapSqlParameterSource params = new MapSqlParameterSource();
+
+        String q = "SELECT * FROM resource WHERE id IN (%s) OFFSET %s LIMIT %s";
+        String countQuery = "SELECT COUNT(*) FROM resource WHERE id IN (%s)";
+        StringBuilder nestedQuery = new StringBuilder();
+        nestedQuery.append("SELECT DISTINCT(id) FROM ");
+        nestedQuery.append(resourceType).append("_view ");
+
+
+        if (StringUtils.hasText(query)) {
+            nestedQuery.append("WHERE ");
+            nestedQuery.append(translateCQLToSQL(query));
+        }
+
+        countQuery = String.format(countQuery, nestedQuery);
+        Integer total = npJdbcTemplate.queryForObject(countQuery, params, new SingleColumnRowMapper<>(Integer.class));
+
+        q = String.format(q, nestedQuery, from, quantity);
+
+        List<Map<String, Object>> results = npJdbcTemplate.queryForList(q, params);
+        List<Resource> resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).collect(Collectors.toList());
+        return new Paging<>(total, from, from + quantity, resources, new ArrayList<>());
     }
 
     @Override
@@ -183,6 +203,10 @@ public class DefaultSearchService implements SearchService {
     @Override
     public Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category) {
         throw new UnsupportedOperationException("Not implemented yet!");
+    }
+
+    public String translateCQLToSQL(String cqlQuery) {
+        throw new UnsupportedOperationException("Not Implemented Yet!");
     }
 
     private void validateQuantity(int quantity) {

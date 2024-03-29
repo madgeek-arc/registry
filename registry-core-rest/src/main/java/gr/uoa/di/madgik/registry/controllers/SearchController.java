@@ -5,6 +5,7 @@ import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,11 +29,7 @@ public class SearchController {
             @RequestParam(value = "browseBy", required = false, defaultValue = "") String[] browseBy
     ) throws ServiceException {
         FacetFilter filter = new FacetFilter(keyword, name, from, quantity, new HashMap<>(), Arrays.asList(browseBy), null);
-        try {
-            return new ResponseEntity<>(searchService.search(filter), HttpStatus.OK);
-        } catch (UnknownHostException e) {
-            throw new ServiceException(e);
-        }
+        return new ResponseEntity<>(searchService.search(filter), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/search/cql/{resourceType}/{query}/", method = RequestMethod.GET)

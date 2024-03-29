@@ -56,7 +56,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public Paging<Resource> search(FacetFilter filter) throws ServiceException, UnknownHostException {
+    public Paging<Resource> search(FacetFilter filter) throws ServiceException {
         RestTemplate restTemplate = new RestTemplate();
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + filter.getResourceType() + "/*/")
@@ -74,7 +74,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException, UnknownHostException {
+    public Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException {
         RestTemplate restTemplate = new RestTemplate();
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + resourceType + "/*/")
                 .queryParam("keyword", keyword);
@@ -88,7 +88,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException, UnknownHostException {
+    public Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException {
         String query = "";
         for (KeyValue keyValue : fields)
             query = query.concat(keyValue.getField() + "=" + keyValue.getValue() + " AND ");
