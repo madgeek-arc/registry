@@ -32,7 +32,6 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -72,11 +71,6 @@ public class ElasticOperationsService implements IndexOperationsService {
         } else {
             throw new ServiceException("Invalid format type, supported are json and xml");
         }
-    }
-
-    @PostConstruct
-    void test() {
-        logger.info("test");
     }
 
     public void addBulk(List<Resource> resources) {

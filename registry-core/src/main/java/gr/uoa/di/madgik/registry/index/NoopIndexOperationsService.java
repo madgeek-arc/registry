@@ -6,29 +6,20 @@ import gr.uoa.di.madgik.registry.service.IndexOperationsService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.PostConstruct;
 import java.util.List;
 
 @Service
-@Order(Ordered.LOWEST_PRECEDENCE)
 @Transactional
 public class NoopIndexOperationsService implements IndexOperationsService {
 
     private static final Logger logger = LoggerFactory.getLogger(NoopIndexOperationsService.class);
 
     public NoopIndexOperationsService() {
-    }
-
-    @PostConstruct
-    void test() {
-        logger.info("test no-op");
     }
 
     public void addBulk(List<Resource> resources) {
