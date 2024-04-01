@@ -121,14 +121,20 @@ public class DefaultSearchService implements SearchService {
             nestedQuery.append(whereClause);
         }
 
-        if (filter.getOrderBy() != null && !filter.getOrderBy().isEmpty()) {
-            nestedQuery.append(" ORDER BY ");
-            List<String> orderBy = new ArrayList<>();
-            for (Map.Entry<String, Object> entry : filter.getOrderBy().entrySet()) {
-                orderBy.add(String.format("%s %s", entry.getKey(), ((Map<String, Object>) entry.getValue()).get("order")));
-            }
-            nestedQuery.append(String.join(",", orderBy));
-        }
+//        List<String> orderByFields = new ArrayList<>();
+//        if (filter.getOrderBy() != null && !filter.getOrderBy().isEmpty()) {
+//            nestedQuery.append(" ORDER BY ");
+//            List<String> orderBy = new ArrayList<>();
+//            for (Map.Entry<String, Object> entry : filter.getOrderBy().entrySet()) {
+//                orderBy.add(String.format("%s %s", entry.getKey(), ((Map<String, Object>) entry.getValue()).get("order")));
+//                orderByFields.add(entry.getKey());
+//            }
+//            nestedQuery.append(String.join(",", orderBy));
+//        }
+//        String nested = String.format(nestedQuery.toString(), ", " + String.join(",", orderByFields));
+
+        // FIXME: ORDER BY cannot be applied in sub-select statement
+
         params.addValue("payload", filter.getKeyword());
 
         countQuery = String.format(countQuery, nestedQuery, filter.getKeyword());
