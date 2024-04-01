@@ -82,6 +82,7 @@ public class DefaultSearchService implements SearchService {
     }
 
     @Override
+    // TODO: refactor (create SQL Query Builder)
     public Paging<Resource> search(FacetFilter filter) {
         validateQuantity(filter.getQuantity());
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -108,10 +109,19 @@ public class DefaultSearchService implements SearchService {
                 }
                 dirty = true;
                 params.addValue(entry.getKey(), entry.getValue());
-                whereClause.append(entry.getKey()).append("=")
-                        .append("'")
-                        .append(entry.getValue())
-                        .append("'");
+                if (entry.getValue() instanceof List) {
+                    List<String> values = new ArrayList<>((List<String>) entry.getValue());
+                    whereClause.append(entry.getKey()).append(" IN ")
+                            .append("(")
+                            .append(values.stream().map(f -> String.format("'%s'", f)).collect(Collectors.joining(",")))
+                            .append(")");
+                } else {
+                    whereClause.append(entry.getKey()).append("=")
+                            .append("'")
+                            .append(entry.getValue())
+                            .append("'");
+                }
+
             } else { // TODO: create logic when value is a composite
                 dirty = false;
             }
