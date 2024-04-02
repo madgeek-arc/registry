@@ -217,7 +217,12 @@ public class DefaultSearchService implements SearchService {
 
         query = String.format(query, nestedQuery);
 
-        Resource result = npJdbcTemplate.queryForObject(query, params, Resource.class);
+        Resource result = null;
+        try {
+            result = npJdbcTemplate.queryForObject(query, params, Resource.class);
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        }
         return result;
     }
 
