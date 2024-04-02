@@ -93,10 +93,12 @@ public class DefaultSearchService implements SearchService {
             filter.setKeyword("%");
         }
 
-        String query = "SELECT * FROM resource WHERE id IN (%s) AND payload LIKE '%s' OFFSET %s LIMIT %s";
-        String countQuery = "SELECT COUNT(*) FROM resource WHERE id IN (%s) AND payload LIKE '%s'";
+
+        String query = "SELECT r.* FROM resource AS r INNER JOIN ( %s ) AS sv ON r.id = sv.id WHERE r.payload LIKE '%s' OFFSET %s LIMIT %s";
+        String countQuery = "SELECT COUNT(*) FROM resource AS r INNER JOIN ( %s ) AS sv ON r.id = sv.id WHERE r.payload LIKE '%s'";
+
         StringBuilder nestedQuery = new StringBuilder();
-        nestedQuery.append("SELECT DISTINCT(id) FROM ");
+        nestedQuery.append("SELECT DISTINCT(id) as id %s FROM ");
         nestedQuery.append(filter.getResourceType()).append("_view ");
 
 
@@ -122,7 +124,7 @@ public class DefaultSearchService implements SearchService {
                             .append("'");
                 }
 
-            } else { // TODO: create logic when value is a composite
+            } else {
                 dirty = false;
             }
         }
@@ -131,26 +133,29 @@ public class DefaultSearchService implements SearchService {
             nestedQuery.append(whereClause);
         }
 
-//        List<String> orderByFields = new ArrayList<>();
-//        if (filter.getOrderBy() != null && !filter.getOrderBy().isEmpty()) {
-//            nestedQuery.append(" ORDER BY ");
-//            List<String> orderBy = new ArrayList<>();
-//            for (Map.Entry<String, Object> entry : filter.getOrderBy().entrySet()) {
-//                orderBy.add(String.format("%s %s", entry.getKey(), ((Map<String, Object>) entry.getValue()).get("order")));
-//                orderByFields.add(entry.getKey());
-//            }
-//            nestedQuery.append(String.join(",", orderBy));
-//        }
-//        String nested = String.format(nestedQuery.toString(), ", " + String.join(",", orderByFields));
-
-        // FIXME: ORDER BY cannot be applied in sub-select statement
+        List<String> orderByFields = new ArrayList<>();
+        if (filter.getOrderBy() != null && !filter.getOrderBy().isEmpty()) {
+            nestedQuery.append(" ORDER BY ");
+            List<String> orderBy = new ArrayList<>();
+            for (Map.Entry<String, Object> entry : filter.getOrderBy().entrySet()) {
+                orderBy.add(String.format("%s %s", entry.getKey(), ((Map<String, Object>) entry.getValue()).get("order")));
+                orderByFields.add(entry.getKey());
+            }
+            nestedQuery.append(String.join(",", orderBy));
+        }
+        String nested;
+        if (orderByFields.isEmpty()) {
+            nested = String.format(nestedQuery.toString(), " ");
+        } else {
+            nested = String.format(nestedQuery.toString(), ", " + String.join(",", orderByFields));
+        }
 
         params.addValue("payload", filter.getKeyword());
 
-        countQuery = String.format(countQuery, nestedQuery, filter.getKeyword());
+        countQuery = String.format(countQuery, nested, filter.getKeyword());
         Integer total = npJdbcTemplate.queryForObject(countQuery, params, new SingleColumnRowMapper<>(Integer.class));
 
-        query = String.format(query, nestedQuery, filter.getKeyword(), filter.getFrom(), filter.getQuantity());
+        query = String.format(query, nested, filter.getKeyword(), filter.getFrom(), filter.getQuantity());
 
         List<Map<String, Object>> results = npJdbcTemplate.queryForList(query, params);
         List<Resource> resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).collect(Collectors.toList());
