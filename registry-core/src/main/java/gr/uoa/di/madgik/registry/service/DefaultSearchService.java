@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -220,6 +221,8 @@ public class DefaultSearchService implements SearchService {
         Resource result = null;
         try {
             result = npJdbcTemplate.queryForObject(query, params, Resource.class);
+        } catch (EmptyResultDataAccessException ignore) {
+            return null;
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
