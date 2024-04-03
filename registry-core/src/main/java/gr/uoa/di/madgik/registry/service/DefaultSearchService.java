@@ -222,6 +222,8 @@ public class DefaultSearchService implements SearchService {
         Resource result = null;
         try {
             result = npJdbcTemplate.queryForObject(query, params, new DataClassRowMapper<>(Resource.class));
+        } catch (EmptyResultDataAccessException ignore) {
+            return null; // when no result is found
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
