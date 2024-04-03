@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.DataClassRowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -220,9 +221,7 @@ public class DefaultSearchService implements SearchService {
 
         Resource result = null;
         try {
-            result = npJdbcTemplate.queryForObject(query, params, Resource.class);
-        } catch (EmptyResultDataAccessException ignore) {
-            return null;
+            result = npJdbcTemplate.queryForObject(query, params, new DataClassRowMapper<>(Resource.class));
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
