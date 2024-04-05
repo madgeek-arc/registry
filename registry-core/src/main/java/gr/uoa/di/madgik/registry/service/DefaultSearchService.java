@@ -65,7 +65,8 @@ public class DefaultSearchService implements SearchService {
 
         if (StringUtils.hasText(query)) {
             nestedQuery.append("WHERE ");
-            nestedQuery.append(translateCQLToSQL(query));
+//            nestedQuery.append(translateCQLToSQL(query)); //TODO: enable when implemented
+            nestedQuery.append(query);
         }
 
         countQuery = String.format(countQuery, nestedQuery);
@@ -122,7 +123,7 @@ public class DefaultSearchService implements SearchService {
                 } else {
                     String value = entry.getValue().toString();
                     String tableName = filter.getResourceType() + "_view";
-                    String formattedValue = (isDataTypeArray(tableName, entry.getKey())) ? "'{" + value + "}'" : "'" + value + "'";
+                    String formattedValue = (isDataTypeArray(tableName, entry.getKey().toLowerCase())) ? "'{" + value + "}'" : "'" + value + "'";
                     whereClause.append(entry.getKey()).append("=").append(formattedValue);
                 }
 
