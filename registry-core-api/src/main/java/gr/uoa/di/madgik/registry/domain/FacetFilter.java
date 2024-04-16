@@ -119,4 +119,17 @@ public class FacetFilter {
         orderType.put("order", order);
         orderBy.put(field, orderType);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FacetFilter that = (FacetFilter) o;
+        return from == that.from && quantity == that.quantity && Objects.equals(keyword, that.keyword) && Objects.equals(resourceType, that.resourceType) && Objects.equals(filter, that.filter) && Objects.equals(browseBy, that.browseBy) && Objects.equals(orderBy, that.orderBy);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(keyword, resourceType, from, quantity, filter, browseBy, orderBy);
+    }
 }
