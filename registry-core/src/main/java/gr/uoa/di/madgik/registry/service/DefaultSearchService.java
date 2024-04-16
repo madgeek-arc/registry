@@ -65,7 +65,8 @@ public class DefaultSearchService implements SearchService {
 
         if (StringUtils.hasText(query)) {
             nestedQuery.append("WHERE ");
-            nestedQuery.append(translateCQLToSQL(query));
+//            nestedQuery.append(translateCQLToSQL(query)); //TODO: enable when implemented
+            nestedQuery.append(query);
         }
 
         countQuery = String.format(countQuery, nestedQuery);
@@ -120,10 +121,10 @@ public class DefaultSearchService implements SearchService {
                             .append(values.stream().map(f -> String.format("'%s'", f)).collect(Collectors.joining(",")))
                             .append(")");
                 } else {
-                    whereClause.append(entry.getKey()).append("=")
-                            .append("'")
-                            .append(entry.getValue())
-                            .append("'");
+                    String value = entry.getValue().toString();
+                    String tableName = filter.getResourceType() + "_view";
+                    String formattedValue = (isDataTypeArray(tableName, entry.getKey().toLowerCase())) ? "'{" + value + "}'" : "'" + value + "'";
+                    whereClause.append(entry.getKey()).append("=").append(formattedValue);
                 }
 
             } else {
@@ -262,5 +263,13 @@ public class DefaultSearchService implements SearchService {
                     return propertyName;
             }
         }
+    }
+
+    private boolean isDataTypeArray(String tableName, String columnName) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        String query = String.format("SELECT data_type FROM information_schema.columns WHERE table_name = '%s' " +
+                "AND column_name = '%s'", tableName, columnName);
+        List<Map<String, Object>> results = npJdbcTemplate.queryForList(query, params);
+        return results.get(0).get("data_type").toString().equalsIgnoreCase("array");
     }
 }
