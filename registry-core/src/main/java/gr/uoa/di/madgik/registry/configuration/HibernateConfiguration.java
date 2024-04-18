@@ -109,11 +109,6 @@ public class HibernateConfiguration {
         return properties;
     }
 
-    @Bean
-    public CacheManager cacheManager() {
-        return new ConcurrentMapCacheManager("resourceTypes", "resourceTypesIndexFields");
-    }
-
 
     @PostConstruct
     public void flywayMigration() {
