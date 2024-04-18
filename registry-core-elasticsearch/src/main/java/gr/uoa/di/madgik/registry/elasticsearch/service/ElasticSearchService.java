@@ -76,15 +76,16 @@ public class ElasticSearchService implements SearchService {
         }
         for (Map.Entry<String, Object> filterSet : filter.getFilter().entrySet()) {
             // Check if Filter value is a Collection, and create should matches for every value in the collection.
-            // FIXME: Please implement me properly.
+            BoolQueryBuilder internalBuilder = new BoolQueryBuilder();
             if (Collection.class.isAssignableFrom(filterSet.getValue().getClass())) {
                 for (Object value : ((Collection) filterSet.getValue())) {
-                    qBuilder.should(QueryBuilders.matchQuery(filterSet.getKey(), value));
+                    internalBuilder.should(QueryBuilders.matchQuery(filterSet.getKey(), value));
                 }
-                qBuilder.minimumShouldMatch(1);
+                internalBuilder.minimumShouldMatch(1);
             } else {
-                qBuilder.must(QueryBuilders.termQuery(filterSet.getKey(), filterSet.getValue()));
+                internalBuilder.must(QueryBuilders.termQuery(filterSet.getKey(), filterSet.getValue()));
             }
+            qBuilder.must(internalBuilder);
         }
         return qBuilder;
     }
