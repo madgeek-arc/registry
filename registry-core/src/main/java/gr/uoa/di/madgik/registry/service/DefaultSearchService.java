@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -22,10 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -37,13 +36,15 @@ public class DefaultSearchService implements SearchService {
     private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "payloadFormat", "version"};
     private final NamedParameterJdbcTemplate npJdbcTemplate;
     private final ObjectMapper mapper;
+    private final ResourceTypeService resourceTypeService;
 
-
-    public DefaultSearchService(@Qualifier("registryDataSource") DataSource dataSource) {
+    public DefaultSearchService(@Qualifier("registryDataSource") DataSource dataSource,
+                                ResourceTypeService resourceTypeService) {
         this.npJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
         mapper = new ObjectMapper();
         mapper.setPropertyNamingStrategy(new ResourcePropertyName());
 //        mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
+        this.resourceTypeService = resourceTypeService;
     }
 
     @Override
@@ -87,6 +88,7 @@ public class DefaultSearchService implements SearchService {
     @Override
     // TODO: refactor (create SQL Query Builder)
     public Paging<Resource> search(FacetFilter filter) {
+        ResourceType resourceType = resourceTypeService.getResourceType(filter.getResourceType());
         validateQuantity(filter.getQuantity());
         MapSqlParameterSource params = new MapSqlParameterSource();
 
@@ -114,17 +116,23 @@ public class DefaultSearchService implements SearchService {
                 }
                 dirty = true;
                 params.addValue(entry.getKey(), entry.getValue());
+
+                // format values as string
+                String valuesToString;
                 if (entry.getValue() instanceof List) {
                     List<String> values = new ArrayList<>((List<String>) entry.getValue());
-                    whereClause.append(entry.getKey()).append(" IN ")
-                            .append("(")
-                            .append(values.stream().map(f -> String.format("'%s'", f)).collect(Collectors.joining(",")))
-                            .append(")");
+                    valuesToString = values.stream().map(f -> String.format("'%s'", f)).collect(Collectors.joining(","));
                 } else {
-                    String value = entry.getValue().toString();
-                    String tableName = filter.getResourceType() + "_view";
-                    String formattedValue = (isDataTypeArray(tableName, entry.getKey().toLowerCase())) ? "'{" + value + "}'" : "'" + value + "'";
-                    whereClause.append(entry.getKey()).append("=").append(formattedValue);
+                    valuesToString = String.format("'%s'", entry.getValue().toString());
+                }
+
+                // append where clause
+                if (isDataTypeArray(resourceType, entry.getKey())) {
+                    valuesToString = valuesToString.replaceAll("'", "\"");
+                    // search for any occurrence
+                    whereClause.append(entry.getKey()).append(String.format(" && '{%s}'", valuesToString));
+                } else {
+                    whereClause.append(entry.getKey()).append(String.format(" IN (%s)", valuesToString));
                 }
 
             } else {
@@ -246,6 +254,11 @@ public class DefaultSearchService implements SearchService {
         }
     }
 
+    private boolean isDataTypeArray(ResourceType resourceType, String columnName) {
+        IndexField field = resourceType.getIndexFields().stream().filter(rt -> rt.getName().equals(columnName)).findFirst().orElseThrow(() -> new ServiceException("Could not find field"));
+        return field.isMultivalued();
+    }
+
     static private class ResourcePropertyName extends PropertyNamingStrategy.PropertyNamingStrategyBase {
 
         @Override
@@ -263,13 +276,5 @@ public class DefaultSearchService implements SearchService {
                     return propertyName;
             }
         }
-    }
-
-    private boolean isDataTypeArray(String tableName, String columnName) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        String query = String.format("SELECT data_type FROM information_schema.columns WHERE table_name = '%s' " +
-                "AND column_name = '%s'", tableName, columnName);
-        List<Map<String, Object>> results = npJdbcTemplate.queryForList(query, params);
-        return results.get(0).get("data_type").toString().equalsIgnoreCase("array");
     }
 }
