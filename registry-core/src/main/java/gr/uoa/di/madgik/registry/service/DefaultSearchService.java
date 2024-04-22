@@ -66,8 +66,7 @@ public class DefaultSearchService implements SearchService {
 
         if (StringUtils.hasText(query)) {
             nestedQuery.append("WHERE ");
-//            nestedQuery.append(translateCQLToSQL(query)); //TODO: enable when implemented
-            nestedQuery.append(query);
+            nestedQuery.append(translateCQLToSQL(query));
         }
 
         countQuery = String.format(countQuery, nestedQuery);
@@ -244,8 +243,9 @@ public class DefaultSearchService implements SearchService {
         throw new UnsupportedOperationException("Not implemented yet!");
     }
 
+    // TODO: Translate properly
     public String translateCQLToSQL(String cqlQuery) {
-        throw new UnsupportedOperationException("Not Implemented Yet!");
+        return cqlQuery.replaceAll("\"", "'");
     }
 
     private void validateQuantity(int quantity) {
