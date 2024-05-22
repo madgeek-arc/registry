@@ -3,16 +3,11 @@ package gr.uoa.di.madgik.registry.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import gr.uoa.di.madgik.registry.domain.FacetFilter;
-import gr.uoa.di.madgik.registry.domain.Paging;
-import gr.uoa.di.madgik.registry.domain.Resource;
-import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.DataClassRowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
@@ -169,7 +164,24 @@ public class DefaultSearchService implements SearchService {
 
         List<Map<String, Object>> results = npJdbcTemplate.queryForList(query, params);
         List<Resource> resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).collect(Collectors.toList());
-        return new Paging<>(total, filter.getFrom(), filter.getFrom() + filter.getQuantity(), resources, new ArrayList<>());
+        return new Paging<>(total, filter.getFrom(), filter.getFrom() + filter.getQuantity(), resources, createFacets(filter.getBrowseBy()));
+    }
+
+    private List<Facet> createFacets(List<String> browseBy) {
+        List<Facet> facets = new ArrayList<>();
+        if (browseBy != null && !browseBy.isEmpty()) {
+            for (String browse : browseBy) {
+                Facet facet = new Facet();
+                facet.setField(browse);
+                facet.setLabel(Arrays.stream(browse.split("_"))
+                        .map(word -> Character.toUpperCase(word.charAt(0)) + word.substring(1))
+                        .collect(Collectors.joining(" ")));
+                List<Value> values = new ArrayList<>(); // TODO: populate values
+                facet.setValues(values);
+                facets.add(facet);
+            }
+        }
+        return facets;
     }
 
     @Override
