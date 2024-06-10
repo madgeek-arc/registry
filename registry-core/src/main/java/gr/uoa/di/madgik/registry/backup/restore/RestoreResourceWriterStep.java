@@ -4,7 +4,7 @@ import gr.uoa.di.madgik.registry.dao.ResourceDao;
 import gr.uoa.di.madgik.registry.dao.VersionDao;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
-import gr.uoa.di.madgik.registry.index.NoopIndexOperationsService;
+import gr.uoa.di.madgik.registry.service.IndexOperationsService;
 import gr.uoa.di.madgik.registry.service.ResourceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,19 +28,19 @@ public class RestoreResourceWriterStep implements ItemWriter<Resource>, StepExec
 
     private ResourceType resourceType;
 
-    private ResourceService resourceService;
+    private final ResourceService resourceService;
 
-    private ResourceDao resourceDao;
+    private final ResourceDao resourceDao;
 
-    private VersionDao versionDao;
+    private final VersionDao versionDao;
 
-    private NoopIndexOperationsService indexOperationsService;
+    private final IndexOperationsService indexOperationsService;
 
     @Autowired
     public RestoreResourceWriterStep(ResourceService resourceService,
                                      ResourceDao resourceDao,
                                      VersionDao versionDao,
-                                     NoopIndexOperationsService indexOperationsService) {
+                                     IndexOperationsService indexOperationsService) {
         this.resourceService = resourceService;
         this.resourceDao = resourceDao;
         this.versionDao = versionDao;
