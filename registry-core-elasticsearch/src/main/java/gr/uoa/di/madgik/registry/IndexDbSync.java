@@ -15,6 +15,7 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -38,22 +39,29 @@ public class IndexDbSync {
     private final ResourceTypeService resourceTypeService;
     private final ResourceService resourceService;
     private final DataSource dataSource;
+    private final TaskExecutor taskExecutor;
 
     public IndexDbSync(RestHighLevelClient client,
                        IndexOperationsService indexOperationsService,
                        ResourceTypeService resourceTypeService,
                        ResourceService resourceService,
-                       DataSource dataSource) {
+                       DataSource dataSource,
+                       TaskExecutor taskExecutor) {
         this.client = client;
         this.indexOperationsService = indexOperationsService;
         this.resourceTypeService = resourceTypeService;
         this.resourceService = resourceService;
         this.dataSource = dataSource;
+        this.taskExecutor = taskExecutor;
     }
 
     @PostConstruct
     private void reindexOnInit() {
-        ensureDatabaseIndexConsistency();
+        taskExecutor.execute(new Runnable() {
+            public void run() {
+                ensureDatabaseIndexConsistency();
+            }
+        });
     }
 
     /**
@@ -64,6 +72,7 @@ public class IndexDbSync {
      * <p>2. Checks Database for missing resources and prints errors.</p>
      */
     public void ensureDatabaseIndexConsistency() {
+        logger.info("Fixing Index Inconsistencies");
         resourceTypeService.getAllResourceType()
                 .forEach(resourceType -> {
                     reindex(resourceType.getName());
