@@ -9,7 +9,7 @@
 
 INSERT INTO public.resourcetype (name, aliasgroup, creation_date, indexmapperclass, modification_date, payloadtype,
                                  schema, schemaurl)
-VALUES ('employee', 'resourceTypes', '2018-12-03 13:03:59.871', 'eu.openminted.registry.core.index.DefaultIndexMapper',
+VALUES ('employee', 'resourceTypes', '2018-12-03 13:03:59.871', 'gr.uoa.di.madgik.registry.index.DefaultIndexMapper',
         '2018-12-03 13:03:59.871', 'xml', '
 
 <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
