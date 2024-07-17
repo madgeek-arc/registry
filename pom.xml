@@ -42,7 +42,7 @@
     </modules>
 
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>11</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <logging.version>2.20.0</logging.version>
         <fasterxml.version>2.15.0</fasterxml.version>
