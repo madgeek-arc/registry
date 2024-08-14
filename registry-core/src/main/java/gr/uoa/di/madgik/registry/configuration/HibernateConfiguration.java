@@ -68,17 +68,17 @@ public class HibernateConfiguration {
     public HikariConfig hikariConfig() {
         logger.info("Connecting to Database @ " + environment.getRequiredProperty("jdbc.url"));
         HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setPoolName("RegistryCP");
-        hikariConfig.setConnectionTestQuery("SELECT 1");
         hikariConfig.setDriverClassName(environment.getRequiredProperty("jdbc.driverClassName"));
-        hikariConfig.setMaximumPoolSize(20);
-        hikariConfig.setConnectionTimeout(30000);
-        hikariConfig.setIdleTimeout(120000);
-        hikariConfig.setMaxLifetime(1800000);
-        hikariConfig.setMinimumIdle(5);
         hikariConfig.setJdbcUrl(environment.getRequiredProperty("jdbc.url"));
         hikariConfig.setUsername(environment.getRequiredProperty("jdbc.username"));
         hikariConfig.setPassword(environment.getRequiredProperty("jdbc.password"));
+        hikariConfig.setPoolName(environment.getProperty("jdbc.hikari.poolName", "RegistryCP"));
+        hikariConfig.setConnectionTestQuery(environment.getProperty("jdbc.hikari.connectionTestQuery", "SELECT 1"));
+        hikariConfig.setMaximumPoolSize(environment.getProperty("jdbc.hikari.maximumPoolSize", Integer.class, 20));
+        hikariConfig.setConnectionTimeout(environment.getProperty("jdbc.hikari.connectionTimeout", Long.class, 30000L));
+        hikariConfig.setIdleTimeout(environment.getProperty("jdbc.hikari.idleTimeout", Long.class,  120000L));
+        hikariConfig.setMaxLifetime(environment.getProperty("jdbc.hikari.maxLifetime", Long.class,  1800000L));
+        hikariConfig.setMinimumIdle(environment.getProperty("jdbc.hikari.minimumIdle", Integer.class, 5));
         hikariConfig.addDataSourceProperty("cachePreStmts", "true"); // Enable Prepared Statement caching
         hikariConfig.addDataSourceProperty("prepStmtCacheSize", "25"); // How many PS cache, default: 25
         hikariConfig.addDataSourceProperty("useServerPrepStmts", "true"); // If supported use PS server-side
