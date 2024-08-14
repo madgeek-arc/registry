@@ -110,15 +110,12 @@ public class HibernateConfiguration {
     }
 
 
-    @PostConstruct
-    public void flywayMigration() {
-        Flyway flyway = Flyway.configure().dataSource(dataSource()).locations("classpath:migrations").load();
-        try {
-            flyway.baseline();
-        } catch (FlywayException ex) {
-            logger.warn("Flyway exception on baseline", ex);
-        }
-        flyway.migrate();
+    @Bean(initMethod = "migrate")
+    public Flyway flyway() {
+        return Flyway.configure()
+                .dataSource(dataSource())
+                .locations("classpath:migrations")
+                .load();
     }
 
 }
