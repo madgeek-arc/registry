@@ -3,6 +3,8 @@ package gr.uoa.di.madgik.registry.dao;
 import gr.uoa.di.madgik.registry.configuration.MockDatabaseConfiguration;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import jakarta.persistence.PersistenceException;
+import jakarta.transaction.Transactional;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,8 +16,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import javax.persistence.PersistenceException;
-import javax.transaction.Transactional;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -101,7 +101,7 @@ public class ResourceDaoImplTest {
         Assert.assertNotEquals(resourceDao.getResource(testingResourceType).size(), 0);
     }
 
-    @Test
+    @Test(expected = NullPointerException.class)
     public void getResourceByResourceType_NO_RESOURCETYPE_FOUND() {
         Assert.assertEquals(resourceDao.getResource(resourceTypeDao.getResourceType("event")).size(), 0);
     }

@@ -11,13 +11,13 @@ public class BatchResult {
 
     private String status;
 
-    private int readCount;
+    private long readCount;
 
-    private int writeCount;
+    private long writeCount;
 
-    private int readSkipCount;
+    private long readSkipCount;
 
-    private int writeSkipCount;
+    private long writeSkipCount;
 
     public boolean isDroped() {
         return droped;
@@ -35,35 +35,35 @@ public class BatchResult {
         this.status = status;
     }
 
-    public int getReadCount() {
+    public long getReadCount() {
         return readCount;
     }
 
-    public void setReadCount(int readCount) {
+    public void setReadCount(long readCount) {
         this.readCount = readCount;
     }
 
-    public int getWriteCount() {
+    public long getWriteCount() {
         return writeCount;
     }
 
-    public void setWriteCount(int writeCount) {
+    public void setWriteCount(long writeCount) {
         this.writeCount = writeCount;
     }
 
-    public int getReadSkipCount() {
+    public long getReadSkipCount() {
         return readSkipCount;
     }
 
-    public void setReadSkipCount(int readSkipCount) {
+    public void setReadSkipCount(long readSkipCount) {
         this.readSkipCount = readSkipCount;
     }
 
-    public int getWriteSkipCount() {
+    public long getWriteSkipCount() {
         return writeSkipCount;
     }
 
-    public void setWriteSkipCount(int writeSkipCount) {
+    public void setWriteSkipCount(long writeSkipCount) {
         this.writeSkipCount = writeSkipCount;
     }
 

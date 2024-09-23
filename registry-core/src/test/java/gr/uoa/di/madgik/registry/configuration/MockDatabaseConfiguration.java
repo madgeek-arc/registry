@@ -18,9 +18,9 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.FlushModeType;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.FlushModeType;
 import javax.sql.DataSource;
 import java.util.Properties;
 
@@ -46,7 +46,7 @@ public class MockDatabaseConfiguration {
     private Resource dataScript;
 
 
-    @Bean("registryEntityManagerFactory")
+    @Bean(name = {"registryEntityManagerFactory", "entityManagerFactory"})
     public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
         LocalContainerEntityManagerFactoryBean em
                 = new LocalContainerEntityManagerFactoryBean();

@@ -3,7 +3,7 @@ package gr.uoa.di.madgik.registry.domain.index;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import gr.uoa.di.madgik.registry.domain.Resource;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.io.Serializable;
 import java.util.Set;
 

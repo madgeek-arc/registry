@@ -11,6 +11,7 @@ import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
 
@@ -40,8 +41,8 @@ public class DumpResourceWriterStep implements ItemWriter<Resource>, StepExecuti
     private boolean versions;
 
     @Override
-    public void write(List<? extends Resource> items) throws Exception {
-        for (Resource resource : items) {
+    public void write(Chunk<? extends Resource> chunk) throws Exception {
+        for (Resource resource : chunk) {
             storeResource(resource);
             if (versions) {
                 storeVersions(resource);

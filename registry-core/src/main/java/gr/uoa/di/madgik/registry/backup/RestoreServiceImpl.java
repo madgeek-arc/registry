@@ -80,7 +80,6 @@ public class RestoreServiceImpl implements RestoreService {
                 logger.warn("Could not delete temporary folder '{}'", tempDirFile.getAbsolutePath());
             }
         } catch (Exception e) {
-            logger.debug(e.getMessage(), e);
             throw new ServiceException("Failed to restore data from zip", e);
         }
 
@@ -90,11 +89,7 @@ public class RestoreServiceImpl implements RestoreService {
     private BatchResult convertJob(JobExecution j) {
         BatchResult ret = new BatchResult();
         Optional<Throwable> e = j.getAllFailureExceptions().stream().reduce(Throwable::initCause);
-        if (e.isPresent()) try {
-            throw e.get();
-        } catch (Throwable throwable) {
-            throwable.printStackTrace();
-        }
+        e.ifPresent(throwable -> logger.warn(throwable.getMessage(), throwable));
         List<StepExecution> steps = new ArrayList<>(j.getStepExecutions());
         ret.setDroped(steps.get(0).getExitStatus().equals(ExitStatus.NOOP));
         ret.setStatus(j.getStatus().name());

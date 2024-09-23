@@ -1,13 +1,10 @@
 package gr.uoa.di.madgik.registry.configuration;
 
-import org.springframework.batch.core.configuration.annotation.BatchConfigurer;
-import org.springframework.batch.core.configuration.annotation.DefaultBatchConfigurer;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.batch.core.launch.support.SimpleJobLauncher;
+import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.repository.support.JobRepositoryFactoryBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -22,31 +19,16 @@ import org.springframework.web.context.WebApplicationContext;
 import javax.sql.DataSource;
 
 @Configuration()
-@EnableBatchProcessing
+@EnableBatchProcessing(dataSourceRef = "registryDataSource", transactionManagerRef = "registryTransactionManager")
 public class BatchConfig {
-
-    @Autowired
-    @Qualifier("registryTransactionManager")
-    PlatformTransactionManager transactionManager;
-
-    @Autowired
-    @Qualifier("registryDataSource")
-    DataSource dataSource;
 
     @Value("${batch.chunkSize:10}")
     private int chunkSize;
 
     @Bean
-    BatchConfigurer configurer(@Qualifier("registryDataSource") DataSource dataSource) {
-        return new DefaultBatchConfigurer(dataSource) {
-            @Override
-            public PlatformTransactionManager getTransactionManager() {
-                return transactionManager;
-            }
-        };
-    }
-
-    private JobRepository getJobRepository() throws Exception {
+    public JobRepository getJobRepository(@Qualifier("registryDataSource") DataSource dataSource,
+                                          @Qualifier("registryTransactionManager")
+                                          PlatformTransactionManager transactionManager) throws Exception {
         JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
         factory.setDataSource(dataSource);
         factory.setTransactionManager(transactionManager);
@@ -57,6 +39,7 @@ public class BatchConfig {
     @Bean
     @Scope(WebApplicationContext.SCOPE_APPLICATION)
     public TaskExecutor jobTaskExecutor() {
+        // TODO: use VirtualThreadTaskExecutor?
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setMaxPoolSize(1);
         executor.setCorePoolSize(1);
@@ -66,19 +49,19 @@ public class BatchConfig {
 
     @Bean(name = "mySyncJobLauncher")
     @Scope(value = WebApplicationContext.SCOPE_REQUEST, proxyMode = ScopedProxyMode.TARGET_CLASS)
-    public JobLauncher getSyncJobLauncher() throws Exception {
-        SimpleJobLauncher jobLauncher = new SimpleJobLauncher();
-        jobLauncher.setJobRepository(getJobRepository());
+    public JobLauncher getSyncJobLauncher(JobRepository jobRepository) throws Exception {
+        TaskExecutorJobLauncher jobLauncher = new TaskExecutorJobLauncher();
+        jobLauncher.setJobRepository(jobRepository);
         jobLauncher.afterPropertiesSet();
         return jobLauncher;
     }
 
     @Bean(name = "myJobLauncher")
     @Scope(value = WebApplicationContext.SCOPE_REQUEST, proxyMode = ScopedProxyMode.TARGET_CLASS)
-    public JobLauncher getJobLauncher() throws Exception {
-        SimpleJobLauncher jobLauncher = new SimpleJobLauncher();
+    public JobLauncher getJobLauncher(JobRepository jobRepository) throws Exception {
+        TaskExecutorJobLauncher jobLauncher = new TaskExecutorJobLauncher();
         jobLauncher.setTaskExecutor(jobTaskExecutor());
-        jobLauncher.setJobRepository(getJobRepository());
+        jobLauncher.setJobRepository(jobRepository);
         jobLauncher.afterPropertiesSet();
         return jobLauncher;
     }

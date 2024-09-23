@@ -1,8 +1,8 @@
 package gr.uoa.di.madgik.registry.domain.index;
 
-import javax.persistence.Column;
-import javax.persistence.ElementCollection;
-import javax.persistence.Entity;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
 import java.util.Set;
 import java.util.stream.Collectors;
 

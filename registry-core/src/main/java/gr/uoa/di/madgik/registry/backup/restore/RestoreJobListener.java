@@ -16,7 +16,7 @@ public class RestoreJobListener implements JobExecutionListener {
 
     private static final Logger logger = LoggerFactory.getLogger(RestoreJobListener.class);
 
-    private Map<String, JobExecution> registeredJobs;
+    private final Map<String, JobExecution> registeredJobs;
 
     public RestoreJobListener() {
         registeredJobs = new ConcurrentHashMap<>();

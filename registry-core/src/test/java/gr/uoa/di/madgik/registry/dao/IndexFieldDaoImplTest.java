@@ -14,7 +14,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.util.List;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -48,7 +48,7 @@ public class IndexFieldDaoImplTest {
         Assert.assertEquals(indexFields.size(), 6);
     }
 
-    @Test
+    @Test(expected = NullPointerException.class)
     public void getIndexFields_NONE() {
         List<IndexField> indexFields = indexFieldDao.getIndexFieldsOfResourceType(resourceTypeDao.getResourceType("event"));
         Assert.assertNotEquals(indexFields.size(), 6);

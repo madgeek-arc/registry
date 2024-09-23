@@ -1,20 +1,21 @@
 package gr.uoa.di.madgik.registry.configuration;
 
 import gr.uoa.di.madgik.registry.backup.dump.*;
-import gr.uoa.di.madgik.registry.backup.dump.*;
 import gr.uoa.di.madgik.registry.backup.restore.RestoreResourceReaderStep;
 import gr.uoa.di.madgik.registry.backup.restore.RestoreResourceTypeStep;
 import gr.uoa.di.madgik.registry.backup.restore.RestoreResourceWriterStep;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.JobScope;
-import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.core.step.skip.AlwaysSkipItemSkipPolicy;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,17 +23,20 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.retry.policy.AlwaysRetryPolicy;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+
 import java.util.concurrent.Callable;
 
 @Configuration
 public class BackupConfig {
 
     @Autowired
-    private JobBuilderFactory jobs;
+    JobRepository jobRepository;
 
     @Autowired
-    private StepBuilderFactory steps;
+    @Qualifier("registryTransactionManager")
+    PlatformTransactionManager transactionManager;
 
     @Value("${batch.chunkSize:10}")
     private int chunkSize;
@@ -40,8 +44,8 @@ public class BackupConfig {
     @Bean
     @JobScope
     Step resourceTypeStep(RestoreResourceTypeStep restoreResourceTypeStep) {
-        return steps.get("resourceTypeStep")
-                .tasklet(restoreResourceTypeStep)
+        return new StepBuilder("resourceTypeStep", jobRepository)
+                .tasklet(restoreResourceTypeStep, transactionManager)
                 .build();
     }
 
@@ -65,8 +69,8 @@ public class BackupConfig {
             RestoreResourceWriterStep writer,
             Callable<TaskExecutor> threadPoolExecutor
     ) throws Exception {
-        return steps.get("resourcesChunkStep")
-                .<Resource, Resource>chunk(chunkSize)
+        return new StepBuilder("resourcesChunkStep", jobRepository)
+                .<Resource, Resource>chunk(chunkSize, transactionManager)
                 .reader(reader)
                 .writer(writer)
                 .faultTolerant()
@@ -78,8 +82,8 @@ public class BackupConfig {
     @Bean
     @Transactional
     Step resourcesDumpStep(DumpResourceReader reader, DumpResourceWriterStep writer) {
-        return steps.get("resourcesDumpChunkStep")
-                .<Resource, Resource>chunk(chunkSize)
+        return new StepBuilder("resourcesDumpChunkStep", jobRepository)
+                .<Resource, Resource>chunk(chunkSize, transactionManager)
                 .reader(reader).faultTolerant()
                 .retryPolicy(new AlwaysRetryPolicy())
                 .writer(writer)
@@ -90,8 +94,8 @@ public class BackupConfig {
 
     @Bean
     Step resourcesTypeDumpStep(DumpResourceTypeStep step) {
-        return steps.get("resourcesTypeDumpStep")
-                .tasklet(step)
+        return new StepBuilder("resourcesTypeDumpStep", jobRepository)
+                .tasklet(step, transactionManager)
                 .build();
     }
 
@@ -101,7 +105,7 @@ public class BackupConfig {
                       DumpResourcePartitioner resourcePartitioner,
                       Callable<TaskExecutor> threadPoolExecutor
     ) throws Exception {
-        return steps.get("resourcePartitioner")
+        return new StepBuilder("resourcePartitioner", jobRepository)
                 .partitioner("resourcePartitioner", resourcePartitioner)
                 .step(resourcesDumpStep)
                 .taskExecutor(threadPoolExecutor.call())
@@ -111,7 +115,7 @@ public class BackupConfig {
     @Bean
     @JobScope
     Step resourceTypeDumpPartitioner(DumpResourceTypePartitioner partitioner, Step resourceDump) {
-        return steps.get("resourcesType")
+        return new StepBuilder("resourcesType", jobRepository)
                 .partitioner("resourceTypePartitioner", partitioner)
                 .step(resourceDump)
                 .build();
@@ -119,7 +123,7 @@ public class BackupConfig {
 
     @Bean
     Job restoreJob(Step resourcesStep, Step resourceTypeStep) {
-        return jobs.get("restore")
+        return new JobBuilder("restore", jobRepository)
                 .start(resourceTypeStep)
                 .next(resourcesStep)
                 .build();
@@ -128,7 +132,7 @@ public class BackupConfig {
 
     @Bean
     Job dumpJob(Step resourcesTypeDumpStep, Step resourceTypeDumpPartitioner) {
-        return jobs.get("dump")
+        return new JobBuilder("dump", jobRepository)
                 .incrementer(new RunIdIncrementer())
                 .start(resourcesTypeDumpStep)
                 .next(resourceTypeDumpPartitioner)

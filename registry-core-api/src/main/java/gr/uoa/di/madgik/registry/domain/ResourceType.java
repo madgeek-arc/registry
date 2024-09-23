@@ -7,8 +7,8 @@ import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
 
-import javax.persistence.*;
-import javax.validation.constraints.Size;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
 import java.util.*;
 
 @Entity

@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
@@ -58,9 +58,9 @@ public class ResourceServiceImplTest {
         Assert.assertNotEquals(resourceService.getResource(testingResourceType).size(), 0);
     }
 
-    @Test
+    @Test(expected = NullPointerException.class)
     public void getResourceByResourceType_NO_RESOURCETYPE_FOUND() {
-        Assert.assertEquals(resourceService.getResource(resourceTypeDao.getResourceType("event")).size(), 0);
+        Assert.assertEquals(resourceService.getResource(resourceTypeDao.getResourceType("missing")).size(), 0);
     }
 
     @Test

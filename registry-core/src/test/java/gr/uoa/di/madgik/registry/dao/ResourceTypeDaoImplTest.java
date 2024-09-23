@@ -13,7 +13,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
@@ -48,8 +48,8 @@ public class ResourceTypeDaoImplTest {
 
     @Test
     public void deleteResourceType() {
-//        resourceTypeDao.deleteResourceType(testingResourceType);
-//        Assert.assertNull(resourceTypeDao.getResourceType("employee"));
+        resourceTypeDao.deleteResourceType(testingResourceType.getName());
+        Assert.assertNull(resourceTypeDao.getResourceType("employee"));
     }
 
 
