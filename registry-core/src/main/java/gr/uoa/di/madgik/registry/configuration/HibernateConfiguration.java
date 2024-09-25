@@ -2,12 +2,13 @@ package gr.uoa.di.madgik.registry.configuration;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.*;
 import org.springframework.core.env.Environment;
 import org.springframework.orm.jpa.JpaTransactionManager;
@@ -16,14 +17,11 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 import java.util.Properties;
 
 @Configuration
 @EnableAspectJAutoProxy
-@EnableCaching
 @PropertySource(value = {"classpath:application.properties"})
 @EnableTransactionManagement(proxyTargetClass = true)
 public class HibernateConfiguration {
@@ -33,7 +31,7 @@ public class HibernateConfiguration {
     @Autowired
     private Environment environment;
 
-    @Bean(name = "registryEntityManagerFactory")
+    @Bean(name = {"registryEntityManagerFactory", "entityManagerFactory"})
     @Primary
     public LocalContainerEntityManagerFactoryBean registryEntityManagerFactory() {
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
@@ -72,8 +70,8 @@ public class HibernateConfiguration {
         hikariConfig.setConnectionTestQuery(environment.getProperty("jdbc.hikari.connectionTestQuery", "SELECT 1"));
         hikariConfig.setMaximumPoolSize(environment.getProperty("jdbc.hikari.maximumPoolSize", Integer.class, 20));
         hikariConfig.setConnectionTimeout(environment.getProperty("jdbc.hikari.connectionTimeout", Long.class, 30000L));
-        hikariConfig.setIdleTimeout(environment.getProperty("jdbc.hikari.idleTimeout", Long.class,  120000L));
-        hikariConfig.setMaxLifetime(environment.getProperty("jdbc.hikari.maxLifetime", Long.class,  1800000L));
+        hikariConfig.setIdleTimeout(environment.getProperty("jdbc.hikari.idleTimeout", Long.class, 120000L));
+        hikariConfig.setMaxLifetime(environment.getProperty("jdbc.hikari.maxLifetime", Long.class, 1800000L));
         hikariConfig.setMinimumIdle(environment.getProperty("jdbc.hikari.minimumIdle", Integer.class, 5));
         hikariConfig.addDataSourceProperty("cachePreStmts", "true"); // Enable Prepared Statement caching
         hikariConfig.addDataSourceProperty("prepStmtCacheSize", "25"); // How many PS cache, default: 25

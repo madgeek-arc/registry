@@ -15,6 +15,7 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -45,7 +46,7 @@ public class IndexDbSync {
                        IndexOperationsService indexOperationsService,
                        ResourceTypeService resourceTypeService,
                        ResourceService resourceService,
-                       DataSource dataSource,
+                       @Qualifier("registryDataSource") DataSource dataSource,
                        TaskExecutor taskExecutor) {
         this.client = client;
         this.indexOperationsService = indexOperationsService;
