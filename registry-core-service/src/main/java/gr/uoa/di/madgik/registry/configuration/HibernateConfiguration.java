@@ -22,7 +22,6 @@ import java.util.Properties;
 
 @Configuration
 @EnableAspectJAutoProxy
-@PropertySource(value = {"classpath:application.properties"})
 @EnableTransactionManagement(proxyTargetClass = true)
 public class HibernateConfiguration {
 

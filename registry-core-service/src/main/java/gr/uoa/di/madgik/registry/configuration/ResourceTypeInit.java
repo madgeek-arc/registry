@@ -31,7 +31,7 @@ public class ResourceTypeInit {
 
     @PostConstruct
     void addResourceTypes() {
-        Resource[] resources = loadResources("classpath:resourceTypes/*.json");
+        Resource[] resources = loadResources("file:resourceTypes/*.json");
         if (resources != null) {
             for (Resource resource : resources) {
                 try {
@@ -54,7 +54,7 @@ public class ResourceTypeInit {
         try {
             return ResourcePatternUtils.getResourcePatternResolver(resourceLoader).getResources(pattern);
         } catch (IOException e) {
-            logger.warn("Could not find resourceTypes in '{}'", pattern, e);
+            logger.error("Could not load resourceTypes from '{}'", pattern, e);
         }
         return null;
     }

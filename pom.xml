@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-parent</artifactId>
+        <version>3.3.4</version>
+    </parent>
+
     <groupId>gr.uoa.di.madgik</groupId>
     <artifactId>registry</artifactId>
     <version>4.0.0-SNAPSHOT</version>
@@ -14,59 +21,33 @@
         </license>
     </licenses>
 
-    <modules>
-        <module>
-            registry-core
-        </module>
-        <module>
-            registry-core-api
-        </module>
-        <module>
-            registry-core-rest
-        </module>
-        <module>
-            registry-core-helper
-        </module>
-        <module>
-            registry-core-resource-sync
-        </module>
-        <module>
-            registry-core-client
-        </module>
-        <module>
-            registry-core-elasticsearch
-        </module>
-        <module>
-            registry-core-jms
-        </module>
-    </modules>
-
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <spring-boot.version>${parent.version}</spring-boot.version>
         <logging.version>2.23.1</logging.version>
-        <fasterxml.version>2.17.2</fasterxml.version>
-        <spring.version>6.1.13</spring.version>
         <joda-time.version>2.12.5</joda-time.version>
         <hibernate.version>6.5.2.Final</hibernate.version>
-        <spring.data-jpa.version>3.3.4</spring.data-jpa.version>
-        <spring.security>6.3.3</spring.security>
         <elasticsearch.version>7.17.14</elasticsearch.version>
     </properties>
+
+    <modules>
+        <module>registry-core-service</module>
+        <module>registry-core-api</module>
+        <module>registry-core-rest</module>
+        <module>registry-core-helper</module>
+        <module>registry-core-resource-sync</module>
+        <module>registry-core-client</module>
+        <module>registry-core-elasticsearch</module>
+        <module>registry-core-jms</module>
+    </modules>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-framework-bom</artifactId>
-                <version>${spring.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.security</groupId>
-                <artifactId>spring-security-bom</artifactId>
-                <version>${spring.security}</version>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>3.3.4</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -78,7 +59,12 @@
             </dependency>
             <dependency>
                 <groupId>gr.uoa.di.madgik</groupId>
-                <artifactId>registry-core</artifactId>
+                <artifactId>registry-core-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>gr.uoa.di.madgik</groupId>
+                <artifactId>registry-core-rest</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -92,11 +78,6 @@
                 <groupId>org.springframework.batch</groupId>
                 <artifactId>spring-batch-core</artifactId>
                 <version>5.1.2</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.data</groupId>
-                <artifactId>spring-data-jpa</artifactId>
-                <version>${spring.data-jpa.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.retry</groupId>
@@ -143,19 +124,14 @@
                 <version>4.0.2</version>
             </dependency>
             <dependency>
-                <groupId>com.fasterxml.jackson.dataformat</groupId>
-                <artifactId>jackson-dataformat-xml</artifactId>
-                <version>${fasterxml.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${fasterxml.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>3.15.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>2.6.0</version>
             </dependency>
 
             <dependency>
@@ -234,7 +210,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
-                    <version>3.0.1</version>
+                    <version>3.1.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

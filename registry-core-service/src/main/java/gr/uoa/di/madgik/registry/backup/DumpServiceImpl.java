@@ -27,7 +27,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 
-@Service("dumpService")
+@Service
 public class DumpServiceImpl implements DumpService {
 
     private static final Logger logger = LoggerFactory.getLogger(DumpServiceImpl.class);

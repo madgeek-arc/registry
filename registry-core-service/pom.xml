@@ -6,9 +6,9 @@
         <artifactId>registry</artifactId>
         <version>4.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>registry-core</artifactId>
+    <artifactId>registry-core-service</artifactId>
     <packaging>jar</packaging>
-    <name>registry-core</name>
+    <name>registry-core-service</name>
 
     <licenses>
         <license>
@@ -19,8 +19,26 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>gr.uoa.di.madgik</groupId>
             <artifactId>registry-core-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>gr.uoa.di.madgik</groupId>
+            <artifactId>registry-core-rest</artifactId>
         </dependency>
 
         <!-- Spring -->
@@ -153,6 +171,23 @@
     </dependencies>
 
     <build>
-        <finalName>RegistryService</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>gr.uoa.di.madgik.registry.RegistryService</mainClass>
+                    <layout>JAR</layout>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+        <finalName>RegistryService-${project.version}</finalName>
     </build>
 </project>

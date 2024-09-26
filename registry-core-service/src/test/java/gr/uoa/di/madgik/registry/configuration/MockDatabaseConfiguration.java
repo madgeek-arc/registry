@@ -33,7 +33,6 @@ import java.util.Properties;
 }, excludeFilters = {
         @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, value = HibernateConfiguration.class)
 })
-@PropertySource("classpath:application.properties")
 public class MockDatabaseConfiguration {
 
     @Autowired

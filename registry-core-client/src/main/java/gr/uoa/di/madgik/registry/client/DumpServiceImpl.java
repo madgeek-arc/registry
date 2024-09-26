@@ -14,7 +14,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Date;
 
-@Service("dumpService")
+@Service
 public class DumpServiceImpl implements DumpService {
 
     private static final Logger logger = LoggerFactory.getLogger(DumpServiceImpl.class);
