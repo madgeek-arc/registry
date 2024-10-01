@@ -14,6 +14,8 @@ public interface ResourceTypeService {
 
     List<ResourceType> getAllResourceType();
 
+    List<ResourceType> getAllResourceTypeByAlias(String alias);
+
     List<ResourceType> getAllResourceType(int from, int to);
 
     ResourceType addResourceType(ResourceType resourceType) throws ServiceException;

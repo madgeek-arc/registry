@@ -35,6 +35,14 @@ public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements Re
         return getList();
     }
 
+    @Override
+    public List<ResourceType> getAllResourceTypeByAlias(String alias) {
+        Query query = getEntityManager().createQuery("SELECT rt FROM ResourceType rt LEFT JOIN rt.aliases a WHERE rt.aliasGroup = :alias or a = :alias");
+        query.setParameter("alias", alias);
+        List<ResourceType> results = (List<ResourceType>) query.getResultList();
+        return results;
+    }
+
     @SuppressWarnings("unchecked")
     public List<ResourceType> getAllResourceType(int from, int to) {
 
@@ -63,7 +71,7 @@ public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements Re
     public Set<IndexField> getResourceTypeIndexFields(String name) {
         Set<IndexField> indexFields = new HashSet<>();
         Query query = getEntityManager().createQuery("from IndexField where resourceType in " +
-                "(from ResourceType where name = :name or aliasGroup = :name)");
+                "(from ResourceType rt LEFT JOIN rt.aliases a WHERE rt.name = :name OR rt.aliasGroup = :name OR a = :name)");
         query.setParameter("name", name);
         indexFields.addAll(query.getResultList());
         return indexFields;

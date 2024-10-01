@@ -98,6 +98,11 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     }
 
     @Override
+    public List<ResourceType> getAllResourceTypeByAlias(String alias) {
+        return resourceTypeDao.getAllResourceTypeByAlias(alias);
+    }
+
+    @Override
     public List<ResourceType> getAllResourceType(int from, int to) {
         return resourceTypeDao.getAllResourceType(from, to);
     }
