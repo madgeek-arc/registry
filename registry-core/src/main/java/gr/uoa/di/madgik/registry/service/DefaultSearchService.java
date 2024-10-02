@@ -328,6 +328,10 @@ public class DefaultSearchService implements SearchService {
      * @return a valid SQL WHERE clause
      */
     public String translateCQLToSQL(String cqlQuery) {
+        if (cqlQuery.contains(";")) {
+            logger.warn("Possible SQL Injection attempt: query='{}'", cqlQuery);
+            throw new IllegalArgumentException("Found terminating character ';' in cql query");
+        }
         // TODO: Translate properly
         return cqlQuery.replaceAll("\"", "'");
     }
