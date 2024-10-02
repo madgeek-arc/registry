@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.DataClassRowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -20,6 +19,7 @@ import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -54,23 +54,19 @@ public class DefaultSearchService implements SearchService {
 
         String q = "SELECT * FROM resource WHERE id IN (%s) OFFSET %s LIMIT %s";
         String countQuery = "SELECT COUNT(*) FROM resource WHERE id IN (%s)";
-        StringBuilder nestedQuery = new StringBuilder();
-        nestedQuery.append("SELECT DISTINCT(id) FROM ");
-        nestedQuery.append(resourceType).append("_view ");
 
+        String nested = createQueryWithInnerJoinsReturningIds(resourceType, rt -> createViewQueryFromCqlReturningIds(query, rt));
 
-        if (StringUtils.hasText(query)) {
-            nestedQuery.append("WHERE ");
-            nestedQuery.append(translateCQLToSQL(query));
-        }
+        countQuery = String.format(countQuery, nested);
+        q = String.format(q, nested, from, quantity);
 
-        countQuery = String.format(countQuery, nestedQuery);
-        Integer total = npJdbcTemplate.queryForObject(countQuery, params, new SingleColumnRowMapper<>(Integer.class));
+        Integer total = 0;
+        List<Resource> resources;
 
-        q = String.format(q, nestedQuery, from, quantity);
-
+        total = npJdbcTemplate.queryForObject(countQuery, params, new SingleColumnRowMapper<>(Integer.class));
         List<Map<String, Object>> results = npJdbcTemplate.queryForList(q, params);
-        List<Resource> resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).collect(Collectors.toList());
+        resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).collect(Collectors.toList());
+
         return new Paging<>(total, from, from + quantity, resources, new ArrayList<>());
     }
 
@@ -83,34 +79,85 @@ public class DefaultSearchService implements SearchService {
     // TODO: refactor (create SQL Query Builder)
     public Paging<Resource> search(FacetFilter filter) {
         validateQuantity(filter.getQuantity());
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        for (Map.Entry<String, Object> entry : filter.getFilter().entrySet()) {
-            if (entry.getValue() != null) {
-                params.addValue(entry.getKey(), entry.getValue());
-            }
-        }
+
         if (StringUtils.hasText(filter.getKeyword())) {
             filter.setKeyword("%" + filter.getKeyword() + "%");
         } else {
             filter.setKeyword("%");
         }
-        params.addValue("payload", filter.getKeyword());
 
-        String nested = createNestedQueryWithResourceTypeViewInnerJoins(filter);
+        String nested = createQueryWithInnerJoins(filter.getResourceType(), rt -> createViewQueryReturningIds(filter, rt));
         String query = "SELECT * FROM ( %s ) ar WHERE ar.payload LIKE '%s' OFFSET %s LIMIT %s";
         String countQuery = "SELECT COUNT(*) FROM ( %s ) ar WHERE ar.payload LIKE '%s'";
 
         countQuery = String.format(countQuery, nested, filter.getKeyword());
-        Integer total = npJdbcTemplate.queryForObject(countQuery, params, new SingleColumnRowMapper<>(Integer.class));
+        Integer total = npJdbcTemplate.queryForObject(countQuery, new HashMap<>(), new SingleColumnRowMapper<>(Integer.class));
 
         query = String.format(query, nested, filter.getKeyword(), filter.getFrom(), filter.getQuantity());
-        List<Map<String, Object>> results = npJdbcTemplate.queryForList(query, params);
+        List<Map<String, Object>> results = npJdbcTemplate.queryForList(query, new HashMap<>());
 
         List<Resource> resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).collect(Collectors.toList());
         return new Paging<>(total, filter.getFrom(), filter.getFrom() + filter.getQuantity(), resources, createFacets(filter.getBrowseBy()));
     }
 
-    /**
+    private List<Facet> createFacets(List<String> browseBy) {
+        List<Facet> facets = new ArrayList<>();
+        if (browseBy != null && !browseBy.isEmpty()) {
+            for (String browse : browseBy) {
+                Facet facet = new Facet();
+                facet.setField(browse);
+                facet.setLabel(Arrays.stream(browse.split("_"))
+                        .map(word -> Character.toUpperCase(word.charAt(0)) + word.substring(1))
+                        .collect(Collectors.joining(" ")));
+                List<Value> values = new ArrayList<>(); // TODO: populate values
+                facet.setValues(values);
+                facets.add(facet);
+            }
+        }
+        return facets;
+    }
+
+    @Override
+    public Paging<Resource> searchKeyword(String resourceType, String keyword) {
+        FacetFilter filter = new FacetFilter();
+        filter.setResourceType(resourceType);
+        filter.setKeyword(keyword);
+        filter.setQuantity(Integer.MAX_VALUE);
+        return search(filter);
+    }
+
+    @Override
+    @Retryable(value = ServiceException.class, backoff = @Backoff(value = 200))
+    public Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException {
+        logger.debug(String.format("@Retryable 'searchId(resourceType=%s, ids={%s})'", resourceType, String.join(",", Arrays.stream(fields).map(keyValue -> keyValue.getField() + "=" + keyValue.getValue()).collect(Collectors.toSet()))));
+
+        FacetFilter filter = new FacetFilter();
+        filter.setResourceType(resourceType);
+        filter.setFrom(0);
+        filter.setQuantity(1);
+        for (KeyValue keyValue : fields) {
+            filter.addFilter(keyValue.getField(), keyValue.getValue());
+        }
+
+        String query = "SELECT * FROM resource WHERE id IN (%s) LIMIT 1";
+        String nested = createQueryWithInnerJoinsReturningIds(resourceType, rt -> createViewQueryReturningIds(filter, rt));
+        query = String.format(query, nested);
+
+        Resource result = null;
+        try {
+            result = npJdbcTemplate.queryForObject(query, new HashMap<>(), new ResourceRowMapper());
+        } catch (EmptyResultDataAccessException ignore) {
+            return null; // when no result is found
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        }
+        return result;
+    }
+
+    @Override
+    public Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category) {
+        throw new UnsupportedOperationException("Not implemented yet!");
+    }/**
      * Get a list of ResourceTypes based on the provided resourceType name or alias.
      *
      * @param resourceTypeOrAlias the name of the resourceType or an alias
@@ -130,12 +177,16 @@ public class DefaultSearchService implements SearchService {
     }
 
     /**
-     * TODO: write doc
-     * @param filter
+     * <p>Creates a query returning all matching {@link Resource resources}.</p>
+     * <p>In case the given resourceType is an alias,
+     * it creates multiple queries combined with unions. </p>
+     *
+     * @param resourceTypeOrAlias the resourceType name or alias
+     * @param innerJoinTableQueryBuilder a method returning the query to be used as a table for the inner join
      * @return
      */
-    private String createNestedQueryWithResourceTypeViewInnerJoins(FacetFilter filter) {
-        List<ResourceType> resourceTypes = getResourceTypes(filter.getResourceType());
+    private String createQueryWithInnerJoins(String resourceTypeOrAlias, Function<ResourceType,String> innerJoinTableQueryBuilder) {
+        List<ResourceType> resourceTypes = getResourceTypes(resourceTypeOrAlias);
         final String outerJoinTemplate = "SELECT r.* FROM resource AS r INNER JOIN ( %s ) AS v%d ON r.id = v%d.id ";
         StringBuilder query = new StringBuilder();
 
@@ -144,7 +195,36 @@ public class DefaultSearchService implements SearchService {
             return "";
         } else {
             for (int i = 0; i < resourceTypes.size(); i++) {
-                query.append(String.format(outerJoinTemplate, createViewQuery(filter, resourceTypes.get(i)), i, i));
+                query.append(String.format(outerJoinTemplate, innerJoinTableQueryBuilder.apply(resourceTypes.get(i)), i, i));
+                if (i != resourceTypes.size() - 1) {
+                    query.append(" UNION ALL ");
+                }
+            }
+        }
+        return query.toString();
+    }
+
+
+    /**
+     * <p>Creates a query returning all matching {@link Resource resources}.</p>
+     * <p>In case the given resourceType is an alias,
+     * it creates multiple queries combined with unions. </p>
+     *
+     * @param resourceTypeOrAlias the resourceType name or alias
+     * @param innerJoinTableQueryBuilder a method returning the query to be used as a table for the inner join
+     * @return
+     */
+    private String createQueryWithInnerJoinsReturningIds(String resourceTypeOrAlias, Function<ResourceType,String> innerJoinTableQueryBuilder) {
+        List<ResourceType> resourceTypes = getResourceTypes(resourceTypeOrAlias);
+        final String outerJoinTemplate = "SELECT r.id FROM resource AS r INNER JOIN ( %s ) AS v%d ON r.id = v%d.id ";
+        StringBuilder query = new StringBuilder();
+
+        if (resourceTypes == null || resourceTypes.isEmpty()) {
+            logger.error("No resource types found");
+            return "";
+        } else {
+            for (int i = 0; i < resourceTypes.size(); i++) {
+                query.append(String.format(outerJoinTemplate, innerJoinTableQueryBuilder.apply(resourceTypes.get(i)), i, i));
                 if (i != resourceTypes.size() - 1) {
                     query.append(" UNION ALL ");
                 }
@@ -160,7 +240,7 @@ public class DefaultSearchService implements SearchService {
      * @param resourceType the {@link ResourceType} to use for the view
      * @return
      */
-    private String createViewQuery(FacetFilter filter, ResourceType resourceType) {
+    private String createViewQueryReturningIds(FacetFilter filter, ResourceType resourceType) {
         StringBuilder nestedQuery = new StringBuilder();
         nestedQuery.append("SELECT DISTINCT(id) as id %s FROM ");
         nestedQuery.append(resourceType.getName()).append("_view ");
@@ -221,87 +301,34 @@ public class DefaultSearchService implements SearchService {
         return nested;
     }
 
-    private List<Facet> createFacets(List<String> browseBy) {
-        List<Facet> facets = new ArrayList<>();
-        if (browseBy != null && !browseBy.isEmpty()) {
-            for (String browse : browseBy) {
-                Facet facet = new Facet();
-                facet.setField(browse);
-                facet.setLabel(Arrays.stream(browse.split("_"))
-                        .map(word -> Character.toUpperCase(word.charAt(0)) + word.substring(1))
-                        .collect(Collectors.joining(" ")));
-                List<Value> values = new ArrayList<>(); // TODO: populate values
-                facet.setValues(values);
-                facets.add(facet);
-            }
-        }
-        return facets;
-    }
-
-    @Override
-    public Paging<Resource> searchKeyword(String resourceType, String keyword) {
-        FacetFilter filter = new FacetFilter();
-        filter.setResourceType(resourceType);
-        filter.setKeyword(keyword);
-        filter.setQuantity(Integer.MAX_VALUE);
-        return search(filter);
-    }
-
-    @Override
-    @Retryable(value = ServiceException.class, backoff = @Backoff(value = 200))
-    public Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException {
-        logger.debug(String.format("@Retryable 'searchId(resourceType=%s, ids={%s})'", resourceType, String.join(",", Arrays.stream(fields).map(keyValue -> keyValue.getField() + "=" + keyValue.getValue()).collect(Collectors.toSet()))));
-        MapSqlParameterSource params = new MapSqlParameterSource();
-
-        String query = "SELECT * FROM resource WHERE id IN (%s) LIMIT 1";
-
+    /**
+     * Creates an SQL query on the 'id' field using the given cql query as the WHERE clause.
+     *
+     * @param cqlQuery the cql query to use for the WHERE clause
+     * @param resourceType the resourceType to use for the view name
+     * @return
+     */
+    private String createViewQueryFromCqlReturningIds(String cqlQuery, ResourceType resourceType) {
         StringBuilder nestedQuery = new StringBuilder();
-        nestedQuery.append("SELECT id FROM ");
-        nestedQuery.append(resourceType).append("_view ");
+        nestedQuery.append("SELECT DISTINCT(id) FROM ");
+        nestedQuery.append(resourceType.getName()).append("_view ");
 
 
-        StringBuilder whereClause = new StringBuilder();
-        boolean dirty = false;
-        for (KeyValue field : fields) {
-            if (StringUtils.hasText(field.getValue())) {
-                if (dirty) {
-                    whereClause.append(" AND ");
-                }
-                dirty = true;
-                params.addValue(field.getField(), field.getValue());
-                whereClause.append(field.getField()).append("=")
-                        .append("'")
-                        .append(field.getValue())
-                        .append("'");
-            } else {
-                dirty = false;
-            }
-        }
-        if (StringUtils.hasText(whereClause)) {
+        if (StringUtils.hasText(cqlQuery)) {
             nestedQuery.append("WHERE ");
-            nestedQuery.append(whereClause);
+            nestedQuery.append(translateCQLToSQL(cqlQuery));
         }
-
-        query = String.format(query, nestedQuery);
-
-        Resource result = null;
-        try {
-            result = npJdbcTemplate.queryForObject(query, params, new DataClassRowMapper<>(Resource.class));
-        } catch (EmptyResultDataAccessException ignore) {
-            return null; // when no result is found
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-        }
-        return result;
+        return nestedQuery.toString();
     }
 
-    @Override
-    public Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category) {
-        throw new UnsupportedOperationException("Not implemented yet!");
-    }
-
-    // TODO: Translate properly
+    /**
+     * Translates a CQL query to the WHERE clause of an SQL query.
+     *
+     * @param cqlQuery the query to translate
+     * @return a valid SQL WHERE clause
+     */
     public String translateCQLToSQL(String cqlQuery) {
+        // TODO: Translate properly
         return cqlQuery.replaceAll("\"", "'");
     }
 
