@@ -240,20 +240,11 @@ public class DefaultSearchService implements SearchService {
 
     @Override
     public Paging<Resource> searchKeyword(String resourceType, String keyword) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-
-        String query = "SELECT * FROM resource WHERE fk_name='%s' AND payload LIKE '%%s%'";
-        String countQuery = "SELECT COUNT(*) FROM resource WHERE fk_name='%s' AND payload LIKE '%%s%'";
-
-        countQuery = String.format(countQuery, resourceType, keyword != null ? keyword : "");
-        Integer total = npJdbcTemplate.queryForObject(countQuery, params, new SingleColumnRowMapper<>(Integer.class));
-
-
-        query = String.format(query, resourceType, keyword != null ? keyword : "");
-        List<Map<String, Object>> results = npJdbcTemplate.queryForList(query, params);
-
-        List<Resource> resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).collect(Collectors.toList());
-        return new Paging<>(total, 0, total, resources, new ArrayList<>());
+        FacetFilter filter = new FacetFilter();
+        filter.setResourceType(resourceType);
+        filter.setKeyword(keyword);
+        filter.setQuantity(Integer.MAX_VALUE);
+        return search(filter);
     }
 
     @Override
