@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.DataClassRowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -20,6 +19,7 @@ import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -51,26 +51,24 @@ public class DefaultSearchService implements SearchService {
                                      String sortOrder) {
         validateQuantity(quantity);
         MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("from", from);
+        params.addValue("quantity", quantity);
 
-        String q = "SELECT * FROM resource WHERE id IN (%s) OFFSET %s LIMIT %s";
+        String q = "SELECT * FROM resource WHERE id IN (%s) OFFSET :from LIMIT :quantity";
         String countQuery = "SELECT COUNT(*) FROM resource WHERE id IN (%s)";
-        StringBuilder nestedQuery = new StringBuilder();
-        nestedQuery.append("SELECT DISTINCT(id) FROM ");
-        nestedQuery.append(resourceType).append("_view ");
 
+        String nested = createQueryWithInnerJoinsReturningIds(resourceType, rt -> createViewQueryFromCqlReturningIds(query, rt));
 
-        if (StringUtils.hasText(query)) {
-            nestedQuery.append("WHERE ");
-            nestedQuery.append(translateCQLToSQL(query));
-        }
+        countQuery = String.format(countQuery, nested);
+        q = String.format(q, nested);
 
-        countQuery = String.format(countQuery, nestedQuery);
-        Integer total = npJdbcTemplate.queryForObject(countQuery, params, new SingleColumnRowMapper<>(Integer.class));
+        Integer total = 0;
+        List<Resource> resources;
 
-        q = String.format(q, nestedQuery, from, quantity);
-
+        total = npJdbcTemplate.queryForObject(countQuery, params, new SingleColumnRowMapper<>(Integer.class));
         List<Map<String, Object>> results = npJdbcTemplate.queryForList(q, params);
-        List<Resource> resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).collect(Collectors.toList());
+        resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).collect(Collectors.toList());
+
         return new Paging<>(total, from, from + quantity, resources, new ArrayList<>());
     }
 
@@ -82,9 +80,7 @@ public class DefaultSearchService implements SearchService {
     @Override
     // TODO: refactor (create SQL Query Builder)
     public Paging<Resource> search(FacetFilter filter) {
-        ResourceType resourceType = resourceTypeService.getResourceType(filter.getResourceType());
         validateQuantity(filter.getQuantity());
-        MapSqlParameterSource params = new MapSqlParameterSource();
 
         if (StringUtils.hasText(filter.getKeyword())) {
             filter.setKeyword("%" + filter.getKeyword() + "%");
@@ -92,77 +88,21 @@ public class DefaultSearchService implements SearchService {
             filter.setKeyword("%");
         }
 
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("keyword", filter.getKeyword());
+        params.addValue("from", filter.getFrom());
+        params.addValue("quantity", filter.getQuantity());
 
-        String query = "SELECT r.* FROM resource AS r INNER JOIN ( %s ) AS sv ON r.id = sv.id WHERE r.payload LIKE '%s' OFFSET %s LIMIT %s";
-        String countQuery = "SELECT COUNT(*) FROM resource AS r INNER JOIN ( %s ) AS sv ON r.id = sv.id WHERE r.payload LIKE '%s'";
+        String nested = createQueryWithInnerJoins(filter.getResourceType(), rt -> createViewQueryReturningIds(filter, params, rt));
+        String query = "SELECT * FROM ( %s ) ar WHERE ar.payload LIKE :keyword OFFSET :from LIMIT :quantity";
+        String countQuery = "SELECT COUNT(*) FROM ( %s ) ar WHERE ar.payload LIKE :keyword";
 
-        StringBuilder nestedQuery = new StringBuilder();
-        nestedQuery.append("SELECT DISTINCT(id) as id %s FROM ");
-        nestedQuery.append(filter.getResourceType()).append("_view ");
-
-
-        StringBuilder whereClause = new StringBuilder();
-        boolean dirty = false;
-        for (Map.Entry<String, Object> entry : filter.getFilter().entrySet()) {
-            if (entry.getValue() != null) {
-                if (dirty) {
-                    whereClause.append(" AND ");
-                }
-                dirty = true;
-                params.addValue(entry.getKey(), entry.getValue());
-
-                // format values as string
-                String valuesToString;
-                if (entry.getValue() instanceof List) {
-                    List<String> values = new ArrayList<>((List<String>) entry.getValue());
-                    valuesToString = values.stream().map(f -> String.format("'%s'", f)).collect(Collectors.joining(","));
-                } else {
-                    valuesToString = String.format("'%s'", entry.getValue().toString());
-                }
-
-                // append where clause
-                if (isDataTypeArray(resourceType, entry.getKey())) {
-                    valuesToString = valuesToString.replaceAll("'", "\"");
-                    // search for any occurrence
-                    whereClause.append(entry.getKey()).append(String.format(" && '{%s}'", valuesToString));
-                } else {
-                    whereClause.append(entry.getKey()).append(String.format(" IN (%s)", valuesToString));
-                }
-
-            } else {
-                dirty = false;
-            }
-        }
-        if (StringUtils.hasText(whereClause)) {
-            nestedQuery.append("WHERE ");
-            nestedQuery.append(whereClause);
-        }
-
-        List<String> orderByFields = new ArrayList<>();
-        if (filter.getOrderBy() != null && !filter.getOrderBy().isEmpty()) {
-            nestedQuery.append(" ORDER BY ");
-            List<String> orderBy = new ArrayList<>();
-            for (Map.Entry<String, Object> entry : filter.getOrderBy().entrySet()) {
-                orderBy.add(String.format("%s %s", entry.getKey(), ((Map<String, Object>) entry.getValue()).get("order")));
-                orderByFields.add(entry.getKey());
-            }
-            nestedQuery.append(String.join(",", orderBy));
-        }
-        String nested;
-        if (orderByFields.isEmpty()) {
-            nested = String.format(nestedQuery.toString(), " ");
-        } else {
-            nested = String.format(nestedQuery.toString(), ", " + String.join(",", orderByFields));
-        }
-
-        params.addValue("payload", filter.getKeyword());
-
-        countQuery = String.format(countQuery, nested, filter.getKeyword());
+        countQuery = String.format(countQuery, nested);
         Integer total = npJdbcTemplate.queryForObject(countQuery, params, new SingleColumnRowMapper<>(Integer.class));
 
-        query = String.format(query, nested, filter.getKeyword(), filter.getFrom(), filter.getQuantity());
-
+        query = String.format(query, nested);
         List<Map<String, Object>> results = npJdbcTemplate.queryForList(query, params);
+
         List<Resource> resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).collect(Collectors.toList());
         return new Paging<>(total, filter.getFrom(), filter.getFrom() + filter.getQuantity(), resources, createFacets(filter.getBrowseBy()));
     }
@@ -186,62 +126,35 @@ public class DefaultSearchService implements SearchService {
 
     @Override
     public Paging<Resource> searchKeyword(String resourceType, String keyword) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-
-        String query = "SELECT * FROM resource WHERE fk_name='%s' AND payload LIKE '%%s%'";
-        String countQuery = "SELECT COUNT(*) FROM resource WHERE fk_name='%s' AND payload LIKE '%%s%'";
-
-        countQuery = String.format(countQuery, resourceType, keyword != null ? keyword : "");
-        Integer total = npJdbcTemplate.queryForObject(countQuery, params, new SingleColumnRowMapper<>(Integer.class));
-
-
-        query = String.format(query, resourceType, keyword != null ? keyword : "");
-        List<Map<String, Object>> results = npJdbcTemplate.queryForList(query, params);
-
-        List<Resource> resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).collect(Collectors.toList());
-        return new Paging<>(total, 0, total, resources, new ArrayList<>());
+        FacetFilter filter = new FacetFilter();
+        filter.setResourceType(resourceType);
+        filter.setKeyword(keyword);
+        filter.setQuantity(Integer.MAX_VALUE);
+        return search(filter);
     }
 
     @Override
     @Retryable(value = ServiceException.class, backoff = @Backoff(value = 200))
     public Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException {
         logger.debug(String.format("@Retryable 'searchId(resourceType=%s, ids={%s})'", resourceType, String.join(",", Arrays.stream(fields).map(keyValue -> keyValue.getField() + "=" + keyValue.getValue()).collect(Collectors.toSet()))));
+
+        FacetFilter filter = new FacetFilter();
+        filter.setResourceType(resourceType);
+        filter.setFrom(0);
+        filter.setQuantity(1);
+        for (KeyValue keyValue : fields) {
+            filter.addFilter(keyValue.getField(), keyValue.getValue());
+        }
+
         MapSqlParameterSource params = new MapSqlParameterSource();
 
         String query = "SELECT * FROM resource WHERE id IN (%s) LIMIT 1";
-
-        StringBuilder nestedQuery = new StringBuilder();
-        nestedQuery.append("SELECT id FROM ");
-        nestedQuery.append(resourceType).append("_view ");
-
-
-        StringBuilder whereClause = new StringBuilder();
-        boolean dirty = false;
-        for (KeyValue field : fields) {
-            if (StringUtils.hasText(field.getValue())) {
-                if (dirty) {
-                    whereClause.append(" AND ");
-                }
-                dirty = true;
-                params.addValue(field.getField(), field.getValue());
-                whereClause.append(field.getField()).append("=")
-                        .append("'")
-                        .append(field.getValue())
-                        .append("'");
-            } else {
-                dirty = false;
-            }
-        }
-        if (StringUtils.hasText(whereClause)) {
-            nestedQuery.append("WHERE ");
-            nestedQuery.append(whereClause);
-        }
-
-        query = String.format(query, nestedQuery);
+        String nested = createQueryWithInnerJoinsReturningIds(resourceType, rt -> createViewQueryReturningIds(filter, params, rt));
+        query = String.format(query, nested);
 
         Resource result = null;
         try {
-            result = npJdbcTemplate.queryForObject(query, params, new DataClassRowMapper<>(Resource.class));
+            result = npJdbcTemplate.queryForObject(query, params, new ResourceRowMapper());
         } catch (EmptyResultDataAccessException ignore) {
             return null; // when no result is found
         } catch (Exception e) {
@@ -253,10 +166,175 @@ public class DefaultSearchService implements SearchService {
     @Override
     public Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category) {
         throw new UnsupportedOperationException("Not implemented yet!");
+    }/**
+     * Get a list of ResourceTypes based on the provided resourceType name or alias.
+     *
+     * @param resourceTypeOrAlias the name of the resourceType or an alias
+     * @return
+     */
+    private List<ResourceType> getResourceTypes(String resourceTypeOrAlias) {
+        List<ResourceType> resourceTypes = new ArrayList<>();
+
+        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeOrAlias);
+        if (resourceType == null) {
+            resourceTypes = resourceTypeService.getAllResourceTypeByAlias(resourceTypeOrAlias);
+            if (resourceTypes.isEmpty()) {
+                throw new ServiceException("No resource types found for alias: " + resourceTypeOrAlias);
+            }
+        } else resourceTypes.add(resourceType);
+        return resourceTypes;
     }
 
-    // TODO: Translate properly
+    /**
+     * <p>Creates a query returning all matching {@link Resource resources}.</p>
+     * <p>In case the given resourceType is an alias,
+     * it creates multiple queries combined with unions. </p>
+     *
+     * @param resourceTypeOrAlias the resourceType name or alias
+     * @param innerJoinTableQueryBuilder a method returning the query to be used as a table for the inner join
+     * @return
+     */
+    private String createQueryWithInnerJoins(String resourceTypeOrAlias, Function<ResourceType,String> innerJoinTableQueryBuilder) {
+        List<ResourceType> resourceTypes = getResourceTypes(resourceTypeOrAlias);
+        final String outerJoinTemplate = "SELECT r.* FROM resource AS r INNER JOIN ( %s ) AS v%d ON r.id = v%d.id ";
+        StringBuilder query = new StringBuilder();
+
+        if (resourceTypes == null || resourceTypes.isEmpty()) {
+            logger.error("No resource types found");
+            return "";
+        } else {
+            for (int i = 0; i < resourceTypes.size(); i++) {
+                query.append(String.format(outerJoinTemplate, innerJoinTableQueryBuilder.apply(resourceTypes.get(i)), i, i));
+                if (i != resourceTypes.size() - 1) {
+                    query.append(" UNION ALL ");
+                }
+            }
+        }
+        return query.toString();
+    }
+
+
+    /**
+     * <p>Creates a query returning all matching {@link Resource resources}.</p>
+     * <p>In case the given resourceType is an alias,
+     * it creates multiple queries combined with unions. </p>
+     *
+     * @param resourceTypeOrAlias the resourceType name or alias
+     * @param innerJoinTableQueryBuilder a method returning the query to be used as a table for the inner join
+     * @return
+     */
+    private String createQueryWithInnerJoinsReturningIds(String resourceTypeOrAlias, Function<ResourceType,String> innerJoinTableQueryBuilder) {
+        List<ResourceType> resourceTypes = getResourceTypes(resourceTypeOrAlias);
+        final String outerJoinTemplate = "SELECT r.id FROM resource AS r INNER JOIN ( %s ) AS v%d ON r.id = v%d.id ";
+        StringBuilder query = new StringBuilder();
+
+        if (resourceTypes == null || resourceTypes.isEmpty()) {
+            logger.error("No resource types found");
+            return "";
+        } else {
+            for (int i = 0; i < resourceTypes.size(); i++) {
+                query.append(String.format(outerJoinTemplate, innerJoinTableQueryBuilder.apply(resourceTypes.get(i)), i, i));
+                if (i != resourceTypes.size() - 1) {
+                    query.append(" UNION ALL ");
+                }
+            }
+        }
+        return query.toString();
+    }
+
+    /**
+     * Creates a query on the view of the {@link ResourceType resourceType}, fetching the IDs of the matching resources.
+     *
+     * @param filter contains the parameters for the where clause and the order by clause
+     * @param resourceType the {@link ResourceType} to use for the view
+     * @return
+     */
+    private String createViewQueryReturningIds(FacetFilter filter, MapSqlParameterSource params, ResourceType resourceType) {
+        StringBuilder nestedQuery = new StringBuilder();
+        nestedQuery.append("SELECT DISTINCT(id) AS id %s FROM ");
+        nestedQuery.append(resourceType.getName()).append("_view ");
+
+        StringBuilder whereClause = new StringBuilder();
+        boolean dirty = false;
+        for (Map.Entry<String, Object> entry : filter.getFilter().entrySet()) {
+            if (entry.getValue() != null) {
+                if (dirty) {
+                    whereClause.append(" AND ");
+                }
+                dirty = true;
+
+                params.addValue(entry.getKey(), entry.getValue());
+
+                // append where clause
+                if (isDataTypeArray(resourceType.getName(), entry.getKey())) {
+                    // PostgreSQL specific code: Checks whether the array contains any occurrence of the values list
+                    whereClause.append(String.format("%s && :%s", entry.getKey(), entry.getKey()));
+                } else if (entry.getValue() instanceof List) {
+                    whereClause.append(String.format("%s IN (:%s)", entry.getKey(), entry.getKey()));
+                } else {
+                    whereClause.append(String.format("%s = :%s", entry.getKey(), entry.getKey()));
+                }
+            }
+        }
+        if (StringUtils.hasText(whereClause)) {
+            nestedQuery.append("WHERE ");
+            nestedQuery.append(whereClause);
+        }
+
+        List<String> orderByFields = new ArrayList<>();
+        if (filter.getOrderBy() != null && !filter.getOrderBy().isEmpty()) {
+            nestedQuery.append(" ORDER BY ");
+            List<String> orderBy = new ArrayList<>();
+            for (Map.Entry<String, Object> entry : filter.getOrderBy().entrySet()) {
+                String field = entry.getKey().replaceAll("[^A-Za-z0-9_]","");
+                String order = (String) ((Map<String, Object>) entry.getValue()).get("order");
+                orderBy.add(String.format("%s %s", field, "desc".equalsIgnoreCase(order) ? "DESC" : "ASC"));
+                orderByFields.add(entry.getKey());
+            }
+            nestedQuery.append(String.join(",", orderBy));
+        }
+        String nested;
+        if (orderByFields.isEmpty()) {
+            nested = String.format(nestedQuery.toString(), "");
+        } else {
+            nested = String.format(nestedQuery.toString(), "," + String.join(", ", orderByFields));
+        }
+
+        return nested;
+    }
+
+    /**
+     * Creates an SQL query on the 'id' field using the given cql query as the WHERE clause.
+     *
+     * @param cqlQuery the cql query to use for the WHERE clause
+     * @param resourceType the resourceType to use for the view name
+     * @return
+     */
+    private String createViewQueryFromCqlReturningIds(String cqlQuery, ResourceType resourceType) {
+        StringBuilder nestedQuery = new StringBuilder();
+        nestedQuery.append("SELECT DISTINCT(id) FROM ");
+        nestedQuery.append(resourceType.getName()).append("_view ");
+
+
+        if (StringUtils.hasText(cqlQuery)) {
+            nestedQuery.append("WHERE ");
+            nestedQuery.append(translateCQLToSQL(cqlQuery));
+        }
+        return nestedQuery.toString();
+    }
+
+    /**
+     * Translates a CQL query to the WHERE clause of an SQL query.
+     *
+     * @param cqlQuery the query to translate
+     * @return a valid SQL WHERE clause
+     */
     public String translateCQLToSQL(String cqlQuery) {
+        if (cqlQuery.contains(";")) {
+            logger.warn("Possible SQL Injection attempt: query='{}'", cqlQuery);
+            throw new IllegalArgumentException("Found terminating character ';' in cql query");
+        }
+        // TODO: Translate properly
         return cqlQuery.replaceAll("\"", "'");
     }
 
@@ -266,8 +344,8 @@ public class DefaultSearchService implements SearchService {
         }
     }
 
-    private boolean isDataTypeArray(ResourceType resourceType, String columnName) {
-        IndexField field = resourceType.getIndexFields().stream().filter(rt -> rt.getName().equals(columnName)).findFirst().orElseThrow(() -> new ServiceException("Could not find field"));
+    private boolean isDataTypeArray(String resourceTypeName, String columnName) {
+        IndexField field = resourceTypeService.getResourceTypeIndexFields(resourceTypeName).stream().filter(rt -> rt.getName().equals(columnName)).findFirst().orElseThrow(() -> new ServiceException("Could not find field"));
         return field.isMultivalued();
     }
 

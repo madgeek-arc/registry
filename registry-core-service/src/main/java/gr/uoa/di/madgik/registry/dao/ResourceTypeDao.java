@@ -12,6 +12,8 @@ public interface ResourceTypeDao {
 
     List<ResourceType> getAllResourceType();
 
+    List<ResourceType> getAllResourceTypeByAlias(String alias);
+
     List<ResourceType> getAllResourceType(int from, int to);
 
     void addResourceType(ResourceType resource);

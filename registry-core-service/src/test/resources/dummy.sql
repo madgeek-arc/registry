@@ -136,6 +136,12 @@ CREATE TABLE IF NOT EXISTS resourcetype (
 
 
 
+CREATE TABLE IF NOT EXISTS public.resourcetype_aliases (
+    resourcetype_name character varying(255) NOT NULL,
+    aliases character varying(255)
+);
+
+
 CREATE TABLE IF NOT EXISTS resourcetype_indexfield (
     resourcetype_name character varying(255) NOT NULL,
     indexfields_resourcetype_name character varying(255) NOT NULL,

@@ -27,11 +27,16 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceTypeServiceImpl.class);
 
+    private final RestTemplate restTemplate;
+
     @Value("${registry.base}")
     private String registryHost;
 
+    public ResourceTypeServiceImpl(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
     private List<ResourceType> getListResourceTypes(String url) {
-        RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<Paging> response = restTemplate.getForEntity(url, Paging.class);
         if (response.getStatusCode().is2xxSuccessful()) {
             return response.getBody().getResults();
@@ -42,7 +47,6 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
     @Override
     public Schema getSchema(String id) {
-        RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<Schema> response = restTemplate.getForEntity(registryHost + "/schemaService/" + id, Schema.class);
         if (response.getStatusCode().is2xxSuccessful()) {
             return response.getBody();
@@ -53,7 +57,6 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
     @Override
     public ResourceType getResourceType(String name) {
-        RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<ResourceType> response = restTemplate.getForEntity(registryHost + "/resourceType/" + name, ResourceType.class);
         if (response.getStatusCode().is2xxSuccessful()) {
             return response.getBody();
@@ -68,14 +71,23 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     }
 
     @Override
+    public List<ResourceType> getAllResourceTypeByAlias(String alias) {
+        List<ResourceType> resourceTypes = new ArrayList<>();
+        // FIXME: fix path according to controller method
+        ResponseEntity<List> response = restTemplate.getForEntity(registryHost + "/resourceType/" + alias, List.class);
+        if (response.getStatusCode().is2xxSuccessful()) {
+            resourceTypes.addAll(response.getBody());
+        }
+        return resourceTypes;
+    }
+
+    @Override
     public List<ResourceType> getAllResourceType(int from, int to) {
         return getListResourceTypes(registryHost + "/resourceType/?from=" + from + "&to=" + to);
     }
 
     @Override
     public ResourceType addResourceType(ResourceType resourceType) throws ServiceException {
-        RestTemplate restTemplate = new RestTemplate();
-
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Content-Type", MediaType.APPLICATION_JSON_UTF8_VALUE);
 
@@ -97,7 +109,6 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
     @Override
     public void deleteResourceType(String name) {
-        RestTemplate restTemplate = new RestTemplate();
         restTemplate.delete(registryHost + "/resourceType/" + name);
     }
 }
