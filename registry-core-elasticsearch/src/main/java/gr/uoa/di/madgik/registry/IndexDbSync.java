@@ -131,7 +131,7 @@ public class IndexDbSync {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder
                 .size(10000)
-                .docValueField("*_id")
+                .docValueField("id")
                 .fetchSource(false)
                 .explain(true);
         searchRequest.source(searchSourceBuilder);
@@ -143,7 +143,7 @@ public class IndexDbSync {
         while (searchHits != null && searchHits.length > 0) {
             resourceIds.addAll(
                     Arrays.stream(searchHits)
-                            .map(hit -> (String) hit.getFields().get("_id").getValue())
+                            .map(hit -> (String) hit.getFields().get("id").getValue())
                             .collect(Collectors.toList())
             );
 
