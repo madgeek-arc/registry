@@ -14,6 +14,8 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.update.UpdateRequest;
@@ -22,6 +24,8 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.CreateIndexResponse;
 import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.xcontent.XContentType;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -113,8 +117,10 @@ public class ElasticOperationsService implements IndexOperationsService {
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void update(Resource previousResource, Resource newResource) {
-        UpdateRequest updateRequest = new UpdateRequest();
+        String doc_id = getDocumentIdByInternalId(previousResource.getResourceType().getName(), previousResource.getId());
 
+        UpdateRequest updateRequest = new UpdateRequest();
+        updateRequest.id(doc_id);
         updateRequest.index(newResource.getResourceType().getName());
         updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
         updateRequest.doc(createDocumentForInsert(newResource), XContentType.JSON);
@@ -127,7 +133,8 @@ public class ElasticOperationsService implements IndexOperationsService {
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void delete(String resourceId, String resourceType) {
-        DeleteRequest deleteRequest = new DeleteRequest(resourceType, resourceId);
+        String doc_id = getDocumentIdByInternalId(resourceType, resourceId);
+        DeleteRequest deleteRequest = new DeleteRequest(resourceType, doc_id);
         try {
             client.delete(deleteRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
@@ -137,7 +144,8 @@ public class ElasticOperationsService implements IndexOperationsService {
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void delete(Resource resource) {
-        DeleteRequest deleteRequest = new DeleteRequest(resource.getResourceType().getName(), resource.getId());
+        String doc_id = getDocumentIdByInternalId(resource.getResourceTypeName(), resource.getId());
+        DeleteRequest deleteRequest = new DeleteRequest(resource.getResourceTypeName(), doc_id);
         try {
             client.delete(deleteRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
@@ -293,5 +301,29 @@ public class ElasticOperationsService implements IndexOperationsService {
             }
         }
         return jsonObjectField.toString();
+    }
+
+    private String getDocumentIdByInternalId(String indexName, String internalId) {
+        String documentId = null;
+
+        try {
+            SearchRequest searchRequest = new SearchRequest(indexName);
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+
+            searchSourceBuilder.query(QueryBuilders.termQuery("id", internalId));
+            searchRequest.source(searchSourceBuilder);
+
+            SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+
+            if (Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value > 0) {
+                documentId = searchResponse.getHits().getAt(0).getId();
+            } else {
+                System.out.println("No documents found with the given internal ID.");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return documentId;
     }
 }
