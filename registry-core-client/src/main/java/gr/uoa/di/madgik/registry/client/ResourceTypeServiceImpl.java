@@ -1,9 +1,11 @@
 package gr.uoa.di.madgik.registry.client;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Schema;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import gr.uoa.di.madgik.registry.domain.index.IndexedField;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.slf4j.Logger;
@@ -19,8 +21,10 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service("resourceTypeService")
 public class ResourceTypeServiceImpl implements ResourceTypeService {
@@ -28,18 +32,23 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     private static final Logger logger = LoggerFactory.getLogger(ResourceTypeServiceImpl.class);
 
     private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
 
     @Value("${registry.base}")
     private String registryHost;
 
-    public ResourceTypeServiceImpl(RestTemplate restTemplate) {
+    public ResourceTypeServiceImpl(RestTemplate restTemplate, ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
     }
 
     private List<ResourceType> getListResourceTypes(String url) {
         ResponseEntity<Paging> response = restTemplate.getForEntity(url, Paging.class);
         if (response.getStatusCode().is2xxSuccessful()) {
-            return response.getBody().getResults();
+            return (List<ResourceType>) response.getBody().getResults()
+                    .stream()
+                    .map(rt -> objectMapper.convertValue(rt, ResourceType.class))
+                    .toList();
         } else {
             return new ArrayList<>();
         }
@@ -73,10 +82,12 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     @Override
     public List<ResourceType> getAllResourceTypeByAlias(String alias) {
         List<ResourceType> resourceTypes = new ArrayList<>();
-        // FIXME: fix path according to controller method
         ResponseEntity<List> response = restTemplate.getForEntity(registryHost + "/resourceType/" + alias, List.class);
         if (response.getStatusCode().is2xxSuccessful()) {
-            resourceTypes.addAll(response.getBody());
+            resourceTypes.addAll(response.getBody()
+                    .stream()
+                    .map(i -> objectMapper.convertValue(i, ResourceType.class))
+                    .toList());
         }
         return resourceTypes;
     }
@@ -104,6 +115,18 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
     @Override
     public Set<IndexField> getResourceTypeIndexFields(String name) {
+        ResourceType resourceType = getResourceType(name);
+        Set<IndexField> indexFields = new HashSet<>();
+        ResponseEntity<Set> response = restTemplate.getForEntity(registryHost + "/resourceType/index/" + name, Set.class);
+        if (response.getStatusCode().is2xxSuccessful()) {
+            indexFields.addAll((Set<IndexField>) response.getBody()
+                    .stream()
+                    .map(i -> objectMapper.convertValue(i, IndexField.class))
+                    .map(e -> { ((IndexField) e).setResourceType(resourceType); return e;})
+                    .collect(Collectors.toSet())
+            );
+            return indexFields;
+        }
         return null;
     }
 
