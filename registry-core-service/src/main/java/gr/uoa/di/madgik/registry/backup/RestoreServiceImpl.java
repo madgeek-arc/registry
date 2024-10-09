@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.job.AbstractJob;
 import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,11 +29,13 @@ public class RestoreServiceImpl implements RestoreService {
 
     private static final Logger logger = LoggerFactory.getLogger(RestoreServiceImpl.class);
 
-    @Autowired
-    JobLauncher mySyncJobLauncher;
+    private final JobLauncher mySyncJobLauncher;
+    private final Job restoreJob;
 
-    @Autowired
-    Job restoreJob;
+    public RestoreServiceImpl(JobLauncher mySyncJobLauncher, Job restoreJob) {
+        this.mySyncJobLauncher = mySyncJobLauncher;
+        this.restoreJob = restoreJob;
+    }
 
     File unzipFile(MultipartFile file) throws IOException {
         File zip = File.createTempFile(UUID.randomUUID().toString(), "temp");

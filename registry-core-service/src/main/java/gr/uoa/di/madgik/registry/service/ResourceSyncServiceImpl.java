@@ -24,14 +24,13 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class ResourceSyncServiceImpl implements ResourceSyncService {
 
-    private static Logger logger = LoggerFactory.getLogger(ResourceSyncServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(ResourceSyncServiceImpl.class);
 
     private final ResourceTypeDao resourceTypeDao;
     private final ResourceDao resourceDao;
     private final VersionDao versionDao;
     private String host;
 
-    @Autowired
     public ResourceSyncServiceImpl(Environment environment, ResourceTypeDao resourceTypeDao,
                                    ResourceDao resourceDao, VersionDao versionDao) {
         this.host = environment.getRequiredProperty("registry.host");

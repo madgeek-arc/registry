@@ -41,7 +41,6 @@ public class RestoreResourceTypeStep implements Tasklet, StepExecutionListener {
 
     private Boolean resourceTypeExists;
 
-    @Autowired
     RestoreResourceTypeStep(ResourceTypeService resourceTypeService) {
         this.resourceTypeService = resourceTypeService;
         resourceTypeExists = false;

@@ -19,14 +19,11 @@ import java.util.stream.Collectors;
 @RestController
 public class VersionController {
 
-    @Autowired
-    VersionService versionService;
+    private final VersionService versionService;
 
-    @Autowired
-    ResourceTypeService resourceTypeService;
-
-    @Autowired
-    ResourceService resourceService;
+    public VersionController(VersionService versionService) {
+        this.versionService = versionService;
+    }
 
     @RequestMapping(value = "/version/{resourceType}", method = RequestMethod.GET, headers = "Accept=application/json")
     public ResponseEntity<List<Version>> getVersionsByResourceType(@PathVariable("resourceType") String resourceType) {

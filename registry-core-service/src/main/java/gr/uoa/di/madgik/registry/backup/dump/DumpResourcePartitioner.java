@@ -29,9 +29,8 @@ public class DumpResourcePartitioner extends AbstractDao<Resource> implements Pa
 
     private static final int THRESHOLD = 50;
 
-    private String resourceType;
+    private final String resourceType;
 
-    @Autowired
     public DumpResourcePartitioner(
             @Value("#{stepExecutionContext['resourceType']}") String resourceType,
             @Value("#{jobParameters['resourceType']}") String jobResourceType

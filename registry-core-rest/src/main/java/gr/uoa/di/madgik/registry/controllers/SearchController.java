@@ -17,8 +17,11 @@ import java.util.HashMap;
 @RestController
 public class SearchController {
 
-    @Autowired
-    private SearchService searchService;
+    private final SearchService searchService;
+
+    public SearchController(SearchService searchService) {
+        this.searchService = searchService;
+    }
 
     @RequestMapping(value = "/search/{name}/{query}", method = RequestMethod.GET, headers = "Accept=application/json")
     public ResponseEntity<Paging> search(

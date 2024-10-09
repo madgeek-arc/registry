@@ -49,7 +49,6 @@ public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
 
     private List<String> stepResourceTypes = new ArrayList<>();
 
-    @Autowired
     DumpResourceTypeStep(ResourceTypeService resourceTypeService) {
         this.resourceTypeService = resourceTypeService;
         this.saveSchema = true;

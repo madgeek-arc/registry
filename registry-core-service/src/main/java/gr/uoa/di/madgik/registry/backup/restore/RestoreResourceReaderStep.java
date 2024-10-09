@@ -40,11 +40,11 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
 
     private Queue<File> resources;
 
-    private ResourceDao resourceDao;
+    private final ResourceDao resourceDao;
 
-    private ObjectMapper mapper;
+    private final ObjectMapper mapper;
 
-    private IndexMapperFactory indexMapperFactory;
+    private final IndexMapperFactory indexMapperFactory;
 
     private IndexMapper indexMapper;
 

@@ -10,10 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
-import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
-import org.springframework.batch.core.repository.JobRestartException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -32,14 +28,15 @@ public class DumpServiceImpl implements DumpService {
 
     private static final Logger logger = LoggerFactory.getLogger(DumpServiceImpl.class);
 
-    @Autowired
-    JobLauncher mySyncJobLauncher;
+    private final JobLauncher mySyncJobLauncher;
+    private final Job dumpJob;
+    private final ResourceTypeService resourceTypeService;
 
-    @Autowired
-    Job dumpJob;
-
-    @Autowired
-    ResourceTypeService resourceTypeService;
+    public DumpServiceImpl(JobLauncher mySyncJobLauncher, Job dumpJob, ResourceTypeService resourceTypeService) {
+        this.mySyncJobLauncher = mySyncJobLauncher;
+        this.dumpJob = dumpJob;
+        this.resourceTypeService = resourceTypeService;
+    }
 
     private static File pack(String sourceDirPath) throws IOException {
         Path p = Files.createTempFile("dump-", "-" + new Date().getTime());

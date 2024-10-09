@@ -16,8 +16,11 @@ import java.util.Date;
 @RestController
 public class DumpController {
 
-    @Autowired
-    DumpService dumpService;
+    private final DumpService dumpService;
+
+    public DumpController(DumpService dumpService) {
+        this.dumpService = dumpService;
+    }
 
     private static boolean deleteDirectory(File directory) throws IOException {
         if (directory.exists()) {

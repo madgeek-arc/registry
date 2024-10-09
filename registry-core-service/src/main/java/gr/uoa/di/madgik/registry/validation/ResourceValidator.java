@@ -22,11 +22,10 @@ import javax.xml.validation.Validator;
 @Service("resourceValidator")
 public class ResourceValidator {
 
-    private static Logger logger = LoggerFactory.getLogger(ResourceValidator.class);
+    private static final Logger logger = LoggerFactory.getLogger(ResourceValidator.class);
 
-    private SchemaDao schemaDao;
+    private final SchemaDao schemaDao;
 
-    @Autowired
     ResourceValidator(SchemaDao schemaDao) {
         this.schemaDao = schemaDao;
     }

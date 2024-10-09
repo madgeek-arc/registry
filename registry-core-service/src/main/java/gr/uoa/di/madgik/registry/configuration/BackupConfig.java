@@ -5,6 +5,7 @@ import gr.uoa.di.madgik.registry.backup.restore.RestoreResourceReaderStep;
 import gr.uoa.di.madgik.registry.backup.restore.RestoreResourceTypeStep;
 import gr.uoa.di.madgik.registry.backup.restore.RestoreResourceWriterStep;
 import gr.uoa.di.madgik.registry.domain.Resource;
+import jakarta.transaction.Transactional;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobScope;
@@ -14,7 +15,6 @@ import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.core.step.skip.AlwaysSkipItemSkipPolicy;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -22,8 +22,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.retry.policy.AlwaysRetryPolicy;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-
-import jakarta.transaction.Transactional;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.concurrent.Callable;
@@ -31,15 +29,17 @@ import java.util.concurrent.Callable;
 @Configuration
 public class BackupConfig {
 
-    @Autowired
-    JobRepository jobRepository;
+    private final JobRepository jobRepository;
+    private final PlatformTransactionManager transactionManager;
+    private final int chunkSize;
 
-    @Autowired
-    @Qualifier("registryTransactionManager")
-    PlatformTransactionManager transactionManager;
-
-    @Value("${batch.chunkSize:10}")
-    private int chunkSize;
+    public BackupConfig(JobRepository jobRepository,
+                        @Qualifier("registryTransactionManager") PlatformTransactionManager transactionManager,
+                        @Value("${batch.chunkSize:10}") int chunkSize) {
+        this.jobRepository = jobRepository;
+        this.transactionManager = transactionManager;
+        this.chunkSize = chunkSize;
+    }
 
     @Bean
     @JobScope
