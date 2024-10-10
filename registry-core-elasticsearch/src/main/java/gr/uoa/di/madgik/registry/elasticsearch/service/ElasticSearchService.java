@@ -2,7 +2,7 @@ package gr.uoa.di.madgik.registry.elasticsearch.service;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import gr.uoa.di.madgik.registry.domain.Facet;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.Paging;
@@ -364,7 +364,7 @@ public class ElasticSearchService implements SearchService {
         }
     }
 
-    static private class ResourcePropertyName extends PropertyNamingStrategy.PropertyNamingStrategyBase {
+    private static class ResourcePropertyName extends PropertyNamingStrategies.NamingBase {
 
         @Override
         public String translate(String propertyName) {
