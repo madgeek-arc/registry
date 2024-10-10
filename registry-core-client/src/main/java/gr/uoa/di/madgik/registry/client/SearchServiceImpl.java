@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -64,13 +65,18 @@ public class SearchServiceImpl implements SearchService {
                 .queryParam("from", filter.getFrom())
                 .queryParam("quantity", filter.getQuantity())
                 .queryParam("browseBy", filter.getBrowseBy());
-
-        ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
-        if (response.getStatusCode().is2xxSuccessful()) {
-            return response.getBody();
-        } else {
-            return new Paging<>();
+        ResponseEntity<Paging> response;
+        try {
+            response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
+            if (response.getStatusCode().is2xxSuccessful()) {
+                return response.getBody();
+            }
+        } catch (HttpClientErrorException e) {
+            if (!(e.getStatusCode().value() == 404)) {
+                throw e;
+            }
         }
+        return new Paging<>();
     }
 
     @Override
