@@ -1,5 +1,6 @@
 package gr.uoa.di.madgik.registry.client;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
@@ -14,23 +15,42 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 
 @Service("searchService")
-public class SearchServiceImpl implements SearchService {
+public class ClientSearchService implements SearchService {
 
-    private static final Logger logger = LoggerFactory.getLogger(SearchServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(ClientSearchService.class);
 
-    @Value("${registry.base}")
-    private String registryHost;
 
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+    private final String registryHost;
+
+    public ClientSearchService(RestTemplate restTemplate,
+                               ObjectMapper objectMapper,
+                               @Value("${registry.base}") String registryHost) {
+        this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
+        this.registryHost = registryHost;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Paging<Resource> convert(Paging paging) {
+        if (paging != null && !paging.getResults().isEmpty()) {
+            paging.setResults(
+                    paging.getResults()
+                            .stream()
+                            .map(i -> objectMapper.convertValue(i, Resource.class))
+                            .toList()
+            );
+        }
+        return paging;
+    }
 
     @Override
     public Paging<Resource> cqlQuery(String query, String resourceType, int quantity, int from, String sortByField, String sortOrder) {
-        RestTemplate restTemplate = new RestTemplate();
-
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/cql/" + resourceType + "/" + query + "/")
                 .queryParam("from", from)
                 .queryParam("quantity", quantity)
@@ -39,7 +59,7 @@ public class SearchServiceImpl implements SearchService {
 
         ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
         if (response.getStatusCode().is2xxSuccessful()) {
-            return response.getBody();
+            return convert(response.getBody());
         } else {
             return new Paging<>();
         }
@@ -47,10 +67,9 @@ public class SearchServiceImpl implements SearchService {
 
     @Override
     public Paging<Resource> cqlQuery(String query, String resourceType) {
-        RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<Paging> response = restTemplate.getForEntity(registryHost + "/search/cql/" + resourceType + "/" + query + "/", Paging.class);
         if (response.getStatusCode().is2xxSuccessful()) {
-            return response.getBody();
+            return convert(response.getBody());
         } else {
             return new Paging<>();
         }
@@ -58,8 +77,6 @@ public class SearchServiceImpl implements SearchService {
 
     @Override
     public Paging<Resource> search(FacetFilter filter) throws ServiceException {
-        RestTemplate restTemplate = new RestTemplate();
-
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + filter.getResourceType() + "/*/")
                 .queryParam("keyword", filter.getKeyword())
                 .queryParam("from", filter.getFrom())
@@ -69,10 +86,10 @@ public class SearchServiceImpl implements SearchService {
         try {
             response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
             if (response.getStatusCode().is2xxSuccessful()) {
-                return response.getBody();
+                return convert(response.getBody());
             }
         } catch (HttpClientErrorException e) {
-            if (!(e.getStatusCode().value() == 404)) {
+            if (e.getStatusCode().value() != 404) {
                 throw e;
             }
         }
@@ -81,13 +98,12 @@ public class SearchServiceImpl implements SearchService {
 
     @Override
     public Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException {
-        RestTemplate restTemplate = new RestTemplate();
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + resourceType + "/*/")
                 .queryParam("keyword", keyword);
 
         ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
         if (response.getStatusCode().is2xxSuccessful()) {
-            return response.getBody();
+            return convert(response.getBody());
         } else {
             return new Paging<>();
         }
@@ -99,14 +115,14 @@ public class SearchServiceImpl implements SearchService {
         for (KeyValue keyValue : fields)
             query = query.concat(keyValue.getField() + "=" + keyValue.getValue() + " AND ");
         List<Resource> resources = cqlQuery(query, resourceType).getResults();
-        if (resources.size() != 0)
-            return resources.get(0);
+        if (!resources.isEmpty())
+            return objectMapper.convertValue(resources.get(0), Resource.class);
         else
             return null;
     }
 
     @Override
     public Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category) {
-        return null;
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 }
