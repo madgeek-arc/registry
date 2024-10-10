@@ -5,14 +5,12 @@ import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotNull;
-import java.net.UnknownHostException;
 import java.util.*;
 import java.util.stream.Collectors;
 
