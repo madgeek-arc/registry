@@ -9,12 +9,17 @@ import org.hibernate.annotations.LazyCollectionOption;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
+
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.*;
 
 @Entity
 @Table(name = "ResourceType")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-public class ResourceType {
+public class ResourceType implements Serializable {
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     @Id
     @Size(min = 3, max = 50)
