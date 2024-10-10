@@ -2,7 +2,7 @@ package gr.uoa.di.madgik.registry.service;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import org.slf4j.Logger;
@@ -349,7 +349,7 @@ public class DefaultSearchService implements SearchService {
         return field.isMultivalued();
     }
 
-    static private class ResourcePropertyName extends PropertyNamingStrategy.PropertyNamingStrategyBase {
+    static private class ResourcePropertyName extends PropertyNamingStrategies.NamingBase {
 
         @Override
         public String translate(String propertyName) {
