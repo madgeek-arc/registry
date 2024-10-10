@@ -77,11 +77,12 @@ public class ClientSearchService implements SearchService {
 
     @Override
     public Paging<Resource> search(FacetFilter filter) throws ServiceException {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + filter.getResourceType() + "/*/")
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + filter.getResourceType())
                 .queryParam("keyword", filter.getKeyword())
                 .queryParam("from", filter.getFrom())
                 .queryParam("quantity", filter.getQuantity())
                 .queryParam("browseBy", filter.getBrowseBy());
+        filter.getFilter().forEach(builder::queryParam);
         ResponseEntity<Paging> response;
         try {
             response = restTemplate.getForEntity(builder.toUriString(), Paging.class);

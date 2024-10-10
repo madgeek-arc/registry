@@ -4,15 +4,12 @@ import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 public class SearchController {
@@ -23,15 +20,21 @@ public class SearchController {
         this.searchService = searchService;
     }
 
-    @RequestMapping(value = "/search/{name}/{query}", method = RequestMethod.GET, headers = "Accept=application/json")
+    @RequestMapping(value = "/search/{name}", method = RequestMethod.GET, headers = "Accept=application/json")
     public ResponseEntity<Paging> search(
             @PathVariable("name") String name,
             @RequestParam(value = "keyword", required = false, defaultValue = "") String keyword,
             @RequestParam(value = "from", required = false, defaultValue = "0") int from,
             @RequestParam(value = "quantity", required = false, defaultValue = "10") int quantity,
-            @RequestParam(value = "browseBy", required = false, defaultValue = "") String[] browseBy
+            @RequestParam(value = "browseBy", required = false, defaultValue = "") String[] browseBy,
+            @RequestParam Map<String, Object> allRequestParams
     ) throws ServiceException {
-        FacetFilter filter = new FacetFilter(keyword, name, from, quantity, new HashMap<>(), Arrays.asList(browseBy), null);
+        allRequestParams.remove("keyword");
+        allRequestParams.remove("from");
+        allRequestParams.remove("quantity");
+        allRequestParams.remove("order");
+        allRequestParams.remove("orderField");
+        FacetFilter filter = new FacetFilter(keyword, name, from, quantity, allRequestParams, Arrays.asList(browseBy), null);
         return new ResponseEntity<>(searchService.search(filter), HttpStatus.OK);
     }
 
