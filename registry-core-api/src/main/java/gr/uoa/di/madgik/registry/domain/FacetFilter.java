@@ -1,6 +1,10 @@
 package gr.uoa.di.madgik.registry.domain;
 
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * A Filter to pass to the indexer.
@@ -48,6 +52,63 @@ public class FacetFilter {
         this.filter = filter;
         this.browseBy = browseBy;
         this.orderBy = orderBy;
+    }
+
+    // Gets all given filters
+    public static Map<String, List<Object>> getFiltersLists(FacetFilter ff) {
+        Map<String, Object> filters = new LinkedHashMap<>(ff.getFilter());
+        Map<String, List<Object>> allFilters = new LinkedHashMap<>();
+
+        // fill the variable with the rest of the filters
+        for (Map.Entry<String, Object> ffEntry : filters.entrySet()) {
+            if (ffEntry.getValue() instanceof List) {
+                allFilters.put(ffEntry.getKey(), (List) ffEntry.getValue());
+            } else {
+                allFilters.put(ffEntry.getKey(), Collections.singletonList(ffEntry.getValue().toString()));
+            }
+        }
+
+        return allFilters;
+    }
+
+    public static FacetFilter from(Map<String, Object> params) {
+        FacetFilter ff = new FacetFilter();
+        ff.setKeyword(params.get("query") != null ? (String) params.remove("query") : "");
+        ff.setFrom(params.get("from") != null ? Integer.parseInt((String) params.remove("from")) : 0);
+        ff.setQuantity(params.get("quantity") != null ? Integer.parseInt((String) params.remove("quantity")) : 10);
+        Map<String, Object> sort = new HashMap<>();
+        Map<String, Object> order = new HashMap<>();
+        String orderDirection = params.get("order") != null ? (String) params.remove("order") : "asc";
+        String orderField = params.get("orderField") != null ? (String) params.remove("orderField") : null;
+        if (orderField != null) {
+            order.put("order", orderDirection);
+            sort.put(orderField, order);
+            ff.setOrderBy(sort);
+        }
+        ff.setFilter(params);
+        return ff;
+    }
+
+    public static FacetFilter from(MultiValueMap<String, Object> params) {
+        FacetFilter ff = new FacetFilter();
+        ff.setKeyword(params.get("query") != null ? (String) params.remove("query").get(0) : "");
+        ff.setFrom(params.get("from") != null ? Integer.parseInt((String) params.remove("from").get(0)) : 0);
+        ff.setQuantity(params.get("quantity") != null ? Integer.parseInt((String) params.remove("quantity").get(0)) : 10);
+        Map<String, Object> sort = new HashMap<>();
+        Map<String, Object> order = new HashMap<>();
+        String orderDirection = params.get("order") != null ? (String) params.remove("order").get(0) : "asc";
+        String orderField = params.get("orderField") != null ? (String) params.remove("orderField").get(0) : null;
+        if (orderField != null) {
+            order.put("order", orderDirection);
+            sort.put(orderField, order);
+            ff.setOrderBy(sort);
+        }
+        if (!params.isEmpty()) {
+            for (Map.Entry<String, List<Object>> filter : params.entrySet()) {
+                ff.addFilter(filter.getKey(), filter.getValue());
+            }
+        }
+        return ff;
     }
 
     public String getKeyword() {
