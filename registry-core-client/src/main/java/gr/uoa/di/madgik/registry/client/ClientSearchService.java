@@ -15,6 +15,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -112,10 +113,10 @@ public class ClientSearchService implements SearchService {
 
     @Override
     public Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException {
-        String query = "";
+        List<String> filters = new ArrayList<>();
         for (KeyValue keyValue : fields)
-            query = query.concat(keyValue.getField() + "=" + keyValue.getValue() + " AND ");
-        List<Resource> resources = cqlQuery(query, resourceType).getResults();
+            filters.add(keyValue.getField() + "=\"" + keyValue.getValue() + "\"");
+        List<Resource> resources = cqlQuery(String.join(" AND ", filters), resourceType).getResults();
         if (!resources.isEmpty())
             return objectMapper.convertValue(resources.get(0), Resource.class);
         else
