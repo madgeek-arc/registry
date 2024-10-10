@@ -78,8 +78,12 @@ public class ResourceController {
 
     @RequestMapping(value = "/resources/{resourceType}", params = {"from"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType, @RequestParam(value = "from") int from) throws ResourceNotFoundException {
+        // FIXME: very inefficient..
+        //  create method returning the size of the results instead
         List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType), from, 0);
         int total = resourceService.getResource(resourceTypeService.getResourceType(resourceType)).size();
+        // -------------------------
+
         Paging paging = new Paging(results.size(), from, total - 1, results, null);
         ResponseEntity<String> responseEntity;
         if (total == 0) {
@@ -92,8 +96,12 @@ public class ResourceController {
 
     @RequestMapping(value = "/resources/{resourceType}", params = {"from", "to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType, @RequestParam(value = "from") int from, @RequestParam(value = "to") int to) throws ResourceNotFoundException {
+        // FIXME: very inefficient..
+        //  create method returning the size of the results instead
         List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType), from, to);
         int total = resourceService.getResource(resourceTypeService.getResourceType(resourceType)).size();
+        // -------------------------
+
         Paging paging = new Paging(results.size(), from, to, results, null);
         ResponseEntity<String> responseEntity;
         if (total == 0) {
@@ -106,8 +114,12 @@ public class ResourceController {
 
     @RequestMapping(value = "/resources/{resourceType}", params = {"to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<Paging> getResourceByResourceTypeTo(@PathVariable("resourceType") String resourceType, @RequestParam(value = "to") int to) throws ResourceNotFoundException {
+        // FIXME: very inefficient..
+        //  create method returning the size of the results instead
         List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType), 0, to);
         int total = resourceService.getResource(resourceTypeService.getResourceType(resourceType)).size();
+        // -------------------------
+
         Paging paging = new Paging(results.size(), 0, to, results, null);
         ResponseEntity<String> responseEntity;
         if (total == 0) {
@@ -120,8 +132,12 @@ public class ResourceController {
 
     @RequestMapping(value = "/resources/", params = {"from"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<Paging> getAllResource(@RequestParam(value = "from") int from) throws ResourceNotFoundException {
+        // FIXME: very inefficient..
+        //  create method returning the size of the results instead
         List<Resource> results = resourceService.getResource(from, 0);
         int total = resourceService.getResource().size();
+        // -------------------------
+
         Paging paging = new Paging(total, from, total - 1, results, null);
         ResponseEntity<String> responseEntity;
         if (total == 0) {
@@ -134,8 +150,12 @@ public class ResourceController {
 
     @RequestMapping(value = "/resources/", params = {"from", "to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<Paging> getAllResources(@RequestParam(value = "from") int from, @RequestParam(value = "to") int to) throws ResourceNotFoundException {
+        // FIXME: very inefficient..
+        //  create method returning the size of the results instead
         List<Resource> results = resourceService.getResource(from, to);
         int total = resourceService.getResource().size();
+        // -------------------------
+
         Paging paging = new Paging(total, from, to, results, null);
         ResponseEntity<String> responseEntity;
         if (total == 0) {
