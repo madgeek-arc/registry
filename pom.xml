@@ -24,7 +24,7 @@
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring-boot.version>${parent.version}</spring-boot.version>
+        <spring-boot.version>${project.parent.version}</spring-boot.version>
         <logging.version>2.23.1</logging.version>
         <joda-time.version>2.12.5</joda-time.version>
         <hibernate.version>6.5.2.Final</hibernate.version>
@@ -57,14 +57,34 @@
                 <artifactId>registry-core-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
-<!--            <dependency>-->
-<!--                <groupId>gr.uoa.di.madgik</groupId>-->
-<!--                <artifactId>registry-core-service</artifactId>-->
-<!--                <version>${project.version}</version>-->
-<!--            </dependency>-->
+            <dependency>
+                <groupId>gr.uoa.di.madgik</groupId>
+                <artifactId>registry-core-client</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>gr.uoa.di.madgik</groupId>
+                <artifactId>registry-core-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>gr.uoa.di.madgik</groupId>
                 <artifactId>registry-core-rest</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>gr.uoa.di.madgik</groupId>
+                <artifactId>registry-core-elasticsearch</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>gr.uoa.di.madgik</groupId>
+                <artifactId>registry-core-jms</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>gr.uoa.di.madgik</groupId>
+                <artifactId>registry-core-helper</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -89,6 +109,12 @@
                 <groupId>org.everit.json</groupId>
                 <artifactId>org.everit.json.schema</artifactId>
                 <version>1.5.1</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>

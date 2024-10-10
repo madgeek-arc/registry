@@ -17,6 +17,28 @@
         </license>
     </licenses>
 
+    <profiles>
+        <profile>
+            <id>default</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>gr.uoa.di.madgik</groupId>
+                    <artifactId>registry-core-elasticsearch</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>gr.uoa.di.madgik</groupId>
+                    <artifactId>registry-core-jms</artifactId>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>no-index</id>
+        </profile>
+    </profiles>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -68,12 +90,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.java-json-tools</groupId>
-            <artifactId>json-schema-validator</artifactId>
-            <version>2.2.10</version>
         </dependency>
 
         <dependency>
