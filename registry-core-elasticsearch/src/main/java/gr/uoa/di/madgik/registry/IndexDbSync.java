@@ -73,7 +73,7 @@ public class IndexDbSync {
      * <p>2. Checks Database for missing resources and prints errors.</p>
      */
     public void ensureDatabaseIndexConsistency() {
-        logger.info("Fixing Index Inconsistencies");
+        logger.info("Checking for index inconsistencies");
         resourceTypeService.getAllResourceType()
                 .forEach(resourceType -> {
                     reindex(resourceType.getName());
@@ -204,7 +204,7 @@ public class IndexDbSync {
         List<String> missingIndexIds = new ArrayList<>(databaseResources);
         missingIndexIds.removeAll(indexResources);
         if (!missingIndexIds.isEmpty()) {
-            logger.info("Reindexing missing resources [{}] on {}", missingIndexIds, resourceType);
+            logger.debug("Reindexing missing resources [{}] on {}", missingIndexIds, resourceType);
             reindexByIds(missingIndexIds);
         } else {
             logger.debug("Index is consistent with Database on {}", resourceType);
@@ -241,5 +241,6 @@ public class IndexDbSync {
             logger.trace("Adding resource with id '{}' to index '{}'", resource.getId(), resource.getResourceTypeName());
             indexOperationsService.add(resource);
         }
+        logger.info("Reindexing finished.");
     }
 }
