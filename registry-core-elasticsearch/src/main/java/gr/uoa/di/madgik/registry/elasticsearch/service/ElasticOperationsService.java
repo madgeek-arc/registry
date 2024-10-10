@@ -163,7 +163,7 @@ public class ElasticOperationsService implements IndexOperationsService {
 
         JSONObject parameters = new JSONObject(jsonObjectForMapping);
         if (logger.isDebugEnabled()) {
-            logger.debug(parameters.toString(2));
+            logger.debug("\n{}", parameters.toString(2));
         }
 
         request.mapping(jsonObjectForMapping);
