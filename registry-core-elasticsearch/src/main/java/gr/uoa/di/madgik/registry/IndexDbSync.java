@@ -236,6 +236,9 @@ public class IndexDbSync {
      */
     private void reindexByIds(List<String> ids) {
         logger.info("Reindexing {} missing resource{}.", ids.size(), ids.size() == 1 ? "" : "s");
+        // TODO: Improve performance:
+        //  1. create method returning multiple resources by id
+        //  2. use indexOperationsService.addBulk() method to add them to the index
         for (String missingId : ids) {
             Resource resource = resourceService.getResource(missingId);
             logger.trace("Adding resource with id '{}' to index '{}'", resource.getId(), resource.getResourceTypeName());
