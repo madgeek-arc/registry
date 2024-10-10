@@ -9,19 +9,13 @@ import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +23,7 @@ import java.util.Map;
 public class ClientSearchService implements SearchService {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientSearchService.class);
+
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -57,13 +52,13 @@ public class ClientSearchService implements SearchService {
 
     @Override
     public Paging<Resource> cqlQuery(String query, String resourceType, int quantity, int from, String sortByField, String sortOrder) {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/cql/" + resourceType + "/" + query + "/");
-        MultiValueMap<String, Object> filters = new LinkedMultiValueMap<>();
-        filters.add("from", from);
-        filters.add("quantity", quantity);
-        filters.add("sortBy", sortByField);
-        filters.add("sortOrder", sortOrder);
-        ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class, createParams(filters));
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/cql/" + resourceType + "/" + query + "/")
+                .queryParam("from", from)
+                .queryParam("quantity", quantity)
+                .queryParam("sortBy", sortByField)
+                .queryParam("sortByType", sortOrder);
+
+        ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
         if (response.getStatusCode().is2xxSuccessful()) {
             return convert(response.getBody());
         } else {
@@ -83,10 +78,15 @@ public class ClientSearchService implements SearchService {
 
     @Override
     public Paging<Resource> search(FacetFilter filter) throws ServiceException {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + filter.getResourceType());
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + filter.getResourceType())
+                .queryParam("keyword", filter.getKeyword())
+                .queryParam("from", filter.getFrom())
+                .queryParam("quantity", filter.getQuantity())
+                .queryParam("browseBy", filter.getBrowseBy());
+        filter.getFilter().forEach(builder::queryParam);
         ResponseEntity<Paging> response;
         try {
-            response = restTemplate.getForEntity(builder.toUriString(), Paging.class, createParams(filter.getFilter()));
+            response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
             if (response.getStatusCode().is2xxSuccessful()) {
                 return convert(response.getBody());
             }
@@ -100,11 +100,10 @@ public class ClientSearchService implements SearchService {
 
     @Override
     public Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + resourceType);
-        Map<String, Object> filters = new HashMap<>();
-        filters.put("keyword", keyword);
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + resourceType + "/*/")
+                .queryParam("keyword", keyword);
 
-        ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class, createParams(filters));
+        ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
         if (response.getStatusCode().is2xxSuccessful()) {
             return convert(response.getBody());
         } else {
@@ -127,17 +126,5 @@ public class ClientSearchService implements SearchService {
     @Override
     public Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category) {
         throw new UnsupportedOperationException("Not implemented yet");
-    }
-
-    private HttpEntity<Map<String, Object>> createParams(Map<String, Object> filters) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        return new HttpEntity<>(filters, headers);
-    }
-
-    private HttpEntity<MultiValueMap<String, Object>> createParams(MultiValueMap<String, Object> filters) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        return new HttpEntity<>(filters, headers);
     }
 }
