@@ -73,7 +73,7 @@ public class FacetFilter {
 
     public static FacetFilter from(Map<String, Object> params) {
         FacetFilter ff = new FacetFilter();
-        ff.setKeyword(params.get("query") != null ? (String) params.remove("query") : "");
+        ff.setKeyword(params.get("keyword") != null ? (String) params.remove("keyword") : "");
         ff.setFrom(params.get("from") != null ? Integer.parseInt((String) params.remove("from")) : 0);
         ff.setQuantity(params.get("quantity") != null ? Integer.parseInt((String) params.remove("quantity")) : 10);
         Map<String, Object> sort = new HashMap<>();
@@ -85,13 +85,16 @@ public class FacetFilter {
             sort.put(orderField, order);
             ff.setOrderBy(sort);
         }
+        if (params.containsKey("browseBy")) {
+            ff.setBrowseBy( (List<String>) params.remove("browseBy"));
+        }
         ff.setFilter(params);
         return ff;
     }
 
     public static FacetFilter from(MultiValueMap<String, Object> params) {
         FacetFilter ff = new FacetFilter();
-        ff.setKeyword(params.get("query") != null ? (String) params.remove("query").get(0) : "");
+        ff.setKeyword(params.get("keyword") != null ? (String) params.remove("keyword").get(0) : "");
         ff.setFrom(params.get("from") != null ? Integer.parseInt((String) params.remove("from").get(0)) : 0);
         ff.setQuantity(params.get("quantity") != null ? Integer.parseInt((String) params.remove("quantity").get(0)) : 10);
         Map<String, Object> sort = new HashMap<>();
@@ -102,6 +105,9 @@ public class FacetFilter {
             order.put("order", orderDirection);
             sort.put(orderField, order);
             ff.setOrderBy(sort);
+        }
+        if (params.containsKey("browseBy")) {
+            ff.setBrowseBy(params.remove("browseBy").stream().map(Object::toString).collect(Collectors.toList()));
         }
         if (!params.isEmpty()) {
             for (Map.Entry<String, List<Object>> filter : params.entrySet()) {
