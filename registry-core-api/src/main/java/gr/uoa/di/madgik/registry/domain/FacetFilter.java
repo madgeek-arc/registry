@@ -3,6 +3,8 @@ package gr.uoa.di.madgik.registry.domain;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -73,7 +75,7 @@ public class FacetFilter {
 
     public static FacetFilter from(Map<String, Object> params) {
         FacetFilter ff = new FacetFilter();
-        ff.setKeyword(params.get("keyword") != null ? (String) params.remove("keyword") : "");
+        ff.setKeyword(params.get("keyword") != null ? URLDecoder.decode((String) params.remove("keyword"), Charset.defaultCharset()) : "");
         ff.setFrom(params.get("from") != null ? Integer.parseInt((String) params.remove("from")) : 0);
         ff.setQuantity(params.get("quantity") != null ? Integer.parseInt((String) params.remove("quantity")) : 10);
         Map<String, Object> sort = new HashMap<>();
@@ -94,7 +96,7 @@ public class FacetFilter {
 
     public static FacetFilter from(MultiValueMap<String, Object> params) {
         FacetFilter ff = new FacetFilter();
-        ff.setKeyword(params.get("keyword") != null ? (String) params.remove("keyword").get(0) : "");
+        ff.setKeyword(params.get("keyword") != null ? URLDecoder.decode((String) params.remove("keyword").get(0), Charset.defaultCharset()) : "");
         ff.setFrom(params.get("from") != null ? Integer.parseInt((String) params.remove("from").get(0)) : 0);
         ff.setQuantity(params.get("quantity") != null ? Integer.parseInt((String) params.remove("quantity").get(0)) : 10);
         Map<String, Object> sort = new HashMap<>();
@@ -111,7 +113,10 @@ public class FacetFilter {
         }
         if (!params.isEmpty()) {
             for (Map.Entry<String, List<Object>> filter : params.entrySet()) {
-                ff.addFilter(filter.getKey(), filter.getValue());
+                ff.addFilter(filter.getKey(), filter.getValue()
+                        .stream()
+                        .map(p -> URLDecoder.decode((String) p, Charset.defaultCharset()))
+                        .toList());
             }
         }
         return ff;
