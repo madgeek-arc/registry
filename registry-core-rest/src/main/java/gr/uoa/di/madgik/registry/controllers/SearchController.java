@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 public class SearchController {
 
@@ -25,20 +27,21 @@ public class SearchController {
             @RequestParam(value = "from", required = false, defaultValue = "0") int from,
             @RequestParam(value = "quantity", required = false, defaultValue = "10") int quantity,
             @RequestParam(value = "browseBy", required = false, defaultValue = "") String[] browseBy,
-            @RequestParam MultiValueMap<String, Object> allRequestParams
+            @RequestParam Map<String, Object> allRequestParams
     ) throws ServiceException {
         FacetFilter filter = FacetFilter.from(allRequestParams);
         filter.setResourceType(resourceType);
         return new ResponseEntity<>(searchService.search(filter), HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/search/cql/{resourceType}/{query}/", method = RequestMethod.GET)
-    public ResponseEntity<Paging> cql(@PathVariable("query") String query,
-                                      @PathVariable("resourceType") String resourceType,
+    @RequestMapping(value = "/search/cql/{resourceType}", method = RequestMethod.GET)
+    public ResponseEntity<Paging> cql(@PathVariable("resourceType") String resourceType,
+                                      @RequestParam("query") String query,
                                       @RequestParam(value = "from", required = false, defaultValue = "0") int from,
                                       @RequestParam(value = "quantity", required = false, defaultValue = "10") int quantity,
                                       @RequestParam(value = "sortBy", required = false, defaultValue = "") String sortBy,
-                                      @RequestParam(value = "sortByType", required = false, defaultValue = "ASC") String sortByType) {
+                                      @RequestParam(value = "sortByType", required = false, defaultValue = "ASC") String sortByType,
+                                      @RequestParam Map<String, Object> allRequestParams) {
         if (sortByType.equals("DESC") || sortByType.equals("ASC"))
             return new ResponseEntity<>(searchService.cqlQuery(query, resourceType, quantity, from, sortBy, sortByType), HttpStatus.OK);
         else

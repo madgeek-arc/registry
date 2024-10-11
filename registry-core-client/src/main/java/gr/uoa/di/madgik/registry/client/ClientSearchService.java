@@ -52,7 +52,8 @@ public class ClientSearchService implements SearchService {
 
     @Override
     public Paging<Resource> cqlQuery(String query, String resourceType, int quantity, int from, String sortByField, String sortOrder) {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/cql/" + resourceType + "/" + query + "/")
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/cql/" + resourceType)
+                .queryParam("query", query)
                 .queryParam("from", from)
                 .queryParam("quantity", quantity)
                 .queryParam("sortBy", sortByField)
@@ -68,7 +69,10 @@ public class ClientSearchService implements SearchService {
 
     @Override
     public Paging<Resource> cqlQuery(String query, String resourceType) {
-        ResponseEntity<Paging> response = restTemplate.getForEntity(registryHost + "/search/cql/" + resourceType + "/" + query + "/", Paging.class);
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/cql/" + resourceType)
+                .queryParam("query", query);
+
+        ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
         if (response.getStatusCode().is2xxSuccessful()) {
             return convert(response.getBody());
         } else {
@@ -100,7 +104,7 @@ public class ClientSearchService implements SearchService {
 
     @Override
     public Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + resourceType + "/*/")
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + resourceType)
                 .queryParam("keyword", keyword);
 
         ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
