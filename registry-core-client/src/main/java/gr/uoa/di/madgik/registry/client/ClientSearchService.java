@@ -16,6 +16,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -87,7 +88,18 @@ public class ClientSearchService implements SearchService {
                 .queryParam("from", filter.getFrom())
                 .queryParam("quantity", filter.getQuantity())
                 .queryParam("browseBy", filter.getBrowseBy());
-        filter.getFilter().forEach(builder::queryParam);
+
+        for (Map.Entry<String, Object> entry : filter.getFilter().entrySet()) {
+            Object value = entry.getValue();
+            if (Collection.class.isAssignableFrom(value.getClass())) {
+                for (String val : ((List<String>) value)) {
+                    builder.queryParam(entry.getKey(), val);
+                }
+            } else {
+                builder.queryParam(entry.getKey(), entry.getValue());
+            }
+        }
+
         ResponseEntity<Paging> response;
         try {
             response = restTemplate.getForEntity(builder.toUriString(), Paging.class);

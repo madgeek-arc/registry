@@ -4,11 +4,16 @@ import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.util.Map;
 
 @RestController
@@ -27,7 +32,8 @@ public class SearchController {
             @RequestParam(value = "from", required = false, defaultValue = "0") int from,
             @RequestParam(value = "quantity", required = false, defaultValue = "10") int quantity,
             @RequestParam(value = "browseBy", required = false, defaultValue = "") String[] browseBy,
-            @RequestParam Map<String, Object> allRequestParams
+            @Parameter(description = "Query parameters", example = "{}")
+            @RequestParam(defaultValue = "{}") MultiValueMap<String, Object> allRequestParams
     ) throws ServiceException {
         FacetFilter filter = FacetFilter.from(allRequestParams);
         filter.setResourceType(resourceType);
@@ -40,11 +46,8 @@ public class SearchController {
                                       @RequestParam(value = "from", required = false, defaultValue = "0") int from,
                                       @RequestParam(value = "quantity", required = false, defaultValue = "10") int quantity,
                                       @RequestParam(value = "sortBy", required = false, defaultValue = "") String sortBy,
-                                      @RequestParam(value = "sortByType", required = false, defaultValue = "ASC") String sortByType,
-                                      @RequestParam Map<String, Object> allRequestParams) {
-        if (sortByType.equals("DESC") || sortByType.equals("ASC"))
-            return new ResponseEntity<>(searchService.cqlQuery(query, resourceType, quantity, from, sortBy, sortByType), HttpStatus.OK);
-        else
-            throw new ServiceException("Unsupported order by type");
+                                      @RequestParam(value = "sortByType", required = false, defaultValue = "ASC") String sortByType) {
+        query = URLDecoder.decode(query, Charset.defaultCharset());
+        return new ResponseEntity<>(searchService.cqlQuery(query, resourceType, quantity, from, sortBy, sortByType), HttpStatus.OK);
     }
 }
