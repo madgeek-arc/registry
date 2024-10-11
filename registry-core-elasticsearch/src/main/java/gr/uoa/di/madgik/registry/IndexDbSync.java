@@ -5,6 +5,7 @@ import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.service.IndexOperationsService;
 import gr.uoa.di.madgik.registry.service.ResourceService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
+import jakarta.annotation.PostConstruct;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.search.*;
 import org.elasticsearch.client.RequestOptions;
@@ -21,13 +22,9 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.PostConstruct;
 import javax.sql.DataSource;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -108,7 +105,7 @@ public class IndexDbSync {
             databaseResources.addAll(records
                     .stream()
                     .map(r -> (String) r.get("id"))
-                    .collect(Collectors.toList())
+                    .toList()
             );
         }
         return databaseResources;
@@ -131,9 +128,9 @@ public class IndexDbSync {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder
                 .size(10000)
-                .docValueField("*_id")
+                .fetchField("*_id")
                 .fetchSource(false)
-                .explain(true);
+                .explain(false);
         searchRequest.source(searchSourceBuilder);
 
         SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
@@ -143,8 +140,8 @@ public class IndexDbSync {
         while (searchHits != null && searchHits.length > 0) {
             resourceIds.addAll(
                     Arrays.stream(searchHits)
-                            .map(hit -> (String) hit.getFields().get("_id").getValue())
-                            .collect(Collectors.toList())
+                            .map(SearchHit::getId)
+                            .toList()
             );
 
             SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
