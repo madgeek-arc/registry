@@ -79,7 +79,8 @@ public class ElasticOperationsService implements IndexOperationsService {
 
         for (Resource resource : resources) {
             bulkRequest.add(new IndexRequest(resource.getResourceType().getName())
-                    .source(createDocumentForInsert(resource), XContentType.JSON));
+                    .source(createDocumentForInsert(resource), XContentType.JSON)
+                    .id(resource.getId()));
         }
 
         logger.info("Sending bulk request for {} resources", resources.size());
@@ -101,6 +102,7 @@ public class ElasticOperationsService implements IndexOperationsService {
         String payload = createDocumentForInsert(resource);
 
         IndexRequest indexRequest = new IndexRequest(resource.getResourceType().getName());
+        indexRequest.id(resource.getId());
         indexRequest.source(payload, XContentType.JSON);
         indexRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
@@ -117,6 +119,7 @@ public class ElasticOperationsService implements IndexOperationsService {
 
         updateRequest.index(newResource.getResourceType().getName());
         updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        updateRequest.id(previousResource.getId());
         updateRequest.doc(createDocumentForInsert(newResource), XContentType.JSON);
         try {
             client.update(updateRequest, RequestOptions.DEFAULT);
@@ -152,6 +155,10 @@ public class ElasticOperationsService implements IndexOperationsService {
         }
 
         CreateIndexRequest request = new CreateIndexRequest(resourceType.getName());
+
+        if (resourceType.getAliasGroup() != null) {
+            request.alias(new Alias(resourceType.getAliasGroup()));
+        }
 
         if (resourceType.getAliases() != null) {
             for (String alias : resourceType.getAliases()) {
