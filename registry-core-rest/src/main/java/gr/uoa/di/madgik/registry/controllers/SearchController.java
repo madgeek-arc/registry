@@ -9,9 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
-import java.util.Map;
-
 @RestController
 public class SearchController {
 
@@ -21,7 +18,7 @@ public class SearchController {
         this.searchService = searchService;
     }
 
-    @RequestMapping(value = "/search/{name}", method = RequestMethod.GET, headers = "Accept=application/json")
+    @RequestMapping(value = "/search/{name}", method = RequestMethod.GET)
     public ResponseEntity<Paging> search(
             @PathVariable("name") String resourceType,
             @RequestParam(value = "keyword", required = false, defaultValue = "") String keyword,
