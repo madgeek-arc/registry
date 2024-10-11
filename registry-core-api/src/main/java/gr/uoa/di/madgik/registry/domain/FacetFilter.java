@@ -1,5 +1,8 @@
 package gr.uoa.di.madgik.registry.domain;
 
+import gr.uoa.di.madgik.registry.service.ServiceException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -56,9 +59,12 @@ public class FacetFilter {
         this.orderBy = orderBy;
     }
 
+    public static String urlDecode(String value) {
+        return value != null ? URLDecoder.decode(value, Charset.defaultCharset()) : null;
+    }
+
     // Gets all given filters
-    public static Map<String, List<Object>> getFiltersLists(FacetFilter ff) {
-        Map<String, Object> filters = new LinkedHashMap<>(ff.getFilter());
+    public static Map<String, List<Object>> transform(Map<String, Object> filters) {
         Map<String, List<Object>> allFilters = new LinkedHashMap<>();
 
         // fill the variable with the rest of the filters
@@ -73,51 +79,47 @@ public class FacetFilter {
         return allFilters;
     }
 
-    public static FacetFilter from(Map<String, Object> params) {
-        FacetFilter ff = new FacetFilter();
-        ff.setKeyword(params.get("keyword") != null ? URLDecoder.decode((String) params.remove("keyword"), Charset.defaultCharset()) : "");
-        ff.setFrom(params.get("from") != null ? Integer.parseInt((String) params.remove("from")) : 0);
-        ff.setQuantity(params.get("quantity") != null ? Integer.parseInt((String) params.remove("quantity")) : 10);
-        Map<String, Object> sort = new HashMap<>();
-        Map<String, Object> order = new HashMap<>();
-        String orderDirection = params.get("order") != null ? (String) params.remove("order") : "asc";
-        String orderField = params.get("orderField") != null ? (String) params.remove("orderField") : null;
-        if (orderField != null) {
-            order.put("order", orderDirection);
-            sort.put(orderField, order);
-            ff.setOrderBy(sort);
+    private static Map<String, Object> createFilterFromRequestParameters(Map<String, List<Object>> parameters) {
+        Map<String, Object> filtersMap = new HashMap<>();
+        for (Map.Entry<String, List<Object>> filter : parameters.entrySet()) {
+            filtersMap.put(filter.getKey(), filter.getValue()
+                    .stream()
+                    .map(encoded -> urlDecode((String) encoded))
+                    .map(dirty -> dirty.replaceAll("[\\[\\]]", "")) // remove list brackets ([])
+                    .map(String::trim)
+                    .flatMap(values -> Arrays.stream(values.split(",")))
+                    .toList());
         }
-        if (params.containsKey("browseBy")) {
-            ff.setBrowseBy( (List<String>) params.remove("browseBy"));
-        }
-        ff.setFilter(params);
-        return ff;
+        return filtersMap;
     }
 
     public static FacetFilter from(MultiValueMap<String, Object> params) {
         FacetFilter ff = new FacetFilter();
-        ff.setKeyword(params.get("keyword") != null ? URLDecoder.decode((String) params.remove("keyword").get(0), Charset.defaultCharset()) : "");
+        ff.setKeyword(params.get("keyword") != null ? urlDecode((String) params.remove("keyword").get(0)) : "");
         ff.setFrom(params.get("from") != null ? Integer.parseInt((String) params.remove("from").get(0)) : 0);
         ff.setQuantity(params.get("quantity") != null ? Integer.parseInt((String) params.remove("quantity").get(0)) : 10);
         Map<String, Object> sort = new HashMap<>();
         Map<String, Object> order = new HashMap<>();
         String orderDirection = params.get("order") != null ? (String) params.remove("order").get(0) : "asc";
+        if (!"asc".equalsIgnoreCase(orderDirection) && !"desc".equalsIgnoreCase(orderDirection))
+            throw new ServiceException("Unsupported order by type");
         String orderField = params.get("orderField") != null ? (String) params.remove("orderField").get(0) : null;
+        orderField = urlDecode(orderField);
         if (orderField != null) {
             order.put("order", orderDirection);
             sort.put(orderField, order);
             ff.setOrderBy(sort);
         }
         if (params.containsKey("browseBy")) {
-            ff.setBrowseBy(params.remove("browseBy").stream().map(Object::toString).collect(Collectors.toList()));
+            ff.setBrowseBy(params.remove("browseBy")
+                    .stream()
+                    .map(Object::toString)
+                    .map(FacetFilter::urlDecode)
+                    .toList()
+            );
         }
         if (!params.isEmpty()) {
-            for (Map.Entry<String, List<Object>> filter : params.entrySet()) {
-                ff.addFilter(filter.getKey(), filter.getValue()
-                        .stream()
-                        .map(p -> URLDecoder.decode((String) p, Charset.defaultCharset()))
-                        .toList());
-            }
+            ff.setFilter(createFilterFromRequestParameters(params));
         }
         return ff;
     }
