@@ -46,11 +46,12 @@ public class MockDatabaseConfiguration {
     private Resource dataScript;
 
 
-    @Bean(name = {"registryEntityManagerFactory", "entityManagerFactory"})
+    @Bean
     public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
         LocalContainerEntityManagerFactoryBean em
                 = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource());
+        em.setPersistenceUnitName("registryEntityManager");
         em.setPackagesToScan("gr.uoa.di.madgik.registry.domain", "gr.uoa.di.madgik.registry.domain.index");
 
         JpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
@@ -60,17 +61,17 @@ public class MockDatabaseConfiguration {
         return em;
     }
 
-    @Bean("registryEntityManager")
-    @Autowired
-    public EntityManager entityManager(@Qualifier("registryEntityManagerFactory") EntityManagerFactory entityManagerFactory) {
-        EntityManager entityManager = entityManagerFactory.createEntityManager();
-        entityManager.setFlushMode(FlushModeType.AUTO);
-        return entityManager;
-    }
+//    @Bean("registryEntityManager")
+//    @Autowired
+//    public EntityManager entityManager(EntityManagerFactory entityManagerFactory) {
+//        EntityManager entityManager = entityManagerFactory.createEntityManager();
+//        entityManager.setFlushMode(FlushModeType.AUTO);
+//        return entityManager;
+//    }
 
     @Bean("registryTransactionManager")
     @Primary
-    public PlatformTransactionManager transactionManager(@Qualifier("registryEntityManagerFactory") EntityManagerFactory emf) {
+    public PlatformTransactionManager transactionManager(EntityManagerFactory emf) {
         JpaTransactionManager transactionManager = new JpaTransactionManager();
         transactionManager.setEntityManagerFactory(emf);
         return transactionManager;

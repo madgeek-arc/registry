@@ -18,7 +18,7 @@ public abstract class AbstractDao<T> {
 
     private final Class<T> persistentClass;
 
-    @PersistenceContext(unitName = "registryEntityManagerFactory")
+    @PersistenceContext(unitName = "registryEntityManager")
     private EntityManager entityManager;
 
     @SuppressWarnings("unchecked")
