@@ -6,7 +6,6 @@ import gr.uoa.di.madgik.registry.domain.Resource;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 

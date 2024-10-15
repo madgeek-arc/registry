@@ -57,8 +57,8 @@ public class ClientSearchService implements SearchService {
                 .queryParam("query", query)
                 .queryParam("from", from)
                 .queryParam("quantity", quantity)
-                .queryParam("sortBy", sortByField)
-                .queryParam("sortByType", sortOrder);
+                .queryParam("sort", sortByField)
+                .queryParam("order", sortOrder);
 
         ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
         if (response.getStatusCode().is2xxSuccessful()) {
@@ -88,6 +88,13 @@ public class ClientSearchService implements SearchService {
                 .queryParam("from", filter.getFrom())
                 .queryParam("quantity", filter.getQuantity())
                 .queryParam("browseBy", filter.getBrowseBy());
+        if (filter.getOrderBy() != null) {
+            builder.queryParam("sort", filter.getOrderBy().keySet());
+            builder.queryParam("order", filter.getOrderBy().values()
+                    .stream()
+                    .map(value -> ((Map<String, String>)value).get("order"))
+                    .toList());
+        }
 
         for (Map.Entry<String, Object> entry : filter.getFilter().entrySet()) {
             Object value = entry.getValue();
