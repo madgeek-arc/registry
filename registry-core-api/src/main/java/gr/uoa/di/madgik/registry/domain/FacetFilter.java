@@ -95,7 +95,7 @@ public class FacetFilter {
 
     public static Map<String, Object> createOrderBy(List<Object> sortings, List<Object> orderings) {
         if (sortings == null || orderings == null) {
-            return new HashMap<>();
+            return null;
         }
         Map<String, Object> sort = new HashMap<>();
         Map<String, Object> order;
