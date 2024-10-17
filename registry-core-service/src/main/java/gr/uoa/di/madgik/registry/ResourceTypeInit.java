@@ -1,4 +1,4 @@
-package gr.uoa.di.madgik.registry.configuration;
+package gr.uoa.di.madgik.registry;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
@@ -7,14 +7,14 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.Date;
 
-@Configuration
+@Component
 public class ResourceTypeInit {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceTypeInit.class);

@@ -9,7 +9,9 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.autoconfigure.orm.jpa.JpaProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
@@ -19,7 +21,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import javax.sql.DataSource;
 
 @Configuration(proxyBeanMethods = false)
-@EnableAspectJAutoProxy
 @EnableTransactionManagement(proxyTargetClass = true)
 public class HibernateConfiguration {
 
@@ -49,8 +50,8 @@ public class HibernateConfiguration {
     @Bean
     @Primary
     public LocalContainerEntityManagerFactoryBean entityManagerFactory(EntityManagerFactoryBuilder builder,
-                                                                               @Qualifier("registryDataSource") DataSource registryDataSource,
-                                                                               @Qualifier("registryJpaProperties") JpaProperties registryJpaProperties) {
+                                                                       @Qualifier("registryDataSource") DataSource registryDataSource,
+                                                                       @Qualifier("registryJpaProperties") JpaProperties registryJpaProperties) {
         LocalContainerEntityManagerFactoryBean em = builder
                 .dataSource(registryDataSource)
                 .packages("gr.uoa.di.madgik.registry.domain", "gr.uoa.di.madgik.registry.domain.index")

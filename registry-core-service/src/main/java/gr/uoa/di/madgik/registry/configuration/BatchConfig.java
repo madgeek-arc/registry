@@ -15,7 +15,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import javax.sql.DataSource;
 
-@Configuration()
+@Configuration(proxyBeanMethods = false)
 @EnableBatchProcessing(dataSourceRef = "registryDataSource", transactionManagerRef = "registryTransactionManager")
 public class BatchConfig {
 

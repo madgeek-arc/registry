@@ -4,7 +4,6 @@ import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.service.DumpService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
-import joptsimple.internal.Strings;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +65,7 @@ public class DumpServiceImpl implements DumpService {
         if (resourceTypes.length == 0)
             resourceTypesList = resourceTypeService.getAllResourceType().stream().map(ResourceType::getName).collect(Collectors.joining(","));
         else
-            resourceTypesList = Strings.join(resourceTypes, ",");
+            resourceTypesList = String.join(",", resourceTypes);
 
         JobParametersBuilder builder = new JobParametersBuilder();
         builder.addDate("date", new Date());

@@ -26,7 +26,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.concurrent.Callable;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 public class BackupConfig {
 
     private final JobRepository jobRepository;

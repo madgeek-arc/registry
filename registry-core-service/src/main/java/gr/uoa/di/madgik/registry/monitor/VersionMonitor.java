@@ -14,7 +14,7 @@ import java.util.UUID;
 @Component
 public class VersionMonitor implements ResourceListener {
 
-    private static Logger logger = LoggerFactory.getLogger(VersionMonitor.class);
+    private static final Logger logger = LoggerFactory.getLogger(VersionMonitor.class);
 
     private final VersionDao versionDao;
 
