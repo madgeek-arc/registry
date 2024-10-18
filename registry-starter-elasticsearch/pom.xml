@@ -6,9 +6,9 @@
         <artifactId>registry</artifactId>
         <version>4.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>registry-core-api</artifactId>
+    <artifactId>registry-starter-elasticsearch</artifactId>
     <packaging>jar</packaging>
-    <name>registry-core-api</name>
+    <name>registry-starter-elasticsearch</name>
 
     <licenses>
         <license>
@@ -20,42 +20,31 @@
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-autoconfigure</artifactId>
+            <artifactId>spring-boot-autoconfigure-processor</artifactId>
+            <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>org.xbib</groupId>
+            <artifactId>cql-elasticsearch</artifactId>
+            <version>1.1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-high-level-client</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>gr.uoa.di.madgik</groupId>
-            <artifactId>registry-core-resource-sync</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-xml</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.validation</groupId>
-            <artifactId>jakarta.validation-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-jpa</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
+            <artifactId>registry-core-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.retry</groupId>
             <artifactId>spring-retry</artifactId>
+            <scope>compile</scope>
         </dependency>
-
         <dependency>
-            <groupId>org.everit.json</groupId>
-            <artifactId>org.everit.json.schema</artifactId>
-        </dependency>
-
-        <!-- Hibernate -->
-        <dependency>
-            <groupId>org.hibernate.orm</groupId>
-            <artifactId>hibernate-core</artifactId>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
     </dependencies>
 
