@@ -1,4 +1,4 @@
-package gr.uoa.di.madgik.registry_starter.elasticsearch.listeners;
+package gr.uoa.di.madgik.registry.elasticsearch.listeners;
 
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;

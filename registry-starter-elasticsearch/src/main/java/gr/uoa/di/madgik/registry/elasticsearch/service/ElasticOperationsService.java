@@ -1,4 +1,4 @@
-package gr.uoa.di.madgik.registry_starter.elasticsearch.service;
+package gr.uoa.di.madgik.registry.elasticsearch.service;
 
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;

@@ -1,9 +1,9 @@
 package gr.uoa.di.madgik.registry_starter.autoconfigure;
 
-import gr.uoa.di.madgik.registry_starter.elasticsearch.listeners.ElasticResourceListener;
-import gr.uoa.di.madgik.registry_starter.elasticsearch.listeners.ElasticResourceTypeListener;
-import gr.uoa.di.madgik.registry_starter.elasticsearch.service.ElasticOperationsService;
-import gr.uoa.di.madgik.registry_starter.elasticsearch.service.ElasticSearchService;
+import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceListener;
+import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceTypeListener;
+import gr.uoa.di.madgik.registry.elasticsearch.service.ElasticOperationsService;
+import gr.uoa.di.madgik.registry.elasticsearch.service.ElasticSearchService;
 import gr.uoa.di.madgik.registry.monitor.ResourceListener;
 import gr.uoa.di.madgik.registry.monitor.ResourceTypeListener;
 import gr.uoa.di.madgik.registry.service.IndexOperationsService;
@@ -19,18 +19,13 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration;
 import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.core.env.Environment;
 import org.springframework.retry.annotation.EnableRetry;
 
 @AutoConfiguration

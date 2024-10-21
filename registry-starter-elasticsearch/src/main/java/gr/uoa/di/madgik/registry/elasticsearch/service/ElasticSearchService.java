@@ -1,4 +1,4 @@
-package gr.uoa.di.madgik.registry_starter.elasticsearch.service;
+package gr.uoa.di.madgik.registry.elasticsearch.service;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
