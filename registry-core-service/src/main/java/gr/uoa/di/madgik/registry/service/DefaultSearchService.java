@@ -289,7 +289,9 @@ public class DefaultSearchService implements SearchService {
                 String field = entry.getKey().replaceAll("[^A-Za-z0-9_]","");
                 String order = (String) ((Map<String, Object>) entry.getValue()).get("order");
                 orderBy.add(String.format("%s %s", field, "desc".equalsIgnoreCase(order) ? "DESC" : "ASC"));
-                orderByFields.add(entry.getKey());
+                if (!"id".equals(entry.getKey())) {
+                    orderByFields.add(entry.getKey());
+                }
             }
             nestedQuery.append(String.join(",", orderBy));
         }
