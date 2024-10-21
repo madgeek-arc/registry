@@ -20,13 +20,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.util.*;
 
-@Service
 public class IndexDbSync {
 
     private static final Logger logger = LoggerFactory.getLogger(IndexDbSync.class);

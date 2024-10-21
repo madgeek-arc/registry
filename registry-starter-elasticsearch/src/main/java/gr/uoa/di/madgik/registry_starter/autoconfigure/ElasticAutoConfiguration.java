@@ -1,5 +1,6 @@
 package gr.uoa.di.madgik.registry_starter.autoconfigure;
 
+import gr.uoa.di.madgik.registry.elasticsearch.IndexDbSync;
 import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceListener;
 import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceTypeListener;
 import gr.uoa.di.madgik.registry.elasticsearch.service.ElasticOperationsService;
@@ -23,6 +24,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -34,6 +36,7 @@ import org.springframework.retry.annotation.EnableRetry;
         havingValue = "true",
         matchIfMissing = true)
 @EnableRetry
+@Import(IndexDbSync.class)
 public class ElasticAutoConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticAutoConfiguration.class);
