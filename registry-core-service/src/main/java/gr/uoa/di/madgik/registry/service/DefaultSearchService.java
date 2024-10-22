@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import org.hibernate.type.SqlTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -18,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -268,6 +271,19 @@ public class DefaultSearchService implements SearchService {
                 // append where clause
                 if (isDataTypeArray(resourceType.getName(), entry.getKey())) {
                     // PostgreSQL specific code: Checks whether the array contains any occurrence of the values list
+                    List<String> values;
+                    if (entry.getValue() instanceof List) {
+                        values = new ArrayList<>((List<String>) entry.getValue());
+                    } else {
+                        values = new ArrayList<>();
+                        values.add((String) entry.getValue());
+                    }
+                    Connection conn;
+                    try {
+                        conn = Objects.requireNonNull(npJdbcTemplate.getJdbcTemplate().getDataSource()).getConnection();
+                        params.addValue(entry.getKey(), conn.createArrayOf("text", values.toArray()), SqlTypes.ARRAY); // replace existing value with correct one
+                    } catch (SQLException e) {
+                        logger.error("Failed to execute SQL operation for entry: {} with values: {}. Error: {}", entry.getKey(), values, e.getMessage(), e);                    }
                     whereClause.append(String.format("%s && :%s", entry.getKey(), entry.getKey()));
                 } else if (entry.getValue() instanceof List) {
                     whereClause.append(String.format("%s IN (:%s)", entry.getKey(), entry.getKey()));
