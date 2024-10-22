@@ -12,7 +12,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target({ElementType.METHOD})
+@Target({ElementType.ANNOTATION_TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Parameters(value = {
         @Parameter(in = ParameterIn.QUERY, name = "keyword", description = "Keyword to refine the search", content = @Content(schema = @Schema(type = "string"))),
