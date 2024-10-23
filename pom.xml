@@ -32,12 +32,13 @@
     </properties>
 
     <modules>
-        <module>registry-core-service</module>
+        <module>registry-service</module>
         <module>registry-core-api</module>
         <module>registry-core-rest</module>
         <module>registry-core-helper</module>
         <module>registry-core-resource-sync</module>
         <module>registry-core-client</module>
+        <module>registry-starter-service</module>
         <module>registry-starter-elasticsearch</module>
         <module>registry-starter-jms</module>
     </modules>
@@ -70,6 +71,11 @@
             <dependency>
                 <groupId>gr.uoa.di.madgik</groupId>
                 <artifactId>registry-core-rest</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>gr.uoa.di.madgik</groupId>
+                <artifactId>registry-starter-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

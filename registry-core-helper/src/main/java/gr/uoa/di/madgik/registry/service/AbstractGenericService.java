@@ -5,7 +5,9 @@ import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,7 @@ public abstract class AbstractGenericService<T> {
     @Autowired
     public SearchService searchService;
     @Autowired
+    @Qualifier("registryResourceService")
     public ResourceService resourceService;
     @Autowired
     public ResourceTypeService resourceTypeService;

@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-@Service("resourceService")
+@Service
 public class ResourceServiceImpl implements ResourceService {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceServiceImpl.class);
