@@ -28,7 +28,6 @@ public abstract class AbstractGenericService<T> {
     @Autowired
     public SearchService searchService;
     @Autowired
-    @Qualifier("registryResourceService")
     public ResourceService resourceService;
     @Autowired
     public ResourceTypeService resourceTypeService;
