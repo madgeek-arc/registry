@@ -37,7 +37,7 @@
         <module>registry-core-rest</module>
         <module>registry-core-helper</module>
         <module>registry-core-resource-sync</module>
-        <module>registry-core-client</module>
+        <module>registry-starter-client</module>
         <module>registry-starter-service</module>
         <module>registry-starter-elasticsearch</module>
         <module>registry-starter-jms</module>
@@ -60,7 +60,7 @@
             </dependency>
             <dependency>
                 <groupId>gr.uoa.di.madgik</groupId>
-                <artifactId>registry-core-client</artifactId>
+                <artifactId>registry-starter-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
