@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
-import org.hibernate.annotations.LazyCollection;
-import org.hibernate.annotations.LazyCollectionOption;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
@@ -65,13 +63,11 @@ public class ResourceType implements Serializable {
     @Column(name = "aliases")
     private Set<String> aliases = new HashSet<>();
 
-    @OneToMany(mappedBy = "resourceType", cascade = {CascadeType.ALL}, orphanRemoval = true)
+    @OneToMany(mappedBy = "resourceType", cascade = {CascadeType.ALL}, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonIgnore
-    @LazyCollection(LazyCollectionOption.TRUE)
     private List<Resource> resources;
 
-    @OneToMany(mappedBy = "resourceType", cascade = {CascadeType.ALL}, orphanRemoval = true)
-    @LazyCollection(LazyCollectionOption.TRUE)
+    @OneToMany(mappedBy = "resourceType", cascade = {CascadeType.ALL}, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Version> versions;
 

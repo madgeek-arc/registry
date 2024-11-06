@@ -3,8 +3,6 @@ package gr.uoa.di.madgik.registry.domain;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import gr.uoa.di.madgik.registry.domain.index.IndexedField;
-import org.hibernate.annotations.LazyCollection;
-import org.hibernate.annotations.LazyCollectionOption;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
@@ -57,15 +55,13 @@ public class Resource {
     @Column(name = "modification_date", nullable = false)
     private Date modificationDate;
 
-    @OneToMany(cascade = {CascadeType.ALL}, orphanRemoval = true, mappedBy = "resource")
-    @LazyCollection(LazyCollectionOption.TRUE)
+    @OneToMany(cascade = {CascadeType.ALL}, orphanRemoval = true, mappedBy = "resource", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<IndexedField> indexedFields;
 
-    @OneToMany(mappedBy = "resource")
-    @LazyCollection(LazyCollectionOption.FALSE)
+    @OneToMany(mappedBy = "resource", fetch = FetchType.EAGER)
     @JsonIgnore
-    private List<gr.uoa.di.madgik.registry.domain.Version> versions;
+    private List<Version> versions;
 
     public Resource(String id, ResourceType resourceType, String version, String payload, String payloadFormat) {
         this.id = id;
@@ -181,13 +177,15 @@ public class Resource {
 
     @PreRemove
     public void removeReferenceOfChildren() {
-        for (gr.uoa.di.madgik.registry.domain.Version v : versions) {
-            v.setResource(null);
+        if (versions != null) {
+            for (Version v : versions) {
+                v.setResource(null);
+            }
         }
     }
 
     @JsonIgnore
-    public List<gr.uoa.di.madgik.registry.domain.Version> getVersions() {
+    public List<Version> getVersions() {
         return versions;
     }
 
