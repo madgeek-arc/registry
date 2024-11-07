@@ -63,14 +63,6 @@ public class Resource {
     @JsonIgnore
     private List<Version> versions;
 
-    public Resource(String id, ResourceType resourceType, String version, String payload, String payloadFormat) {
-        this.id = id;
-        this.resourceType = resourceType;
-        this.version = version;
-        this.payload = payload;
-        this.payloadFormat = payloadFormat;
-    }
-
     public Resource() {
 
     }

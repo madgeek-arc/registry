@@ -111,14 +111,14 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
     }
 
     @Transactional
-    public void addResource(Resource resource) {
-        persist(resource);
+    public Resource addResource(Resource resource) {
+        return persist(resource);
     }
 
     @Transactional
-    public void updateResource(Resource resource) {
+    public Resource updateResource(Resource resource) {
         resource.setModificationDate(new Date());
-        getEntityManager().merge(resource);
+        return getEntityManager().merge(resource);
     }
 
     @Transactional

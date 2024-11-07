@@ -6,6 +6,7 @@ import gr.uoa.di.madgik.registry.dao.ResourceTypeDao;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.index.IndexedField;
+import gr.uoa.di.madgik.registry.index.IndexMapper;
 import gr.uoa.di.madgik.registry.index.IndexMapperFactory;
 import gr.uoa.di.madgik.registry.validation.ResourceValidator;
 import org.slf4j.Logger;
@@ -15,7 +16,6 @@ import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
-import gr.uoa.di.madgik.registry.index.IndexMapper;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -111,8 +111,7 @@ public class ResourceServiceImpl implements ResourceService {
 
                 resourceDao.addResource(resource);
             } catch (Exception e) {
-                logger.error("Error saving resource", e);
-                throw new ServiceException(e);
+                throw new ServiceException("Error saving resource", e);
             }
         }
 
@@ -168,7 +167,6 @@ public class ResourceServiceImpl implements ResourceService {
         if (!response)
             throw new ServiceException("Failed to validate resource with the new resource type");
 
-        deleteResource(resource.getId());
         resource.setVersion(generateVersion());
         try {
             resource.setIndexedFields(getIndexedFields(resource));
@@ -178,10 +176,9 @@ public class ResourceServiceImpl implements ResourceService {
 
             resource.setResourceType(resourceType);
             // Save resource using DAO in order to keep the ID of the Resource
-            resourceDao.updateResource(resource);
+            resource = resourceDao.updateResource(resource);
         } catch (Exception e) {
-            logger.error("Error saving resource", e);
-            throw new ServiceException(e);
+            throw new ServiceException("Error saving resource", e);
         }
 
         return resource;
@@ -201,8 +198,7 @@ public class ResourceServiceImpl implements ResourceService {
             indexMapper = indexMapperFactory.createIndexMapper(resourceType);
             return indexMapper.getValues(resource.getPayload(), resourceType);
         } catch (Exception e) {
-            logger.error("Error extracting fields", e);
-            throw new ServiceException(e);
+            throw new ServiceException("Error extracting fields", e);
         }
 
     }

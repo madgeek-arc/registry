@@ -29,9 +29,9 @@ public interface ResourceDao {
 
     List<Resource> getResource();
 
-    void addResource(Resource resource);
+    Resource addResource(Resource resource);
 
-    void updateResource(Resource resource);
+    Resource updateResource(Resource resource);
 
     void deleteResource(Resource id);
 

@@ -71,7 +71,7 @@ public class RestoreResourceWriterStep implements ItemWriter<Resource>, StepExec
                     addedResource = resourceService.addResource(resource);
                 } else {
                     // we are using the DAO service in order to keep the previous ID of the resource
-                    resourceDao.addResource(resource);
+                    resource = resourceDao.addResource(resource);
                 }
 
                 resource.getVersions().forEach(v -> versionDao.addVersion(v));

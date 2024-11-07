@@ -35,75 +35,58 @@ public class ResourceMonitor {
 
     @Around("execution (* gr.uoa.di.madgik.registry.service.ResourceService.addResource(gr.uoa.di.madgik.registry.domain.Resource)) && args(resource)")
     public Resource resourceAdded(ProceedingJoinPoint pjp, Resource resource) throws Throwable {
-        try {
-            resource = (Resource) pjp.proceed();
 
-            for (ResourceListener listener : resourceListeners) {
-                try {
-                    listener.resourceAdded(resource);
-                    logger.debug("Notified listener : " + listener.getClass().getSimpleName() + " for create");
-                } catch (Exception e) {
-                    logger.error("Error notifying listener", e);
-                }
+        resource = (Resource) pjp.proceed();
+
+        for (ResourceListener listener : resourceListeners) {
+            try {
+                listener.resourceAdded(resource);
+                logger.debug("Notified listener : {} for create", listener.getClass().getSimpleName());
+            } catch (Exception e) {
+                logger.error("Error notifying listener", e);
             }
-        } catch (Exception e) {
-            logger.error("fatal error in monitor", e);
-            throw e;
         }
-        return resource;
 
+        return resource;
     }
 
     @Around("execution (* gr.uoa.di.madgik.registry.service.ResourceService.updateResource(gr.uoa.di.madgik.registry.domain.Resource)) && args(resource)")
     public Resource resourceUpdated(ProceedingJoinPoint pjp, Resource resource) throws Throwable {
-
-        try {
-            if (resource.getId() == null || resource.getId().isEmpty()) {
-                throw new ServiceException("Empty resource ID");
-            }
-
-            Resource previous = resourceDao.getResource(resource.getId());
-
-            Resource temp = new Resource(previous.getId(), previous.getResourceType(), previous.getVersion(), previous.getPayload(), previous.getPayloadFormat());
-
-            pjp.proceed();
-
-            if (resourceListeners != null)
-                for (ResourceListener listener : resourceListeners) {
-                    try {
-                        listener.resourceUpdated(temp, resource);
-                        logger.debug("Notified listener : " + listener.getClass().getSimpleName() + " for update");
-                    } catch (Exception e) {
-                        logger.error("Error notifying listener", e);
-                    }
-                }
-        } catch (Exception e) {
-            logger.error("fatal error in monitor", e);
-            throw e;
+        if (resource.getId() == null || resource.getId().isEmpty()) {
+            throw new ServiceException("Empty resource ID");
         }
+
+        Resource previous = resourceDao.getResource(resource.getId());
+        resource = (Resource) pjp.proceed();
+
+        for (ResourceListener listener : resourceListeners) {
+            try {
+                listener.resourceUpdated(previous, resource);
+                logger.debug("Notified listener : {} for update", listener.getClass().getSimpleName());
+            } catch (Exception e) {
+                logger.error("Error notifying listener", e);
+            }
+        }
+
         return resource;
     }
 
     @Around(("execution (* gr.uoa.di.madgik.registry.service.ResourceService.changeResourceType(..)) && args(resource, resourceType)"))
     public Resource changeResourceType(ProceedingJoinPoint pjp, Resource resource, ResourceType resourceType) throws Throwable {
+
         ResourceType previousResourceType = resource.getResourceType();
 
-        try {
-            pjp.proceed();
+        pjp.proceed();
 
-            if (resourceListeners != null)
-                for (ResourceListener listener : resourceListeners) {
-                    try {
-                        listener.resourceChangedType(resource, previousResourceType, resourceType);
-                        logger.debug("Notified listener : " + listener.getClass().getSimpleName() + " for update");
-                    } catch (Exception e) {
-                        logger.error("Error notifying listener", e);
-                    }
-                }
-        } catch (Exception e) {
-            logger.error("fatal error in monitor", e);
-            throw e;
+        for (ResourceListener listener : resourceListeners) {
+            try {
+                listener.resourceChangedType(resource, previousResourceType, resourceType);
+                logger.debug("Notified listener : {} for update", listener.getClass().getSimpleName());
+            } catch (Exception e) {
+                logger.error("Error notifying listener", e);
+            }
         }
+
         return resource;
     }
 
@@ -129,15 +112,14 @@ public class ResourceMonitor {
 
         pjp.proceed();
 
-
-        if (resourceTypeListeners != null)
-            for (ResourceTypeListener listener : resourceTypeListeners) {
-                try {
-                    listener.resourceTypeAdded(resourceType);
-                } catch (Exception e) {
-                    logger.error("Error notifying listener", e);
-                }
+        for (ResourceTypeListener listener : resourceTypeListeners) {
+            try {
+                listener.resourceTypeAdded(resourceType);
+            } catch (Exception e) {
+                logger.error("Error notifying listener", e);
             }
+        }
+
         return resourceType;
     }
 
@@ -146,13 +128,12 @@ public class ResourceMonitor {
 
         pjp.proceed();
 
-        if (resourceTypeListeners != null)
-            for (ResourceTypeListener listener : resourceTypeListeners) {
-                try {
-                    listener.resourceTypeDelete(name);
-                } catch (Exception e) {
-                    logger.error("Error notifying listener", e);
-                }
+        for (ResourceTypeListener listener : resourceTypeListeners) {
+            try {
+                listener.resourceTypeDelete(name);
+            } catch (Exception e) {
+                logger.error("Error notifying listener", e);
             }
+        }
     }
 }

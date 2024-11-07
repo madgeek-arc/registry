@@ -88,9 +88,10 @@ public abstract class AbstractDao<T> {
 
 
     @Transactional(propagation = Propagation.MANDATORY)
-    public void persist(T entity) {
+    public T persist(T entity) {
         entityManager.persist(entity);
         entityManager.flush();
+        return entity;
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
