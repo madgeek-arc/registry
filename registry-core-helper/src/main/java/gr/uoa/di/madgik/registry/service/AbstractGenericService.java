@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
  * Created by stefanos on 20/6/2017.
  */
 @Transactional
-@Component
 public abstract class AbstractGenericService<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractGenericService.class);
