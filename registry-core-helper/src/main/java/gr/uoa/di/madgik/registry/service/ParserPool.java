@@ -14,13 +14,12 @@ import java.io.StringWriter;
 /**
  * Created by stefanos on 26/6/2017.
  */
-@Component("parserPool")
+@Component
 public class ParserPool implements ParserService {
 
     private final JAXBContext jaxbContext;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    @Autowired
     public ParserPool(JAXBContext jaxbContext) {
         this.jaxbContext = jaxbContext;
     }
