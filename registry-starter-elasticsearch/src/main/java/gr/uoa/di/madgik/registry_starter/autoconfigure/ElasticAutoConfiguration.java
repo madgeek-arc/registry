@@ -59,7 +59,10 @@ public class ElasticAutoConfiguration {
             credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(properties.getUsername(), properties.getPassword()));
         }
         String host = properties.getUris().get(0);
-        String[] parts = host.split("\\:(\\/\\/)?"); // split url to scheme / server / port
+        if (!host.startsWith("http")) { // add http prefix if missing (needed in the code below)
+            host = "http://" + host;
+        }
+        String[] parts = host.split(":(//)?"); // split url to scheme / server / port
         RestClientBuilder restClientBuilder = RestClient.builder(new HttpHost(parts[1], Integer.parseInt(parts[2]), parts[0]))
                 .setHttpClientConfigCallback(httpClientBuilder ->
                         httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
