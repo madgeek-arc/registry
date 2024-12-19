@@ -2,17 +2,14 @@ package gr.uoa.di.madgik.registry.service;
 
 import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import jakarta.annotation.PostConstruct;
+import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.validation.constraints.NotNull;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -34,48 +31,27 @@ public abstract class AbstractGenericService<T> {
     public ParserService parserPool;
     @Value("${elastic.index.max_result_window:10000}")
     protected int maxQuantity;
-    protected ResourceType resourceType;
-    private List<String> browseBy;
-    private Map<String, String> labels;
+    protected ResourceTypeInfo resourceTypeInfo;
 
-    public AbstractGenericService(Class<T> typeParameterClass) {
+    protected AbstractGenericService(Class<T> typeParameterClass) {
         this.typeParameterClass = typeParameterClass;
+        resourceTypeInfo = new ResourceTypeInfo();
     }
 
-    public abstract String getResourceType();
+    public abstract String getResourceTypeName();
+
+    public ResourceType getResourceType() {
+        return resourceTypeInfo.getResourceType();
+    }
 
     @PostConstruct
     void init() {
-        resourceType = resourceTypeService.getResourceType(getResourceType());
-        Set<String> browseSet = new HashSet<>();
-        Map<String, Set<String>> sets = new HashMap<>();
-        labels = new HashMap<>();
-        labels.put("resourceType", "Resource Type");
-        for (IndexField f : resourceTypeService.getResourceTypeIndexFields(getResourceType())) {
-            sets.putIfAbsent(f.getResourceType().getName(), new HashSet<>());
-            labels.put(f.getName(), f.getLabel());
-            if (f.getLabel() != null) {
-                sets.get(f.getResourceType().getName()).add(f.getName());
-            }
-        }
-        boolean flag = true;
-        for (Map.Entry<String, Set<String>> entry : sets.entrySet()) {
-            if (flag) {
-                browseSet.addAll(entry.getValue());
-                flag = false;
-            } else {
-                browseSet.retainAll(entry.getValue());
-            }
-        }
-        browseBy = new ArrayList<>();
-        browseBy.addAll(browseSet);
-        browseBy.add("resourceType");
-        logger.info("Generated generic service for " + getResourceType() + "[" + getClass().getSimpleName() + "]");
+        logger.info("Generated generic service for {} [{}]", getResourceTypeName(), getClass().getSimpleName());
     }
 
     protected Browsing<T> getResults(FacetFilter filter) {
         Browsing<T> browsing;
-        filter.setResourceType(getResourceType());
+        filter.setResourceType(getResourceTypeName());
         try {
             browsing = convertToBrowsing(searchService.search(filter));
         } catch (Exception e) {
@@ -90,14 +66,14 @@ public abstract class AbstractGenericService<T> {
                 .parallelStream()
                 .map(res -> parserPool.deserialize(res, typeParameterClass))
                 .collect(Collectors.toList());
-        return new Browsing<>(paging, results, labels);
+        return new Browsing<>(paging, results, resourceTypeInfo.getLabels());
     }
 
 
     protected Map<String, List<T>> getResultsGrouped(FacetFilter filter, String category) {
         Map<String, List<T>> result = new HashMap<>();
 
-        filter.setResourceType(getResourceType());
+        filter.setResourceType(getResourceTypeName());
         Map<String, List<Resource>> resources;
         try {
             resources = searchService.searchByCategory(filter, category);
@@ -117,10 +93,74 @@ public abstract class AbstractGenericService<T> {
 
 
     protected List<String> getBrowseBy() {
-        return browseBy;
+        return resourceTypeInfo.getBrowseBy();
     }
 
     public void setBrowseBy(List<String> browseBy) {
-        this.browseBy = browseBy;
+        resourceTypeInfo.setBrowseBy(browseBy);
+    }
+
+    private class ResourceTypeInfo {
+
+        private ResourceType resourceType;
+        private List<String> browseBy;
+        private Map<String, String> labels;
+
+        private ResourceTypeInfo() {
+        }
+
+        public void init() {
+            if (resourceType == null) {
+                resourceType = resourceTypeService.getResourceType(getResourceTypeName());
+                Set<String> browseSet = new HashSet<>();
+                Map<String, Set<String>> sets = new HashMap<>();
+                labels = new HashMap<>();
+                labels.put("resourceType", "Resource Type");
+                for (IndexField f : resourceTypeService.getResourceTypeIndexFields(getResourceTypeName())) {
+                    sets.putIfAbsent(f.getResourceType().getName(), new HashSet<>());
+                    labels.put(f.getName(), f.getLabel());
+                    if (f.getLabel() != null) {
+                        sets.get(f.getResourceType().getName()).add(f.getName());
+                    }
+                }
+                boolean flag = true;
+                for (Map.Entry<String, Set<String>> entry : sets.entrySet()) {
+                    if (flag) {
+                        browseSet.addAll(entry.getValue());
+                        flag = false;
+                    } else {
+                        browseSet.retainAll(entry.getValue());
+                    }
+                }
+                browseBy = new ArrayList<>();
+                browseBy.addAll(browseSet);
+                browseBy.add("resourceType");
+            }
+        }
+
+        public ResourceType getResourceType() {
+            init();
+            return resourceType;
+        }
+
+        public List<String> getBrowseBy() {
+            init();
+            return browseBy;
+        }
+
+        public void setBrowseBy(List<String> browseBy) {
+            init();
+            this.browseBy = browseBy;
+        }
+
+        public Map<String, String> getLabels() {
+            init();
+            return labels;
+        }
+
+        public void setLabels(Map<String, String> labels) {
+            init();
+            this.labels = labels;
+        }
     }
 }
