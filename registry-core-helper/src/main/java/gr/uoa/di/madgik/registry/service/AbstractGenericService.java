@@ -31,7 +31,7 @@ public abstract class AbstractGenericService<T> {
     public ParserService parserPool;
     @Value("${elastic.index.max_result_window:10000}")
     protected int maxQuantity;
-    protected ResourceTypeInfo resourceTypeInfo;
+    private final ResourceTypeInfo resourceTypeInfo;
 
     protected AbstractGenericService(Class<T> typeParameterClass) {
         this.typeParameterClass = typeParameterClass;
