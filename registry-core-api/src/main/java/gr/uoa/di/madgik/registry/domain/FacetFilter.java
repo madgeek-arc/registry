@@ -123,6 +123,7 @@ public class FacetFilter {
         ff.setFrom(params.get("from") != null ? Integer.parseInt((String) params.remove("from").get(0)) : 0);
         ff.setQuantity(params.get("quantity") != null ? Integer.parseInt((String) params.remove("quantity").get(0)) : 10);
         ff.setOrderBy(createOrderBy(params.remove("sort"), params.remove("order")));
+        ff.setResourceType(params.get("resourceType") != null ? (String) params.remove("resourceType").get(0) : null);
         if (params.containsKey("browseBy")) {
             ff.setBrowseBy(params.remove("browseBy")
                     .stream()
