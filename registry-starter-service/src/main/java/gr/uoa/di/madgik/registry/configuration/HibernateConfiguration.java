@@ -5,9 +5,11 @@ import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.flyway.FlywayDataSource;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.autoconfigure.orm.jpa.JpaProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +24,7 @@ import javax.sql.DataSource;
 
 @Configuration(proxyBeanMethods = false)
 @EnableTransactionManagement(proxyTargetClass = true)
+@EnableConfigurationProperties({DataSourceProperties.class, JpaProperties.class})
 public class HibernateConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(HibernateConfiguration.class);
@@ -42,26 +45,23 @@ public class HibernateConfiguration {
 
     @Bean("registryDataSource")
     @Primary
-    @ConfigurationProperties("registry.datasource.configuration")
+    @FlywayDataSource
     public DataSource registryDataSource(DataSourceProperties properties) {
         return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
     }
 
     @Bean
     @Primary
-    public LocalContainerEntityManagerFactoryBean entityManagerFactory(EntityManagerFactoryBuilder builder,
-                                                                       @Qualifier("registryDataSource") DataSource registryDataSource,
+    public LocalContainerEntityManagerFactoryBean entityManagerFactory(@Qualifier("registryDataSource") DataSource registryDataSource,
                                                                        @Qualifier("registryJpaProperties") JpaProperties registryJpaProperties) {
-        LocalContainerEntityManagerFactoryBean em = builder
-                .dataSource(registryDataSource)
-                .packages("gr.uoa.di.madgik.registry.domain", "gr.uoa.di.madgik.registry.domain.index")
-                .persistenceUnit("registryEntityManager")
-                .build();
+        LocalContainerEntityManagerFactoryBean emf = new LocalContainerEntityManagerFactoryBean();
+        emf.setDataSource(registryDataSource);
+        emf.setPackagesToScan("gr.uoa.di.madgik.registry.domain", "gr.uoa.di.madgik.registry.domain.index");
+        emf.setPersistenceUnitName("registryEntityManager");
+        emf.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
+        emf.setJpaPropertyMap(registryJpaProperties.getProperties());
 
-        em.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
-        em.setJpaPropertyMap(registryJpaProperties.getProperties());
-
-        return em;
+        return emf;
     }
 
     @Bean("registryTransactionManager")
@@ -70,15 +70,6 @@ public class HibernateConfiguration {
         JpaTransactionManager transactionManager = new JpaTransactionManager();
         transactionManager.setEntityManagerFactory(entityManagerFactory.getObject());
         return transactionManager;
-    }
-
-
-    @Bean(initMethod = "migrate")
-    public Flyway flyway(@Qualifier("registryDataSource") DataSource registryDataSource) {
-        return Flyway.configure()
-                .dataSource(registryDataSource)
-                .locations("classpath:migrations")
-                .load();
     }
 
 }

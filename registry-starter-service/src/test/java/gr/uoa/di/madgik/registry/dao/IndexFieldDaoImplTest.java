@@ -1,32 +1,22 @@
 package gr.uoa.di.madgik.registry.dao;
 
-import gr.uoa.di.madgik.registry.configuration.MockDatabaseConfiguration;
+import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {
-        MockDatabaseConfiguration.class
-})
+@SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
 @Transactional
-@ComponentScan("gr.uoa.di.madgik.registry.dao")
-public class IndexFieldDaoImplTest {
-
-    private static Logger logger = LoggerFactory.getLogger(IndexFieldDaoImplTest.class);
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class IndexFieldDaoImplTest {
 
     @Autowired
     IndexFieldDao indexFieldDao;
@@ -37,22 +27,22 @@ public class IndexFieldDaoImplTest {
     private ResourceType testingResourceType;
 
 
-    @Before
-    public void initialize() {
+    @BeforeAll
+    void initialize() {
         testingResourceType = resourceTypeDao.getResourceType("employee");
     }
 
 
     @Test
-    public void getIndexFields_OK() {
+    void getIndexFields_OK() {
         List<IndexField> indexFields = indexFieldDao.getIndexFieldsOfResourceType(testingResourceType);
-        Assert.assertEquals(indexFields.size(), 6);
+        Assertions.assertEquals(indexFields.size(), 6);
     }
 
-    @Test(expected = NullPointerException.class)
-    public void getIndexFields_NONE() {
-        List<IndexField> indexFields = indexFieldDao.getIndexFieldsOfResourceType(resourceTypeDao.getResourceType("event"));
-        Assert.assertNotEquals(indexFields.size(), 6);
+    @Test
+    void getIndexFields_NONE() {
+        ResourceType resourceType = resourceTypeDao.getResourceType("event");
+        Assertions.assertThrows(NullPointerException.class, () -> indexFieldDao.getIndexFieldsOfResourceType(resourceType));
     }
 
 }

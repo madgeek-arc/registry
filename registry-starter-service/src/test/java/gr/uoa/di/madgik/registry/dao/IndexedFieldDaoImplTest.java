@@ -1,32 +1,22 @@
 package gr.uoa.di.madgik.registry.dao;
 
-import gr.uoa.di.madgik.registry.configuration.MockDatabaseConfiguration;
+import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.index.IndexedField;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {
-        MockDatabaseConfiguration.class
-})
-@Transactional
-@ComponentScan("gr.uoa.di.madgik.registry.dao")
-public class IndexedFieldDaoImplTest {
+import static gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration.TEST_MISSING_RESOURCE_ID;
+import static gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration.TEST_RESOURCE_ID;
 
-    private static Logger logger = LoggerFactory.getLogger(IndexedFieldDaoImplTest.class);
+@SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
+@Transactional
+class IndexedFieldDaoImplTest {
 
     @Autowired
     IndexedFieldDao indexedFieldDao;
@@ -34,31 +24,25 @@ public class IndexedFieldDaoImplTest {
     @Autowired
     ResourceDao resourceDao;
 
-    private Resource testingResource;
-
-
-    @Before
-    public void initialize() {
-        testingResource = resourceDao.getResource("e98db949-f3e3-4d30-9894-7dd2e291fbef");
-    }
-
 
     @Test
-    public void getIndexedFields_OK() {
+    void getIndexedFields_OK() {
+        Resource testingResource = resourceDao.getResource(TEST_RESOURCE_ID);
         List<IndexedField> indexedFields = indexedFieldDao.getIndexedFieldsOfResource(testingResource);
-        Assert.assertEquals(indexedFields.size(), 6);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void getIndexedFields_NONE() {
-        List<IndexedField> indexedFields = indexedFieldDao.getIndexedFieldsOfResource(resourceDao.getResource("e98db949-f3e3-4d30-9894-7dd2e291fbeg"));
-        Assert.assertNotEquals(indexedFields.size(), 6);
+        Assertions.assertEquals(indexedFields.size(), 6);
     }
 
     @Test
-    public void deleteIndexedField_OK() {
+    void getIndexedFields_NONE() {
+        Resource testingResource = resourceDao.getResource(TEST_MISSING_RESOURCE_ID);
+        Assertions.assertThrows(NullPointerException.class, () -> indexedFieldDao.getIndexedFieldsOfResource(testingResource));
+    }
+
+    @Test
+    void deleteIndexedField_OK() {
+        Resource testingResource = resourceDao.getResource(TEST_RESOURCE_ID);
         indexedFieldDao.deleteAllIndexedFields(testingResource);
-        Assert.assertEquals(indexedFieldDao.getIndexedFieldsOfResource(testingResource).size(), 0);
+        Assertions.assertEquals(indexedFieldDao.getIndexedFieldsOfResource(testingResource).size(), 0);
     }
 
 

@@ -11,6 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "Resource")
@@ -198,4 +199,16 @@ public class Resource {
         this.resourceTypeName = resourceTypeName;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Resource resource = (Resource) o;
+        return Objects.equals(id, resource.id) && Objects.equals(resourceTypeName, resource.resourceTypeName) && Objects.equals(version, resource.version) && Objects.equals(payload, resource.payload) && Objects.equals(payloadUrl, resource.payloadUrl) && Objects.equals(searchableArea, resource.searchableArea) && Objects.equals(payloadFormat, resource.payloadFormat) && Objects.equals(creationDate, resource.creationDate) && Objects.equals(modificationDate, resource.modificationDate);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, resourceTypeName, version, payload, payloadUrl, searchableArea, payloadFormat, creationDate, modificationDate);
+    }
 }

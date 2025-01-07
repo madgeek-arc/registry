@@ -1,18 +1,19 @@
 package gr.uoa.di.madgik.registry.service;
 
-import org.junit.Test;
 
-public class ResourceSyncServiceImplTest {
+import org.junit.jupiter.api.Test;
+
+class ResourceSyncServiceImplTest {
 
     @Test
-    public void getResourceList() {
+    void getResourceList() {
     }
 
     @Test
-    public void getCapabilityList() {
+    void getCapabilityList() {
     }
 
     @Test
-    public void getChangeList() {
+    void getChangeList() {
     }
 }

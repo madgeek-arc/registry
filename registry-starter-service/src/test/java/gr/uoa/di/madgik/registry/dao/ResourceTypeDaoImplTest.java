@@ -1,29 +1,17 @@
 package gr.uoa.di.madgik.registry.dao;
 
-import gr.uoa.di.madgik.registry.configuration.MockDatabaseConfiguration;
+import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {
-        MockDatabaseConfiguration.class
-})
+@SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
 @Transactional
-@ComponentScan("gr.uoa.di.madgik.registry.dao")
-public class ResourceTypeDaoImplTest {
-
-    private static Logger logger = LoggerFactory.getLogger(ResourceTypeDaoImplTest.class);
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class ResourceTypeDaoImplTest {
 
     @Autowired
     ResourceTypeDao resourceTypeDao;
@@ -31,25 +19,28 @@ public class ResourceTypeDaoImplTest {
     private ResourceType testingResourceType;
 
 
-    @Before
-    public void initialize() {
+    @BeforeAll
+    void initialize() {
         testingResourceType = resourceTypeDao.getResourceType("employee");
     }
 
     @Test
-    public void getResourceTypeIndexFields_OK() {
-        Assert.assertEquals(resourceTypeDao.getResourceTypeIndexFields("employee").size(), testingResourceType.getIndexFields().size());
+    @Order(1)
+    void getResourceTypeIndexFields_OK() {
+        Assertions.assertEquals(resourceTypeDao.getResourceTypeIndexFields("employee").size(), testingResourceType.getIndexFields().size());
     }
 
     @Test
-    public void getResourceTypeIndexFields_NOT_FOUND() {
-        Assert.assertNotEquals(resourceTypeDao.getResourceTypeIndexFields("event"), testingResourceType.getIndexFields());
+    @Order(2)
+    void getResourceTypeIndexFields_NOT_FOUND() {
+        Assertions.assertNotEquals(resourceTypeDao.getResourceTypeIndexFields("event").toArray(), testingResourceType.getIndexFields().toArray());
     }
 
     @Test
-    public void deleteResourceType() {
+    @Order(3)
+    void deleteResourceType() {
         resourceTypeDao.deleteResourceType(testingResourceType.getName());
-        Assert.assertNull(resourceTypeDao.getResourceType("employee"));
+        Assertions.assertNull(resourceTypeDao.getResourceType("employee"));
     }
 
 
