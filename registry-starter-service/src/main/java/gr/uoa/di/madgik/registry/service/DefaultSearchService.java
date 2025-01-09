@@ -266,26 +266,21 @@ public class DefaultSearchService implements SearchService {
                 }
                 dirty = true;
 
-                params.addValue(entry.getKey(), entry.getValue());
+                List<Object> filterValues = transformFilterValuesType(resourceType, entry);
+                params.addValue(entry.getKey(), unwrapListWhenSingle(filterValues));
 
                 // append where clause
                 if (isDataTypeArray(resourceType.getName(), entry.getKey())) {
                     // PostgreSQL specific code: Checks whether the array contains any occurrence of the values list
-                    List<String> values;
-                    if (entry.getValue() instanceof List) {
-                        values = new ArrayList<>((List<String>) entry.getValue());
-                    } else {
-                        values = new ArrayList<>();
-                        values.add((String) entry.getValue());
-                    }
                     Connection conn;
                     try {
                         conn = Objects.requireNonNull(npJdbcTemplate.getJdbcTemplate().getDataSource()).getConnection();
-                        params.addValue(entry.getKey(), conn.createArrayOf("text", values.toArray()), SqlTypes.ARRAY); // replace existing value with correct one
+                        params.addValue(entry.getKey(), conn.createArrayOf("text", filterValues.toArray()), SqlTypes.ARRAY); // replace existing value with correct one
                     } catch (SQLException e) {
-                        logger.error("Failed to execute SQL operation for entry: {} with values: {}. Error: {}", entry.getKey(), values, e.getMessage(), e);                    }
+                        logger.error("Failed to execute SQL operation for entry: {} with values: {}. Error: {}", entry.getKey(), filterValues.toArray(), e.getMessage(), e);
+                    }
                     whereClause.append(String.format("%s && :%s", entry.getKey(), entry.getKey()));
-                } else if (entry.getValue() instanceof List) {
+                } else if (filterValues.size() != 1) {
                     whereClause.append(String.format("%s IN (:%s)", entry.getKey(), entry.getKey()));
                 } else {
                     whereClause.append(String.format("%s = :%s", entry.getKey(), entry.getKey()));
@@ -384,5 +379,43 @@ public class DefaultSearchService implements SearchService {
                     return propertyName;
             }
         }
+    }
+
+    /**
+     * <p>Transforms filter values to their proper types (e.g. from String to Boolean).</p>
+     *
+     * @param resourceType the resourceType to check for IndexFields.
+     * @param entry the key-value pair of the filter to transform.
+     * @return the values
+     */
+    private static List<Object> transformFilterValuesType(ResourceType resourceType, Map.Entry<String, Object> entry) {
+        List<Object> valuesList = new ArrayList<>();
+        if (Collection.class.isAssignableFrom(entry.getValue().getClass())) {
+            valuesList.addAll((Collection<?>) entry.getValue());
+        } else {
+            valuesList.add(entry.getValue());
+        }
+
+        if (resourceType.getIndexFields() != null) {
+            String type = resourceType.getIndexFields().stream().filter(i -> i.getName().equals(entry.getKey())).findFirst().get().getType();
+            if (Boolean.class.getName().equals(type)) {
+                valuesList = (List) valuesList.stream().map(v -> Boolean.parseBoolean((String) v)).toList();
+
+            }
+            // add more statements if required (e.g. parse Integer)
+        }
+        return valuesList;
+    }
+
+    /**
+     * Unwraps the List if it contains only one item, otherwise it returns the list as is.
+     * @param values the list
+     * @return the list or the single value
+     */
+    private static Object unwrapListWhenSingle(List<Object> values) {
+        if (values.size() == 1) {
+            return values.get(0);
+        }
+        return values;
     }
 }
