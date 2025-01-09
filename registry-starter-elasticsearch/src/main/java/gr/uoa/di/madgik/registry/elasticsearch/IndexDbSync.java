@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.core.task.VirtualThreadTaskExecutor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -34,20 +35,18 @@ public class IndexDbSync {
     private final ResourceTypeService resourceTypeService;
     private final ResourceService resourceService;
     private final DataSource dataSource;
-    private final TaskExecutor taskExecutor;
+    private final TaskExecutor taskExecutor = new VirtualThreadTaskExecutor();
 
     public IndexDbSync(RestHighLevelClient client,
                        IndexOperationsService indexOperationsService,
                        ResourceTypeService resourceTypeService,
                        ResourceService resourceService,
-                       @Qualifier("registryDataSource") DataSource dataSource,
-                       TaskExecutor taskExecutor) {
+                       @Qualifier("registryDataSource") DataSource dataSource) {
         this.client = client;
         this.indexOperationsService = indexOperationsService;
         this.resourceTypeService = resourceTypeService;
         this.resourceService = resourceService;
         this.dataSource = dataSource;
-        this.taskExecutor = taskExecutor;
     }
 
     @PostConstruct
