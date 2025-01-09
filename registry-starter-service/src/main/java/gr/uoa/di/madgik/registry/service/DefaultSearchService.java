@@ -399,8 +399,7 @@ public class DefaultSearchService implements SearchService {
         if (resourceType.getIndexFields() != null) {
             String type = resourceType.getIndexFields().stream().filter(i -> i.getName().equals(entry.getKey())).findFirst().get().getType();
             if (Boolean.class.getName().equals(type)) {
-                valuesList = (List) valuesList.stream().map(v -> Boolean.parseBoolean((String) v)).toList();
-
+                valuesList = (List) valuesList.stream().map(v -> Boolean.parseBoolean(String.valueOf(v))).toList();
             }
             // add more statements if required (e.g. parse Integer)
         }
