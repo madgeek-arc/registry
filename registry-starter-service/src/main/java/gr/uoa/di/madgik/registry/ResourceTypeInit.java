@@ -88,12 +88,12 @@ public class ResourceTypeInit {
     private void addResourceTypeFromFile(Resource resource) throws IOException {
         ResourceType resourceType = mapper.readValue(resource.getInputStream(), ResourceType.class);
         if (resourceTypeService.getResourceType(resourceType.getName()) == null) {
-            logger.info(String.format("Adding [resourceType=%s]", resourceType.getName()));
+            logger.info("Adding [resourceType={}]", resourceType.getName());
             resourceType.setCreationDate(new Date());
             resourceType.setModificationDate(new Date());
             resourceTypeService.addResourceType(resourceType);
         } else {
-            logger.debug(String.format("Found [resourceType=%s]", resourceType.getName()));
+            logger.debug("Found [resourceType={}]", resourceType.getName());
         }
     }
 }
