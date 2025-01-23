@@ -1,10 +1,16 @@
 package gr.uoa.di.madgik.registry.service;
 
+import gr.uoa.di.madgik.registry.service.ResourceSyncService;
 import gr.uoa.di.madgik.registry.dao.ResourceDao;
 import gr.uoa.di.madgik.registry.dao.ResourceTypeDao;
 import gr.uoa.di.madgik.registry.dao.VersionDao;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.resourcesync.domain.CapabilityList;
+import gr.uoa.di.madgik.registry.resourcesync.domain.ChangeList;
+import gr.uoa.di.madgik.registry.resourcesync.domain.ResourceList;
+import gr.uoa.di.madgik.registry.resourcesync.domain.URL;
+import gr.uoa.di.madgik.registry.resourcesync.domain.ResourceSync;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
