@@ -2,16 +2,15 @@ package gr.uoa.di.madgik.registry.service;
 
 import gr.uoa.di.madgik.registry.dao.ResourceDao;
 import gr.uoa.di.madgik.registry.dao.ResourceTypeDao;
+import gr.uoa.di.madgik.registry.dao.VersionDao;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
-import gr.uoa.di.madgik.registry.resourcesync.domain.*;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import gr.uoa.di.madgik.registry.dao.VersionDao;
 
 import java.util.Calendar;
 import java.util.Date;

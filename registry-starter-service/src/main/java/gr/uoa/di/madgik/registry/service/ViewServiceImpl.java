@@ -1,11 +1,11 @@
 package gr.uoa.di.madgik.registry.service;
 
+import gr.uoa.di.madgik.registry.dao.ViewDao;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import gr.uoa.di.madgik.registry.dao.ViewDao;
 
 @Service("viewService")
 @Scope(proxyMode = ScopedProxyMode.INTERFACES)

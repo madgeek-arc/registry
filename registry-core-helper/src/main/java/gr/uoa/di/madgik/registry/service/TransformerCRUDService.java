@@ -2,7 +2,6 @@ package gr.uoa.di.madgik.registry.service;
 
 import gr.uoa.di.madgik.registry.domain.Browsing;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
-import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import org.springframework.security.core.Authentication;
 
 public interface TransformerCRUDService<T, R, U extends Authentication> {

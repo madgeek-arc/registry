@@ -1,5 +1,6 @@
 package gr.uoa.di.madgik.registry.backup.dump;
 
+import gr.uoa.di.madgik.registry.dao.AbstractDao;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import jakarta.persistence.Query;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -13,7 +14,6 @@ import org.springframework.batch.item.ExecutionContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import gr.uoa.di.madgik.registry.dao.AbstractDao;
 
 import java.util.HashMap;
 import java.util.Map;

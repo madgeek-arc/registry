@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
-
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 

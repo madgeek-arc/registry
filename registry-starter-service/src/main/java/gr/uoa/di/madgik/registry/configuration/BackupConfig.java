@@ -1,6 +1,9 @@
 package gr.uoa.di.madgik.registry.configuration;
 
 import gr.uoa.di.madgik.registry.backup.dump.*;
+import gr.uoa.di.madgik.registry.backup.restore.RestoreResourceReaderStep;
+import gr.uoa.di.madgik.registry.backup.restore.RestoreResourceTypeStep;
+import gr.uoa.di.madgik.registry.backup.restore.RestoreResourceWriterStep;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import jakarta.transaction.Transactional;
 import org.springframework.batch.core.Job;
@@ -20,9 +23,6 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.retry.policy.AlwaysRetryPolicy;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
-import gr.uoa.di.madgik.registry.backup.restore.RestoreResourceReaderStep;
-import gr.uoa.di.madgik.registry.backup.restore.RestoreResourceTypeStep;
-import gr.uoa.di.madgik.registry.backup.restore.RestoreResourceWriterStep;
 
 import java.util.concurrent.Callable;
 

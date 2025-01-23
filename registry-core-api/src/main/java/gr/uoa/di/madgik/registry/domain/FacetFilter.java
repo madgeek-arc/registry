@@ -1,7 +1,6 @@
 package gr.uoa.di.madgik.registry.domain;
 
 import gr.uoa.di.madgik.registry.service.ServiceException;
-import org.springframework.util.MultiValueMap;
 
 import java.net.URLDecoder;
 import java.nio.charset.Charset;

@@ -5,7 +5,6 @@ import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Schema;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
-import gr.uoa.di.madgik.registry.domain.index.IndexedField;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.slf4j.Logger;

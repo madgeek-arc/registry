@@ -3,9 +3,9 @@ package gr.uoa.di.madgik.registry.domain;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import gr.uoa.di.madgik.registry.domain.index.IndexedField;
-
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;

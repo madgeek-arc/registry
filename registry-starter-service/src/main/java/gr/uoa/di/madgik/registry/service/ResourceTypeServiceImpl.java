@@ -4,7 +4,9 @@ import gr.uoa.di.madgik.registry.dao.ResourceTypeDao;
 import gr.uoa.di.madgik.registry.dao.SchemaDao;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Schema;
+import gr.uoa.di.madgik.registry.domain.UrlResolver;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import gr.uoa.di.madgik.registry.index.DefaultIndexMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
@@ -15,8 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
-import gr.uoa.di.madgik.registry.domain.UrlResolver;
-import gr.uoa.di.madgik.registry.index.DefaultIndexMapper;
 
 import javax.xml.XMLConstants;
 import javax.xml.namespace.NamespaceContext;

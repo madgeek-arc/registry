@@ -2,8 +2,8 @@ package gr.uoa.di.madgik.registry.domain.index;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
-
 import jakarta.persistence.*;
+
 import java.io.Serializable;
 
 /**

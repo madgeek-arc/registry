@@ -2,12 +2,11 @@ package gr.uoa.di.madgik.registry.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.Resource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.Marshaller;
 import jakarta.xml.bind.Unmarshaller;
+import org.springframework.stereotype.Component;
+
 import java.io.StringReader;
 import java.io.StringWriter;
 

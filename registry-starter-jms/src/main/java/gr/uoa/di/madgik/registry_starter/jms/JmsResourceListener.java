@@ -1,7 +1,5 @@
 package gr.uoa.di.madgik.registry_starter.jms;
 
-import gr.uoa.di.madgik.registry_starter.autoconfigure.JmsAutoConfiguration;
-import gr.uoa.di.madgik.registry_starter.autoconfigure.JmsProperties;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.jms.BaseResourceJms;
@@ -10,11 +8,12 @@ import gr.uoa.di.madgik.registry.domain.jms.ResourceJmsDeleted;
 import gr.uoa.di.madgik.registry.domain.jms.ResourceJmsUpdated;
 import gr.uoa.di.madgik.registry.monitor.ResourceListener;
 import gr.uoa.di.madgik.registry.monitor.ResourceTypeListener;
+import gr.uoa.di.madgik.registry_starter.autoconfigure.JmsAutoConfiguration;
+import gr.uoa.di.madgik.registry_starter.autoconfigure.JmsProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.jms.core.JmsTemplate;
-import org.springframework.stereotype.Service;
 
 @AutoConfigureAfter(JmsAutoConfiguration.ConfigureJms.class)
 public class JmsResourceListener implements ResourceListener, ResourceTypeListener {

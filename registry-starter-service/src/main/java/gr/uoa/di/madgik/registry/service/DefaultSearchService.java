@@ -3,7 +3,8 @@ package gr.uoa.di.madgik.registry.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import gr.uoa.di.madgik.registry.domain.*;
+import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import org.hibernate.type.SqlTypes;
 import org.slf4j.Logger;

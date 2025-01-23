@@ -1,12 +1,12 @@
 package gr.uoa.di.madgik.registry.monitor;
 
+import gr.uoa.di.madgik.registry.dao.VersionDao;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import gr.uoa.di.madgik.registry.dao.VersionDao;
 
 import java.util.Date;
 import java.util.UUID;

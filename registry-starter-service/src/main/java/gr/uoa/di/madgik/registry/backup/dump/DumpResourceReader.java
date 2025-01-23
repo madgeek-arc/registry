@@ -1,7 +1,10 @@
 package gr.uoa.di.madgik.registry.backup.dump;
 
+import gr.uoa.di.madgik.registry.dao.AbstractDao;
+import gr.uoa.di.madgik.registry.dao.ResourceTypeDao;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.index.IndexMapper;
 import gr.uoa.di.madgik.registry.index.IndexMapperFactory;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -17,9 +20,6 @@ import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import gr.uoa.di.madgik.registry.dao.AbstractDao;
-import gr.uoa.di.madgik.registry.dao.ResourceTypeDao;
-import gr.uoa.di.madgik.registry.index.IndexMapper;
 
 import java.util.ArrayList;
 import java.util.List;

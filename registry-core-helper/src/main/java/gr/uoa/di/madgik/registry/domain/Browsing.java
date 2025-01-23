@@ -1,6 +1,7 @@
 package gr.uoa.di.madgik.registry.domain;
 
 import jakarta.validation.constraints.NotNull;
+
 import java.util.List;
 import java.util.Map;
 
