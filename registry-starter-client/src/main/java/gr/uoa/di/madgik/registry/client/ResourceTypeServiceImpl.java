@@ -100,7 +100,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     @Override
     public ResourceType addResourceType(ResourceType resourceType) throws ServiceException {
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        headers.add("Content-Type", MediaType.APPLICATION_JSON_UTF8_VALUE);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
 
 
         HttpEntity<ResourceType> request = new HttpEntity<>(resourceType, headers);

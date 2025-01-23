@@ -44,12 +44,12 @@ public interface TransformerCRUDService<T, R, U extends Authentication> {
      * @param resource to be updated.
      * @return the updated resource.
      */
-    R update(T resource, U authentication) throws ResourceNotFoundException;
+    R update(T resource, U authentication);
 
     /**
      * Delete the resource.
      *
      * @param resourceId to be deleted.
      */
-    void delete(T resourceId) throws ResourceNotFoundException;
+    void delete(T resourceId);
 }

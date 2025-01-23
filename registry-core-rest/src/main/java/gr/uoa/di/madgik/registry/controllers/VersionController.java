@@ -1,7 +1,7 @@
 package gr.uoa.di.madgik.registry.controllers;
 
 import gr.uoa.di.madgik.registry.domain.Version;
-import gr.uoa.di.madgik.registry.exception.VersionNotFoundException;
+import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.service.ResourceService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.VersionService;
@@ -31,7 +31,7 @@ public class VersionController {
         List<Version> versions = versionService.getVersionsByResourceType(resourceType);
 
         if (versions == null || versions.isEmpty()) {
-            throw new VersionNotFoundException();
+            throw new ResourceNotFoundException("Version not found");
         } else {
             return new ResponseEntity<>(versions, HttpStatus.OK);
         }
@@ -45,7 +45,7 @@ public class VersionController {
         versions.stream().filter(v -> v.getVersion() == "1").collect(Collectors.toList());
 
         if (versions == null || versions.isEmpty()) {
-            throw new VersionNotFoundException();
+            throw new ResourceNotFoundException("Version not found");
         } else {
             return new ResponseEntity<>(versions, HttpStatus.OK);
         }
@@ -60,7 +60,7 @@ public class VersionController {
         Version version = versionService.getVersion(resource, versionNumber);
 
         if (version == null) {
-            throw new VersionNotFoundException();
+            throw new ResourceNotFoundException("Version not found");
         } else {
             return new ResponseEntity<>(version, HttpStatus.OK);
         }
@@ -73,7 +73,7 @@ public class VersionController {
         List<Version> versions = versionService.getAllVersions();
 
         if (versions == null || versions.isEmpty()) {
-            throw new VersionNotFoundException();
+            throw new ResourceNotFoundException("Version not found");
         } else {
             return new ResponseEntity<>(versions, HttpStatus.OK);
         }

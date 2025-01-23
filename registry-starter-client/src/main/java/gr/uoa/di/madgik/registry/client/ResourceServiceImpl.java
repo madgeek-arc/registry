@@ -95,7 +95,7 @@ public class ResourceServiceImpl implements ResourceService {
         RestTemplate restTemplate = new RestTemplate();
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        headers.add("Content-Type", MediaType.APPLICATION_JSON_UTF8_VALUE);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
 
 
         HttpEntity<Resource> request = new HttpEntity<>(resource, headers);
@@ -113,7 +113,7 @@ public class ResourceServiceImpl implements ResourceService {
         RestTemplate restTemplate = new RestTemplate();
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        headers.add("Content-Type", MediaType.APPLICATION_JSON_UTF8_VALUE);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
 
 
         HttpEntity<Resource> request = new HttpEntity<>(resource, headers);
@@ -132,7 +132,7 @@ public class ResourceServiceImpl implements ResourceService {
         RestTemplate restTemplate = new RestTemplate();
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        headers.add("Content-Type", MediaType.APPLICATION_JSON_UTF8_VALUE);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
 
 
         HttpEntity<Resource> request = new HttpEntity<>(resource, headers);
