@@ -5,7 +5,6 @@ import gr.uoa.di.madgik.registry.backup.restore.RestoreResourceReaderStep;
 import gr.uoa.di.madgik.registry.backup.restore.RestoreResourceTypeStep;
 import gr.uoa.di.madgik.registry.backup.restore.RestoreResourceWriterStep;
 import gr.uoa.di.madgik.registry.domain.Resource;
-import jakarta.transaction.Transactional;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobScope;
@@ -51,12 +50,12 @@ public class BackupConfig {
 
     @Bean
     @JobScope
-    Callable<TaskExecutor> threadPoolExecutor(@Value("#{jobParameters['resourceType']}") String resourceType) {
+    Callable<TaskExecutor> threadPoolExecutor() {
         return () -> {
             ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
             executor.setCorePoolSize(2 * Runtime.getRuntime().availableProcessors() - 1);
             executor.setMaxPoolSize(2 * Runtime.getRuntime().availableProcessors() - 1);
-            executor.setThreadNamePrefix(resourceType + "_job_pool_");
+            executor.setThreadNamePrefix("job-pool-");
             executor.initialize();
             return executor;
         };
@@ -80,7 +79,6 @@ public class BackupConfig {
     }
 
     @Bean
-    @Transactional
     Step resourcesDumpStep(DumpResourceReader reader, DumpResourceWriterStep writer) {
         return new StepBuilder("resourcesDumpChunkStep", jobRepository)
                 .<Resource, Resource>chunk(chunkSize, transactionManager)

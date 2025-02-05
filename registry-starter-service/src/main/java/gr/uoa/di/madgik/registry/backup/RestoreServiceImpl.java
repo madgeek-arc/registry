@@ -33,11 +33,11 @@ public class RestoreServiceImpl implements RestoreService {
 
     private static final Logger logger = LoggerFactory.getLogger(RestoreServiceImpl.class);
 
-    private final JobLauncher mySyncJobLauncher;
+    private final JobLauncher jobLauncher;
     private final Job restoreJob;
 
-    public RestoreServiceImpl(JobLauncher mySyncJobLauncher, Job restoreJob) {
-        this.mySyncJobLauncher = mySyncJobLauncher;
+    public RestoreServiceImpl(JobLauncher jobLauncher, Job restoreJob) {
+        this.jobLauncher = jobLauncher;
         this.restoreJob = restoreJob;
     }
 
@@ -73,7 +73,7 @@ public class RestoreServiceImpl implements RestoreService {
                 builder.addString("resourceTypeDir", file.getAbsolutePath());
                 builder.addDate("date", date);
                 ((AbstractJob) restoreJob).registerJobExecutionListener(restoreJobListener);
-                JobExecution job = mySyncJobLauncher.run(restoreJob, builder.toJobParameters());
+                JobExecution job = jobLauncher.run(restoreJob, builder.toJobParameters());
                 restoreJobListener.registerJob(job);
             }
             logger.info("{}", restoreJobListener.waitResults());

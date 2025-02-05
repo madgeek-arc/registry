@@ -3,6 +3,7 @@ package gr.uoa.di.madgik.registry.backup.dump;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.Version;
 import org.slf4j.Logger;
@@ -16,12 +17,12 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
+import java.nio.file.StandardOpenOption;
+import java.util.stream.Collectors;
 
 @Component
 @StepScope
@@ -31,37 +32,54 @@ public class DumpResourceWriterStep implements ItemWriter<Resource>, StepExecuti
 
     private boolean raw;
 
-    private String resourceTypeName;
-
     private Path resourceTypeDirectory;
 
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     private boolean versions;
 
+    public DumpResourceWriterStep() {
+        this.objectMapper = JsonMapper
+                .builder()
+                .configure(MapperFeature.USE_ANNOTATIONS, true)
+                .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+                .build();
+    }
+
     @Override
     public void write(Chunk<? extends Resource> chunk) throws Exception {
-        for (Resource resource : chunk) {
-            storeResource(resource);
-            if (versions) {
-                storeVersions(resource);
+        if (!chunk.isEmpty()) {
+            for (Resource resource : chunk) {
+                storeResource(resource);
+                if (versions) {
+                    storeVersions(resource);
+                }
             }
         }
     }
 
     @Override
     public void beforeStep(StepExecution stepExecution) {
-        resourceTypeName = stepExecution.getExecutionContext().getString("resourceType");
+        String resourceTypeName = stepExecution.getExecutionContext().getString("resourceType");
         raw = Boolean.parseBoolean(stepExecution.getJobExecution().getJobParameters().getString("raw"));
         versions = Boolean.parseBoolean(stepExecution.getJobExecution().getJobParameters().getString("versions"));
         String directory = stepExecution.getJobExecution().getExecutionContext().getString("directory");
         resourceTypeDirectory = Paths.get(directory, resourceTypeName);
-        objectMapper = new ObjectMapper().configure(MapperFeature.USE_ANNOTATIONS, true);
-        objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
     }
 
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
+        for (StepExecution execution : stepExecution.getJobExecution().getStepExecutions()) {
+            logger.debug("Step Name: " + execution.getStepName() + ", Status: " + execution.getStatus());
+            if (execution.getExitStatus().equals(ExitStatus.FAILED)) {
+                logger.error("Partition failed: {}\n{}",
+                        execution.getExitStatus().getExitDescription(),
+                        execution.getFailureExceptions()
+                                .stream()
+                                .map(Throwable::getMessage)
+                                .collect(Collectors.joining("\n")));
+            }
+        }
         return ExitStatus.COMPLETED;
     }
 
@@ -70,16 +88,14 @@ public class DumpResourceWriterStep implements ItemWriter<Resource>, StepExecuti
         if (raw)
             extension = "." + resource.getPayloadFormat();
         File openFile = new File(resourceTypeDirectory.toFile(), resource.getId() + extension);
-        Path filePath = Files.createFile(openFile.toPath(), DumpResourceTypeStep.PERMISSIONS);
-        FileWriter file = new FileWriter(filePath.toFile());
         resource.setIndexedFields(null);
         if (raw) {
-            file.write(resource.getPayload());
+            Files.write(openFile.toPath(), objectMapper.writeValueAsBytes(resource.getPayload()),
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         } else {
-            file.write(objectMapper.writeValueAsString(resource));
+            Files.write(openFile.toPath(), objectMapper.writeValueAsBytes(resource),
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         }
-        file.flush();
-        file.close();
     }
 
     private void storeVersions(Resource resource) throws IOException {
@@ -91,11 +107,8 @@ public class DumpResourceWriterStep implements ItemWriter<Resource>, StepExecuti
         }
         for (Version version : resource.getVersions()) {
             File openFileVersion = new File(versionDir, version.getId() + ".json");
-            Path filePathVersion = Files.createFile(openFileVersion.toPath(), DumpResourceTypeStep.PERMISSIONS);
-            FileWriter fileVersion = new FileWriter(filePathVersion.toFile());
-            fileVersion.write(objectMapper.writeValueAsString(version));
-            fileVersion.flush();
-            fileVersion.close();
+            Files.write(openFileVersion.toPath(), objectMapper.writeValueAsBytes(version),
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         }
     }
 

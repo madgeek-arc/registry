@@ -44,6 +44,7 @@ public class HibernateConfiguration {
     @Bean("registryDataSource")
     @Primary
     @FlywayDataSource
+    @ConfigurationProperties("app.datasource.configuration")
     public DataSource registryDataSource(DataSourceProperties properties) {
         return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
     }
