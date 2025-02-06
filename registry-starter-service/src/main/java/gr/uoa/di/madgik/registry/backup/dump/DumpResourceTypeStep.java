@@ -2,6 +2,7 @@ package gr.uoa.di.madgik.registry.backup.dump;
 
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
@@ -22,6 +23,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -32,26 +34,26 @@ import java.util.*;
 @StepScope
 public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
 
-    public static final FileAttribute PERMISSIONS = PosixFilePermissions.asFileAttribute(EnumSet.of
-            (PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_READ, PosixFilePermission
-                            .OWNER_EXECUTE, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_READ,
-                    PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission
-                            .OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE));
+    public static final FileAttribute<Set<PosixFilePermission>> PERMISSIONS = PosixFilePermissions
+            .asFileAttribute(Set.of(PosixFilePermission.values()));
 
     private static final Logger logger = LoggerFactory.getLogger(DumpResourceTypeStep.class);
     private static final String FILENAME_FOR_SCHEMA = "schema.json";
-    private ResourceTypeService resourceTypeService;
+    private final ResourceTypeService resourceTypeService;
+    private final ObjectMapper mapper;
+    private final List<String> stepResourceTypes = new ArrayList<>();
+
     private boolean saveSchema;
     private List<String> resourceTypeNames;
     private Path masterDirectory;
-    private ObjectMapper mapper;
-
-    private List<String> stepResourceTypes = new ArrayList<>();
 
     DumpResourceTypeStep(ResourceTypeService resourceTypeService) {
         this.resourceTypeService = resourceTypeService;
         this.saveSchema = true;
-        mapper = new ObjectMapper().configure(MapperFeature.USE_ANNOTATIONS, true);
+        this.mapper = JsonMapper
+                .builder()
+                .configure(MapperFeature.USE_ANNOTATIONS, true)
+                .build();
     }
 
     private static Path createBasicPath() {
@@ -75,7 +77,7 @@ public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
         resourceTypeNames = new ArrayList<>(Arrays.asList(resourceTypes.split(",")));
         masterDirectory = createBasicPath();
         stepExecution.getJobExecution().getExecutionContext().putString("directory", masterDirectory.toString());
-        logger.info(masterDirectory.toString());
+        logger.info("Saving temp data to: {}", masterDirectory);
     }
 
     @Override
@@ -93,18 +95,15 @@ public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
             return RepeatStatus.FINISHED;
         String resourceTypeName = resourceTypeNames.remove(0);
         Path resourceTypePath = Files.createDirectory(Paths.get(masterDirectory.toString(), resourceTypeName), PERMISSIONS);
-        logger.info("Saving " + resourceTypeName);
+        logger.info("Saving {}", resourceTypeName);
         ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
         stepResourceTypes.add(resourceTypeName);
         if (!saveSchema)
             return RepeatStatus.CONTINUABLE;
         resourceType.setSchema(resourceType.getSchema());
         Path tempFile = Paths.get(resourceTypePath.toString(), FILENAME_FOR_SCHEMA);
-        Files.createFile(tempFile, PERMISSIONS);
-        FileWriter file = new FileWriter(tempFile.toFile());
-        file.write(mapper.writeValueAsString(resourceType));
-        file.flush();
-        file.close();
+        Files.write(tempFile, mapper.writeValueAsBytes(resourceType),
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         return RepeatStatus.CONTINUABLE;
     }
 

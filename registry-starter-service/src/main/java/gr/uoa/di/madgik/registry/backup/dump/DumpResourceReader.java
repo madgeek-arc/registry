@@ -19,6 +19,7 @@ import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -26,7 +27,6 @@ import java.util.List;
 
 @Component
 @StepScope
-@Transactional
 public class DumpResourceReader extends AbstractDao<Resource> implements ItemReader<Resource>, StepExecutionListener {
 
     private static final Logger logger = LoggerFactory.getLogger(DumpResourceReader.class);
@@ -49,6 +49,7 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
     }
 
     @Override
+    @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     public void beforeStep(StepExecution stepExecution) {
         String resourceTypeName;
         from = 0;
@@ -73,48 +74,49 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(getCriteriaBuilder().equal(root.get("resourceType"), resourceType));
 
-        criteriaQuery.select(root).where(predicates.toArray(new Predicate[]{}));
+        criteriaQuery
+                .select(root)
+                .where(predicates.toArray(new Predicate[]{}))
+                .orderBy(getCriteriaBuilder().asc(root.get("id")));
 
         TypedQuery<Resource> query = getEntityManager().createQuery(criteriaQuery);
 
         query.setFirstResult(from);
         query.setMaxResults(to - from);
         resources = query.getResultList();
-
         try {
-            logger.info("Just read " + resources.size() + " resources for " + resourceType.getName());
+            logger.info("Just read {} resources for {}", resources.size(), resourceType.getName());
             indexMapper = indexMapperFactory.createIndexMapper(resourceType);
         } catch (Exception e) {
-            logger.error("ResourceReader failed on beforeStep with message :" + e.getMessage(), e);
+            logger.error("ResourceReader failed on beforeStep with message :{}", e.getMessage(), e);
         }
     }
 
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
-        logger.info(String.format(
-                        "Read resources of %s [%4d -%4d] skipped=%d retries=%d total=%d",
-                        resourceType.getName(),
-                        from,
-                        to,
-                        stepExecution.getSkipCount(),
-                        stepExecution.getRollbackCount(),
-                        stepExecution.getWriteCount()
-                )
+        logger.info("Read resources of {} [{} - {}] skipped={} retries={} total={}",
+                resourceType.getName(),
+                from,
+                to,
+                stepExecution.getSkipCount(),
+                stepExecution.getRollbackCount(),
+                stepExecution.getWriteCount()
         );
         return ExitStatus.COMPLETED;
     }
 
     @Override
-    public Resource read() throws Exception {
-        Resource resource = resources.remove(0);
+    public Resource read() {
+        if (resources.isEmpty()) {
+            return null;
+        }
 
+        Resource resource = resources.remove(0);
         if (resource != null) {
             if (resource.getIndexedFields() == null || resource.getIndexedFields().isEmpty()) {
                 resource.setIndexedFields(indexMapper.getValues(resource.getPayload(), resourceType));
             }
-            return resource;
         }
-        return null;
-
+        return resource;
     }
 }

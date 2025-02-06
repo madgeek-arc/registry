@@ -15,6 +15,7 @@ import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.job.AbstractJob;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,11 +34,12 @@ public class RestoreServiceImpl implements RestoreService {
 
     private static final Logger logger = LoggerFactory.getLogger(RestoreServiceImpl.class);
 
-    private final JobLauncher mySyncJobLauncher;
+    private final JobLauncher jobLauncher;
     private final Job restoreJob;
 
-    public RestoreServiceImpl(JobLauncher mySyncJobLauncher, Job restoreJob) {
-        this.mySyncJobLauncher = mySyncJobLauncher;
+    public RestoreServiceImpl(JobLauncher jobLauncher,
+                              @Qualifier("restoreJob") Job restoreJob) {
+        this.jobLauncher = jobLauncher;
         this.restoreJob = restoreJob;
     }
 
@@ -73,7 +75,7 @@ public class RestoreServiceImpl implements RestoreService {
                 builder.addString("resourceTypeDir", file.getAbsolutePath());
                 builder.addDate("date", date);
                 ((AbstractJob) restoreJob).registerJobExecutionListener(restoreJobListener);
-                JobExecution job = mySyncJobLauncher.run(restoreJob, builder.toJobParameters());
+                JobExecution job = jobLauncher.run(restoreJob, builder.toJobParameters());
                 restoreJobListener.registerJob(job);
             }
             logger.info("{}", restoreJobListener.waitResults());

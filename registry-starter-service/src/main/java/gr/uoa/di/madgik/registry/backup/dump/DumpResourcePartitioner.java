@@ -13,6 +13,7 @@ import org.springframework.batch.core.partition.support.Partitioner;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
@@ -21,7 +22,6 @@ import java.util.stream.IntStream;
 
 @Component
 @StepScope
-@Transactional
 public class DumpResourcePartitioner extends AbstractDao<Resource> implements Partitioner {
 
     private static final Logger logger = LoggerFactory.getLogger(DumpResourcePartitioner.class);
@@ -39,6 +39,7 @@ public class DumpResourcePartitioner extends AbstractDao<Resource> implements Pa
 
 
     @Override
+    @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     public Map<String, ExecutionContext> partition(int gridSize) {
         CriteriaBuilder qb = getEntityManager().getCriteriaBuilder();
         CriteriaQuery<Long> criteriaQuery = qb.createQuery(Long.class);
@@ -59,16 +60,16 @@ public class DumpResourcePartitioner extends AbstractDao<Resource> implements Pa
             context.putInt("from", 0);
             context.putInt("to", size);
             context.putString("resourceType", resourceType);
-            versionMap.put(String.format("%s[%d-%d]", resourceType, 0, size - 1), context);
-            logger.info(String.format("%s[%d-%d]", resourceType, 0, size));
+            versionMap.put(String.format("%s[%d-%d]", resourceType, 0, size > 0 ? size - 1 : size), context);
         } else {
             IntStream.range(0, partitions).map(x -> x * diff).forEach(from -> {
                 ExecutionContext context = new ExecutionContext();
                 int to = from + diff;
+                to = Math.min(to, size);
                 context.putInt("from", from);
-                context.putInt("to", (to >= size) ? size : to);
+                context.putInt("to", to);
                 context.putString("resourceType", resourceType);
-                versionMap.put(String.format("%s[%d-%d]", resourceType, from, to), context);
+                versionMap.put(String.format("%s[%d-%d]", resourceType, from, to - 1), context);
             });
         }
         return versionMap;

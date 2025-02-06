@@ -11,6 +11,7 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -23,18 +24,19 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-
 @Service
 public class DumpServiceImpl implements DumpService {
 
     private static final Logger logger = LoggerFactory.getLogger(DumpServiceImpl.class);
 
-    private final JobLauncher mySyncJobLauncher;
+    private final JobLauncher jobLauncher;
     private final Job dumpJob;
     private final ResourceTypeService resourceTypeService;
 
-    public DumpServiceImpl(JobLauncher mySyncJobLauncher, Job dumpJob, ResourceTypeService resourceTypeService) {
-        this.mySyncJobLauncher = mySyncJobLauncher;
+    public DumpServiceImpl(JobLauncher jobLauncher,
+                           @Qualifier("dumpJob") Job dumpJob,
+                           ResourceTypeService resourceTypeService) {
+        this.jobLauncher = jobLauncher;
         this.dumpJob = dumpJob;
         this.resourceTypeService = resourceTypeService;
     }
@@ -65,7 +67,10 @@ public class DumpServiceImpl implements DumpService {
         String resourceTypesList;
         JobExecution job;
         if (resourceTypes.length == 0)
-            resourceTypesList = resourceTypeService.getAllResourceType().stream().map(ResourceType::getName).collect(Collectors.joining(","));
+            resourceTypesList = resourceTypeService.getAllResourceType()
+                    .stream()
+                    .map(ResourceType::getName)
+                    .collect(Collectors.joining(","));
         else
             resourceTypesList = String.join(",", resourceTypes);
 
@@ -76,17 +81,19 @@ public class DumpServiceImpl implements DumpService {
         builder.addString("raw", Boolean.toString(isRaw));
         builder.addString("versions", Boolean.toString(wantVersion));
         try {
-            job = mySyncJobLauncher.run(dumpJob, builder.toJobParameters());
+            job = jobLauncher.run(dumpJob, builder.toJobParameters());
         } catch (Exception e) {
             throw new ServiceException(e);
         }
 
         if (logger.isDebugEnabled()) {
-            Throwable ex = job.getAllFailureExceptions().stream().reduce(new Exception(), (e1, e2) -> {
-                e1.addSuppressed(e2);
-                return e1;
-            });
-            logger.debug("All Job Failures: ", ex);
+            if (!job.getAllFailureExceptions().isEmpty()) {
+                Throwable ex = job.getAllFailureExceptions().stream().reduce(new Exception(), (e1, e2) -> {
+                    e1.addSuppressed(e2);
+                    return e1;
+                });
+                logger.debug("All Job Failures: ", ex);
+            }
         }
 
         String directory = job.getExecutionContext().getString("directory");
