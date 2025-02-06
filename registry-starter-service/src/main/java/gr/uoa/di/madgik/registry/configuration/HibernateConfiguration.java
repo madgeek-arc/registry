@@ -18,8 +18,6 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
-import javax.sql.DataSource;
-
 @Configuration(proxyBeanMethods = false)
 @EnableTransactionManagement(proxyTargetClass = true)
 @EnableConfigurationProperties({DataSourceProperties.class, JpaProperties.class})
@@ -44,13 +42,14 @@ public class HibernateConfiguration {
     @Bean("registryDataSource")
     @Primary
     @FlywayDataSource
-    public DataSource registryDataSource(DataSourceProperties properties) {
+    @ConfigurationProperties("registry.datasource.configuration")
+    public HikariDataSource registryDataSource(DataSourceProperties properties) {
         return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
     }
 
     @Bean
     @Primary
-    public LocalContainerEntityManagerFactoryBean entityManagerFactory(@Qualifier("registryDataSource") DataSource registryDataSource,
+    public LocalContainerEntityManagerFactoryBean entityManagerFactory(@Qualifier("registryDataSource") HikariDataSource registryDataSource,
                                                                        @Qualifier("registryJpaProperties") JpaProperties registryJpaProperties) {
         LocalContainerEntityManagerFactoryBean emf = new LocalContainerEntityManagerFactoryBean();
         emf.setDataSource(registryDataSource);
