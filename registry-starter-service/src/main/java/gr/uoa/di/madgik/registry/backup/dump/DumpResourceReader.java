@@ -94,15 +94,13 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
 
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
-        logger.info(String.format(
-                        "Read resources of %s [%4d -%4d] skipped=%d retries=%d total=%d",
-                        resourceType.getName(),
-                        from,
-                        to,
-                        stepExecution.getSkipCount(),
-                        stepExecution.getRollbackCount(),
-                        stepExecution.getWriteCount()
-                )
+        logger.info("Read resources of {} [{} - {}] skipped={} retries={} total={}",
+                resourceType.getName(),
+                from,
+                to,
+                stepExecution.getSkipCount(),
+                stepExecution.getRollbackCount(),
+                stepExecution.getWriteCount()
         );
         return ExitStatus.COMPLETED;
     }

@@ -11,6 +11,7 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -32,7 +33,9 @@ public class DumpServiceImpl implements DumpService {
     private final Job dumpJob;
     private final ResourceTypeService resourceTypeService;
 
-    public DumpServiceImpl(JobLauncher jobLauncher, Job dumpJob, ResourceTypeService resourceTypeService) {
+    public DumpServiceImpl(JobLauncher jobLauncher,
+                           @Qualifier("dumpJob") Job dumpJob,
+                           ResourceTypeService resourceTypeService) {
         this.jobLauncher = jobLauncher;
         this.dumpJob = dumpJob;
         this.resourceTypeService = resourceTypeService;

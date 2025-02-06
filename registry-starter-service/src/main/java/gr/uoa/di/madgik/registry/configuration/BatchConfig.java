@@ -6,19 +6,21 @@ import org.springframework.batch.core.configuration.support.JobRegistrySmartInit
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.web.context.WebApplicationContext;
 
 @Configuration(proxyBeanMethods = false)
-@EnableBatchProcessing(dataSourceRef = "registryDataSource", transactionManagerRef = "registryTransactionManager")
+@EnableBatchProcessing(
+        dataSourceRef = "registryDataSource",
+        transactionManagerRef = "registryTransactionManager")
 public class BatchConfig {
 
     @Bean
-    @Primary
+    @ConditionalOnMissingBean
     public JobRegistrySmartInitializingSingleton jobRegistryBeanPostProcessor(JobRegistry jobRegistry) {
         JobRegistrySmartInitializingSingleton postProcessor = new JobRegistrySmartInitializingSingleton();
         postProcessor.setJobRegistry(jobRegistry);
@@ -26,6 +28,7 @@ public class BatchConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "jobLauncher")
     @Scope(value = WebApplicationContext.SCOPE_REQUEST, proxyMode = ScopedProxyMode.TARGET_CLASS)
     public JobLauncher jobLauncher(JobRepository jobRepository) throws Exception {
         TaskExecutorJobLauncher jobLauncher = new TaskExecutorJobLauncher();

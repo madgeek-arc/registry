@@ -16,6 +16,7 @@ import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.core.step.skip.AlwaysSkipItemSkipPolicy;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskExecutor;
@@ -26,21 +27,22 @@ import org.springframework.transaction.PlatformTransactionManager;
 import java.util.concurrent.Callable;
 
 @Configuration(proxyBeanMethods = false)
-public class BackupConfig {
+public class BackupRestoreConfig {
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
     private final int chunkSize;
 
-    public BackupConfig(JobRepository jobRepository,
-                        @Qualifier("registryTransactionManager") PlatformTransactionManager transactionManager,
-                        @Value("${batch.chunkSize:10}") int chunkSize) {
+    public BackupRestoreConfig(JobRepository jobRepository,
+                               @Qualifier("registryTransactionManager") PlatformTransactionManager transactionManager,
+                               @Value("${batch.chunkSize:10}") int chunkSize) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.chunkSize = chunkSize;
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "resourceTypeStep")
     @JobScope
     Step resourceTypeStep(RestoreResourceTypeStep restoreResourceTypeStep) {
         return new StepBuilder("resourceTypeStep", jobRepository)
@@ -49,7 +51,7 @@ public class BackupConfig {
     }
 
     @Bean
-    @JobScope
+    @ConditionalOnMissingBean(name = "threadPoolExecutor")
     Callable<TaskExecutor> threadPoolExecutor() {
         return () -> {
             ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
@@ -62,6 +64,7 @@ public class BackupConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "resourcesStep")
     @JobScope
     Step resourcesStep(
             RestoreResourceReaderStep reader,
@@ -79,6 +82,7 @@ public class BackupConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "resourcesDumpStep")
     Step resourcesDumpStep(DumpResourceReader reader, DumpResourceWriterStep writer) {
         return new StepBuilder("resourcesDumpChunkStep", jobRepository)
                 .<Resource, Resource>chunk(chunkSize, transactionManager)
@@ -91,6 +95,7 @@ public class BackupConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "resourcesTypeDumpStep")
     Step resourcesTypeDumpStep(DumpResourceTypeStep step) {
         return new StepBuilder("resourcesTypeDumpStep", jobRepository)
                 .tasklet(step, transactionManager)
@@ -98,6 +103,7 @@ public class BackupConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "resourceDump")
     @StepScope
     Step resourceDump(Step resourcesDumpStep,
                       DumpResourcePartitioner resourcePartitioner,
@@ -111,6 +117,7 @@ public class BackupConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "resourceTypeDumpPartitioner")
     @JobScope
     Step resourceTypeDumpPartitioner(DumpResourceTypePartitioner partitioner, Step resourceDump) {
         return new StepBuilder("resourcesType", jobRepository)
@@ -120,6 +127,7 @@ public class BackupConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "restoreJob")
     Job restoreJob(Step resourcesStep, Step resourceTypeStep) {
         return new JobBuilder("restore", jobRepository)
                 .start(resourceTypeStep)
@@ -129,6 +137,7 @@ public class BackupConfig {
 
 
     @Bean
+    @ConditionalOnMissingBean(name = "dumpJob")
     Job dumpJob(Step resourcesTypeDumpStep, Step resourceTypeDumpPartitioner) {
         return new JobBuilder("dump", jobRepository)
                 .incrementer(new RunIdIncrementer())

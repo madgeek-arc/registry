@@ -15,6 +15,7 @@ import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.job.AbstractJob;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,7 +37,8 @@ public class RestoreServiceImpl implements RestoreService {
     private final JobLauncher jobLauncher;
     private final Job restoreJob;
 
-    public RestoreServiceImpl(JobLauncher jobLauncher, Job restoreJob) {
+    public RestoreServiceImpl(JobLauncher jobLauncher,
+                              @Qualifier("restoreJob") Job restoreJob) {
         this.jobLauncher = jobLauncher;
         this.restoreJob = restoreJob;
     }
