@@ -32,7 +32,7 @@ public class HibernateConfiguration {
         return new JpaProperties();
     }
 
-    @Bean
+    @Bean("registryDataSourceProperties")
     @Primary
     @ConfigurationProperties("registry.datasource")
     public DataSourceProperties registryDataSourceProperties() {
@@ -43,14 +43,16 @@ public class HibernateConfiguration {
     @Primary
     @FlywayDataSource
     @ConfigurationProperties("registry.datasource.configuration")
-    public HikariDataSource registryDataSource(DataSourceProperties properties) {
+    public HikariDataSource registryDataSource(
+            @Qualifier("registryDataSourceProperties") DataSourceProperties properties) {
         return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
     }
 
     @Bean
     @Primary
-    public LocalContainerEntityManagerFactoryBean entityManagerFactory(@Qualifier("registryDataSource") HikariDataSource registryDataSource,
-                                                                       @Qualifier("registryJpaProperties") JpaProperties registryJpaProperties) {
+    public LocalContainerEntityManagerFactoryBean entityManagerFactory(
+            @Qualifier("registryDataSource") HikariDataSource registryDataSource,
+            @Qualifier("registryJpaProperties") JpaProperties registryJpaProperties) {
         LocalContainerEntityManagerFactoryBean emf = new LocalContainerEntityManagerFactoryBean();
         emf.setDataSource(registryDataSource);
         emf.setPackagesToScan("gr.uoa.di.madgik.registry.domain", "gr.uoa.di.madgik.registry.domain.index");
