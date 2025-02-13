@@ -1,3 +1,19 @@
+/**
+ * Copyright 2018-2025 OpenAIRE AMKE & Athena Research and Innovation Center
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package gr.uoa.di.madgik.registry.controllers;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -47,14 +63,14 @@ public class ResourceController {
         }
     }
 
-    @RequestMapping(value = "/resources/indexed/{resourceId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @RequestMapping(value = "/resources/indexed/{resourceId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity getIndexedFields(@PathVariable("resourceId") String resourceId) {
         return new ResponseEntity<>(indexedFieldService.getIndexedFields(resourceId), HttpStatus.OK);
     }
 
 
-    @RequestMapping(value = "/resources/{resourceType}/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<Resource> getResourceById(@PathVariable("resourceType") String resourceType, @PathVariable("id") String id) throws ResourceNotFoundException {
+    @RequestMapping(value = "/resources/{resourceType}/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Resource> getResourceById(@PathVariable("resourceType") String resourceType, @PathVariable("id") String id) {
         Resource resource = resourceService.getResource(id);
         if (resource == null) {
             throw new ResourceNotFoundException();
@@ -64,8 +80,8 @@ public class ResourceController {
 
     }
 
-    @RequestMapping(value = "/resources/{resourceType}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType) throws ResourceNotFoundException {
+    @RequestMapping(value = "/resources/{resourceType}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType) {
         List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType));
         Paging paging = new Paging(results.size(), 0, results.size() - 1, results, null);
         if (results.size() == 0) {
@@ -76,10 +92,14 @@ public class ResourceController {
 
     }
 
-    @RequestMapping(value = "/resources/{resourceType}", params = {"from"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType, @RequestParam(value = "from") int from) throws ResourceNotFoundException {
+    @RequestMapping(value = "/resources/{resourceType}", params = {"from"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType, @RequestParam(value = "from") int from) {
+        // FIXME: very inefficient..
+        //  create method returning the size of the results instead
         List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType), from, 0);
         int total = resourceService.getResource(resourceTypeService.getResourceType(resourceType)).size();
+        // -------------------------
+
         Paging paging = new Paging(results.size(), from, total - 1, results, null);
         ResponseEntity<String> responseEntity;
         if (total == 0) {
@@ -90,10 +110,14 @@ public class ResourceController {
 
     }
 
-    @RequestMapping(value = "/resources/{resourceType}", params = {"from", "to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType, @RequestParam(value = "from") int from, @RequestParam(value = "to") int to) throws ResourceNotFoundException {
+    @RequestMapping(value = "/resources/{resourceType}", params = {"from", "to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType, @RequestParam(value = "from") int from, @RequestParam(value = "to") int to) {
+        // FIXME: very inefficient..
+        //  create method returning the size of the results instead
         List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType), from, to);
         int total = resourceService.getResource(resourceTypeService.getResourceType(resourceType)).size();
+        // -------------------------
+
         Paging paging = new Paging(results.size(), from, to, results, null);
         ResponseEntity<String> responseEntity;
         if (total == 0) {
@@ -104,10 +128,14 @@ public class ResourceController {
 
     }
 
-    @RequestMapping(value = "/resources/{resourceType}", params = {"to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<Paging> getResourceByResourceTypeTo(@PathVariable("resourceType") String resourceType, @RequestParam(value = "to") int to) throws ResourceNotFoundException {
+    @RequestMapping(value = "/resources/{resourceType}", params = {"to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Paging> getResourceByResourceTypeTo(@PathVariable("resourceType") String resourceType, @RequestParam(value = "to") int to) {
+        // FIXME: very inefficient..
+        //  create method returning the size of the results instead
         List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType), 0, to);
         int total = resourceService.getResource(resourceTypeService.getResourceType(resourceType)).size();
+        // -------------------------
+
         Paging paging = new Paging(results.size(), 0, to, results, null);
         ResponseEntity<String> responseEntity;
         if (total == 0) {
@@ -118,10 +146,14 @@ public class ResourceController {
 
     }
 
-    @RequestMapping(value = "/resources/", params = {"from"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<Paging> getAllResource(@RequestParam(value = "from") int from) throws ResourceNotFoundException {
+    @RequestMapping(value = "/resources/", params = {"from"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Paging> getAllResource(@RequestParam(value = "from") int from) {
+        // FIXME: very inefficient..
+        //  create method returning the size of the results instead
         List<Resource> results = resourceService.getResource(from, 0);
         int total = resourceService.getResource().size();
+        // -------------------------
+
         Paging paging = new Paging(total, from, total - 1, results, null);
         ResponseEntity<String> responseEntity;
         if (total == 0) {
@@ -132,10 +164,14 @@ public class ResourceController {
 
     }
 
-    @RequestMapping(value = "/resources/", params = {"from", "to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<Paging> getAllResources(@RequestParam(value = "from") int from, @RequestParam(value = "to") int to) throws ResourceNotFoundException {
+    @RequestMapping(value = "/resources/", params = {"from", "to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Paging> getAllResources(@RequestParam(value = "from") int from, @RequestParam(value = "to") int to) {
+        // FIXME: very inefficient..
+        //  create method returning the size of the results instead
         List<Resource> results = resourceService.getResource(from, to);
         int total = resourceService.getResource().size();
+        // -------------------------
+
         Paging paging = new Paging(total, from, to, results, null);
         ResponseEntity<String> responseEntity;
         if (total == 0) {
@@ -146,7 +182,7 @@ public class ResourceController {
 
     }
 
-    @RequestMapping(value = "/resources/", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @RequestMapping(value = "/resources/", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StreamingResponseBody> getAllResources() {
 
         StreamingResponseBody streamingResponseBody = outputStream -> {
@@ -175,17 +211,17 @@ public class ResourceController {
 
         return ResponseEntity
                 .ok()
-                .contentType(MediaType.valueOf(MediaType.APPLICATION_JSON_UTF8_VALUE))
+                .contentType(MediaType.valueOf(MediaType.APPLICATION_JSON_VALUE))
                 .body(streamingResponseBody);
     }
 
-    @RequestMapping(value = "/resources", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @RequestMapping(value = "/resources", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Resource> addResource(@RequestBody Resource resource) {
         resourceService.addResource(resource);
         return new ResponseEntity<>(resource, HttpStatus.CREATED);
     }
 
-    @RequestMapping(value = "/resource/{resourceId}/{resourceType}", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @RequestMapping(value = "/resource/{resourceId}/{resourceType}", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Resource> changeResourceType(
             @PathVariable("resourceId") String resourceId,
             @PathVariable("resourceType") String resourceTypeName
@@ -202,7 +238,7 @@ public class ResourceController {
         return new ResponseEntity<>(resource, HttpStatus.CREATED);
     }
 
-    @RequestMapping(value = "/resources", method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @RequestMapping(value = "/resources", method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Resource> updateResource(@RequestBody Resource resource) {
         resource.setModificationDate(new Date());
         Resource resourceFinal;

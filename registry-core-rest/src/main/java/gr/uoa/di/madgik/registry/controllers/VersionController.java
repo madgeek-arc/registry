@@ -1,11 +1,24 @@
+/**
+ * Copyright 2018-2025 OpenAIRE AMKE & Athena Research and Innovation Center
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package gr.uoa.di.madgik.registry.controllers;
 
 import gr.uoa.di.madgik.registry.domain.Version;
-import gr.uoa.di.madgik.registry.exception.VersionNotFoundException;
-import gr.uoa.di.madgik.registry.service.ResourceService;
-import gr.uoa.di.madgik.registry.service.ResourceTypeService;
+import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.service.VersionService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,14 +32,11 @@ import java.util.stream.Collectors;
 @RestController
 public class VersionController {
 
-    @Autowired
-    VersionService versionService;
+    private final VersionService versionService;
 
-    @Autowired
-    ResourceTypeService resourceTypeService;
-
-    @Autowired
-    ResourceService resourceService;
+    public VersionController(VersionService versionService) {
+        this.versionService = versionService;
+    }
 
     @RequestMapping(value = "/version/{resourceType}", method = RequestMethod.GET, headers = "Accept=application/json")
     public ResponseEntity<List<Version>> getVersionsByResourceType(@PathVariable("resourceType") String resourceType) {
@@ -34,7 +44,7 @@ public class VersionController {
         List<Version> versions = versionService.getVersionsByResourceType(resourceType);
 
         if (versions == null || versions.isEmpty()) {
-            throw new VersionNotFoundException();
+            throw new ResourceNotFoundException("Version not found");
         } else {
             return new ResponseEntity<>(versions, HttpStatus.OK);
         }
@@ -48,7 +58,7 @@ public class VersionController {
         versions.stream().filter(v -> v.getVersion() == "1").collect(Collectors.toList());
 
         if (versions == null || versions.isEmpty()) {
-            throw new VersionNotFoundException();
+            throw new ResourceNotFoundException("Version not found");
         } else {
             return new ResponseEntity<>(versions, HttpStatus.OK);
         }
@@ -63,7 +73,7 @@ public class VersionController {
         Version version = versionService.getVersion(resource, versionNumber);
 
         if (version == null) {
-            throw new VersionNotFoundException();
+            throw new ResourceNotFoundException("Version not found");
         } else {
             return new ResponseEntity<>(version, HttpStatus.OK);
         }
@@ -76,7 +86,7 @@ public class VersionController {
         List<Version> versions = versionService.getAllVersions();
 
         if (versions == null || versions.isEmpty()) {
-            throw new VersionNotFoundException();
+            throw new ResourceNotFoundException("Version not found");
         } else {
             return new ResponseEntity<>(versions, HttpStatus.OK);
         }

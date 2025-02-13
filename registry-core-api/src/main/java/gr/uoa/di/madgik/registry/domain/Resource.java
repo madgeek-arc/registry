@@ -1,18 +1,33 @@
+/**
+ * Copyright 2018-2025 OpenAIRE AMKE & Athena Research and Innovation Center
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package gr.uoa.di.madgik.registry.domain;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import gr.uoa.di.madgik.registry.domain.index.IndexedField;
-import org.hibernate.annotations.LazyCollection;
-import org.hibernate.annotations.LazyCollectionOption;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
 
-import javax.persistence.*;
-import javax.validation.constraints.Size;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "Resource")
@@ -57,23 +72,13 @@ public class Resource {
     @Column(name = "modification_date", nullable = false)
     private Date modificationDate;
 
-    @OneToMany(cascade = {CascadeType.ALL}, orphanRemoval = true, mappedBy = "resource")
-    @LazyCollection(LazyCollectionOption.TRUE)
+    @OneToMany(cascade = {CascadeType.ALL}, orphanRemoval = true, mappedBy = "resource", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<IndexedField> indexedFields;
 
-    @OneToMany(mappedBy = "resource")
-    @LazyCollection(LazyCollectionOption.FALSE)
+    @OneToMany(mappedBy = "resource", fetch = FetchType.EAGER)
     @JsonIgnore
-    private List<gr.uoa.di.madgik.registry.domain.Version> versions;
-
-    public Resource(String id, ResourceType resourceType, String version, String payload, String payloadFormat) {
-        this.id = id;
-        this.resourceType = resourceType;
-        this.version = version;
-        this.payload = payload;
-        this.payloadFormat = payloadFormat;
-    }
+    private List<Version> versions;
 
     public Resource() {
 
@@ -181,13 +186,15 @@ public class Resource {
 
     @PreRemove
     public void removeReferenceOfChildren() {
-        for (gr.uoa.di.madgik.registry.domain.Version v : versions) {
-            v.setResource(null);
+        if (versions != null) {
+            for (Version v : versions) {
+                v.setResource(null);
+            }
         }
     }
 
     @JsonIgnore
-    public List<gr.uoa.di.madgik.registry.domain.Version> getVersions() {
+    public List<Version> getVersions() {
         return versions;
     }
 
@@ -208,4 +215,16 @@ public class Resource {
         this.resourceTypeName = resourceTypeName;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Resource resource = (Resource) o;
+        return Objects.equals(id, resource.id) && Objects.equals(resourceTypeName, resource.resourceTypeName) && Objects.equals(version, resource.version) && Objects.equals(payload, resource.payload) && Objects.equals(payloadUrl, resource.payloadUrl) && Objects.equals(searchableArea, resource.searchableArea) && Objects.equals(payloadFormat, resource.payloadFormat) && Objects.equals(creationDate, resource.creationDate) && Objects.equals(modificationDate, resource.modificationDate);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, resourceTypeName, version, payload, payloadUrl, searchableArea, payloadFormat, creationDate, modificationDate);
+    }
 }

@@ -1,47 +1,63 @@
+/**
+ * Copyright 2018-2025 OpenAIRE AMKE & Athena Research and Innovation Center
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package gr.uoa.di.madgik.registry.controllers;
 
+import gr.uoa.di.madgik.registry.annotation.BrowseParameters;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.net.URLDecoder;
+import java.nio.charset.Charset;
 
 @RestController
 public class SearchController {
 
-    @Autowired
-    private SearchService searchService;
+    private final SearchService searchService;
 
-    @RequestMapping(value = "/search/{name}/{query}", method = RequestMethod.GET, headers = "Accept=application/json")
+    public SearchController(SearchService searchService) {
+        this.searchService = searchService;
+    }
+
+    @BrowseParameters
+    @RequestMapping(value = "/search/{name}", method = RequestMethod.GET)
     public ResponseEntity<Paging> search(
-            @PathVariable("name") String name,
-            @RequestParam(value = "keyword", required = false, defaultValue = "") String keyword,
-            @RequestParam(value = "from", required = false, defaultValue = "0") int from,
-            @RequestParam(value = "quantity", required = false, defaultValue = "10") int quantity,
-            @RequestParam(value = "browseBy", required = false, defaultValue = "") String[] browseBy
+            @PathVariable("name") String resourceType,
+            @RequestParam(defaultValue = "{}") MultiValueMap<String, Object> allRequestParams
+//            @RequestParam BrowseParams allRequestParams
     ) throws ServiceException {
-        FacetFilter filter = new FacetFilter(keyword, name, from, quantity, new HashMap<>(), Arrays.asList(browseBy), null);
+        FacetFilter filter = FacetFilter.from(allRequestParams);
+        filter.setResourceType(resourceType);
         return new ResponseEntity<>(searchService.search(filter), HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/search/cql/{resourceType}/{query}/", method = RequestMethod.GET)
-    public ResponseEntity<Paging> cql(@PathVariable("query") String query,
-                                      @PathVariable("resourceType") String resourceType,
+    @RequestMapping(value = "/search/cql/{resourceType}", method = RequestMethod.GET)
+    public ResponseEntity<Paging> cql(@PathVariable("resourceType") String resourceType,
+                                      @RequestParam("query") String query,
                                       @RequestParam(value = "from", required = false, defaultValue = "0") int from,
                                       @RequestParam(value = "quantity", required = false, defaultValue = "10") int quantity,
-                                      @RequestParam(value = "sortBy", required = false, defaultValue = "") String sortBy,
-                                      @RequestParam(value = "sortByType", required = false, defaultValue = "ASC") String sortByType) {
-        if (sortByType.equals("DESC") || sortByType.equals("ASC"))
-            return new ResponseEntity<>(searchService.cqlQuery(query, resourceType, quantity, from, sortBy, sortByType), HttpStatus.OK);
-        else
-            throw new ServiceException("Unsupported order by type");
+                                      @RequestParam(value = "sort", required = false, defaultValue = "") String sortBy,
+                                      @RequestParam(value = "order", required = false, defaultValue = "ASC") String sortByType) {
+        query = URLDecoder.decode(query, Charset.defaultCharset());
+        return new ResponseEntity<>(searchService.cqlQuery(query, resourceType, quantity, from, sortBy, sortByType), HttpStatus.OK);
     }
 }

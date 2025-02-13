@@ -1,5 +1,25 @@
+/**
+ * Copyright 2018-2025 OpenAIRE AMKE & Athena Research and Innovation Center
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package gr.uoa.di.madgik.registry.domain;
 
+import gr.uoa.di.madgik.registry.service.ServiceException;
+
+import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.util.*;
 
 /**
@@ -48,6 +68,89 @@ public class FacetFilter {
         this.filter = filter;
         this.browseBy = browseBy;
         this.orderBy = orderBy;
+    }
+
+    public Map<String, List<Object>> getFilterLists() {
+        return toFilterLists(filter);
+    }
+
+    public static String urlDecode(String value) {
+        return value != null ? URLDecoder.decode(value, Charset.defaultCharset()) : null;
+    }
+
+    // Gets all given filters
+    public static Map<String, List<Object>> toFilterLists(Map<String, Object> filters) {
+        Map<String, List<Object>> allFilters = new LinkedHashMap<>();
+
+        // fill the variable with the rest of the filters
+        for (Map.Entry<String, Object> ffEntry : filters.entrySet()) {
+            if (ffEntry.getValue() instanceof List) {
+                allFilters.put(ffEntry.getKey(), (List) ffEntry.getValue());
+            } else {
+                allFilters.put(ffEntry.getKey(), Collections.singletonList(ffEntry.getValue().toString()));
+            }
+        }
+
+        return allFilters;
+    }
+
+    private static Map<String, Object> createFilterFromRequestParameters(Map<String, List<Object>> parameters) {
+        Map<String, Object> filtersMap = new HashMap<>();
+        for (Map.Entry<String, List<Object>> filter : parameters.entrySet()) {
+            filtersMap.put(filter.getKey(), filter.getValue()
+                    .stream()
+                    .map(encoded -> urlDecode((String) encoded))
+                    .map(dirty -> dirty.replaceAll("[\\[\\]]", "")) // remove list brackets ([])
+                    .map(String::trim)
+                    .flatMap(values -> Arrays.stream(values.split(",")))
+                    .toList());
+        }
+        return filtersMap;
+    }
+
+    public static Map<String, Object> createOrderBy(List<Object> sortings, List<Object> orderings) {
+        if (sortings == null || orderings == null) {
+            return null;
+        }
+        Map<String, Object> sort = new HashMap<>();
+        Map<String, Object> order;
+        if (sortings.size() != orderings.size()) {
+            throw new ServiceException("sort and order fields must be 1-1");
+        }
+
+        for (int i = 0; i < sortings.size(); i++) {
+            if (!"asc".equalsIgnoreCase((String) orderings.get(i)) && !"desc".equalsIgnoreCase((String) orderings.get(i))) {
+                throw new ServiceException("Unsupported order by type");
+            }
+            String sortField = urlDecode((String) sortings.get(i));
+            if (sortField != null) {
+                order = new HashMap<>();
+                order.put("order", orderings.get(i));
+                sort.put(sortField, order);
+            }
+        }
+        return sort;
+    }
+
+    public static <T extends Map<String, List<Object>>> FacetFilter from(T params) {
+        FacetFilter ff = new FacetFilter();
+        ff.setResourceType(params.get("resourceType") != null ? (String) params.remove("resourceType").get(0) : null);
+        ff.setKeyword(params.get("keyword") != null ? urlDecode((String) params.remove("keyword").get(0)) : "");
+        ff.setFrom(params.get("from") != null ? Integer.parseInt((String) params.remove("from").get(0)) : 0);
+        ff.setQuantity(params.get("quantity") != null ? Integer.parseInt((String) params.remove("quantity").get(0)) : 10);
+        ff.setOrderBy(createOrderBy(params.remove("sort"), params.remove("order")));
+        if (params.containsKey("browseBy")) {
+            ff.setBrowseBy(params.remove("browseBy")
+                    .stream()
+                    .map(Object::toString)
+                    .map(FacetFilter::urlDecode)
+                    .toList()
+            );
+        }
+        if (!params.isEmpty()) {
+            ff.setFilter(createFilterFromRequestParameters(params));
+        }
+        return ff;
     }
 
     public String getKeyword() {

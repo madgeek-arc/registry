@@ -1,3 +1,19 @@
+/**
+ * Copyright 2018-2025 OpenAIRE AMKE & Athena Research and Innovation Center
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package gr.uoa.di.madgik.registry.controllers;
 
 import gr.uoa.di.madgik.registry.domain.Paging;
@@ -34,7 +50,7 @@ public class ResourceTypeController {
     }
 
     @RequestMapping(value = "/resourceType/{name}", method = RequestMethod.GET, headers = "Accept=application/json")
-    public ResponseEntity<ResourceType> getResourceTypeByName(@PathVariable("name") String name) throws ResourceNotFoundException {
+    public ResponseEntity<ResourceType> getResourceTypeByName(@PathVariable("name") String name) {
         ResourceType resourceType = resourceTypeService.getResourceType(name);
         if (resourceType == null) {
             throw new ResourceNotFoundException();
@@ -44,7 +60,7 @@ public class ResourceTypeController {
     }
 
     @RequestMapping(value = "/resourceType/", params = {"from"}, method = RequestMethod.GET, headers = "Accept=application/json")
-    public ResponseEntity<Paging> getResourceTypes(@RequestParam(value = "from") int from) throws ResourceNotFoundException {
+    public ResponseEntity<Paging> getResourceTypes(@RequestParam(value = "from") int from) {
         List<ResourceType> results = resourceTypeService.getAllResourceType(from, 0);
         Paging paging = new Paging<>(results.size(), 0, results.size() - 1, results, null);
         if (results.size() == 0) {
@@ -55,7 +71,7 @@ public class ResourceTypeController {
     }
 
     @RequestMapping(value = "/resourceType/", params = {"from", "to"}, method = RequestMethod.GET, headers = "Accept=application/json")
-    public ResponseEntity<Paging> getResourceTypes(@RequestParam(value = "from") int from, @RequestParam(value = "from") int to) throws ResourceNotFoundException {
+    public ResponseEntity<Paging> getResourceTypes(@RequestParam(value = "from") int from, @RequestParam(value = "from") int to) {
         List<ResourceType> results = resourceTypeService.getAllResourceType(from, to);
         int total = resourceTypeService.getAllResourceType().size();
         Paging paging = new Paging<>(total, from, to, results, null);
@@ -67,7 +83,7 @@ public class ResourceTypeController {
     }
 
     @RequestMapping(value = "/resourceType/", method = RequestMethod.GET, headers = "Accept=application/json")
-    public ResponseEntity<Paging> getResourceTypes() throws ResourceNotFoundException {
+    public ResponseEntity<Paging> getResourceTypes() {
         List<ResourceType> results = resourceTypeService.getAllResourceType();
         Paging paging = new Paging<>(results.size(), 0, results.size() - 1, results, null);
 
