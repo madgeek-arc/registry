@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.domain.index.IndexedField;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.service.IndexedFieldService;
 import gr.uoa.di.madgik.registry.service.ResourceService;
@@ -64,7 +65,7 @@ public class ResourceController {
     }
 
     @RequestMapping(value = "/resources/indexed/{resourceId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity getIndexedFields(@PathVariable("resourceId") String resourceId) {
+    public ResponseEntity<List<IndexedField>> getIndexedFields(@PathVariable("resourceId") String resourceId) {
         return new ResponseEntity<>(indexedFieldService.getIndexedFields(resourceId), HttpStatus.OK);
     }
 
@@ -77,142 +78,27 @@ public class ResourceController {
         } else {
             return new ResponseEntity<>(resource, HttpStatus.OK);
         }
-
-    }
-
-    @RequestMapping(value = "/resources/{resourceType}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType) {
-        List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType));
-        Paging paging = new Paging(results.size(), 0, results.size() - 1, results, null);
-        if (results.size() == 0) {
-            throw new ResourceNotFoundException();
-        } else {
-            return new ResponseEntity<>(paging, HttpStatus.OK);
-        }
-
-    }
-
-    @RequestMapping(value = "/resources/{resourceType}", params = {"from"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType, @RequestParam(value = "from") int from) {
-        // FIXME: very inefficient..
-        //  create method returning the size of the results instead
-        List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType), from, 0);
-        int total = resourceService.getResource(resourceTypeService.getResourceType(resourceType)).size();
-        // -------------------------
-
-        Paging paging = new Paging(results.size(), from, total - 1, results, null);
-        ResponseEntity<String> responseEntity;
-        if (total == 0) {
-            throw new ResourceNotFoundException();
-        } else {
-            return new ResponseEntity<>(paging, HttpStatus.OK);
-        }
-
     }
 
     @RequestMapping(value = "/resources/{resourceType}", params = {"from", "to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Paging> getResourceByResourceType(@PathVariable("resourceType") String resourceType, @RequestParam(value = "from") int from, @RequestParam(value = "to") int to) {
-        // FIXME: very inefficient..
-        //  create method returning the size of the results instead
+    public ResponseEntity<Paging<Resource>> getResources(@PathVariable("resourceType") String resourceType,
+                                                         @RequestParam(value = "from", defaultValue = "0") int from,
+                                                         @RequestParam(value = "to", defaultValue = "10") int to) {
         List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType), from, to);
-        int total = resourceService.getResource(resourceTypeService.getResourceType(resourceType)).size();
-        // -------------------------
+        int total = resourceService.getTotal(resourceTypeService.getResourceType(resourceType)).intValue();
 
-        Paging paging = new Paging(results.size(), from, to, results, null);
-        ResponseEntity<String> responseEntity;
-        if (total == 0) {
-            throw new ResourceNotFoundException();
-        } else {
-            return new ResponseEntity<>(paging, HttpStatus.OK);
-        }
-
-    }
-
-    @RequestMapping(value = "/resources/{resourceType}", params = {"to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Paging> getResourceByResourceTypeTo(@PathVariable("resourceType") String resourceType, @RequestParam(value = "to") int to) {
-        // FIXME: very inefficient..
-        //  create method returning the size of the results instead
-        List<Resource> results = resourceService.getResource(resourceTypeService.getResourceType(resourceType), 0, to);
-        int total = resourceService.getResource(resourceTypeService.getResourceType(resourceType)).size();
-        // -------------------------
-
-        Paging paging = new Paging(results.size(), 0, to, results, null);
-        ResponseEntity<String> responseEntity;
-        if (total == 0) {
-            throw new ResourceNotFoundException();
-        } else {
-            return new ResponseEntity<>(paging, HttpStatus.OK);
-        }
-
-    }
-
-    @RequestMapping(value = "/resources/", params = {"from"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Paging> getAllResource(@RequestParam(value = "from") int from) {
-        // FIXME: very inefficient..
-        //  create method returning the size of the results instead
-        List<Resource> results = resourceService.getResource(from, 0);
-        int total = resourceService.getResource().size();
-        // -------------------------
-
-        Paging paging = new Paging(total, from, total - 1, results, null);
-        ResponseEntity<String> responseEntity;
-        if (total == 0) {
-            throw new ResourceNotFoundException();
-        } else {
-            return new ResponseEntity<>(paging, HttpStatus.OK);
-        }
-
+        Paging<Resource> paging = new Paging<>(total, from, to, results, null);
+        return new ResponseEntity<>(paging, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/resources/", params = {"from", "to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Paging> getAllResources(@RequestParam(value = "from") int from, @RequestParam(value = "to") int to) {
-        // FIXME: very inefficient..
-        //  create method returning the size of the results instead
+    public ResponseEntity<Paging<Resource>> getAllResources(@RequestParam(value = "from", defaultValue = "0") int from,
+                                                            @RequestParam(value = "to", defaultValue = "10") int to) {
         List<Resource> results = resourceService.getResource(from, to);
-        int total = resourceService.getResource().size();
-        // -------------------------
+        int total = resourceService.getTotal(null).intValue();
 
-        Paging paging = new Paging(total, from, to, results, null);
-        ResponseEntity<String> responseEntity;
-        if (total == 0) {
-            throw new ResourceNotFoundException();
-        } else {
-            return new ResponseEntity<>(paging, HttpStatus.OK);
-        }
-
-    }
-
-    @RequestMapping(value = "/resources/", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StreamingResponseBody> getAllResources() {
-
-        StreamingResponseBody streamingResponseBody = outputStream -> {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonGenerator g = mapper.getFactory().createGenerator(outputStream);
-            g.writeStartObject();
-            g.writeFieldName("results");
-            g.writeStartArray();
-            AtomicInteger totals = new AtomicInteger();
-            resourceService.getResourceStream(r -> {
-                try {
-                    mapper.writeValue(g, r);
-                    totals.getAndIncrement();
-                } catch (IOException e) {
-                    throw new ServiceException(e.getMessage());
-                }
-            });
-            g.writeEndArray();
-            g.writeObjectField("facets", null);
-            g.writeNumberField("total", totals.intValue());
-            g.writeNumberField("from", 0);
-            g.writeNumberField("to", totals.intValue() - 1);
-            g.writeEndObject();
-            g.close();
-        };
-
-        return ResponseEntity
-                .ok()
-                .contentType(MediaType.valueOf(MediaType.APPLICATION_JSON_VALUE))
-                .body(streamingResponseBody);
+        Paging<Resource> paging = new Paging<>(total, from, to, results, null);
+        return new ResponseEntity<>(paging, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/resources", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -221,7 +107,7 @@ public class ResourceController {
         return new ResponseEntity<>(resource, HttpStatus.CREATED);
     }
 
-    @RequestMapping(value = "/resource/{resourceId}/{resourceType}", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/resources/{resourceId}/{resourceType}", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Resource> changeResourceType(
             @PathVariable("resourceId") String resourceId,
             @PathVariable("resourceType") String resourceTypeName
