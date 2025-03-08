@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.ParameterizedType;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public abstract class AbstractDao<T> {
@@ -66,6 +67,19 @@ public abstract class AbstractDao<T> {
         TypedQuery<T> query = entityManager.createQuery(criteriaQuery);
 
         return query.getResultList().isEmpty() ? null : query.getSingleResult();
+    }
+
+    public Long getTotal(String key, Object value) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Long> criteriaQuery = cb.createQuery(Long.class);
+        Root<T> root = criteriaQuery.from(persistentClass);
+
+        Optional<Object> val = Optional.ofNullable(value);
+        criteriaQuery.select(cb.countDistinct(root));
+        val.ifPresent(v -> criteriaQuery.where(cb.equal(root.get(key), v)));
+
+        TypedQuery<Long> query = entityManager.createQuery(criteriaQuery);
+        return query.getSingleResult();
     }
 
     public List<T> getList(String key, Object value) {

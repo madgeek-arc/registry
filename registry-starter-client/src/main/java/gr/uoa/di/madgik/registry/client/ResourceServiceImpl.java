@@ -87,6 +87,11 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    public Long getTotal(ResourceType resourceType) {
+        return (long) getResource(resourceType).size();
+    }
+
+    @Override
     public void getResourceStream(Consumer<Resource> consumer) {
 
     }

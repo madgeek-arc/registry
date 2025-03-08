@@ -27,6 +27,8 @@ public interface ResourceService {
 
     List<Resource> getResource(ResourceType resourceType);
 
+    Long getTotal(ResourceType resourceType);
+
     void getResourceStream(Consumer<Resource> consumer);
 
     List<Resource> getResource(ResourceType resourceType, int from, int to);

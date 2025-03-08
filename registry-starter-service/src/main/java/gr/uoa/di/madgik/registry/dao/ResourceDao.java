@@ -37,6 +37,8 @@ public interface ResourceDao {
 
     List<Resource> getResource(ResourceType resourceType);
 
+    Long getTotal(ResourceType resourceType);
+
     Stream<Resource> getResourceStream();
 
     List<Resource> getResource(ResourceType resourceType, int from, int to);

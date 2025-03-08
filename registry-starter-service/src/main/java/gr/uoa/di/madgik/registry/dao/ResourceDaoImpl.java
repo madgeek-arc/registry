@@ -85,16 +85,18 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
         return getSince(date, resourceType, "creationDate");
     }
 
-    @SuppressWarnings("unchecked")
     public List<Resource> getResource(ResourceType resourceType) {
         return getList("resourceType", resourceType);
+    }
+
+    public Long getTotal(ResourceType resourceType) {
+        return getTotal("resourceType", resourceType);
     }
 
     public Stream<Resource> getResourceStream() {
         return getStream();
     }
 
-    @SuppressWarnings("unchecked")
     public List<Resource> getResource(ResourceType resourceType, int from, int to) {
         CriteriaQuery<Resource> criteriaQuery = getCriteriaQuery();
         Root<Resource> root = criteriaQuery.from(Resource.class);
@@ -117,7 +119,6 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
         return typedQuery.getResultList();
     }
 
-    @SuppressWarnings("unchecked")
     public List<Resource> getResource(int from, int to) {
         return getResource(null, from, to);
     }

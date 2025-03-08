@@ -77,6 +77,11 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    public Long getTotal(ResourceType resourceType) {
+        return resourceDao.getTotal(resourceType);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public void getResourceStream(Consumer<Resource> consumer) {
         resourceDao.getResourceStream().forEach(consumer);
