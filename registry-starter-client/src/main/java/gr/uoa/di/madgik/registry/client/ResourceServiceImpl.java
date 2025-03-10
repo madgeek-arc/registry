@@ -93,22 +93,22 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public void getResourceStream(Consumer<Resource> consumer) {
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public List<Resource> getResource(ResourceType resourceType, int from, int to) {
-        return getListResources(registryHost + "/resources/" + resourceType.getName() + "/?from=" + from + "&to=" + to);
+        return getListResources(registryHost + "/resources/" + resourceType.getName() + "?from=" + from + "&to=" + to);
     }
 
     @Override
     public List<Resource> getResource(int from, int to) {
-        return getListResources(registryHost + "/resources/" + "?from=" + from + "&to=" + to);
+        return getListResources(registryHost + "/resources" + "?from=" + from + "&to=" + to);
     }
 
     @Override
     public List<Resource> getResource() {
-        return getListResources(registryHost + "/resources/");
+        return getListResources(registryHost + "/resources");
     }
 
     @Override
