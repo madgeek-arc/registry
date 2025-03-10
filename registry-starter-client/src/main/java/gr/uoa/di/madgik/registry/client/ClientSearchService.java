@@ -69,7 +69,7 @@ public class ClientSearchService implements SearchService {
 
     @Override
     public Paging<Resource> cqlQuery(String query, String resourceType, int quantity, int from, String sortByField, String sortOrder) {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/cql/" + resourceType)
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(registryHost + "/search/cql/" + resourceType)
                 .queryParam("query", query)
                 .queryParam("from", from)
                 .queryParam("quantity", quantity)
@@ -86,7 +86,7 @@ public class ClientSearchService implements SearchService {
 
     @Override
     public Paging<Resource> cqlQuery(String query, String resourceType) {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/cql/" + resourceType)
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(registryHost + "/search/cql/" + resourceType)
                 .queryParam("query", query);
 
         ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
@@ -99,7 +99,7 @@ public class ClientSearchService implements SearchService {
 
     @Override
     public Paging<Resource> search(FacetFilter filter) throws ServiceException {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + filter.getResourceType())
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(registryHost + "/search/" + filter.getResourceType())
                 .queryParam("keyword", filter.getKeyword())
                 .queryParam("from", filter.getFrom())
                 .queryParam("quantity", filter.getQuantity())
@@ -139,7 +139,7 @@ public class ClientSearchService implements SearchService {
 
     @Override
     public Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(registryHost + "/search/" + resourceType)
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(registryHost + "/search/" + resourceType)
                 .queryParam("keyword", keyword);
 
         ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
