@@ -47,6 +47,7 @@ public class ResourceServiceImpl implements ResourceService {
     @Value("${registry.base}")
     private String registryHost;
 
+    @SuppressWarnings("unchecked")
     private List<Resource> getListResources(String url) {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
