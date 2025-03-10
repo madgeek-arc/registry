@@ -16,8 +16,6 @@
 
 package gr.uoa.di.madgik.registry.controllers;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
@@ -31,12 +29,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import java.io.IOException;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 public class ResourceController {
@@ -91,7 +86,7 @@ public class ResourceController {
         return new ResponseEntity<>(paging, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/resources/", params = {"from", "to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/resources", params = {"from", "to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Paging<Resource>> getAllResources(@RequestParam(value = "from", defaultValue = "0") int from,
                                                             @RequestParam(value = "to", defaultValue = "10") int to) {
         List<Resource> results = resourceService.getResource(from, to);
