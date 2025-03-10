@@ -50,10 +50,10 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
             dataTypeMap.put("longindexedfield", "bigint");
             dataTypeMap.put("dateindexedfield", "timestamp");
 
-            // order indexFields by name
-            resourceType.getIndexFields().sort(Comparator.comparing(IndexField::getName));
+            // Sort indexFields by name in lowercase (as the columns in DB are lowercase)
+            resourceType.getIndexFields().sort(Comparator.comparing(i -> i.getName().toLowerCase()));
 
-            // create maps to store single- and multi-valued index names
+            // create maps to store single and multivalued index names
             Map<String, List<String>> singleVal_indexMap = new HashMap<String, List<String>>();
             Map<String, List<String>> multiVal_indexMap = new HashMap<String, List<String>>();
 
@@ -120,7 +120,7 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
                     queryString = queryString.concat(" WHERE r.fk_name = ''" + resourceType.getName() + "'' AND r.id = " + s + ".resource_id AND " + s + ".name IN(");
 
                     // get list of index names of current subtype
-                    Iterator iter = singleVal_indexMap.get(s).iterator();
+                    Iterator<String> iter = singleVal_indexMap.get(s).iterator();
                     while (iter.hasNext()) {
                         queryString = queryString.concat("''" + iter.next() + "''");
                         if (iter.hasNext()) {
@@ -158,7 +158,7 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
                     queryString = queryString.concat(" WHERE r.fk_name = ''" + resourceType.getName() + "'' AND r.id = " + m + ".resource_id AND " + m + ".name IN(");
 
                     // get list of index names of current subtype
-                    Iterator iter = multiVal_indexMap.get(m).iterator();
+                    Iterator<String> iter = multiVal_indexMap.get(m).iterator();
                     while (iter.hasNext()) {
                         queryString = queryString.concat("''" + iter.next() + "''");
                         if (iter.hasNext()) {
