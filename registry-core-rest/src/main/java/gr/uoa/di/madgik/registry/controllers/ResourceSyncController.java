@@ -34,9 +34,11 @@ public class ResourceSyncController {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceSyncController.class);
 
-    @Autowired
-    ResourceSyncService resourceSyncService;
+    private final ResourceSyncService resourceSyncService;
 
+    public ResourceSyncController(ResourceSyncService resourceSyncService) {
+        this.resourceSyncService = resourceSyncService;
+    }
 
     @RequestMapping(value = "/resourcesync/{name}/resourcelist.xml", method = RequestMethod.GET, headers = "Accept=application/xml")
     public ResponseEntity getResourceListController(@PathVariable("name") String name) {

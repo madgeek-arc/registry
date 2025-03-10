@@ -27,9 +27,11 @@ import java.util.Map;
 @RestController
 public class RestoreController {
 
-    @Autowired
-    RestoreService restoreService;
+    private final RestoreService restoreService;
 
+    public RestoreController(RestoreService restoreService) {
+        this.restoreService = restoreService;
+    }
 
     @RequestMapping(value = "/restore/", method = RequestMethod.POST)
     @ResponseBody

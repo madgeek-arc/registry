@@ -31,8 +31,11 @@ public class SchemaController {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceTypeController.class);
 
-    @Autowired
-    ResourceTypeService resourceTypeService;
+    private final ResourceTypeService resourceTypeService;
+
+    public SchemaController(ResourceTypeService resourceTypeService) {
+        this.resourceTypeService = resourceTypeService;
+    }
 
     @RequestMapping(value = "/schemaService/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_XML_VALUE)
     @ResponseBody
