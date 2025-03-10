@@ -47,18 +47,6 @@ public class ResourceController {
         this.indexedFieldService = indexedFieldService;
     }
 
-    @RequestMapping(value = "resource/resourceType", method = RequestMethod.POST, headers = "Accept=application/json")
-    public ResponseEntity<ResourceType> addResourceType(@RequestBody ResourceType resourceType) {
-        resourceType.setCreationDate(new Date());
-        resourceType.setModificationDate(new Date());
-        try {
-            resourceTypeService.addResourceType(resourceType);
-            return new ResponseEntity<>(resourceType, HttpStatus.CREATED);
-        } catch (ServiceException e) {
-            throw new ServiceException(e);
-        }
-    }
-
     @RequestMapping(value = "/resources/indexed/{resourceId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<IndexedField>> getIndexedFields(@PathVariable("resourceId") String resourceId) {
         return new ResponseEntity<>(indexedFieldService.getIndexedFields(resourceId), HttpStatus.OK);
