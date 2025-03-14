@@ -78,10 +78,14 @@ public class DefaultSearchService implements SearchService {
         params.addValue("from", from);
         params.addValue("quantity", quantity);
 
+        FacetFilter filter = new FacetFilter();
+        filter.setResourceType(resourceType);
+        filter.setOrderBy(FacetFilter.createOrderBy(List.of(sortByField), List.of(sortOrder)));
+
         String q = "SELECT * FROM resource WHERE id IN (%s) OFFSET :from LIMIT :quantity";
         String countQuery = "SELECT COUNT(*) FROM resource WHERE id IN (%s)";
 
-        String nested = createQueryWithInnerJoinsReturningIds(resourceType, rt -> createViewQueryFromCqlReturningIds(query, rt));
+        String nested = createQueryWithInnerJoins(filter, rt -> createViewQueryFromCqlReturningIds(query, rt));
 
         countQuery = String.format(countQuery, nested);
         q = String.format(q, nested);
@@ -117,7 +121,7 @@ public class DefaultSearchService implements SearchService {
         params.addValue("from", filter.getFrom());
         params.addValue("quantity", filter.getQuantity());
 
-        String nested = createQueryWithInnerJoins(filter.getResourceType(), rt -> createViewQueryReturningIds(filter, params, rt));
+        String nested = createQueryWithInnerJoins(filter, rt -> createViewQuery(filter, params, rt));
         String query = "SELECT * FROM ( %s ) ar WHERE ar.payload LIKE :keyword OFFSET :from LIMIT :quantity";
         String countQuery = "SELECT COUNT(*) FROM ( %s ) ar WHERE ar.payload LIKE :keyword";
 
@@ -173,7 +177,7 @@ public class DefaultSearchService implements SearchService {
         MapSqlParameterSource params = new MapSqlParameterSource();
 
         String query = "SELECT * FROM resource WHERE id IN (%s) LIMIT 1";
-        String nested = createQueryWithInnerJoinsReturningIds(resourceType, rt -> createViewQueryReturningIds(filter, params, rt));
+        String nested = createQueryWithInnerJoinsReturningIds(resourceType, rt -> createViewQuery(filter, params, rt));
         query = String.format(query, nested);
 
         Resource result = null;
@@ -190,7 +194,9 @@ public class DefaultSearchService implements SearchService {
     @Override
     public Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category) {
         throw new UnsupportedOperationException("Not implemented yet!");
-    }/**
+    }
+
+    /**
      * Get a list of ResourceTypes based on the provided resourceType name or alias.
      *
      * @param resourceTypeOrAlias the name of the resourceType or an alias
@@ -214,12 +220,14 @@ public class DefaultSearchService implements SearchService {
      * <p>In case the given resourceType is an alias,
      * it creates multiple queries combined with unions. </p>
      *
-     * @param resourceTypeOrAlias the resourceType name or alias
-     * @param innerJoinTableQueryBuilder a method returning the query to be used as a table for the inner join
+     * @param filter the filter to use to get the ResourceType and generate the ODER BY clause.
+     * @param innerJoinTableQueryBuilder a method returning the query to be used as a table for the inner join.
      * @return
      */
-    private String createQueryWithInnerJoins(String resourceTypeOrAlias, Function<ResourceType,String> innerJoinTableQueryBuilder) {
-        List<ResourceType> resourceTypes = getResourceTypes(resourceTypeOrAlias);
+    private String createQueryWithInnerJoins(FacetFilter filter,
+                                             Function<ResourceType,String> innerJoinTableQueryBuilder) {
+        // "filter.getResourceType()" the resourceType name or alias
+        List<ResourceType> resourceTypes = getResourceTypes(filter.getResourceType());
         final String outerJoinTemplate = "SELECT r.* FROM resource AS r INNER JOIN ( %s ) AS v%d ON r.id = v%d.id ";
         StringBuilder query = new StringBuilder();
 
@@ -233,6 +241,7 @@ public class DefaultSearchService implements SearchService {
                     query.append(" UNION ALL ");
                 }
             }
+            query.append(buildOrderBy(filter));
         }
         return query.toString();
     }
@@ -247,7 +256,8 @@ public class DefaultSearchService implements SearchService {
      * @param innerJoinTableQueryBuilder a method returning the query to be used as a table for the inner join
      * @return
      */
-    private String createQueryWithInnerJoinsReturningIds(String resourceTypeOrAlias, Function<ResourceType,String> innerJoinTableQueryBuilder) {
+    private String createQueryWithInnerJoinsReturningIds(String resourceTypeOrAlias,
+                                                         Function<ResourceType,String> innerJoinTableQueryBuilder) {
         List<ResourceType> resourceTypes = getResourceTypes(resourceTypeOrAlias);
         final String outerJoinTemplate = "SELECT r.id FROM resource AS r INNER JOIN ( %s ) AS v%d ON r.id = v%d.id ";
         StringBuilder query = new StringBuilder();
@@ -267,15 +277,15 @@ public class DefaultSearchService implements SearchService {
     }
 
     /**
-     * Creates a query on the view of the {@link ResourceType resourceType}, fetching the IDs of the matching resources.
+     * <p>Creates a query on the view of the {@link ResourceType resourceType}, fetching the matching resources.</p>
      *
-     * @param filter contains the parameters for the where clause and the order by clause
+     * @param filter contains the parameters for the where clause
      * @param resourceType the {@link ResourceType} to use for the view
      * @return
      */
-    private String createViewQueryReturningIds(FacetFilter filter, MapSqlParameterSource params, ResourceType resourceType) {
+    private String createViewQuery(FacetFilter filter, MapSqlParameterSource params, ResourceType resourceType) {
         StringBuilder nestedQuery = new StringBuilder();
-        nestedQuery.append("SELECT DISTINCT(id) AS id %s FROM ");
+        nestedQuery.append("SELECT DISTINCT * FROM ");
         nestedQuery.append(resourceType.getName()).append("_view ");
 
         StringBuilder whereClause = new StringBuilder();
@@ -313,28 +323,22 @@ public class DefaultSearchService implements SearchService {
             nestedQuery.append(whereClause);
         }
 
-        List<String> orderByFields = new ArrayList<>();
+        return nestedQuery.toString();
+    }
+
+    private static String buildOrderBy(FacetFilter filter) {
+        StringBuilder orderBuilder = new StringBuilder();
         if (filter.getOrderBy() != null && !filter.getOrderBy().isEmpty()) {
-            nestedQuery.append(" ORDER BY ");
+            orderBuilder.append(" ORDER BY ");
             List<String> orderBy = new ArrayList<>();
             for (Map.Entry<String, Object> entry : filter.getOrderBy().entrySet()) {
                 String field = entry.getKey().replaceAll("[^A-Za-z0-9_]","");
                 String order = (String) ((Map<String, Object>) entry.getValue()).get("order");
                 orderBy.add(String.format("%s %s", field, "desc".equalsIgnoreCase(order) ? "DESC" : "ASC"));
-                if (!"id".equals(entry.getKey())) {
-                    orderByFields.add(entry.getKey());
-                }
             }
-            nestedQuery.append(String.join(",", orderBy));
+            orderBuilder.append(String.join(",", orderBy));
         }
-        String nested;
-        if (orderByFields.isEmpty()) {
-            nested = String.format(nestedQuery.toString(), "");
-        } else {
-            nested = String.format(nestedQuery.toString(), "," + String.join(", ", orderByFields));
-        }
-
-        return nested;
+        return orderBuilder.toString();
     }
 
     /**
