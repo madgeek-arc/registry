@@ -82,8 +82,8 @@ public class DefaultSearchService implements SearchService {
         filter.setResourceType(resourceType);
         filter.setOrderBy(FacetFilter.createOrderBy(List.of(sortByField), List.of(sortOrder)));
 
-        String q = "SELECT * FROM resource WHERE id IN (%s) OFFSET :from LIMIT :quantity";
-        String countQuery = "SELECT COUNT(*) FROM resource WHERE id IN (%s)";
+        String q = "SELECT * FROM ( %s ) ar OFFSET :from LIMIT :quantity";
+        String countQuery = "SELECT COUNT(*) FROM (%s) ar";
 
         String nested = createQueryWithInnerJoins(filter, rt -> createViewQueryFromCqlReturningIds(query, rt));
 
@@ -176,8 +176,8 @@ public class DefaultSearchService implements SearchService {
 
         MapSqlParameterSource params = new MapSqlParameterSource();
 
-        String query = "SELECT * FROM resource WHERE id IN (%s) LIMIT 1";
-        String nested = createQueryWithInnerJoinsReturningIds(resourceType, rt -> createViewQuery(filter, params, rt));
+        String query = "SELECT * FROM (%s) ar LIMIT 1";
+        String nested = createQueryWithInnerJoins(filter, rt -> createViewQuery(filter, params, rt));
         query = String.format(query, nested);
 
         Resource result = null;
@@ -242,36 +242,6 @@ public class DefaultSearchService implements SearchService {
                 }
             }
             query.append(buildOrderBy(filter));
-        }
-        return query.toString();
-    }
-
-
-    /**
-     * <p>Creates a query returning all matching {@link Resource resources}.</p>
-     * <p>In case the given resourceType is an alias,
-     * it creates multiple queries combined with unions. </p>
-     *
-     * @param resourceTypeOrAlias the resourceType name or alias
-     * @param innerJoinTableQueryBuilder a method returning the query to be used as a table for the inner join
-     * @return
-     */
-    private String createQueryWithInnerJoinsReturningIds(String resourceTypeOrAlias,
-                                                         Function<ResourceType,String> innerJoinTableQueryBuilder) {
-        List<ResourceType> resourceTypes = getResourceTypes(resourceTypeOrAlias);
-        final String outerJoinTemplate = "SELECT r.id FROM resource AS r INNER JOIN ( %s ) AS v%d ON r.id = v%d.id ";
-        StringBuilder query = new StringBuilder();
-
-        if (resourceTypes == null || resourceTypes.isEmpty()) {
-            logger.error("No resource types found");
-            return "";
-        } else {
-            for (int i = 0; i < resourceTypes.size(); i++) {
-                query.append(String.format(outerJoinTemplate, innerJoinTableQueryBuilder.apply(resourceTypes.get(i)), i, i));
-                if (i != resourceTypes.size() - 1) {
-                    query.append(" UNION ALL ");
-                }
-            }
         }
         return query.toString();
     }
@@ -350,7 +320,7 @@ public class DefaultSearchService implements SearchService {
      */
     private String createViewQueryFromCqlReturningIds(String cqlQuery, ResourceType resourceType) {
         StringBuilder nestedQuery = new StringBuilder();
-        nestedQuery.append("SELECT DISTINCT(id) FROM ");
+        nestedQuery.append("SELECT DISTINCT * FROM ");
         nestedQuery.append(resourceType.getName()).append("_view ");
 
 
