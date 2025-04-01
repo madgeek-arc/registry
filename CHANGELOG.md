@@ -1,19 +1,12 @@
-##  (2025-02-13)
-
-### ⚠ BREAKING CHANGES
-
-* Move to Spring Framework 6 and Spring Batch 5
+## [](https://github.com/madgeek-arc/registry/compare/v4.0.0...v) (2025-04-01)
 
 ### Features
 
-* Move to Spring Framework 6 and Spring Batch 5 ([05758d8](https://github.com/madgeek-arc/registry/commit/05758d85b865a0f03a152625690512fc649126a1))
+* add method counting resources ([b6e4f49](https://github.com/madgeek-arc/registry/commit/b6e4f4912925b81ffc61d04487ebef52cd1d15da))
 
 ### Bug Fixes
 
-* Add conditional bean creation for dump/restore configuration ([38fcf6f](https://github.com/madgeek-arc/registry/commit/38fcf6f302d824270ce9f5f1df86f45ed2b8650e))
-* Add @PropertySource to re-enable @Value annotation ([faa3b33](https://github.com/madgeek-arc/registry/commit/faa3b337becdcb40a73f86b5299fab944d853a2e))
-* Apply datasource configuration properties ([e04a307](https://github.com/madgeek-arc/registry/commit/e04a3073cbb17090e331f3c730e7449e3d74aea2))
-* Correct issues on dump jobs ([6fcbdd0](https://github.com/madgeek-arc/registry/commit/6fcbdd0aafbe9772d50501b69a588ce347f982d3))
-* Handle SQL ARRAY type for specific resource types on DefaultSearchService ([0cb26d2](https://github.com/madgeek-arc/registry/commit/0cb26d2c63a2bf913aa3869842f31f2e9b7fa155))
-* Restore indexing functionality upon using /restore controller when elasticsearch dependency is present ([03b92fe](https://github.com/madgeek-arc/registry/commit/03b92fe05f5754c3777f04b245aae74aa8b1dd7d))
-* **search db:** Fix searching with Boolean filters ([5ce1648](https://github.com/madgeek-arc/registry/commit/5ce1648aa4fa7269f6059bca01c24abbb78eba46))
+* remove trailing / character ([80d4fcd](https://github.com/madgeek-arc/registry/commit/80d4fcdf679ecc160f347a6d5fd3db0f1c1ae278))
+* remove trailing / character from rest api ([29f21fa](https://github.com/madgeek-arc/registry/commit/29f21fa52bf8d9adc96e4c87d6a2f7d5868f64df))
+* **search:** improve search and order by functionality ([1185c48](https://github.com/madgeek-arc/registry/commit/1185c48146245ff325bde3c69c79e1690e09f3af))
+* sort index fields in lowercase (like they will be ordered by in the database) ([104bbec](https://github.com/madgeek-arc/registry/commit/104bbec610c094afb5a0c271bcb620bc8e232723))
