@@ -20,6 +20,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.flyway.FlywayDataSource;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.autoconfigure.orm.jpa.JpaProperties;
@@ -48,10 +49,20 @@ public class HibernateConfiguration {
         return new JpaProperties();
     }
 
+    /**
+     * <p>The unused arguments with the {@code @Value} and {@code @NotEmpty} annotations
+     * enforce the existence of the registry datasource properties.
+     * Their purpose is to override the default Spring DataSource error for missing values.</p>
+     */
     @Bean("registryDataSourceProperties")
     @Primary
     @ConfigurationProperties("registry.datasource")
-    public DataSourceProperties registryDataSourceProperties() {
+    public DataSourceProperties registryDataSourceProperties(@Value("${registry.datasource.url}")
+                                                             String db,
+                                                             @Value("${registry.datasource.username}")
+                                                             String user,
+                                                             @Value("${registry.datasource.password}")
+                                                             String password) {
         return new DataSourceProperties();
     }
 
