@@ -10,7 +10,7 @@
 
     <groupId>gr.uoa.di.madgik</groupId>
     <artifactId>registry</artifactId>
-    <version>4.0.3</version>
+    <version>4.0.4-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>registry</name>
 
@@ -201,7 +201,7 @@
         <connection>scm:git:ssh://git@github.com/madgeek-arc/registry.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/madgeek-arc/registry.git</developerConnection>
         <url>https://github.com/madgeek-arc/registry</url>
-        <tag>v4.0.3</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <distributionManagement>
