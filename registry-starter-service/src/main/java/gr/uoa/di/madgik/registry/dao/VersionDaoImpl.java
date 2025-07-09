@@ -52,9 +52,16 @@ public class VersionDaoImpl extends AbstractDao<Version> implements VersionDao {
         predicates.add(getCriteriaBuilder().equal(root.get("resource"), resource));
         predicates.add(getCriteriaBuilder().equal(root.get("version"), version));
 
-        criteriaQuery.select(root).where(predicates.toArray(new Predicate[]{}));
+        // FIX for version duplicates (to ensure compatibility with existing dbs):
+        // replaced getSingleResult() with getResultList() in case there are duplicates in db (bug)
+        // sort by desc(creationDate) to get latest version
+        criteriaQuery
+                .select(root)
+                .where(predicates.toArray(new Predicate[]{}))
+                .orderBy(getCriteriaBuilder().desc(root.get("creationDate")));
 
-        return getEntityManager().createQuery(criteriaQuery).getSingleResult();
+        List<Version> versions = getEntityManager().createQuery(criteriaQuery).getResultList();
+        return versions.getFirst();
 
     }
 
