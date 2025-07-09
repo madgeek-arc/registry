@@ -263,8 +263,9 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     private String generateVersion() {
-        DateFormat df = new SimpleDateFormat("MMddyyyyHHmmss");
-        return df.format(Calendar.getInstance().getTime());
+        // FIX: replace "MMddyyyyHHmmss" version format with UUID to tackle duplicate versions issue.
+        // (millisecond-apart updates on the same resource leads to duplicated versions)
+        return UUID.randomUUID().toString();
     }
 }
 
