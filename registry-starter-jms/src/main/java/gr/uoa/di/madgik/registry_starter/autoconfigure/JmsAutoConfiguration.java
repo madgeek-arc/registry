@@ -17,6 +17,8 @@
 package gr.uoa.di.madgik.registry_starter.autoconfigure;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import gr.uoa.di.madgik.registry_starter.jms.JmsResourceListener;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.slf4j.Logger;
@@ -34,6 +36,8 @@ import org.springframework.jms.annotation.EnableJms;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.converter.MappingJackson2MessageConverter;
 import org.springframework.jms.support.converter.MessageType;
+
+import java.text.SimpleDateFormat;
 
 @AutoConfiguration
 @ConditionalOnClass(JmsProperties.class)
@@ -65,11 +69,16 @@ public class JmsAutoConfiguration {
             return connectionFactory;
         }
 
-        @Bean // Serialize message content to json using TextMessage
+        @Bean // override registry bean
         public MappingJackson2MessageConverter jacksonJmsMessageConverter() {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            objectMapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX"));
+
             MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
             converter.setTargetType(MessageType.TEXT);
             converter.setTypeIdPropertyName("_type");
+            converter.setObjectMapper(objectMapper);
             return converter;
         }
 
