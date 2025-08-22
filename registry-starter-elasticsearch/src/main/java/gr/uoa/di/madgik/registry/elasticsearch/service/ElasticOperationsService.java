@@ -57,15 +57,19 @@ public class ElasticOperationsService implements IndexOperationsService {
     private static final Map<String, String> FIELD_TYPES_MAP;
 
     static {
-        Map<String, String> unmodifiableMap = new HashMap<>();
-        unmodifiableMap.put("java.lang.Float", "float");
-        unmodifiableMap.put("java.lang.Integer", "integer");
-        unmodifiableMap.put("java.lang.Boolean", "boolean");
-        unmodifiableMap.put("java.lang.Long", "long");
-        unmodifiableMap.put("java.lang.String", "keyword");
-        unmodifiableMap.put("java.util.Date", "date");
-        FIELD_TYPES_MAP = Collections.unmodifiableMap(unmodifiableMap);
+        Map<String, String> classToTypeMap = new HashMap<>();
+        classToTypeMap.put("java.lang.Float", "float");
+        classToTypeMap.put("java.lang.Integer", "integer");
+        classToTypeMap.put("java.lang.Boolean", "boolean");
+        classToTypeMap.put("java.lang.Long", "long");
+        classToTypeMap.put("java.lang.String", "keyword");
+        classToTypeMap.put("java.util.Date", "date");
+        FIELD_TYPES_MAP = Collections.unmodifiableMap(classToTypeMap);
     }
+
+    private static final Map<String, Object> TYPE_MAP = Map.of("type", "keyword");
+    private static final Map<String, Object> DATE_MAP = Map.of("type", "date", "format", "epoch_millis");
+    private static final Map<String, Object> TEXT_MAP = Map.of("type", "text");
 
     private final ResourceTypeService resourceTypeService;
     private final RestHighLevelClient client;
@@ -240,26 +244,23 @@ public class ElasticOperationsService implements IndexOperationsService {
                 typeMap.put("type", FIELD_TYPES_MAP.get(indexField.getType()));
                 if (indexField.getType().equals("java.util.Date"))
                     typeMap.put("format", "epoch_millis");
+                if (indexField.getType().equals("java.lang.String")) {
+                    Map<String, Object> rawMap = new HashMap<>();
+                    rawMap.put("analyzed", TEXT_MAP);
+                    typeMap.put("fields", rawMap);
+                }
                 jsonObjectProperties.put(indexField.getName(), typeMap);
             }
         }
 
-        final Map<String, Object> typeMap = new HashMap<>();
-        typeMap.put("type", "keyword");
-        final Map<String, Object> dateMap = new HashMap<>();
-        dateMap.put("type", "date");
-        dateMap.put("format", "epoch_millis");
-        final Map<String, Object> textMap = new HashMap<>();
-        textMap.put("type", "text");
-
-        jsonObjectProperties.put("id", typeMap);
-        jsonObjectProperties.put("version", typeMap);
-        jsonObjectProperties.put("payload", textMap);
-        jsonObjectProperties.put("searchableArea", textMap);
-        jsonObjectProperties.put("payloadFormat", typeMap);
-        jsonObjectProperties.put("resourceType", typeMap);
-        jsonObjectProperties.put("creation_date", dateMap);
-        jsonObjectProperties.put("modification_date", dateMap);
+        jsonObjectProperties.put("id", TYPE_MAP);
+        jsonObjectProperties.put("version", TYPE_MAP);
+        jsonObjectProperties.put("payload", TEXT_MAP);
+        jsonObjectProperties.put("searchableArea", TEXT_MAP);
+        jsonObjectProperties.put("payloadFormat", TYPE_MAP);
+        jsonObjectProperties.put("resourceType", TYPE_MAP);
+        jsonObjectProperties.put("creation_date", DATE_MAP);
+        jsonObjectProperties.put("modification_date", DATE_MAP);
 
         jsonObjectGeneral.put("properties", jsonObjectProperties);
         return jsonObjectGeneral;
