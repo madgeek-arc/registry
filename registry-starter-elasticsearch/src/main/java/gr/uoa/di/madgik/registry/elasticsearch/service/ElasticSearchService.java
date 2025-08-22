@@ -25,11 +25,15 @@ import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
+import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
+import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -46,6 +50,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.xbib.cql.CQLParser;
 import org.xbib.cql.elasticsearch.ElasticsearchQueryGenerator;
 
@@ -78,8 +83,14 @@ public class ElasticSearchService implements SearchService {
 
     public BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
-        if (!filter.getKeyword().equals("")) {
-            qBuilder.must(QueryBuilders.matchQuery("searchableArea", filter.getKeyword()));
+        if (!filter.getKeyword().isEmpty()) {
+            Set<String> textFields = new HashSet<>();
+            try {
+                textFields.addAll(getTextFields(filter.getResourceType()));
+            } catch (IOException ignore) {}
+            textFields.add("searchableArea");
+            textFields.add("payload");
+            qBuilder.must(QueryBuilders.multiMatchQuery(filter.getKeyword(), textFields.toArray(new String[0])));
         } else {
             qBuilder.must(QueryBuilders.matchAllQuery());
         }
@@ -97,6 +108,57 @@ public class ElasticSearchService implements SearchService {
             qBuilder.must(internalBuilder);
         }
         return qBuilder;
+    }
+
+    private List<String> getTextFields(String indexName) throws IOException {
+        GetMappingsRequest request = new GetMappingsRequest().indices(indexName);
+        GetMappingsResponse response = elasticsearchClient.indices().getMapping(request, RequestOptions.DEFAULT);
+
+        ImmutableOpenMap<String, MappingMetadata> mappingMetaData = response.mappings().get(indexName);
+        if (mappingMetaData == null) {
+            return Collections.emptyList();
+        }
+
+        Map<String, Object> mapping = mappingMetaData.get("_doc").getSourceAsMap();
+        Map<String, Object> properties = (Map<String, Object>) mapping.get("properties");
+
+        return findTextFields(properties, "");
+    }
+
+    private List<String> findTextFields(Map<String, Object> properties, String pathPrefix) {
+        List<String> result = new ArrayList<>();
+
+        for (Map.Entry<String, Object> entry : properties.entrySet()) {
+            String fieldName = entry.getKey();
+            Map<String, Object> fieldProps = (Map<String, Object>) entry.getValue();
+            String fullPath = pathPrefix.isEmpty() ? fieldName : pathPrefix + "." + fieldName;
+
+            Object type = fieldProps.get("type");
+            if ("text".equals(type)) {
+                result.add(fullPath);
+            }
+
+            // Check for nested properties
+            if (fieldProps.containsKey("properties")) {
+                Map<String, Object> nestedProps = (Map<String, Object>) fieldProps.get("properties");
+                result.addAll(findTextFields(nestedProps, fullPath));
+            }
+
+            // Check multi-fields
+            if (fieldProps.containsKey("fields")) {
+                Map<String, Object> subfields = (Map<String, Object>) fieldProps.get("fields");
+                for (Map.Entry<String, Object> subfieldEntry : subfields.entrySet()) {
+                    String subfieldName = subfieldEntry.getKey();
+                    Map<String, Object> subfieldProps = (Map<String, Object>) subfieldEntry.getValue();
+                    Object subfieldType = subfieldProps.get("type");
+                    if ("text".equals(subfieldType)) {
+                        result.add(fullPath + "." + subfieldName);
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 
 
