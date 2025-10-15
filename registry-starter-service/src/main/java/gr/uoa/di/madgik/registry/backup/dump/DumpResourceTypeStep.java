@@ -34,24 +34,17 @@ import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.stereotype.Component;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Component
 @StepScope
 public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
-
-    public static final FileAttribute<Set<PosixFilePermission>> PERMISSIONS = PosixFilePermissions
-            .asFileAttribute(Set.of(PosixFilePermission.values()));
 
     private static final Logger logger = LoggerFactory.getLogger(DumpResourceTypeStep.class);
     private static final String FILENAME_FOR_SCHEMA = "schema.json";
@@ -78,7 +71,7 @@ public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
             Calendar today = Calendar.getInstance();
             today.set(Calendar.HOUR_OF_DAY, 0);
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd");
-            masterDirectory = Files.createTempDirectory(dateFormat.format(today.getTime()), PERMISSIONS);
+            masterDirectory = Files.createTempDirectory(dateFormat.format(today.getTime()));
         } catch (IOException e1) {
             throw new ServiceException(e1.getMessage());
         }
@@ -110,7 +103,7 @@ public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
         if (resourceTypeNames.isEmpty())
             return RepeatStatus.FINISHED;
         String resourceTypeName = resourceTypeNames.remove(0);
-        Path resourceTypePath = Files.createDirectory(Paths.get(masterDirectory.toString(), resourceTypeName), PERMISSIONS);
+        Path resourceTypePath = Files.createDirectory(Paths.get(masterDirectory.toString(), resourceTypeName));
         logger.info("Saving {}", resourceTypeName);
         ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
         stepResourceTypes.add(resourceTypeName);

@@ -119,7 +119,7 @@ public class DumpResourceWriterStep implements ItemWriter<Resource>, StepExecuti
             return;
         File versionDir = new File(resourceTypeDirectory + "/" + resource.getId() + "-version");
         if (!versionDir.exists()) {
-            Files.createDirectory(versionDir.toPath(), DumpResourceTypeStep.PERMISSIONS);
+            Files.createDirectory(versionDir.toPath());
         }
         for (Version version : resource.getVersions()) {
             File openFileVersion = new File(versionDir, version.getId() + ".json");
