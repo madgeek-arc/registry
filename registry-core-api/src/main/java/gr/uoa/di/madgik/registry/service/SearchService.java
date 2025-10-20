@@ -17,6 +17,7 @@
 package gr.uoa.di.madgik.registry.service;
 
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
+import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import org.springframework.retry.annotation.Backoff;
@@ -39,6 +40,11 @@ public interface SearchService {
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException;
+
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    default Paging<HighlightedResult<Resource>> searchWithHighlights(FacetFilter filter) throws ServiceException {
+        throw new UnsupportedOperationException();
+    }
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException;

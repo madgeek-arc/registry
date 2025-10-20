@@ -19,10 +19,7 @@ package gr.uoa.di.madgik.registry.elasticsearch.service;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import gr.uoa.di.madgik.registry.domain.Facet;
-import gr.uoa.di.madgik.registry.domain.FacetFilter;
-import gr.uoa.di.madgik.registry.domain.Paging;
-import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
@@ -43,6 +40,8 @@ import org.elasticsearch.search.aggregations.bucket.MultiBucketsAggregation;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.metrics.TopHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
@@ -208,6 +207,45 @@ public class ElasticSearchService implements SearchService {
         return results;
     }
 
+    private Paging<HighlightedResult<Resource>> buildSearchWithHighlights(FacetFilter filter) {
+        int quantity = filter.getQuantity();
+        validateQuantity(quantity);
+        BoolQueryBuilder qBuilder = createQueryBuilder(filter);
+        SearchRequest search = new SearchRequest(filter.getResourceType()).
+                searchType(SearchType.DFS_QUERY_THEN_FETCH);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(qBuilder)
+                .fetchSource(INCLUDES, null)
+                .from(filter.getFrom())
+                .size(quantity)
+                .explain(false);
+
+        HighlightBuilder hb = new HighlightBuilder();
+        hb.field("*.analyzed").fragmentSize(60).numOfFragments(0);
+        hb.order("score");
+        searchSourceBuilder.highlighter(hb);
+
+        if (filter.getOrderBy() != null) {
+            for (Map.Entry<String, Object> order : filter.getOrderBy().entrySet()) {
+                Map op = (Map) order.getValue();
+                searchSourceBuilder.sort(order.getKey(), SortOrder.fromString(op.get("order").toString()));
+            }
+        }
+
+        for (String browseBy : filter.getBrowseBy()) {
+            searchSourceBuilder.aggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy).size(bucketSize));
+        }
+        search.source(searchSourceBuilder);
+        SearchResponse response = null;
+        try {
+            response = elasticsearchClient.search(search, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            throw new ServiceException(e.getMessage());
+        }
+
+        return highlightedResponseToPaging(response, filter.getFrom(), filter.getBrowseBy());
+    }
+
     private Paging<Resource> buildSearch(FacetFilter filter) {
         int quantity = filter.getQuantity();
         validateQuantity(quantity);
@@ -361,6 +399,53 @@ public class ElasticSearchService implements SearchService {
         }
     }
 
+    private Paging<HighlightedResult<Resource>> highlightedResponseToPaging(SearchResponse response, int from, List<String> browseBy) {
+        if (response == null || response.getHits().getTotalHits().value == 0) {
+            return new Paging<>();
+        } else {
+            List<HighlightedResult<Resource>> resources = StreamSupport
+                    .stream(response.getHits().spliterator(), true)
+                    .map(r -> {
+                        try {
+                            HighlightedResult<Resource> hr = new HighlightedResult<>();
+                            hr.setHighlights(getHighlightsFromMap(r.getHighlightFields()));
+                            Resource res = mapper.readValue(r.getSourceAsString(), Resource.class);
+                            res.setResourceTypeName(r.getIndex());
+                            hr.setResult(res);
+                            return hr;
+                        } catch (IOException e) {
+                            throw new ServiceException(e.getMessage());
+                        }
+
+                    })
+                    .toList();
+
+            List<Facet> facets = new ArrayList<>();
+            if (browseBy != null) {
+                facets = browseBy
+                        .stream()
+                        .map(x -> transformAggregation(x, response.getAggregations().get("by_" + x)))
+                        .toList();
+            }
+
+            return new Paging<>((int) response.getHits().getTotalHits().value, from, from + resources.size(), resources, facets);
+        }
+    }
+
+    private List<Highlight> getHighlightsFromMap(Map<String, HighlightField> highlightsMap) {
+        List<Highlight> highlights = new ArrayList<>();
+        for (Map.Entry<String, HighlightField> hf : highlightsMap.entrySet()) {
+            highlights.add(new Highlight(
+                    hf.getKey().replace(".analyzed", ""),
+                    String.join(" ", Arrays
+                            .stream(hf.getValue().getFragments())
+                            .map(Object::toString)
+                            .toList()))
+            );
+        }
+        return highlights;
+    }
+
     @Override
     public Paging<Resource> cqlQuery(String query, String resourceType) {
         return cqlQuery(query, resourceType, 100, 0, "", "ASC");
@@ -377,6 +462,11 @@ public class ElasticSearchService implements SearchService {
         filter.setResourceType(resourceType);
         filter.setKeyword(keyword);
         return buildSearch(filter);
+    }
+
+    @Override
+    public Paging<HighlightedResult<Resource>> searchWithHighlights(FacetFilter filter) {
+        return buildSearchWithHighlights(filter);
     }
 
     @Override
