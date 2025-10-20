@@ -50,7 +50,7 @@ public class DumpController {
                 }
             }
         }
-        return (directory.delete());
+        return Files.deleteIfExists(directory.toPath());
     }
 
 
@@ -62,7 +62,7 @@ public class DumpController {
             @RequestParam(value = "version", required = false, defaultValue = "false") String version,
             @RequestParam(value = "resourceTypes", required = false, defaultValue = "") String[] resourceTypes,
             HttpServletRequest request,
-            HttpServletResponse response) {
+            HttpServletResponse response) throws IOException {
 
         ServletContext context = request.getServletContext();
         String appPath = context.getRealPath("");
@@ -80,21 +80,8 @@ public class DumpController {
         if (schema.equals("true"))
             wantSchema = true;
 
-
         File downloadFile = null;
         downloadFile = dumpService.dump(isRaw, wantSchema, resourceTypes, wantVersion);
-
-        FileInputStream inputStream;
-        try {
-            inputStream = new FileInputStream(downloadFile);
-        } catch (FileNotFoundException e) {
-            try {
-                deleteDirectory(downloadFile);
-            } catch (IOException e1) {
-                throw new ServiceException(e1.getMessage());
-            }
-            throw new ServiceException(e.getMessage());
-        }
 
         // get MIME type of the file
         String mimeType = context.getMimeType(downloadFile.getAbsolutePath());
@@ -117,41 +104,24 @@ public class DumpController {
                 strDate);
         response.setHeader(headerKey, headerValue);
 
+        FileInputStream inputStream;
         // get output stream of the response
         OutputStream outStream;
         try {
+            inputStream = new FileInputStream(downloadFile);
             outStream = response.getOutputStream();
-        } catch (IOException e) {
-            try {
-                deleteDirectory(downloadFile);
-            } catch (IOException e1) {
-                throw new ServiceException(e1.getMessage());
-            }
-            throw new ServiceException(e.getMessage());
-        }
+            byte[] buffer = new byte[4096];
+            int bytesRead = -1;
 
-        byte[] buffer = new byte[4096];
-        int bytesRead = -1;
-
-        // write bytes read from the input stream into the output stream
-        try {
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 outStream.write(buffer, 0, bytesRead);
             }
-        } catch (IOException e) {
-            throw new ServiceException(e.getMessage());
-        }
-
-        try {
             inputStream.close();
             outStream.close();
         } catch (IOException e) {
-            throw new ServiceException(e.getMessage());
-        }
-        try {
+            throw new ServiceException(e.getMessage(), e);
+        } finally {
             deleteDirectory(downloadFile);
-        } catch (IOException e1) {
-            throw new ServiceException(e1.getMessage());
         }
     }
 }

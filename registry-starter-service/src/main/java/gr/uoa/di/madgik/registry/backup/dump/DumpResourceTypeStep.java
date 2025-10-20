@@ -37,10 +37,12 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
 
 @Component
 @StepScope
@@ -72,8 +74,8 @@ public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
             today.set(Calendar.HOUR_OF_DAY, 0);
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd");
             masterDirectory = Files.createTempDirectory(dateFormat.format(today.getTime()));
-        } catch (IOException e1) {
-            throw new ServiceException(e1.getMessage());
+        } catch (IOException e) {
+            throw new ServiceException(e.getMessage());
         }
 
         return masterDirectory;
@@ -103,16 +105,20 @@ public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
         if (resourceTypeNames.isEmpty())
             return RepeatStatus.FINISHED;
         String resourceTypeName = resourceTypeNames.remove(0);
-        Path resourceTypePath = Files.createDirectory(Paths.get(masterDirectory.toString(), resourceTypeName));
+        Path resourceTypePath = masterDirectory.resolve(resourceTypeName);
+        Files.createDirectories(resourceTypePath);
         logger.info("Saving {}", resourceTypeName);
         ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
         stepResourceTypes.add(resourceTypeName);
         if (!saveSchema)
             return RepeatStatus.CONTINUABLE;
         resourceType.setSchema(resourceType.getSchema());
-        Path tempFile = Paths.get(resourceTypePath.toString(), FILENAME_FOR_SCHEMA);
+        Path tempFile = resourceTypePath.resolve(FILENAME_FOR_SCHEMA);
         Files.write(tempFile, mapper.writeValueAsBytes(resourceType),
-                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE
+        );
         return RepeatStatus.CONTINUABLE;
     }
 

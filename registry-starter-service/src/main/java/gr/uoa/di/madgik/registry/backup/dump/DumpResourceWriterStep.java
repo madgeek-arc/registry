@@ -32,7 +32,6 @@ import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -103,28 +102,35 @@ public class DumpResourceWriterStep implements ItemWriter<Resource>, StepExecuti
         String extension = ".json";
         if (raw)
             extension = "." + resource.getPayloadFormat();
-        File openFile = new File(resourceTypeDirectory.toFile(), resource.getId() + extension);
+        Path path = resourceTypeDirectory.resolve(resource.getId() + extension);
+        Files.createDirectories(path.getParent());
         resource.setIndexedFields(null);
+        byte[] data;
         if (raw) {
-            Files.write(openFile.toPath(), objectMapper.writeValueAsBytes(resource.getPayload()),
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            data = objectMapper.writeValueAsBytes(resource.getPayload());
         } else {
-            Files.write(openFile.toPath(), objectMapper.writeValueAsBytes(resource),
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            data = objectMapper.writeValueAsBytes(resource);
         }
+        Files.write(path, data,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE
+        );
     }
 
     private void storeVersions(Resource resource) throws IOException {
         if (resource.getVersions() == null || resource.getVersions().isEmpty())
             return;
-        File versionDir = new File(resourceTypeDirectory + "/" + resource.getId() + "-version");
-        if (!versionDir.exists()) {
-            Files.createDirectory(versionDir.toPath());
-        }
+        Path versionPath = resourceTypeDirectory.resolve(resource.getId() + "-version");
+        Files.createDirectories(versionPath);
+
         for (Version version : resource.getVersions()) {
-            File openFileVersion = new File(versionDir, version.getId() + ".json");
-            Files.write(openFileVersion.toPath(), objectMapper.writeValueAsBytes(version),
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            Path openFileVersion = versionPath.resolve(version.getId() + ".json");
+            Files.write(openFileVersion, objectMapper.writeValueAsBytes(version),
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.WRITE
+            );
         }
     }
 
