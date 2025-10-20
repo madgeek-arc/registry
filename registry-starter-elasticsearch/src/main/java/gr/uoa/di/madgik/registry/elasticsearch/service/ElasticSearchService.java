@@ -50,7 +50,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.xbib.cql.CQLParser;
 import org.xbib.cql.elasticsearch.ElasticsearchQueryGenerator;
 
@@ -84,12 +83,7 @@ public class ElasticSearchService implements SearchService {
     public BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
         if (!filter.getKeyword().isEmpty()) {
-            Set<String> textFields = new HashSet<>();
-            try {
-                textFields.addAll(getTextFields(filter.getResourceType()));
-            } catch (IOException ignore) {}
-            textFields.add("searchableArea");
-            textFields.add("payload");
+            Set<String> textFields = new HashSet<>(getTextFields(filter.getResourceType()));
             qBuilder.must(QueryBuilders.multiMatchQuery(filter.getKeyword(), textFields.toArray(new String[0])));
         } else {
             qBuilder.must(QueryBuilders.matchAllQuery());
@@ -110,19 +104,24 @@ public class ElasticSearchService implements SearchService {
         return qBuilder;
     }
 
-    private List<String> getTextFields(String indexName) throws IOException {
-        GetMappingsRequest request = new GetMappingsRequest().indices(indexName);
-        GetMappingsResponse response = elasticsearchClient.indices().getMapping(request, RequestOptions.DEFAULT);
+    private List<String> getTextFields(String indexName) {
+        try {
+            GetMappingsRequest request = new GetMappingsRequest().indices(indexName);
+            GetMappingsResponse response = elasticsearchClient.indices().getMapping(request, RequestOptions.DEFAULT);
 
-        ImmutableOpenMap<String, MappingMetadata> mappingMetaData = response.mappings().get(indexName);
-        if (mappingMetaData == null) {
-            return Collections.emptyList();
+            ImmutableOpenMap<String, MappingMetadata> mappingMetaData = response.mappings().get(indexName);
+            if (mappingMetaData == null) {
+                return Collections.emptyList();
+            }
+
+            Map<String, Object> mapping = mappingMetaData.get("_doc").getSourceAsMap();
+            Map<String, Object> properties = (Map<String, Object>) mapping.get("properties");
+
+            return findTextFields(properties, "");
+        } catch (IOException e) { // fallback to default fields
+            logger.warn("Reading resourceType '{}' fields from Elastic failed, using 'searchableArea' and 'payload' instead.", indexName, e);
+            return List.of("searchableArea", "payload");
         }
-
-        Map<String, Object> mapping = mappingMetaData.get("_doc").getSourceAsMap();
-        Map<String, Object> properties = (Map<String, Object>) mapping.get("properties");
-
-        return findTextFields(properties, "");
     }
 
     private List<String> findTextFields(Map<String, Object> properties, String pathPrefix) {
@@ -160,7 +159,6 @@ public class ElasticSearchService implements SearchService {
 
         return result;
     }
-
 
     private Map<String, List<Resource>> buildTopHitAggregation(FacetFilter filter, String category) {
         Map<String, List<Resource>> results;
@@ -258,7 +256,6 @@ public class ElasticSearchService implements SearchService {
         facet.setValues(values);
         return facet;
     }
-
 
     public Paging<Resource> cqlQuery(FacetFilter filter) {
         validateQuantity(filter.getQuantity());
