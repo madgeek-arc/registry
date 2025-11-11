@@ -47,11 +47,6 @@
             <artifactId>spring-retry</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.everit.json</groupId>
-            <artifactId>org.everit.json.schema</artifactId>
-        </dependency>
-
         <!-- Hibernate -->
         <dependency>
             <groupId>org.hibernate.orm</groupId>

@@ -31,6 +31,7 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.text.Text;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -221,7 +222,7 @@ public class ElasticSearchService implements SearchService {
                 .explain(false);
 
         HighlightBuilder hb = new HighlightBuilder();
-        hb.field("*.analyzed").fragmentSize(60).numOfFragments(0);
+        hb.field("*.analyzed").fragmentSize(2000).numOfFragments(5);
         hb.order("score");
         searchSourceBuilder.highlighter(hb);
 
@@ -295,11 +296,11 @@ public class ElasticSearchService implements SearchService {
         return facet;
     }
 
-    public Paging<Resource> cqlQuery(FacetFilter filter) {
+    public Paging<Resource> cqlQuery(FacetFilter filter) throws IOException {
         validateQuantity(filter.getQuantity());
         CQLParser parser = new CQLParser(filter.getKeyword());
         parser.parse();
-        ElasticsearchQueryGenerator generator = new ElasticsearchQueryGenerator();
+        ElasticsearchQueryGenerator generator = new ElasticsearchQueryGenerator(null);
 
         parser.getCQLQuery().accept(generator);
 
@@ -342,7 +343,12 @@ public class ElasticSearchService implements SearchService {
         validateQuantity(quantity);
         CQLParser parser = new CQLParser(query);
         parser.parse();
-        ElasticsearchQueryGenerator generator = new ElasticsearchQueryGenerator();
+        ElasticsearchQueryGenerator generator = null;
+        try {
+            generator = new ElasticsearchQueryGenerator(null);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         parser.getCQLQuery().accept(generator);
 
@@ -435,13 +441,10 @@ public class ElasticSearchService implements SearchService {
     private List<Highlight> getHighlightsFromMap(Map<String, HighlightField> highlightsMap) {
         List<Highlight> highlights = new ArrayList<>();
         for (Map.Entry<String, HighlightField> hf : highlightsMap.entrySet()) {
-            highlights.add(new Highlight(
-                    hf.getKey().replace(".analyzed", ""),
-                    String.join(" ", Arrays
-                            .stream(hf.getValue().getFragments())
-                            .map(Object::toString)
-                            .toList()))
-            );
+            String key = hf.getKey().replace(".analyzed", "");
+            for (Text highlight : hf.getValue().fragments()) {
+                highlights.add(new Highlight(key, highlight.toString()));
+            }
         }
         return highlights;
     }

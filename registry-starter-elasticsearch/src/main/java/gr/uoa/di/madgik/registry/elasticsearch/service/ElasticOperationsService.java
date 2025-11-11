@@ -39,7 +39,6 @@ import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.CreateIndexResponse;
 import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.xcontent.XContentType;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.retry.annotation.Backoff;
@@ -115,7 +114,7 @@ public class ElasticOperationsService implements IndexOperationsService {
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void add(Resource resource) {
-        String payload = createDocumentForInsert(resource);
+        Map<String, Object> payload = createDocumentForInsert(resource);
 
         IndexRequest indexRequest = new IndexRequest(resource.getResourceType().getName());
         indexRequest.id(resource.getId());
@@ -183,11 +182,6 @@ public class ElasticOperationsService implements IndexOperationsService {
         }
 
         Map<String, Object> jsonObjectForMapping = createMapping(resourceType.getIndexFields());
-
-        JSONObject parameters = new JSONObject(jsonObjectForMapping);
-        if (logger.isDebugEnabled()) {
-            logger.debug("\n{}", parameters.toString(2));
-        }
 
         request.mapping(jsonObjectForMapping);
 
@@ -267,9 +261,9 @@ public class ElasticOperationsService implements IndexOperationsService {
 
     }
 
-    private String createDocumentForInsert(Resource resource) {
+    private Map<String, Object> createDocumentForInsert(Resource resource) {
 
-        JSONObject jsonObjectField = new JSONObject();
+        Map<String, Object> jsonObjectField = new LinkedHashMap<>();
         jsonObjectField.put("id", resource.getId());
         jsonObjectField.put("resourceType", resource.getResourceType().getName());
         jsonObjectField.put("payload", resource.getPayload());
@@ -312,6 +306,6 @@ public class ElasticOperationsService implements IndexOperationsService {
                 }
             }
         }
-        return jsonObjectField.toString();
+        return jsonObjectField;
     }
 }

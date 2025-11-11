@@ -19,11 +19,13 @@ package gr.uoa.di.madgik.registry.dao;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Schema;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import gr.uoa.di.madgik.registry.validation.SchemaInput;
 import org.apache.commons.io.IOUtils;
+import org.everit.json.schema.EmptySchema;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -113,7 +115,12 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
 
     @Override
     public org.everit.json.schema.Schema loadJSONSchema(ResourceType resourceType) {
-        return this.schemaJSONLoader.getUnchecked(resourceType.getName());
+        try {
+            return this.schemaJSONLoader.getUnchecked(resourceType.getName());
+        } catch (UncheckedExecutionException e) {
+            logger.warn("Failed to load JSON schema for resource type: {}", resourceType.getName(), e);
+            return EmptySchema.INSTANCE;
+        }
     }
 
     @Override

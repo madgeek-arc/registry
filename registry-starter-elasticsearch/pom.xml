@@ -31,7 +31,13 @@
         <dependency>
             <groupId>org.xbib</groupId>
             <artifactId>cql-elasticsearch</artifactId>
-            <version>1.1.1</version>
+            <version>5.1.1</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.xbib</groupId>
+                    <artifactId>datastructures-json-tiny</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
@@ -50,6 +56,10 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
         </dependency>
     </dependencies>
 

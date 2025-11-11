@@ -4,8 +4,8 @@
 
     <parent>
         <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-parent</artifactId>
-        <version>3.4.5</version>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.7</version>
     </parent>
 
     <groupId>gr.uoa.di.madgik</groupId>
@@ -23,6 +23,7 @@
 
     <properties>
         <java.version>21</java.version>
+        <owasp-dependency-check-plugin.version>12.1.9</owasp-dependency-check-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>${project.parent.version}</spring-boot.version>
         <logging.version>2.23.1</logging.version>
@@ -45,14 +46,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>3.4.5</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
             <dependency>
                 <groupId>gr.uoa.di.madgik</groupId>
                 <artifactId>registry-core-api</artifactId>
@@ -118,15 +111,22 @@
             </dependency>
 
             <dependency>
-                <groupId>org.everit.json</groupId>
-                <artifactId>org.everit.json.schema</artifactId>
-                <version>1.5.1</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>commons-logging</groupId>
-                        <artifactId>commons-logging</artifactId>
-                    </exclusion>
-                </exclusions>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>33.3.1-jre</version>
+                <scope>compile</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.erosb</groupId>
+                <artifactId>everit-json-schema</artifactId>
+                <version>1.14.6</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-fileupload</groupId>
+                <artifactId>commons-fileupload</artifactId>
+                <version>1.6.0</version>
             </dependency>
 
             <dependency>
@@ -297,6 +297,26 @@
                 <configuration>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
                     <scmCommentPrefix>chore(release): </scmCommentPrefix>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>${owasp-dependency-check-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <failBuildOnCVSS>7.6</failBuildOnCVSS>
+                    <formats>
+                        <format>JSON</format>
+                        <format>HTML</format>
+                    </formats>
+                    <prettyPrint>true</prettyPrint>
                 </configuration>
             </plugin>
         </plugins>
