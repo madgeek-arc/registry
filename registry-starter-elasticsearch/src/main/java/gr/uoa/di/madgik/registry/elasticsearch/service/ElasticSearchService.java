@@ -418,6 +418,7 @@ public class ElasticSearchService implements SearchService {
                             Resource res = mapper.readValue(r.getSourceAsString(), Resource.class);
                             res.setResourceTypeName(r.getIndex());
                             hr.setResult(res);
+                            hr.setScore(r.getScore());
                             return hr;
                         } catch (IOException e) {
                             throw new ServiceException(e.getMessage());
