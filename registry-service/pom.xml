@@ -4,7 +4,7 @@
     <parent>
         <groupId>gr.uoa.di.madgik</groupId>
         <artifactId>registry</artifactId>
-        <version>4.1.0</version>
+        <version>4.1.1-SNAPSHOT</version>
     </parent>
     <artifactId>registry-service</artifactId>
     <packaging>jar</packaging>
