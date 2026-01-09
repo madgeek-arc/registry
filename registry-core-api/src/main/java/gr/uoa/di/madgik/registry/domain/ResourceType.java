@@ -73,7 +73,7 @@ public class ResourceType implements Serializable {
     @Column
     private String aliasGroup;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
 //    @CollectionTable(name = "resourcetype_aliases", joinColumns = @JoinColumn(name = "resourcetype_name"))
     @Column(name = "aliases")
     private Set<String> aliases = new HashSet<>();
@@ -86,7 +86,7 @@ public class ResourceType implements Serializable {
     @JsonIgnore
     private List<Version> versions;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     private Map<String, String> properties = new HashMap<>();
 
     public ResourceType() {
