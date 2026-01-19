@@ -123,7 +123,6 @@ public class ResourceServiceImpl implements ResourceService {
         Boolean response = checkValid(resource);
         if (response) {
             resource.setId(UUID.randomUUID().toString());
-            resource.setVersion(generateVersion());
             try {
                 resource.setIndexedFields(getIndexedFields(resource));
 
@@ -161,7 +160,6 @@ public class ResourceServiceImpl implements ResourceService {
         }
         Boolean response = checkValid(resource);
         if (response) {
-            resource.setVersion(generateVersion());
             resourceDao.updateResource(resource);
         }
 
@@ -188,7 +186,6 @@ public class ResourceServiceImpl implements ResourceService {
         if (!response)
             throw new ServiceException("Failed to validate resource with the new resource type");
 
-        resource.setVersion(generateVersion());
         try {
             resource.setIndexedFields(getIndexedFields(resource));
 
@@ -260,12 +257,6 @@ public class ResourceServiceImpl implements ResourceService {
         }
 
         return true;
-    }
-
-    private String generateVersion() {
-        // FIX: replace "MMddyyyyHHmmss" version format with UUID to tackle duplicate versions issue.
-        // (millisecond-apart updates on the same resource leads to duplicated versions)
-        return UUID.randomUUID().toString();
     }
 }
 
