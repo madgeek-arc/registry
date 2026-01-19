@@ -24,10 +24,7 @@ import jakarta.validation.constraints.Size;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Entity
 @Table(name = "Resource")
@@ -203,8 +200,9 @@ public class Resource {
     }
 
     private String generateVersion() {
-        DateFormat df = new SimpleDateFormat("MMddyyyyHHmmss");
-        return df.format(Calendar.getInstance().getTime());
+        // FIX: replace "MMddyyyyHHmmss" version format with UUID to tackle duplicate versions issue.
+        // (millisecond-apart updates on the same resource leads to duplicated versions)
+        return UUID.randomUUID().toString();
     }
 
     public String getResourceTypeName() {
