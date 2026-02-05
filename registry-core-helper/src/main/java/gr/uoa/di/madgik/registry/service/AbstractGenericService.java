@@ -109,17 +109,17 @@ public abstract class AbstractGenericService<T> {
 
 
     protected List<String> getBrowseBy() {
-        return resourceTypeInfo.getBrowseBy();
+        return resourceTypeInfo.getBrowseBy().stream().toList();
     }
 
     public void setBrowseBy(List<String> browseBy) {
-        resourceTypeInfo.setBrowseBy(browseBy);
+        resourceTypeInfo.setBrowseBy(new LinkedHashSet<>(browseBy));
     }
 
     private class ResourceTypeInfo {
 
         private ResourceType resourceType;
-        private List<String> browseBy;
+        private LinkedHashSet<String> browseBy;
         private Map<String, String> labels;
 
         private ResourceTypeInfo() {
@@ -128,7 +128,7 @@ public abstract class AbstractGenericService<T> {
         public void init() {
             if (resourceType == null) {
                 resourceType = resourceTypeService.getResourceType(getResourceTypeName());
-                Set<String> browseSet = new HashSet<>();
+                LinkedHashSet<String> browseSet = new LinkedHashSet<>();
                 Map<String, Set<String>> sets = new HashMap<>();
                 labels = new HashMap<>();
                 labels.put("resourceType", "Resource Type");
@@ -148,7 +148,7 @@ public abstract class AbstractGenericService<T> {
                         browseSet.retainAll(entry.getValue());
                     }
                 }
-                browseBy = new ArrayList<>();
+                browseBy = new LinkedHashSet<>();
                 browseBy.addAll(browseSet);
                 browseBy.add("resourceType");
             }
@@ -159,12 +159,12 @@ public abstract class AbstractGenericService<T> {
             return resourceType;
         }
 
-        public List<String> getBrowseBy() {
+        public LinkedHashSet<String> getBrowseBy() {
             init();
             return browseBy;
         }
 
-        public void setBrowseBy(List<String> browseBy) {
+        public void setBrowseBy(LinkedHashSet<String> browseBy) {
             init();
             this.browseBy = browseBy;
         }
