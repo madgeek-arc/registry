@@ -38,6 +38,18 @@ public interface SearchService {
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Paging<Resource> search(FacetFilter filter) throws ServiceException;
 
+    /**
+     * Recommends resources that are similar to the resource identified by the given {@code resourceIdAndValue},
+     * further constrained by the provided {@code filter}.
+     *
+     * @param filter the additional filter criteria to apply
+     * @param resourceIdAndValue the (field, value) pair used to resolve the reference resource for similarity matching
+     * @return a list of recommended resources
+     * @throws ServiceException if the reference resource cannot be retrieved or the recommendation query fails
+     */
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    List<Resource> recommend(FacetFilter filter, KeyValue resourceIdAndValue) throws ServiceException;
+
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException;
 

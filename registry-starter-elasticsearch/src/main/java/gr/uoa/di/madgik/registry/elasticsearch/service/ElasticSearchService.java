@@ -17,11 +17,13 @@
 package gr.uoa.di.madgik.registry.elasticsearch.service;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
+import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.search.SearchRequest;
@@ -34,6 +36,8 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.text.Text;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.script.Script;
+import org.elasticsearch.script.ScriptType;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
@@ -47,6 +51,8 @@ import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -66,6 +72,7 @@ public class ElasticSearchService implements SearchService {
     private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "payloadFormat", "version"};
 
     private final RestHighLevelClient elasticsearchClient;
+    private final EmbeddingModel embeddingModel;
     private final ObjectMapper mapper;
     @Value("${elastic.aggregation.topHitsSize:100}")
     private int topHitsSize;
@@ -74,17 +81,42 @@ public class ElasticSearchService implements SearchService {
     @Value("${elastic.index.max_result_window:10000}")
     private int maxQuantity;
 
-    public ElasticSearchService(RestHighLevelClient elasticsearchClient) {
+
+    public ElasticSearchService(RestHighLevelClient elasticsearchClient, EmbeddingModel embeddingModel) {
         mapper = new ObjectMapper();
         mapper.setPropertyNamingStrategy(new ResourcePropertyName());
         this.elasticsearchClient = elasticsearchClient;
+        this.embeddingModel = embeddingModel;
+    }
+
+    /**
+     * Custom painless script to perform cosine similarity in ElasticSearch version 7.x.x
+     *
+     * @param queryVector the embedding vector
+     * @return {@link Script}
+     */
+    public static Script cosineScriptScoreQuery(float[] queryVector) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("q", queryVector);
+
+        return new Script(
+                ScriptType.INLINE,
+                "painless",
+                "cosineSimilarity(params.q, doc['embedding']) + 1.0",
+                params
+        );
     }
 
     public BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
         if (!filter.getKeyword().isEmpty()) {
             Set<String> textFields = new HashSet<>(getTextFields(filter.getResourceType()));
-            qBuilder.must(QueryBuilders.multiMatchQuery(filter.getKeyword(), textFields.toArray(new String[0])));
+            qBuilder.must(
+                    QueryBuilders.scriptScoreQuery(
+                            QueryBuilders.multiMatchQuery(filter.getKeyword(), textFields.toArray(new String[0])),
+                            cosineScriptScoreQuery(embeddingModel.embed(filter.getKeyword()))
+                    )
+            );
         } else {
             qBuilder.must(QueryBuilders.matchAllQuery());
         }
@@ -461,6 +493,111 @@ public class ElasticSearchService implements SearchService {
     }
 
     @Override
+    public List<Resource> recommend(FacetFilter filter, KeyValue resourceIdAndValue) {
+        int quantity = filter.getQuantity();
+        validateQuantity(quantity);
+        BoolQueryBuilder qBuilder = createRecommendationQuery(filter.getResourceType(), resourceIdAndValue);
+
+        if (!filter.getKeyword().isEmpty()) {
+            Set<String> textFields = new HashSet<>(getTextFields(filter.getResourceType()));
+            qBuilder.must(QueryBuilders.multiMatchQuery(filter.getKeyword(), textFields.toArray(new String[0])));
+        }
+
+        for (Map.Entry<String, Object> filterSet : filter.getFilter().entrySet()) {
+            // Check if Filter value is a Collection, and create should matches for every value in the collection.
+            BoolQueryBuilder internalBuilder = new BoolQueryBuilder();
+            if (Collection.class.isAssignableFrom(filterSet.getValue().getClass())) {
+                for (Object value : ((Collection) filterSet.getValue())) {
+                    internalBuilder.should(QueryBuilders.matchQuery(filterSet.getKey(), value));
+                }
+                internalBuilder.minimumShouldMatch(1);
+            } else {
+                internalBuilder.must(QueryBuilders.termQuery(filterSet.getKey(), filterSet.getValue()));
+            }
+            qBuilder.must(internalBuilder);
+        }
+        logger.debug("Search query: " + qBuilder + " in the index " + filter.getResourceType());
+
+        SearchRequest search = new SearchRequest(filter.getResourceType()).
+                searchType(SearchType.DFS_QUERY_THEN_FETCH);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(qBuilder)
+                .fetchSource(INCLUDES, null)
+                .from(filter.getFrom()).size(quantity).explain(false);
+        search.source(searchSourceBuilder);
+
+        SearchResponse response = null;
+        try {
+            response = elasticsearchClient.search(search, RequestOptions.DEFAULT);
+            return StreamSupport
+                    .stream(response.getHits().spliterator(), true)
+                    .map(r -> {
+                        try {
+                            Resource res = mapper.readValue(r.getSourceAsString(), Resource.class);
+                            res.setResourceTypeName(r.getIndex());
+                            return res;
+                        } catch (IOException e) {
+                            throw new ServiceException(e.getMessage());
+                        }
+
+                    })
+                    .toList();
+        } catch (IOException e) {
+            throw new ServiceException(e.getMessage());
+        }
+    }
+
+    /**
+     * Creates a {@link BoolQueryBuilder} that matches documents similar to the given reference document.
+     * Similarity is computed using cosine similarity on the {@code embedding} field.
+     *
+     * @param resourceType          the resourceType to search over
+     * @param resourceIdAndValue    a {@link KeyValue} pair containing the identifier field and value of the
+     *                              reference document used for similarity matching
+     * @return {@link BoolQueryBuilder}
+     * @throws ServiceException if the reference resource cannot be retrieved
+     */
+    private BoolQueryBuilder createRecommendationQuery(String resourceType, KeyValue resourceIdAndValue) {
+        float[] embedding;
+        BoolQueryBuilder qBuilder = new BoolQueryBuilder();
+        //iterate all key values and add them to the elastic query
+        qBuilder.must(QueryBuilders.termsQuery(resourceIdAndValue.getField(), resourceIdAndValue.getValue()));
+        logger.debug("Search query: " + qBuilder + " in the index " + resourceType);
+
+        SearchRequest searchRequest = new SearchRequest(resourceType);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.fetchSource(false);
+        searchSourceBuilder.fetchField("embedding");
+        searchSourceBuilder.query(qBuilder)
+                .size(1).explain(false);
+
+        searchRequest.source(searchSourceBuilder);
+
+        try {
+            SearchResponse searchResponse = elasticsearchClient.search(searchRequest, RequestOptions.DEFAULT);
+            SearchHits ss = searchResponse.getHits();
+            Optional<SearchHit> hit = Optional.ofNullable(ss.getTotalHits().value == 0 ? null : ss.getAt(0));
+            if (hit.isEmpty()) {
+                throw new ResourceNotFoundException("Could not find resource");
+            }
+            embedding = mapper.convertValue(hit.get().getFields().get("embedding").getValues(), new TypeReference<>() {
+            });
+
+            BoolQueryBuilder queryBuilder = new BoolQueryBuilder();
+
+            queryBuilder.must(
+                    QueryBuilders.scriptScoreQuery(
+                            QueryBuilders.matchAllQuery(),
+                            cosineScriptScoreQuery(embedding))
+            );
+            return queryBuilder;
+
+        } catch (IOException e) {
+            throw new ServiceException("Failed to retrieve ES document", e.getMessage());
+        }
+    }
+
+    @Override
     public Paging<Resource> searchKeyword(String resourceType, String keyword) {
         FacetFilter filter = new FacetFilter();
         filter.setResourceType(resourceType);
@@ -482,6 +619,7 @@ public class ElasticSearchService implements SearchService {
         Arrays.stream(fields)
                 .map(kv -> QueryBuilders.termsQuery(kv.getField(), kv.getValue()))
                 .forEach(qBuilder::must);
+        logger.debug("Search query: " + qBuilder + " in the index " + resourceType);
 
         SearchRequest searchRequest = new SearchRequest(resourceType);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -491,7 +629,7 @@ public class ElasticSearchService implements SearchService {
                 .size(1).explain(false);
 
         searchRequest.source(searchSourceBuilder);
-        logger.debug("Search query: " + qBuilder + "in index " + resourceType);
+
         try {
             SearchResponse searchResponse = elasticsearchClient.search(searchRequest, RequestOptions.DEFAULT);
             SearchHits ss = searchResponse.getHits();

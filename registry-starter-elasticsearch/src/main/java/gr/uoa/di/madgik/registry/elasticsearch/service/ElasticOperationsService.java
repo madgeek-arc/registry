@@ -1,12 +1,12 @@
 /**
  * Copyright 2018-2025 OpenAIRE AMKE & Athena Research and Innovation Center
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * https://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,6 +16,8 @@
 
 package gr.uoa.di.madgik.registry.elasticsearch.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
@@ -41,11 +43,13 @@ import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.xcontent.XContentType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -63,19 +67,27 @@ public class ElasticOperationsService implements IndexOperationsService {
         classToTypeMap.put("java.lang.Long", "long");
         classToTypeMap.put("java.lang.String", "keyword");
         classToTypeMap.put("java.util.Date", "date");
+        classToTypeMap.put("java.time.Instant", "date");
+        classToTypeMap.put("embedding", "dense_vector");
         FIELD_TYPES_MAP = Collections.unmodifiableMap(classToTypeMap);
     }
 
     private static final Map<String, Object> TYPE_MAP = Map.of("type", "keyword");
     private static final Map<String, Object> DATE_MAP = Map.of("type", "date", "format", "epoch_millis");
     private static final Map<String, Object> TEXT_MAP = Map.of("type", "text");
+    private static final Map<String, Object> DENSE_VECTOR_MAP = Map.of("type", "dense_vector", "dims", 384);
 
     private final ResourceTypeService resourceTypeService;
     private final RestHighLevelClient client;
+    private final EmbeddingModel embeddingModel;
+    private final ObjectMapper objectMapper;
 
-    public ElasticOperationsService(ResourceTypeService resourceTypeService, RestHighLevelClient client) {
+    public ElasticOperationsService(ResourceTypeService resourceTypeService, RestHighLevelClient client,
+                                    EmbeddingModel embeddingModel, ObjectMapper objectMapper) {
         this.resourceTypeService = resourceTypeService;
         this.client = client;
+        this.embeddingModel = embeddingModel;
+        this.objectMapper = objectMapper;
     }
 
     private static String strip(String input, String format) {
@@ -236,12 +248,10 @@ public class ElasticOperationsService implements IndexOperationsService {
             for (IndexField indexField : indexFields) {
                 Map<String, Object> typeMap = new HashMap<>();
                 typeMap.put("type", FIELD_TYPES_MAP.get(indexField.getType()));
-                if (indexField.getType().equals("java.util.Date"))
-                    typeMap.put("format", "epoch_millis");
-                if (indexField.getType().equals("java.lang.String")) {
-                    Map<String, Object> rawMap = new HashMap<>();
-                    rawMap.put("analyzed", TEXT_MAP);
-                    typeMap.put("fields", rawMap);
+                switch (indexField.getType()) {
+                    case "java.util.Date", "java.time.Instant" -> typeMap.put("format", "epoch_millis");
+                    case "java.lang.String" -> typeMap.put("fields", Map.of("analyzed", TEXT_MAP));
+                    case "embedding" -> typeMap.put("dims", 384);
                 }
                 jsonObjectProperties.put(indexField.getName(), typeMap);
             }
@@ -255,8 +265,10 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectProperties.put("resourceType", TYPE_MAP);
         jsonObjectProperties.put("creation_date", DATE_MAP);
         jsonObjectProperties.put("modification_date", DATE_MAP);
+        jsonObjectProperties.put("embedding", DENSE_VECTOR_MAP);
 
         jsonObjectGeneral.put("properties", jsonObjectProperties);
+//        jsonObjectGeneral.put("_source", Map.of("excludes", List.of("embedding"))); // TODO: enable on ES v8
         return jsonObjectGeneral;
 
     }
@@ -279,33 +291,57 @@ public class ElasticOperationsService implements IndexOperationsService {
                         resource.getResourceType().getName()).
                 stream().collect(Collectors.toMap(IndexField::getName, p -> p)
                 );
+        Map<IndexField, List<String>> embeddings = new LinkedHashMap<>();
         if (resource.getIndexedFields() != null) {
             for (IndexedField<?> field : resource.getIndexedFields()) {
+                IndexField rtif = indexMap.get(field.getName());
                 if (!indexMap.get(field.getName()).isMultivalued()) {
                     for (Object value : field.getValues()) {
-                        String fieldType = indexMap.get(field.getName()).getType();
-                        if (fieldType.equals("java.lang.String")) {
-                            jsonObjectField.put(field.getName(), value);
-                        } else if (fieldType.equals("java.lang.Integer")) {
-                            jsonObjectField.put(field.getName(), value);
-                        } else if (fieldType.equals("java.lang.Long")) {
-                            jsonObjectField.put(field.getName(), value);
-                        } else if (fieldType.equals("java.lang.Float")) {
-                            jsonObjectField.put(field.getName(), value);
-                        } else if (fieldType.equals("java.util.Date")) {
-                            Date date = (Date) value;
-                            jsonObjectField.put(field.getName(), date.getTime());
-                        } else if (fieldType.equals("java.lang.Boolean")) {
-                            jsonObjectField.put(field.getName(), value);
+
+                        String fieldType = rtif.getType();
+                        switch (fieldType) {
+                            case "java.util.Date" -> {
+                                Date date = (Date) value;
+                                jsonObjectField.put(field.getName(), date.getTime());
+                            }
+                            case "java.time.Instant" -> {
+                                Instant instant = (Instant) value;
+                                jsonObjectField.put(field.getName(), instant.toEpochMilli());
+                            }
+                            default -> jsonObjectField.put(field.getName(), value);
                         }
+                        embeddings.put(rtif, List.of(objectMapper.convertValue(value, String.class)));
                     }
                 } else {
                     List<Object> values = new ArrayList<>(field.getValues());
                     jsonObjectField.put(field.getName(), values);
-
+                    if (!values.isEmpty()) {
+                        embeddings.put(rtif, objectMapper.convertValue(values, new TypeReference<List<String>>() {
+                        }));
+                    }
                 }
             }
         }
+        jsonObjectField.put("embedding", createEmbedding(embeddings));
         return jsonObjectField;
+    }
+
+    /**
+     * Creates an embedding vector for the resource based on its information.
+     * Synthesizes the {@code embeddings} to a {@link String} and uses it to create an embedding vector.
+     *
+     * @param embeddings a Map of {@link IndexField fields} and their {@link List<String> values} which will be used to
+     *                   create an embedding for this the resource
+     * @return
+     */
+    private float[] createEmbedding(Map<IndexField, List<String>> embeddings) {
+        String embeddingText = embeddings.entrySet()
+                .stream()
+                .map(e -> "%s: %s".formatted(e.getKey().getLabel(), e.getValue().stream()
+                        .map(v -> objectMapper.convertValue(v, String.class))
+                        .collect(Collectors.joining(",")))
+                )
+                .collect(Collectors.joining("\n"));
+        return embeddingModel.embed(embeddingText);
     }
 }

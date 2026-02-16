@@ -16,6 +16,7 @@
 
 package gr.uoa.di.madgik.registry_starter.autoconfigure;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.elasticsearch.IndexDbSync;
 import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceListener;
 import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceTypeListener;
@@ -35,6 +36,7 @@ import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchProperties;
@@ -88,8 +90,9 @@ public class ElasticAutoConfiguration {
 
     @Bean
     @Primary
-    IndexOperationsService indexOperationsService(ResourceTypeService resourceTypeService, RestHighLevelClient client) {
-        return new ElasticOperationsService(resourceTypeService, client);
+    IndexOperationsService indexOperationsService(ResourceTypeService resourceTypeService, RestHighLevelClient client,
+                                                  ObjectMapper objectMapper, EmbeddingModel embeddingModel) {
+        return new ElasticOperationsService(resourceTypeService, client, embeddingModel, objectMapper);
     }
 
     @Bean
@@ -105,8 +108,8 @@ public class ElasticAutoConfiguration {
     @Bean
     @Primary
     @Order(Ordered.HIGHEST_PRECEDENCE)
-    SearchService elasticSearchService(RestHighLevelClient client) {
-        ElasticSearchService service = new ElasticSearchService(client);
+    SearchService elasticSearchService(RestHighLevelClient client, EmbeddingModel embeddingModel) {
+        ElasticSearchService service = new ElasticSearchService(client, embeddingModel);
         return service;
     }
 }

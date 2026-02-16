@@ -135,6 +135,11 @@ public class DefaultSearchService implements SearchService {
         return new Paging<>(total, filter.getFrom(), filter.getFrom() + filter.getQuantity(), resources, createFacets(filter.getBrowseBy()));
     }
 
+    @Override
+    public List<Resource> recommend(FacetFilter filter, KeyValue idValue) throws ServiceException {
+        throw new UnsupportedOperationException("Method not implemented");
+    }
+
     private List<Facet> createFacets(List<String> browseBy) {
         List<Facet> facets = new ArrayList<>();
         if (browseBy != null && !browseBy.isEmpty()) {

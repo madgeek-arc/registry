@@ -138,6 +138,11 @@ public class ClientSearchService implements SearchService {
     }
 
     @Override
+    public List<Resource> recommend(FacetFilter filter, KeyValue idValue) throws ServiceException {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @Override
     public Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(registryHost + "/search/" + resourceType)
                 .queryParam("keyword", keyword);
