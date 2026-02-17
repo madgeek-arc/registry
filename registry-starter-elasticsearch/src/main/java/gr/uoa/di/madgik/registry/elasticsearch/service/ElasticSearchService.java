@@ -585,6 +585,12 @@ public class ElasticSearchService implements SearchService {
 
             BoolQueryBuilder queryBuilder = new BoolQueryBuilder();
 
+            // excludes the reference resource from the results
+            queryBuilder.mustNot(
+                    QueryBuilders.termsQuery(resourceIdAndValue.getField(), resourceIdAndValue.getValue())
+            );
+
+            // performs cosine similarity check for similar resources
             queryBuilder.must(
                     QueryBuilders.scriptScoreQuery(
                             QueryBuilders.matchAllQuery(),
