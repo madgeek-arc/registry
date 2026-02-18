@@ -16,7 +16,10 @@
 
 package gr.uoa.di.madgik.registry_starter.autoconfigure;
 
+import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.transformers.TransformersEmbeddingModel;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 
 @AutoConfiguration
@@ -25,6 +28,11 @@ import org.springframework.context.annotation.ComponentScan;
         "gr.uoa.di.madgik.registry.controllers"
 })
 public class RegistryServiceAutoConfiguration {
+
+    @Bean
+    public EmbeddingModel embeddingModel() {
+        return new TransformersEmbeddingModel();
+    }
 
 //    @Bean
 //    @ConditionalOnMissingBean(ResourceDao.class)
