@@ -24,8 +24,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 
@@ -33,6 +35,9 @@ import java.util.List;
 @Transactional
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class IndexFieldDaoImplTest {
+
+    @MockitoBean
+    EmbeddingModel embeddingModel;
 
     @Autowired
     IndexFieldDao indexFieldDao;

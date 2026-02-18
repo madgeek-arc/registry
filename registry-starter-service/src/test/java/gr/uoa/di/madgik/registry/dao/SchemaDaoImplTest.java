@@ -22,8 +22,10 @@ import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
 @Transactional
@@ -31,6 +33,9 @@ class SchemaDaoImplTest {
 
     public static final String TEST_SCHEMA_ID = "cccbd2ae2abfd0bb0d1c6c2216116ed1";
     public static final String TEST_MISSING_SCHEMA_ID = "not-existing-schema-id";
+
+    @MockitoBean
+    EmbeddingModel embeddingModel;
 
     @Autowired
     SchemaDao schemaDao;

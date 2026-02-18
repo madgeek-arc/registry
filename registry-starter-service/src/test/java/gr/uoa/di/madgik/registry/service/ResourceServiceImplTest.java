@@ -22,8 +22,10 @@ import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.*;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration.TEST_MISSING_RESOURCE_ID;
 import static gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration.TEST_RESOURCE_ID;
@@ -33,6 +35,9 @@ import static gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration.TEST
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ResourceServiceImplTest {
+
+    @MockitoBean
+    EmbeddingModel embeddingModel;
 
     @Autowired
     private ResourceService resourceService;

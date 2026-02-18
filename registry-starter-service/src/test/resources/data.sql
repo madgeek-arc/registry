@@ -135,37 +135,28 @@ VALUES (123128, 'Jodeee');
 -- Data for Name: indexfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
-VALUES ('first_name', NULL, 'first_name', false, '//*[local-name()=''author'']/text()', true, 'java.lang.String',
-        'employee');
-INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
-VALUES ('age', NULL, 'age', false, '//*[local-name()=''age'']/text()', false, 'java.lang.Integer', 'employee');
-INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
-VALUES ('single', NULL, 'single', false, '//*[local-name()=''single'']/text()', false, 'java.lang.Boolean', 'employee');
-INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
-VALUES ('birthday', NULL, 'birthday', false, '//*[local-name()=''birthday'']/text()', false, 'java.util.Date',
-        'employee');
-INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
-VALUES ('salary', NULL, 'salary', false, '//*[local-name()=''salary'']/text()', false, 'java.lang.Float', 'employee');
-INSERT INTO public.indexfield (name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
-VALUES ('amka', NULL, 'amka', false, '//*[local-name()=''amka'']/text()', false, 'java.lang.Long', 'employee');
+INSERT INTO public.indexfield
+(name, defaultvalue, label, multivalued, path, primarykey, type, resourcetype_name)
+VALUES
+('first_name', NULL, 'first_name', false, '//*[local-name()=''author'']/text()', true, 'java.lang.String', 'employee'),
+('age', NULL, 'age', false, '//*[local-name()=''age'']/text()', false, 'java.lang.Integer', 'employee'),
+('single', NULL, 'single', false, '//*[local-name()=''single'']/text()', false, 'java.lang.Boolean', 'employee'),
+('birthday', NULL, 'birthday', false, '//*[local-name()=''birthday'']/text()', false, 'java.util.Date','employee'),
+('salary', NULL, 'salary', false, '//*[local-name()=''salary'']/text()', false, 'java.lang.Float', 'employee'),
+('amka', NULL, 'amka', false, '//*[local-name()=''amka'']/text()', false, 'java.lang.Long', 'employee');
 
 --
 -- Data for Name: resourcetype_indexfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
 INSERT INTO public.resourcetype_indexfield (resourcetype_name, indexfields_resourcetype_name, indexfields_name)
-VALUES ('employee', 'employee', 'first_name');
-INSERT INTO public.resourcetype_indexfield (resourcetype_name, indexfields_resourcetype_name, indexfields_name)
-VALUES ('employee', 'employee', 'age');
-INSERT INTO public.resourcetype_indexfield (resourcetype_name, indexfields_resourcetype_name, indexfields_name)
-VALUES ('employee', 'employee', 'single');
-INSERT INTO public.resourcetype_indexfield (resourcetype_name, indexfields_resourcetype_name, indexfields_name)
-VALUES ('employee', 'employee', 'birthday');
-INSERT INTO public.resourcetype_indexfield (resourcetype_name, indexfields_resourcetype_name, indexfields_name)
-VALUES ('employee', 'employee', 'salary');
-INSERT INTO public.resourcetype_indexfield (resourcetype_name, indexfields_resourcetype_name, indexfields_name)
-VALUES ('employee', 'employee', 'amka');
+VALUES
+    ('employee', 'employee', 'first_name'),
+    ('employee', 'employee', 'age'),
+    ('employee', 'employee', 'single'),
+    ('employee', 'employee', 'birthday'),
+    ('employee', 'employee', 'salary'),
+    ('employee', 'employee', 'amka');
 
 
 --

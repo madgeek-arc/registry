@@ -20,14 +20,19 @@ import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.*;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
 @Transactional
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ResourceTypeDaoImplTest {
+
+    @MockitoBean
+    EmbeddingModel embeddingModel;
 
     @Autowired
     ResourceTypeDao resourceTypeDao;
