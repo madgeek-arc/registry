@@ -6,6 +6,8 @@ import java.util.List;
 
 public interface EmbeddingService {
 
+    public static int VECTOR_SIZE = 384;
+
     /**
      * Creates an embedding vector of the provided text.
      *

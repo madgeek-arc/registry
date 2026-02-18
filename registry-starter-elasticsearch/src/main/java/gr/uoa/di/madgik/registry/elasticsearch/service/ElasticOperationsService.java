@@ -54,6 +54,8 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static gr.uoa.di.madgik.registry.service.EmbeddingService.VECTOR_SIZE;
+
 @Transactional
 public class ElasticOperationsService implements IndexOperationsService {
 
@@ -76,7 +78,7 @@ public class ElasticOperationsService implements IndexOperationsService {
     private static final Map<String, Object> TYPE_MAP = Map.of("type", "keyword");
     private static final Map<String, Object> DATE_MAP = Map.of("type", "date", "format", "epoch_millis");
     private static final Map<String, Object> TEXT_MAP = Map.of("type", "text");
-    private static final Map<String, Object> DENSE_VECTOR_MAP = Map.of("type", "dense_vector", "dims", 384);
+    private static final Map<String, Object> DENSE_VECTOR_MAP = Map.of("type", "dense_vector", "dims", VECTOR_SIZE);
 
     private final ResourceTypeService resourceTypeService;
     private final RestHighLevelClient client;
@@ -252,7 +254,7 @@ public class ElasticOperationsService implements IndexOperationsService {
                 switch (indexField.getType()) {
                     case "java.util.Date", "java.time.Instant" -> typeMap.put("format", "epoch_millis");
                     case "java.lang.String" -> typeMap.put("fields", Map.of("analyzed", TEXT_MAP));
-                    case "embedding" -> typeMap.put("dims", 384);
+                    case "embedding" -> typeMap.put("dims", VECTOR_SIZE);
                 }
                 jsonObjectProperties.put(indexField.getName(), typeMap);
             }
