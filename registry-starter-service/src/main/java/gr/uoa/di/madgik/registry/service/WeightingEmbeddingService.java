@@ -29,22 +29,32 @@ public class WeightingEmbeddingService implements EmbeddingService {
      * embedding vector.
      *
      * @param segments a list of attributes, values and weights which will be used to create an embedding
-     * @return the embedding vector
+     * @return the embedding vector - not l2 normalized
      */
     @Override
     public float[] embed(List<Segment> segments) {
-        StringBuilder embeddingTextBuilder = new StringBuilder();
+        float weightSum = 0; // to normalize at the end
+        float[] result = new float[VECTOR_SIZE];
         for (Segment segment : segments) {
-            if (segment.getWeight() > 0) {
-                String fieldEmbedding = "weight: %f | %s: %s"
-                        .formatted(
-                                segment.getWeight(),
-                                segment.getLabel(),
-                                String.join(",", segment.getValues())
-                        );
-                embeddingTextBuilder.append(fieldEmbedding);
+            if (segment.getWeight() > 0 && !segment.getValues().isEmpty()) {
+                weightSum += segment.getWeight();
+                float[] pooledVector = new float[VECTOR_SIZE];
+                for (String text : segment.getValues()) {
+                    String embeddingText = "[%s]: %s".formatted(segment.getLabel(), text);
+                    float[] embedding = embeddingModel.embed(embeddingText);
+                    for (int i = 0; i < VECTOR_SIZE; i++) { // adds weighted embedding to pool
+                        pooledVector[i] += (embedding[i] * segment.getWeight());
+                    }
+                }
+                for (int i = 0; i < VECTOR_SIZE; i++) { // creates mean(pooledVector) and adds it to result
+                    result[i] += (pooledVector[i] / segment.getValues().size());
+                }
             }
         }
-        return embeddingModel.embed(embeddingTextBuilder.toString());
+        for (int i = 0; i < VECTOR_SIZE; i++) { // scale down the values using the weightSum
+            result[i] /= weightSum;
+        }
+        // It is possible to normalize the result and use dot product instead of cosine similarity.
+        return result;
     }
 }
