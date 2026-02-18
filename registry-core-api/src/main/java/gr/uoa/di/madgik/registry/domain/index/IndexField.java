@@ -19,6 +19,8 @@ package gr.uoa.di.madgik.registry.domain.index;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 import java.io.Serializable;
 
@@ -54,6 +56,10 @@ public class IndexField implements Serializable {
 
     @Column
     private boolean primaryKey = false;
+
+    @Column(nullable = false, columnDefinition = "The weight this index field will have when creating an embedding vector for the resource.")
+    @Min(0)
+    private Float embeddingWeight = 0.0f;
 
     public IndexField() {
     }
@@ -122,4 +128,14 @@ public class IndexField implements Serializable {
         this.primaryKey = primaryKey;
     }
 
+    public float getEmbeddingWeight() {
+        if (embeddingWeight == null) {
+            return 0.0f;
+        }
+        return embeddingWeight;
+    }
+
+    public void setEmbeddingWeight(float embeddingWeight) {
+        this.embeddingWeight = embeddingWeight;
+    }
 }

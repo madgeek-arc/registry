@@ -332,16 +332,21 @@ public class ElasticOperationsService implements IndexOperationsService {
      *
      * @param embeddings a Map of {@link IndexField fields} and their {@link List<String> values} which will be used to
      *                   create an embedding for this the resource
-     * @return
+     * @return the embedding vector
      */
     private float[] createEmbedding(Map<IndexField, List<String>> embeddings) {
-        String embeddingText = embeddings.entrySet()
-                .stream()
-                .map(e -> "%s: %s".formatted(e.getKey().getLabel(), e.getValue().stream()
-                        .map(v -> objectMapper.convertValue(v, String.class))
-                        .collect(Collectors.joining(",")))
-                )
-                .collect(Collectors.joining("\n"));
-        return embeddingModel.embed(embeddingText);
+        StringBuilder embeddingTextBuilder = new StringBuilder();
+        for (Map.Entry<IndexField, List<String>> entry : embeddings.entrySet()) {
+            if (entry.getKey().getEmbeddingWeight() > 0) {
+                String fieldEmbedding = "weight: %f | %s: %s"
+                        .formatted(
+                                entry.getKey().getEmbeddingWeight(),
+                                entry.getKey().getLabel(),
+                                String.join(",", entry.getValue())
+                        );
+                embeddingTextBuilder.append(fieldEmbedding);
+            }
+        }
+        return embeddingModel.embed(embeddingTextBuilder.toString());
     }
 }
