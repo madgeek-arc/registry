@@ -20,8 +20,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.domain.Segment;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.domain.index.IndexedField;
+import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.IndexOperationsService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
@@ -43,7 +45,6 @@ import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.xcontent.XContentType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,14 +80,14 @@ public class ElasticOperationsService implements IndexOperationsService {
 
     private final ResourceTypeService resourceTypeService;
     private final RestHighLevelClient client;
-    private final EmbeddingModel embeddingModel;
+    private final EmbeddingService embeddingService;
     private final ObjectMapper objectMapper;
 
     public ElasticOperationsService(ResourceTypeService resourceTypeService, RestHighLevelClient client,
-                                    EmbeddingModel embeddingModel, ObjectMapper objectMapper) {
+                                    EmbeddingService embeddingService, ObjectMapper objectMapper) {
         this.resourceTypeService = resourceTypeService;
         this.client = client;
-        this.embeddingModel = embeddingModel;
+        this.embeddingService = embeddingService;
         this.objectMapper = objectMapper;
     }
 
@@ -291,7 +292,7 @@ public class ElasticOperationsService implements IndexOperationsService {
                         resource.getResourceType().getName()).
                 stream().collect(Collectors.toMap(IndexField::getName, p -> p)
                 );
-        Map<IndexField, List<String>> embeddings = new LinkedHashMap<>();
+        List<Segment> embeddingSegments = new ArrayList<>();
         if (resource.getIndexedFields() != null) {
             for (IndexedField<?> field : resource.getIndexedFields()) {
                 IndexField rtif = indexMap.get(field.getName());
@@ -310,43 +311,26 @@ public class ElasticOperationsService implements IndexOperationsService {
                             }
                             default -> jsonObjectField.put(field.getName(), value);
                         }
-                        embeddings.put(rtif, List.of(objectMapper.convertValue(value, String.class)));
+                        embeddingSegments.add(new Segment(
+                                rtif.getLabel(),
+                                rtif.getEmbeddingWeight(),
+                                objectMapper.convertValue(value, String.class))
+                        );
                     }
                 } else {
                     List<Object> values = new ArrayList<>(field.getValues());
                     jsonObjectField.put(field.getName(), values);
                     if (!values.isEmpty()) {
-                        embeddings.put(rtif, objectMapper.convertValue(values, new TypeReference<List<String>>() {
-                        }));
+                        embeddingSegments.add(new Segment(
+                                rtif.getLabel(),
+                                rtif.getEmbeddingWeight(),
+                                objectMapper.convertValue(values, new TypeReference<List<String>>() {}))
+                        );
                     }
                 }
             }
         }
-        jsonObjectField.put("embedding", createEmbedding(embeddings));
+        jsonObjectField.put("embedding", embeddingService.embed(embeddingSegments));
         return jsonObjectField;
-    }
-
-    /**
-     * Creates an embedding vector for the resource based on its information.
-     * Synthesizes the {@code embeddings} to a {@link String} and uses it to create an embedding vector.
-     *
-     * @param embeddings a Map of {@link IndexField fields} and their {@link List<String> values} which will be used to
-     *                   create an embedding for this the resource
-     * @return the embedding vector
-     */
-    private float[] createEmbedding(Map<IndexField, List<String>> embeddings) {
-        StringBuilder embeddingTextBuilder = new StringBuilder();
-        for (Map.Entry<IndexField, List<String>> entry : embeddings.entrySet()) {
-            if (entry.getKey().getEmbeddingWeight() > 0) {
-                String fieldEmbedding = "weight: %f | %s: %s"
-                        .formatted(
-                                entry.getKey().getEmbeddingWeight(),
-                                entry.getKey().getLabel(),
-                                String.join(",", entry.getValue())
-                        );
-                embeddingTextBuilder.append(fieldEmbedding);
-            }
-        }
-        return embeddingModel.embed(embeddingTextBuilder.toString());
     }
 }

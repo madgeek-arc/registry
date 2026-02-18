@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import gr.uoa.di.madgik.registry.domain.*;
+import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.elasticsearch.ResourceNotFoundException;
@@ -51,8 +52,6 @@ import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.embedding.EmbeddingModel;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -72,7 +71,7 @@ public class ElasticSearchService implements SearchService {
     private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "payloadFormat", "version"};
 
     private final RestHighLevelClient elasticsearchClient;
-    private final EmbeddingModel embeddingModel;
+    private final EmbeddingService embeddingService;
     private final ObjectMapper mapper;
     @Value("${elastic.aggregation.topHitsSize:100}")
     private int topHitsSize;
@@ -82,11 +81,11 @@ public class ElasticSearchService implements SearchService {
     private int maxQuantity;
 
 
-    public ElasticSearchService(RestHighLevelClient elasticsearchClient, EmbeddingModel embeddingModel) {
+    public ElasticSearchService(RestHighLevelClient elasticsearchClient, EmbeddingService embeddingService) {
         mapper = new ObjectMapper();
         mapper.setPropertyNamingStrategy(new ResourcePropertyName());
         this.elasticsearchClient = elasticsearchClient;
-        this.embeddingModel = embeddingModel;
+        this.embeddingService = embeddingService;
     }
 
     /**
@@ -114,7 +113,7 @@ public class ElasticSearchService implements SearchService {
             qBuilder.must(
                     QueryBuilders.scriptScoreQuery(
                             QueryBuilders.multiMatchQuery(filter.getKeyword(), textFields.toArray(new String[0])),
-                            cosineScriptScoreQuery(embeddingModel.embed(filter.getKeyword()))
+                            cosineScriptScoreQuery(embeddingService.embed(filter.getKeyword()))
                     )
             );
         } else {
