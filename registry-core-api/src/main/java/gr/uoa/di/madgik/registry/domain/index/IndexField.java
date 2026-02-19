@@ -21,6 +21,8 @@ import gr.uoa.di.madgik.registry.domain.ResourceType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.Comment;
 
 import java.io.Serializable;
 
@@ -57,8 +59,9 @@ public class IndexField implements Serializable {
     @Column
     private boolean primaryKey = false;
 
-    @Column(nullable = false, columnDefinition = "The weight this index field will have when creating an embedding vector for the resource.")
-    @Min(0)
+    @Comment("The weight this index field will have when creating an embedding vector for the resource.")
+    @Column(name = "embedding_weight")
+    @Check(constraints = "embedding_weight >= 0")
     private Float embeddingWeight = 0.0f;
 
     public IndexField() {
