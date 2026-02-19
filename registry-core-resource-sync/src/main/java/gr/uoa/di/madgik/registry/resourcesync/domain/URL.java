@@ -3,6 +3,7 @@
  * detailed in the LICENSE and NOTICE files at the root of the source
  * tree
  */
+
 package gr.uoa.di.madgik.registry.resourcesync.domain;
 
 /**
