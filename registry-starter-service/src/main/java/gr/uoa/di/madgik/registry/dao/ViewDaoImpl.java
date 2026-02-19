@@ -1,5 +1,5 @@
-/**
- * Copyright 2018-2025 OpenAIRE AMKE & Athena Research and Innovation Center
+/*
+ * Copyright 2018-2026 OpenAIRE AMKE & Athena Research and Innovation Center
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,6 +78,8 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
                         break;
                     case "java.util.Date":
                         indexFieldString = "dateindexedfield";
+                        break;
+                    case "embedding":
                         break;
                     default:
                         throw new ServiceException("Unrecognised indexed field type");
