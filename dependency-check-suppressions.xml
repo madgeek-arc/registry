@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd">
     <suppress>
-        <notes><![CDATA[
-       file name: spring-ai-transformers-1.1.2.jar
-       ]]></notes>
+        <notes><![CDATA[ file name: spring-ai-transformers-1.1.2.jar ]]></notes>
         <sha1>955acee28bb9ea3b9571da6abd572961c3ecaf58</sha1>
+        <cve>CVE-2024-7776</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[ file name: spring-ai-autoconfigure-model-transformers-1.1.2.jar ]]></notes>
+        <sha1>58e84dd71a281286f7a5c978ae394719c9560a66</sha1>
         <cve>CVE-2024-7776</cve>
     </suppress>
 </suppressions>
