@@ -89,7 +89,8 @@ public class ElasticSearchService implements SearchService {
     }
 
     /**
-     * Custom painless script to perform cosine similarity in ElasticSearch version 7.x.x
+     * Custom painless script to score using cosine similarity in ElasticSearch version 7.x.x.
+     * The script creates a weighted score between text search and vector search (using the {@code embedding} field).
      *
      * @param queryVector the embedding vector
      * @return {@link Script}
@@ -97,11 +98,20 @@ public class ElasticSearchService implements SearchService {
     public static Script cosineScriptScoreQuery(float[] queryVector) {
         Map<String, Object> params = new HashMap<>();
         params.put("q", queryVector);
+        params.put("text_w", 1.0);
+        params.put("vec_w", 2.0); // give double weight to embedding
 
         return new Script(
                 ScriptType.INLINE,
-                "painless",
-                "cosineSimilarity(params.q, doc['embedding']) + 1.0",
+            "painless",
+        """
+                    double text = _score;
+                    if (!doc.containsKey('embedding') || doc['embedding'].size() == 0) {
+                        return text;
+                    }
+                    double vec = cosineSimilarity(params.q, doc['embedding']) + 1.0;
+                    return params.text_w * text + params.vec_w * vec;
+                """,
                 params
         );
     }
@@ -119,7 +129,12 @@ public class ElasticSearchService implements SearchService {
         } else {
             qBuilder.must(QueryBuilders.matchAllQuery());
         }
-        for (Map.Entry<String, Object> filterSet : filter.getFilter().entrySet()) {
+        applyFilters(filter.getFilter(), qBuilder);
+        return qBuilder;
+    }
+
+    private void applyFilters(Map<String, Object> filters, BoolQueryBuilder qBuilder) {
+        for (Map.Entry<String, Object> filterSet : filters.entrySet()) {
             // Check if Filter value is a Collection, and create should matches for every value in the collection.
             BoolQueryBuilder internalBuilder = new BoolQueryBuilder();
             if (Collection.class.isAssignableFrom(filterSet.getValue().getClass())) {
@@ -132,7 +147,6 @@ public class ElasticSearchService implements SearchService {
             }
             qBuilder.must(internalBuilder);
         }
-        return qBuilder;
     }
 
     private List<String> getTextFields(String indexName) {
@@ -502,19 +516,7 @@ public class ElasticSearchService implements SearchService {
             qBuilder.must(QueryBuilders.multiMatchQuery(filter.getKeyword(), textFields.toArray(new String[0])));
         }
 
-        for (Map.Entry<String, Object> filterSet : filter.getFilter().entrySet()) {
-            // Check if Filter value is a Collection, and create should matches for every value in the collection.
-            BoolQueryBuilder internalBuilder = new BoolQueryBuilder();
-            if (Collection.class.isAssignableFrom(filterSet.getValue().getClass())) {
-                for (Object value : ((Collection) filterSet.getValue())) {
-                    internalBuilder.should(QueryBuilders.matchQuery(filterSet.getKey(), value));
-                }
-                internalBuilder.minimumShouldMatch(1);
-            } else {
-                internalBuilder.must(QueryBuilders.termQuery(filterSet.getKey(), filterSet.getValue()));
-            }
-            qBuilder.must(internalBuilder);
-        }
+        applyFilters(filter.getFilter(), qBuilder);
         logger.debug("Search query: " + qBuilder + " in the index " + filter.getResourceType());
 
         SearchRequest search = new SearchRequest(filter.getResourceType()).
