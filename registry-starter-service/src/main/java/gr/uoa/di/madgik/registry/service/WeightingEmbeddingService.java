@@ -51,6 +51,9 @@ public class WeightingEmbeddingService implements EmbeddingService {
     public float[] embed(List<Segment> segments) {
         float weightSum = 0; // to normalize at the end
         float[] result = new float[VECTOR_SIZE];
+        if (segments == null || segments.isEmpty()) {
+            throw new RuntimeException("No text has been provided to create an embedding vector.");
+        }
         for (Segment segment : segments) {
             if (segment.getWeight() > 0 && !segment.getValues().isEmpty()) {
                 weightSum += segment.getWeight();
@@ -68,7 +71,7 @@ public class WeightingEmbeddingService implements EmbeddingService {
             }
         }
         for (int i = 0; i < VECTOR_SIZE; i++) { // scale down the values using the weightSum
-            result[i] /= weightSum;
+            result[i] /= (weightSum > 0 ? weightSum : 1); // if weight
         }
         // It is possible to normalize the result and use dot product instead of cosine similarity.
         return result;
