@@ -520,7 +520,7 @@ public class ElasticSearchService implements SearchService {
         }
 
         applyFilters(filter.getFilter(), qBuilder);
-        logger.debug("Search query: " + qBuilder + " in the index " + filter.getResourceType());
+        logger.debug("Search query: {} in the index {}", qBuilder, filter.getResourceType());
 
         SearchRequest search = new SearchRequest(filter.getResourceType()).
                 searchType(SearchType.DFS_QUERY_THEN_FETCH);
@@ -566,7 +566,7 @@ public class ElasticSearchService implements SearchService {
         BoolQueryBuilder qBuilder = new BoolQueryBuilder();
         //iterate all key values and add them to the elastic query
         qBuilder.must(QueryBuilders.termsQuery(resourceIdAndValue.getField(), resourceIdAndValue.getValue()));
-        logger.debug("Search query: " + qBuilder + " in the index " + resourceType);
+        logger.debug("Search query: {} in the index {}", qBuilder, resourceType);
 
         SearchRequest searchRequest = new SearchRequest(resourceType);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -669,7 +669,7 @@ public class ElasticSearchService implements SearchService {
         Arrays.stream(fields)
                 .map(kv -> QueryBuilders.termsQuery(kv.getField(), kv.getValue()))
                 .forEach(qBuilder::must);
-        logger.debug("Search query: " + qBuilder + " in the index " + resourceType);
+        logger.debug("Search query: {} in the index {}", qBuilder, resourceType);
 
         SearchRequest searchRequest = new SearchRequest(resourceType);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
