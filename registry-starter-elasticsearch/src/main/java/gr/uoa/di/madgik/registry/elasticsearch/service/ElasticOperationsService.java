@@ -313,16 +313,18 @@ public class ElasticOperationsService implements IndexOperationsService {
                             }
                             default -> jsonObjectField.put(field.getName(), value);
                         }
-                        embeddingSegments.add(new Segment(
-                                rtif.getLabel(),
-                                rtif.getEmbeddingWeight(),
-                                objectMapper.convertValue(value, String.class))
-                        );
+                        if (rtif.getEmbeddingWeight() > 0) {
+                            embeddingSegments.add(new Segment(
+                                    rtif.getLabel(),
+                                    rtif.getEmbeddingWeight(),
+                                    objectMapper.convertValue(value, String.class))
+                            );
+                        }
                     }
                 } else {
                     List<Object> values = new ArrayList<>(field.getValues());
                     jsonObjectField.put(field.getName(), values);
-                    if (!values.isEmpty()) {
+                    if (!values.isEmpty() && rtif.getEmbeddingWeight() > 0) {
                         embeddingSegments.add(new Segment(
                                 rtif.getLabel(),
                                 rtif.getEmbeddingWeight(),
@@ -332,7 +334,9 @@ public class ElasticOperationsService implements IndexOperationsService {
                 }
             }
         }
-        jsonObjectField.put("embedding", embeddingService.embed(embeddingSegments));
+        if (!embeddingSegments.isEmpty()) {
+            jsonObjectField.put("embedding", embeddingService.embed(embeddingSegments));
+        }
         return jsonObjectField;
     }
 }
