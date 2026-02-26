@@ -34,6 +34,7 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.common.text.Text;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -62,6 +63,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+
+import static java.lang.Float.NaN;
 
 
 public class ElasticSearchService implements SearchService {
@@ -579,10 +582,13 @@ public class ElasticSearchService implements SearchService {
             SearchHits ss = searchResponse.getHits();
             Optional<SearchHit> hit = Optional.ofNullable(ss.getTotalHits().value == 0 ? null : ss.getAt(0));
             if (hit.isEmpty()) {
-                throw new ResourceNotFoundException("Could not find resource");
+                throw new gr.uoa.di.madgik.registry.exception.ResourceNotFoundException("Could not find resource");
             }
-            embedding = mapper.convertValue(hit.get().getFields().get("embedding").getValues(), new TypeReference<>() {
-            });
+            DocumentField embeddingField = hit.get().getFields().getOrDefault("embedding", null);
+            embedding = getEmbeddingFromField(embeddingField);
+            if (embeddingIsEmpty(embedding)) {
+                throw new UnsupportedOperationException("Embedding value is empty, cannot find recommendations");
+            }
 
             BoolQueryBuilder queryBuilder = new BoolQueryBuilder();
 
@@ -599,9 +605,46 @@ public class ElasticSearchService implements SearchService {
             );
             return queryBuilder;
 
+        } catch (ResourceNotFoundException | UnsupportedOperationException
+                 | gr.uoa.di.madgik.registry.exception.ResourceNotFoundException e) {
+            throw new gr.uoa.di.madgik.registry.exception.ResourceNotFoundException("There are no recommendations available for this resource", e);
         } catch (IOException e) {
             throw new ServiceException("Failed to retrieve ES document", e.getMessage());
         }
+    }
+
+    /**
+     * Deserializes the embedding vector from an Elasticsearch {@link DocumentField}.
+     *
+     * @param embeddingField the {@link DocumentField} containing the vector
+     * @return the embedding vector
+     * @throws gr.uoa.di.madgik.registry.exception.ResourceNotFoundException
+     */
+    private float[] getEmbeddingFromField(DocumentField embeddingField) {
+        if (embeddingField == null) {
+            throw new gr.uoa.di.madgik.registry.exception.ResourceNotFoundException("Embedding field missing");
+        }
+        return mapper.convertValue(embeddingField.getValues(), new TypeReference<>() {
+        });
+    }
+
+    /**
+     * Checks whether an embedding vector contains values and is not zero.
+     *
+     * @param embedding the vector
+     * @return true/false
+     */
+    private boolean embeddingIsEmpty(float[] embedding) {
+        boolean empty = true;
+        if (embedding != null) {
+            for (float x : embedding) {
+                if (x != 0 && x != NaN) {
+                    empty = false;
+                    break;
+                }
+            }
+        }
+        return empty;
     }
 
     @Override
