@@ -54,9 +54,7 @@ public interface SearchService {
     Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException;
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
-    default Paging<HighlightedResult<Resource>> searchWithHighlights(FacetFilter filter) throws ServiceException {
-        throw new UnsupportedOperationException();
-    }
+    Paging<HighlightedResult<Resource>> searchWithHighlights(FacetFilter filter) throws ServiceException;
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException;

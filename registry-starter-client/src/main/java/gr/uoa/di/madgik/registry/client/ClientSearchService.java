@@ -18,6 +18,7 @@ package gr.uoa.di.madgik.registry.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
+import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.service.SearchService;
@@ -135,6 +136,11 @@ public class ClientSearchService implements SearchService {
             }
         }
         return new Paging<>();
+    }
+
+    @Override
+    public Paging<HighlightedResult<Resource>> searchWithHighlights(FacetFilter filter) throws ServiceException {
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
