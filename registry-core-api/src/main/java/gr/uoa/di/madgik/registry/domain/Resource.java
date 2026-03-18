@@ -199,6 +199,10 @@ public class Resource {
         this.versions = versions;
     }
 
+    public void regenerateVersion() {
+        this.version = generateVersion();
+    }
+
     private String generateVersion() {
         // FIX: replace "MMddyyyyHHmmss" version format with UUID to tackle duplicate versions issue.
         // (millisecond-apart updates on the same resource leads to duplicated versions)
