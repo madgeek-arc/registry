@@ -64,8 +64,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static java.lang.Float.NaN;
-
 
 public class ElasticSearchService implements SearchService {
 
@@ -106,15 +104,15 @@ public class ElasticSearchService implements SearchService {
 
         return new Script(
                 ScriptType.INLINE,
-            "painless",
-        """
-                    double text = _score;
-                    if (!doc.containsKey('embedding') || doc['embedding'].size() == 0) {
-                        return text;
-                    }
-                    double vec = cosineSimilarity(params.q, doc['embedding']) + 1.0;
-                    return params.text_w * text + params.vec_w * vec;
-                """,
+                "painless",
+                """
+                            double text = _score;
+                            if (!doc.containsKey('embedding') || doc['embedding'].size() == 0) {
+                                return text;
+                            }
+                            double vec = cosineSimilarity(params.q, doc['embedding']) + 1.0;
+                            return params.text_w * text + params.vec_w * vec;
+                        """,
                 params
         );
     }
@@ -555,9 +553,9 @@ public class ElasticSearchService implements SearchService {
      * Creates a {@link BoolQueryBuilder} that matches documents similar to the given reference document.
      * Similarity is computed using cosine similarity on the {@code embedding} field.
      *
-     * @param resourceType          the resourceType to search over
-     * @param resourceIdAndValue    a {@link KeyValue} pair containing the identifier field and value of the
-     *                              reference document used for similarity matching
+     * @param resourceType       the resourceType to search over
+     * @param resourceIdAndValue a {@link KeyValue} pair containing the identifier field and value of the
+     *                           reference document used for similarity matching
      * @return {@link BoolQueryBuilder}
      * @throws ServiceException if the reference resource cannot be retrieved
      */
@@ -638,7 +636,7 @@ public class ElasticSearchService implements SearchService {
         boolean empty = true;
         if (embedding != null) {
             for (float x : embedding) {
-                if (x != 0 && x != NaN) {
+                if (x != 0 && !Float.isNaN(x)) {
                     empty = false;
                     break;
                 }
