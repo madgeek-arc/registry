@@ -202,6 +202,56 @@ public class DefaultSearchService implements SearchService {
     }
 
     /**
+     * {@inheritDoc}
+     *
+     * <p>Queries the {@code {resourceType}_view} directly for the requested {@code idField} /
+     * {@code labelField} pairs in a single SQL statement. Both field names are validated against
+     * the known {@link IndexField} names for the resource type before being interpolated into the
+     * query to prevent SQL injection.
+     */
+    @Override
+    public Map<String, String> getLabels(String resourceType, String idField,
+                                         List<String> ids, String labelField) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Set<String> knownFields = resourceTypeService.getResourceTypeIndexFields(resourceType)
+                .stream()
+                .map(IndexField::getName)
+                .collect(Collectors.toSet());
+
+        if (!knownFields.contains(idField)) {
+            throw new ServiceException(
+                    String.format("Unknown idField '%s' for resource type '%s'", idField, resourceType));
+        }
+        if (!knownFields.contains(labelField)) {
+            throw new ServiceException(
+                    String.format("Unknown labelField '%s' for resource type '%s'", labelField, resourceType));
+        }
+
+        // Field names are validated above against the registry's own metadata —
+        // interpolation here is intentional and safe.
+        String sql = String.format(
+                "SELECT %s, %s FROM %s_view WHERE %s IN (:ids)",
+                idField, labelField, resourceType, idField);
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("ids", ids);
+
+        List<Map<String, Object>> rows = npJdbcTemplate.queryForList(sql, params);
+        Map<String, String> result = new HashMap<>(rows.size());
+        for (Map<String, Object> row : rows) {
+            Object id    = row.get(idField);
+            Object label = row.get(labelField);
+            if (id != null && label != null) {
+                result.put(id.toString(), label.toString());
+            }
+        }
+        return result;
+    }
+
+    /**
      * Get a list of ResourceTypes based on the provided resourceType name or alias.
      *
      * @param resourceTypeOrAlias the name of the resourceType or an alias

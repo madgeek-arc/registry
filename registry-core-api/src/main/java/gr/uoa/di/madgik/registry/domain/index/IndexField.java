@@ -64,6 +64,16 @@ public class IndexField implements Serializable {
     @Check(constraints = "embedding_weight >= 0")
     private Float embeddingWeight = 0.0f;
 
+    @Comment("The name of the ResourceType whose resources' IDs appear as values for this field. " +
+            "When set, FacetLabelService will resolve Value.label for facets backed by this field.")
+    @Column(name = "related_resource_type")
+    private String relatedResourceType;
+
+    @Comment("The IndexField name in the relatedResourceType to use as the display label. " +
+            "Falls back to a field named 'name' in the related type if null.")
+    @Column(name = "related_resource_type_field")
+    private String relatedResourceTypeField;
+
     public IndexField() {
     }
 
@@ -140,5 +150,21 @@ public class IndexField implements Serializable {
 
     public void setEmbeddingWeight(float embeddingWeight) {
         this.embeddingWeight = embeddingWeight;
+    }
+
+    public String getRelatedResourceType() {
+        return relatedResourceType;
+    }
+
+    public void setRelatedResourceType(String relatedResourceType) {
+        this.relatedResourceType = relatedResourceType;
+    }
+
+    public String getRelatedResourceTypeField() {
+        return relatedResourceTypeField;
+    }
+
+    public void setRelatedResourceTypeField(String relatedResourceTypeField) {
+        this.relatedResourceTypeField = relatedResourceTypeField;
     }
 }

@@ -53,6 +53,7 @@ import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -702,6 +703,51 @@ public class ElasticSearchService implements SearchService {
     @Override
     public Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category) {
         return buildTopHitAggregation(filter, category);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Executes a single {@code terms} query against the {@code resourceType} index, fetching
+     * only the {@code idField} and {@code labelField} via source filtering. Field names are
+     * pre-validated by {@code FacetLabelService} against the registry metadata before this method
+     * is called, so no additional validation is performed here.
+     */
+    @Override
+    public Map<String, String> getLabels(String resourceType, String idField,
+                                         List<String> ids, String labelField) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        SearchRequest request = new SearchRequest(resourceType)
+                .searchType(SearchType.DFS_QUERY_THEN_FETCH);
+
+        SearchSourceBuilder source = new SearchSourceBuilder()
+                .query(QueryBuilders.termsQuery(idField, ids))
+                .fetchSource(new String[]{idField, labelField}, null)
+                .size(ids.size())
+                .explain(false);
+
+        request.source(source);
+
+        SearchResponse response;
+        try {
+            response = elasticsearchClient.search(request, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            throw new ServiceException(e.getMessage());
+        }
+
+        Map<String, String> result = new HashMap<>();
+        for (SearchHit hit : response.getHits().getHits()) {
+            Map<String, Object> src = hit.getSourceAsMap();
+            Object id    = src.get(idField);
+            Object label = src.get(labelField);
+            if (id != null && label != null) {
+                result.put(id.toString(), label.toString());
+            }
+        }
+        return result;
     }
 
     private void validateQuantity(int quantity) {

@@ -23,6 +23,7 @@ import gr.uoa.di.madgik.registry.domain.Resource;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -61,6 +62,28 @@ public interface SearchService {
 
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category);
+
+    /**
+     * Returns a map of {@code idField} value → {@code labelField} value by fetching resources of
+     * the given {@code resourceType} whose {@code idField} matches any entry in {@code ids}.
+     * Implementations are expected to execute a single batch query regardless of how many IDs
+     * are requested.
+     *
+     * <p>The default implementation throws {@link UnsupportedOperationException}. Backends that
+     * support label enrichment (SQL, Elasticsearch) must override this method.
+     *
+     * @param resourceType the name of the ResourceType index / view to query
+     * @param idField      the IndexField name used as the identifier (typically {@code primaryKey=true})
+     * @param ids          the list of ID values to look up; must not be {@code null}
+     * @param labelField   the IndexField name whose value should be used as the display label
+     * @return an immutable-safe map from id value to label value;
+     *         entries are absent when no matching resource was found
+     */
+    default Map<String, String> getLabels(String resourceType, String idField,
+                                          List<String> ids, String labelField) {
+        throw new UnsupportedOperationException(
+                getClass().getSimpleName() + " does not implement getLabels()");
+    }
 
     class KeyValue {
 
