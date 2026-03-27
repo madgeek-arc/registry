@@ -33,6 +33,7 @@
     </properties>
 
     <modules>
+        <module>registry-bom</module>
         <module>registry-service</module>
         <module>registry-core-api</module>
         <module>registry-core-rest</module>

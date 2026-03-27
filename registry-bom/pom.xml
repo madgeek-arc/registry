@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>gr.uoa.di.madgik</groupId>
+        <artifactId>registry</artifactId>
+        <version>5.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>registry-bom</artifactId>
+    <packaging>pom</packaging>
+    <name>registry-bom</name>
+    <description>
+        Bill of Materials for the registry project.
+        Import this BOM in dependencyManagement to align all registry artifact versions
+        without specifying individual versions on each dependency declaration.
+
+        Usage:
+            &lt;dependencyManagement&gt;
+                &lt;dependencies&gt;
+                    &lt;dependency&gt;
+                        &lt;groupId&gt;gr.uoa.di.madgik&lt;/groupId&gt;
+                        &lt;artifactId&gt;registry-bom&lt;/artifactId&gt;
+                        &lt;version&gt;DESIRED_VERSION&lt;/version&gt;
+                        &lt;type&gt;pom&lt;/type&gt;
+                        &lt;scope&gt;import&lt;/scope&gt;
+                    &lt;/dependency&gt;
+                &lt;/dependencies&gt;
+            &lt;/dependencyManagement&gt;
+    </description>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <!--
+        A BOM must not declare any <dependencies> — only <dependencyManagement>.
+        Overrides the parent's <dependencies> block by keeping this section empty.
+    -->
+    <dependencies/>
+
+    <dependencyManagement>
+        <dependencies>
+
+            <!-- Core API: domain model, service interfaces, exceptions -->
+            <dependency>
+                <groupId>gr.uoa.di.madgik</groupId>
+                <artifactId>registry-core-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Core Helper: Browsing, AbstractGenericService, FacetLabelService, ParserService -->
+            <dependency>
+                <groupId>gr.uoa.di.madgik</groupId>
+                <artifactId>registry-core-helper</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Core REST: Spring MVC controllers and REST layer -->
+            <dependency>
+                <groupId>gr.uoa.di.madgik</groupId>
+                <artifactId>registry-core-rest</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Core Resource Sync: resource synchronisation domain -->
+            <dependency>
+                <groupId>gr.uoa.di.madgik</groupId>
+                <artifactId>registry-core-resource-sync</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Starter — HTTP client: connects to a remote registry instance (no local DB / ES required) -->
+            <dependency>
+                <groupId>gr.uoa.di.madgik</groupId>
+                <artifactId>registry-starter-client</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Starter — PostgreSQL/SQL backend -->
+            <dependency>
+                <groupId>gr.uoa.di.madgik</groupId>
+                <artifactId>registry-starter-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Starter — Elasticsearch backend -->
+            <dependency>
+                <groupId>gr.uoa.di.madgik</groupId>
+                <artifactId>registry-starter-elasticsearch</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Starter — JMS messaging support -->
+            <dependency>
+                <groupId>gr.uoa.di.madgik</groupId>
+                <artifactId>registry-starter-jms</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+</project>
