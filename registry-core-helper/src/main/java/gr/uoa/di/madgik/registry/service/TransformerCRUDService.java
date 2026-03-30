@@ -16,8 +16,8 @@
 
 package gr.uoa.di.madgik.registry.service;
 
-import gr.uoa.di.madgik.registry.domain.Browsing;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
+import gr.uoa.di.madgik.registry.domain.Paging;
 import org.springframework.security.core.Authentication;
 
 public interface TransformerCRUDService<T, R, U extends Authentication> {
@@ -35,7 +35,7 @@ public interface TransformerCRUDService<T, R, U extends Authentication> {
      * @param filter parameters for the indexer.
      * @return the results paged.
      */
-    Browsing<R> getAll(FacetFilter filter, U authentication);
+    Paging<R> getAll(FacetFilter filter, U authentication);
 
     /**
      * Returns all resource of a user.
@@ -43,7 +43,7 @@ public interface TransformerCRUDService<T, R, U extends Authentication> {
      * @param filter parameters for the indexer.
      * @return the results paged.
      */
-    Browsing<R> getMy(FacetFilter filter, U authentication);
+    Paging<R> getMy(FacetFilter filter, U authentication);
 
     /**
      * Add a new resource.

@@ -21,7 +21,9 @@ import gr.uoa.di.madgik.registry.domain.Schema;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public interface ResourceTypeService {
     Schema getSchema(String id);
@@ -37,6 +39,16 @@ public interface ResourceTypeService {
     ResourceType addResourceType(ResourceType resourceType) throws ServiceException;
 
     Set<IndexField> getResourceTypeIndexFields(String name);
+
+    /**
+     * Returns a map of {@link IndexField#getName()} → {@link IndexField#getLabel()} for fields
+     * that have a non-null label, for the given resource type.
+     */
+    default Map<String, String> getIndexFieldLabels(String name) {
+        return getResourceTypeIndexFields(name).stream()
+                .filter(f -> f.getLabel() != null)
+                .collect(Collectors.toMap(IndexField::getName, IndexField::getLabel));
+    }
 
     void deleteResourceType(String name);
 }

@@ -108,8 +108,9 @@ public class ElasticAutoConfiguration {
     @Bean
     @Primary
     @Order(Ordered.HIGHEST_PRECEDENCE)
-    SearchService elasticSearchService(RestHighLevelClient client, EmbeddingService embeddingService) {
-        ElasticSearchService service = new ElasticSearchService(client, embeddingService);
+    SearchService elasticSearchService(RestHighLevelClient client, EmbeddingService embeddingService,
+                                       ResourceTypeService resourceTypeService) {
+        ElasticSearchService service = new ElasticSearchService(client, embeddingService, resourceTypeService);
         return service;
     }
 }

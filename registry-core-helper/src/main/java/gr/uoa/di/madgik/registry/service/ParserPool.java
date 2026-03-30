@@ -16,18 +16,48 @@
 
 package gr.uoa.di.madgik.registry.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import jakarta.xml.bind.Unmarshaller;
 import org.springframework.stereotype.Component;
+import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathFactory;
 import java.io.StringReader;
 import java.io.StringWriter;
 
 /**
- * Created by stefanos on 26/6/2017.
+ * Default implementation of {@link ParserService} backed by Jackson (JSON) and JAXB (XML).
+ *
+ * <h2>JSON support</h2>
+ * <p>Deserialization uses {@link com.fasterxml.jackson.databind.ObjectMapper} and works for any
+ * class that Jackson can handle — plain POJOs, classes annotated with {@code @JsonProperty}, etc.
+ * No additional configuration is required.
+ *
+ * <h2>XML support</h2>
+ * <p>Serialization and deserialization use the {@link JAXBContext} Spring bean injected at
+ * construction time. A domain class must satisfy <strong>both</strong> of the following
+ * conditions to be usable with XML payloads:
+ * <ol>
+ *   <li>The class must be annotated with {@code @XmlRootElement} (or registered via
+ *       {@code @XmlSeeAlso} from a class that is).</li>
+ *   <li>The class (or its containing package) must be included in the packages scanned when the
+ *       {@code JAXBContext} bean is constructed. When using the catalogue library this is
+ *       configured via the {@code catalogue-lib.jaxb.include-packages} property.</li>
+ * </ol>
+ * <p>If these conditions are not met, {@link #serialize} and {@link #deserialize} will throw a
+ * {@link ServiceException} with an actionable message explaining what to configure.
+ *
+ * @see ParserService
  */
 @Component
 public class ParserPool implements ParserService {
@@ -39,47 +69,138 @@ public class ParserPool implements ParserService {
         this.jaxbContext = jaxbContext;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @throws ServiceException if the resource is {@code null}, if the payload format is not
+     *                          {@code "json"} or {@code "xml"}, if JSON parsing fails, or if
+     *                          the target class is not registered in the {@link JAXBContext}
+     *                          (XML only — see class-level documentation for how to register it)
+     */
     @Override
     @SuppressWarnings("unchecked")
     public <T> T deserialize(Resource resource, Class<T> returnType) {
-        T type;
         if (resource == null) {
-            throw new ServiceException("null resource");
+            throw new ServiceException("Cannot deserialize a null resource");
         }
-        try {
-            switch (resource.getPayloadFormat()) {
-                case "xml":
-                    Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-                    type = (T) unmarshaller.unmarshal(new StringReader(resource.getPayload()));
-                    break;
-                case "json":
-                    type = mapper.readValue(resource.getPayload(), returnType);
-                    break;
-                default:
-                    throw new ServiceException("Unsupported media type");
-            }
-        } catch (Exception je) {
-            throw new ServiceException(je);
-        }
-        return type;
+        return switch (resource.getPayloadFormat()) {
+            case "xml" -> deserializeXml(resource.getPayload(), returnType);
+            case "json" -> deserializeJson(resource.getPayload(), returnType);
+            default -> throw new ServiceException(
+                    "Unsupported payload format '" + resource.getPayloadFormat() + "'. "
+                    + "Supported formats are: 'json', 'xml'.");
+        };
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @throws ServiceException if the media type is unsupported, if JSON serialization fails,
+     *                          or if the object's class is not registered in the
+     *                          {@link JAXBContext} (XML only — see class-level documentation
+     *                          for how to register it)
+     */
+    @Override
     public String serialize(Object resource, ParserServiceTypes mediaType) {
-        try {
-            if (mediaType == ParserServiceTypes.XML) {
-                Marshaller marshaller = jaxbContext.createMarshaller();
-                StringWriter sw = new StringWriter();
-                marshaller.marshal(resource, sw);
-                return sw.toString();
-            } else if (mediaType == ParserServiceTypes.JSON) {
-                return mapper.writeValueAsString(resource);
-            } else {
-                throw new ServiceException("Unsupported media type");
-            }
-        } catch (Exception e) {
-            throw new ServiceException(e);
-        }
+        return switch (mediaType) {
+            case XML -> serializeXml(resource);
+            case JSON -> serializeJson(resource);
+        };
+    }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>For JSON, the path must be a JSONPath expression starting with {@code $.}
+     * (e.g. {@code $.id}, {@code $.metadata.identifier}). Simple dot-notation is supported;
+     * array subscripts are not.
+     * For XML, the path must be a valid XPath expression.
+     */
+    @Override
+    public String extractValue(String payload, String payloadType, String path) {
+        return switch (payloadType.toLowerCase()) {
+            case "json" -> extractJsonValue(payload, path);
+            case "xml" -> extractXmlValue(payload, path);
+            default -> throw new ServiceException(
+                    "Unsupported payload type '" + payloadType + "'. Supported values: 'json', 'xml'.");
+        };
+    }
+
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
+
+    @SuppressWarnings("unchecked")
+    private <T> T deserializeXml(String payload, Class<T> returnType) {
+        try {
+            Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+            return (T) unmarshaller.unmarshal(new StringReader(payload));
+        } catch (JAXBException e) {
+            throw new ServiceException(buildXmlErrorMessage("deserialize", returnType.getName()), e);
+        }
+    }
+
+    private <T> T deserializeJson(String payload, Class<T> returnType) {
+        try {
+            return mapper.readValue(payload, returnType);
+        } catch (JsonProcessingException e) {
+            throw new ServiceException(
+                    "Failed to deserialize JSON payload into " + returnType.getName()
+                    + ": " + e.getOriginalMessage(), e);
+        }
+    }
+
+    private String serializeXml(Object resource) {
+        try {
+            Marshaller marshaller = jaxbContext.createMarshaller();
+            StringWriter sw = new StringWriter();
+            marshaller.marshal(resource, sw);
+            return sw.toString();
+        } catch (JAXBException e) {
+            throw new ServiceException(buildXmlErrorMessage("serialize", resource.getClass().getName()), e);
+        }
+    }
+
+    private String serializeJson(Object resource) {
+        try {
+            return mapper.writeValueAsString(resource);
+        } catch (JsonProcessingException e) {
+            throw new ServiceException(
+                    "Failed to serialize " + resource.getClass().getName()
+                    + " to JSON: " + e.getOriginalMessage(), e);
+        }
+    }
+
+    private String extractJsonValue(String payload, String path) {
+        try {
+            // Convert JSONPath ($.a.b.c) to JSON Pointer (/a/b/c)
+            String pointer = path.startsWith("$.") ? "/" + path.substring(2).replace('.', '/') : path;
+            JsonNode node = mapper.readTree(payload).at(pointer);
+            return node.isMissingNode() || node.isNull() ? null : node.asText();
+        } catch (JsonProcessingException e) {
+            throw new ServiceException("Failed to extract JSON value at path '" + path + "': " + e.getOriginalMessage(), e);
+        }
+    }
+
+    private String extractXmlValue(String payload, String path) {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(new InputSource(new StringReader(payload)));
+            XPath xPath = XPathFactory.newInstance().newXPath();
+            String result = xPath.evaluate(path, doc);
+            return result.isEmpty() ? null : result;
+        } catch (Exception e) {
+            throw new ServiceException("Failed to extract XML value at path '" + path + "': " + e.getMessage(), e);
+        }
+    }
+
+    private static String buildXmlErrorMessage(String operation, String className) {
+        return String.format(
+                "Failed to %s XML payload for class '%s'. "
+                + "The class is not registered in the JAXBContext. "
+                + "Ensure the class is annotated with @XmlRootElement and its package is included "
+                + "in the 'catalogue-lib.jaxb.include-packages' configuration property.",
+                operation, className);
     }
 }
-

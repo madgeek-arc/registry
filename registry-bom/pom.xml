@@ -54,7 +54,7 @@
                 <version>${project.version}</version>
             </dependency>
 
-            <!-- Core Helper: Browsing, AbstractGenericService, FacetLabelService, ParserService -->
+            <!-- Core Helper: AbstractGenericService, FacetLabelService, ParserService -->
             <dependency>
                 <groupId>gr.uoa.di.madgik</groupId>
                 <artifactId>registry-core-helper</artifactId>

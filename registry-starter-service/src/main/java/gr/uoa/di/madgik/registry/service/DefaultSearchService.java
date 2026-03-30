@@ -38,6 +38,7 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.LinkedHashSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -104,6 +105,7 @@ public class DefaultSearchService implements SearchService {
     // TODO: refactor (create SQL Query Builder)
     public Paging<Resource> search(FacetFilter filter) {
         validateQuantity(filter.getQuantity());
+        List<String> browseBy = resolveBrowseBy(filter);
 
         if (StringUtils.hasText(filter.getKeyword())) {
             filter.setKeyword("%" + filter.getKeyword() + "%");
@@ -127,7 +129,7 @@ public class DefaultSearchService implements SearchService {
         List<Map<String, Object>> results = npJdbcTemplate.queryForList(query, params);
 
         List<Resource> resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).collect(Collectors.toList());
-        return new Paging<>(total, filter.getFrom(), filter.getFrom() + filter.getQuantity(), resources, createFacets(filter.getBrowseBy()));
+        return new Paging<>(total, filter.getFrom(), filter.getFrom() + filter.getQuantity(), resources, createFacets(browseBy, filter.getResourceType()));
     }
 
     @Override
@@ -140,21 +142,24 @@ public class DefaultSearchService implements SearchService {
         throw new UnsupportedOperationException(getClass().getSimpleName() + " does not support recommendations.");
     }
 
-    private List<Facet> createFacets(List<String> browseBy) {
+    private List<Facet> createFacets(List<String> browseBy, String resourceTypeName) {
+        if (browseBy == null || browseBy.isEmpty()) {
+            return new ArrayList<>();
+        }
+        Map<String, String> fieldLabels = resourceTypeService.getIndexFieldLabels(resourceTypeName);
         List<Facet> facets = new ArrayList<>();
-        if (browseBy != null && !browseBy.isEmpty()) {
-            for (String browse : browseBy) {
-                Facet facet = new Facet();
-                facet.setField(browse);
-                facet.setLabel(Arrays.stream(browse.split("_"))
-                        .map(word -> Character.toUpperCase(word.charAt(0)) + word.substring(1))
-                        .collect(Collectors.joining(" ")));
-                List<Value> values = new ArrayList<>(); // TODO: populate values
-                facet.setValues(values);
-                facets.add(facet);
-            }
+        for (String browse : browseBy) {
+            Facet facet = new Facet();
+            facet.setField(browse);
+            facet.setLabel(fieldLabels.get(browse));
+            facet.setValues(new ArrayList<>()); // TODO: populate values
+            facets.add(facet);
         }
         return facets;
+    }
+
+    private List<String> resolveBrowseBy(FacetFilter filter) {
+        return SearchService.resolveBrowseBy(getResourceTypes(filter.getResourceType()), filter.getBrowseBy());
     }
 
     @Override

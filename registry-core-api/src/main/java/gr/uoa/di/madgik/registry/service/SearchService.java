@@ -20,12 +20,13 @@ import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 public interface SearchService {
@@ -83,6 +84,40 @@ public interface SearchService {
                                           List<String> ids, String labelField) {
         throw new UnsupportedOperationException(
                 getClass().getSimpleName() + " does not implement getLabels()");
+    }
+
+    /**
+     * Derives the effective {@code browseBy} field list for a search request.
+     *
+     * <p>Starts with any fields in {@code existingBrowseBy}, then appends the intersection of
+     * labeled {@link IndexField} names across all supplied resource types (alias groups use
+     * intersection so only fields present in every member are shown).</p>
+     *
+     * @param resourceTypes    the resolved resource types for the query (direct or alias group)
+     * @param existingBrowseBy caller-supplied fields to include regardless (may be {@code null})
+     * @return ordered, deduplicated list of field names to browse by
+     */
+    static List<String> resolveBrowseBy(List<ResourceType> resourceTypes, List<String> existingBrowseBy) {
+        Set<String> browseBy = new LinkedHashSet<>();
+        if (existingBrowseBy != null) {
+            browseBy.addAll(existingBrowseBy);
+        }
+        Set<String> fromConfig = null;
+        for (ResourceType rt : resourceTypes) {
+            Set<String> labeled = rt.getIndexFields().stream()
+                    .filter(f -> f.getLabel() != null)
+                    .map(IndexField::getName)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            if (fromConfig == null) {
+                fromConfig = labeled;
+            } else {
+                fromConfig.retainAll(labeled);
+            }
+        }
+        if (fromConfig != null) {
+            browseBy.addAll(fromConfig);
+        }
+        return new ArrayList<>(browseBy);
     }
 
     class KeyValue {

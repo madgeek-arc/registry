@@ -60,7 +60,7 @@ public class IndexField implements Serializable {
     private boolean primaryKey = false;
 
     @Comment("The weight this index field will have when creating an embedding vector for the resource.")
-    @Column(name = "embedding_weight")
+    @Column(name = "embedding_weight", columnDefinition = "real")
     @Check(constraints = "embedding_weight >= 0")
     private Float embeddingWeight = 0.0f;
 

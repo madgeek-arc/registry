@@ -25,6 +25,9 @@ import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.index.DefaultIndexMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Service;
@@ -103,17 +106,19 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     }
 
     @Override
+    @Cacheable(value = "resourceType", key = "#name")
     public ResourceType getResourceType(String name) {
         return resourceTypeDao.getResourceType(name);
     }
 
     @Override
+    @Cacheable("allResourceTypes")
     public List<ResourceType> getAllResourceType() {
-
         return resourceTypeDao.getAllResourceType();
     }
 
     @Override
+    @Cacheable(value = "resourceTypesByAlias", key = "#alias")
     public List<ResourceType> getAllResourceTypeByAlias(String alias) {
         return resourceTypeDao.getAllResourceTypeByAlias(alias);
     }
@@ -124,12 +129,19 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     }
 
     @Override
+    @Cacheable(value = "resourceTypeIndexFields", key = "#name")
     public Set<IndexField> getResourceTypeIndexFields(String name) {
         return resourceTypeDao.getResourceTypeIndexFields(name);
     }
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "resourceType", key = "#name"),
+            @CacheEvict(value = "allResourceTypes", allEntries = true),
+            @CacheEvict(value = "resourceTypesByAlias", allEntries = true),
+            @CacheEvict(value = "resourceTypeIndexFields", key = "#name")
+    })
     public void deleteResourceType(String name) {
         resourceTypeDao.deleteResourceType(name);
     }
@@ -148,6 +160,12 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "resourceType", key = "#resourceType.name"),
+            @CacheEvict(value = "allResourceTypes", allEntries = true),
+            @CacheEvict(value = "resourceTypesByAlias", allEntries = true),
+            @CacheEvict(value = "resourceTypeIndexFields", key = "#resourceType.name")
+    })
     public ResourceType addResourceType(ResourceType resourceType) throws ServiceException {
         Schema schema = new Schema();
 
@@ -181,10 +199,14 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
         if (resourceType.getIndexMapperClass() == null)
             resourceType.setIndexMapperClass(DefaultIndexMapper.class.getName());
 
-        if (resourceType.getIndexFields() != null) {
-            for (IndexField field : resourceType.getIndexFields())
-                field.setResourceType(resourceType);
+        if (resourceType.getIndexFields() == null ||
+                resourceType.getIndexFields().stream().noneMatch(IndexField::isPrimaryKey)) {
+            throw new ServiceException(
+                    String.format("ResourceType [%s] must have at least one IndexField with primaryKey=true",
+                            resourceType.getName()));
         }
+        for (IndexField field : resourceType.getIndexFields())
+            field.setResourceType(resourceType);
 
         try {
             resourceTypeDao.addResourceType(resourceType);
@@ -203,7 +225,8 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
         return resourceType;
     }
 
-    private void exportIncludes(ResourceType resourceType, String baseUrl, ArrayList<String> recursionPaths) throws ServiceException {
+    private void exportIncludes(ResourceType resourceType, String baseUrl, ArrayList<String> recursionPaths)
+            throws ServiceException {
         String type = resourceType.getPayloadType();
         boolean isFromUrl;
 
@@ -262,7 +285,10 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
                         String schemaContent;
 
                         if (validation == 2) {
-                            schemaUrl = baseUrl.replace(baseUrl.substring(baseUrl.lastIndexOf("/") + 1), schemaUrl);
+                            schemaUrl = baseUrl.replace(
+                                    baseUrl.substring(baseUrl.lastIndexOf("/") + 1),
+                                    schemaUrl
+                            );
                         }
 
                         logger.debug("Schema " + schemaUrl + " is already in the db. Ignoring...");

@@ -21,7 +21,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import gr.uoa.di.madgik.registry.domain.*;
+import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
+import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.elasticsearch.ResourceNotFoundException;
@@ -62,6 +64,7 @@ import org.xbib.cql.elasticsearch.ElasticsearchQueryGenerator;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.LinkedHashSet;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -74,6 +77,7 @@ public class ElasticSearchService implements SearchService {
 
     private final RestHighLevelClient elasticsearchClient;
     private final EmbeddingService embeddingService;
+    private final ResourceTypeService resourceTypeService;
     private final ObjectMapper mapper;
     @Value("${elastic.aggregation.topHitsSize:100}")
     private int topHitsSize;
@@ -83,11 +87,14 @@ public class ElasticSearchService implements SearchService {
     private int maxQuantity;
 
 
-    public ElasticSearchService(RestHighLevelClient elasticsearchClient, EmbeddingService embeddingService) {
+    public ElasticSearchService(RestHighLevelClient elasticsearchClient,
+                                EmbeddingService embeddingService,
+                                ResourceTypeService resourceTypeService) {
         mapper = new ObjectMapper();
         mapper.setPropertyNamingStrategy(new ResourcePropertyName());
         this.elasticsearchClient = elasticsearchClient;
         this.embeddingService = embeddingService;
+        this.resourceTypeService = resourceTypeService;
     }
 
     /**
@@ -256,6 +263,7 @@ public class ElasticSearchService implements SearchService {
     }
 
     private Paging<HighlightedResult<Resource>> buildSearchWithHighlights(FacetFilter filter) {
+        filter.setBrowseBy(resolveBrowseBy(filter));
         int quantity = filter.getQuantity();
         validateQuantity(quantity);
         BoolQueryBuilder qBuilder = createQueryBuilder(filter);
@@ -291,10 +299,11 @@ public class ElasticSearchService implements SearchService {
             throw new ServiceException(e.getMessage());
         }
 
-        return highlightedResponseToPaging(response, filter.getFrom(), filter.getBrowseBy());
+        return highlightedResponseToPaging(response, filter.getFrom(), filter.getBrowseBy(), filter.getResourceType());
     }
 
     private Paging<Resource> buildSearch(FacetFilter filter) {
+        filter.setBrowseBy(resolveBrowseBy(filter));
         int quantity = filter.getQuantity();
         validateQuantity(quantity);
         BoolQueryBuilder qBuilder = createQueryBuilder(filter);
@@ -323,12 +332,13 @@ public class ElasticSearchService implements SearchService {
             throw new ServiceException(e.getMessage());
         }
 
-        return responseToPaging(response, filter.getFrom(), filter.getBrowseBy());
+        return responseToPaging(response, filter.getFrom(), filter.getBrowseBy(), filter.getResourceType());
     }
 
-    private Facet transformAggregation(String browseBy, Terms terms) {
+    private Facet transformAggregation(String browseBy, Terms terms, Map<String, String> fieldLabels) {
         Facet facet = new Facet();
         facet.setField(browseBy);
+        facet.setLabel(fieldLabels.get(browseBy));
         List<gr.uoa.di.madgik.registry.domain.Value> values;
         if (terms.getBuckets() != null && !terms.getBuckets().isEmpty()) {
             values = terms.getBuckets()
@@ -377,7 +387,7 @@ public class ElasticSearchService implements SearchService {
             throw new ServiceException(e);
         }
 
-        return responseToPaging(response, filter.getFrom(), filter.getBrowseBy());
+        return responseToPaging(response, filter.getFrom(), filter.getBrowseBy(), filter.getResourceType());
     }
 
     @Override
@@ -418,72 +428,79 @@ public class ElasticSearchService implements SearchService {
         } catch (IOException e) {
             throw new ServiceException(e);
         }
-        return responseToPaging(response, from, null);
+        return responseToPaging(response, from, null, null);
 
     }
 
-    private Paging<Resource> responseToPaging(SearchResponse response, int from, List<String> browseBy) {
+    private Paging<Resource> responseToPaging(SearchResponse response, int from, List<String> browseBy,
+                                              String resourceTypeName) {
         if (response == null || response.getHits().getTotalHits().value == 0) {
             return new Paging<>();
-        } else {
-            List<Resource> resources = StreamSupport
-                    .stream(response.getHits().spliterator(), true)
-                    .map(r -> {
-                        try {
-                            Resource res = mapper.readValue(r.getSourceAsString(), Resource.class);
-                            res.setResourceTypeName(r.getIndex());
-                            return res;
-                        } catch (IOException e) {
-                            throw new ServiceException(e.getMessage());
-                        }
+        }
+        List<Resource> resources = StreamSupport
+                .stream(response.getHits().spliterator(), true)
+                .map(r -> {
+                    try {
+                        Resource res = mapper.readValue(r.getSourceAsString(), Resource.class);
+                        res.setResourceTypeName(r.getIndex());
+                        return res;
+                    } catch (IOException e) {
+                        throw new ServiceException(e.getMessage());
+                    }
+                })
+                .collect(Collectors.toList());
 
-                    })
+        List<Facet> facets = new ArrayList<>();
+        if (browseBy != null) {
+            Map<String, String> fieldLabels = resourceTypeService.getIndexFieldLabels(resourceTypeName);
+            facets = browseBy.stream()
+                    .map(x -> transformAggregation(x, response.getAggregations().get("by_" + x), fieldLabels))
                     .collect(Collectors.toList());
-
-            List<Facet> facets = new ArrayList<>();
-            if (browseBy != null) {
-                facets = browseBy
-                        .stream()
-                        .map(x -> transformAggregation(x, response.getAggregations().get("by_" + x)))
-                        .collect(Collectors.toList());
-            }
-
-            return new Paging<>((int) response.getHits().getTotalHits().value, from, from + resources.size(), resources, facets);
         }
+
+        return new Paging<>((int) response.getHits().getTotalHits().value, from, from + resources.size(), resources, facets);
     }
 
-    private Paging<HighlightedResult<Resource>> highlightedResponseToPaging(SearchResponse response, int from, List<String> browseBy) {
+    private Paging<HighlightedResult<Resource>> highlightedResponseToPaging(SearchResponse response, int from,
+                                                                             List<String> browseBy,
+                                                                             String resourceTypeName) {
         if (response == null || response.getHits().getTotalHits().value == 0) {
             return new Paging<>();
-        } else {
-            List<HighlightedResult<Resource>> resources = StreamSupport
-                    .stream(response.getHits().spliterator(), true)
-                    .map(r -> {
-                        try {
-                            HighlightedResult<Resource> hr = new HighlightedResult<>();
-                            hr.setHighlights(getHighlightsFromMap(r.getHighlightFields()));
-                            Resource res = mapper.readValue(r.getSourceAsString(), Resource.class);
-                            res.setResourceTypeName(r.getIndex());
-                            hr.setResult(res);
-                            hr.setScore(r.getScore());
-                            return hr;
-                        } catch (IOException e) {
-                            throw new ServiceException(e.getMessage());
-                        }
-
-                    })
-                    .toList();
-
-            List<Facet> facets = new ArrayList<>();
-            if (browseBy != null) {
-                facets = browseBy
-                        .stream()
-                        .map(x -> transformAggregation(x, response.getAggregations().get("by_" + x)))
-                        .toList();
-            }
-
-            return new Paging<>((int) response.getHits().getTotalHits().value, from, from + resources.size(), resources, facets);
         }
+        List<HighlightedResult<Resource>> resources = StreamSupport
+                .stream(response.getHits().spliterator(), true)
+                .map(r -> {
+                    try {
+                        HighlightedResult<Resource> hr = new HighlightedResult<>();
+                        hr.setHighlights(getHighlightsFromMap(r.getHighlightFields()));
+                        Resource res = mapper.readValue(r.getSourceAsString(), Resource.class);
+                        res.setResourceTypeName(r.getIndex());
+                        hr.setResult(res);
+                        hr.setScore(r.getScore());
+                        return hr;
+                    } catch (IOException e) {
+                        throw new ServiceException(e.getMessage());
+                    }
+                })
+                .toList();
+
+        List<Facet> facets = new ArrayList<>();
+        if (browseBy != null) {
+            Map<String, String> fieldLabels = resourceTypeService.getIndexFieldLabels(resourceTypeName);
+            facets = browseBy.stream()
+                    .map(x -> transformAggregation(x, response.getAggregations().get("by_" + x), fieldLabels))
+                    .toList();
+        }
+
+        return new Paging<>((int) response.getHits().getTotalHits().value, from, from + resources.size(), resources, facets);
+    }
+
+    private List<String> resolveBrowseBy(FacetFilter filter) {
+        ResourceType rt = resourceTypeService.getResourceType(filter.getResourceType());
+        List<ResourceType> resourceTypes = rt != null
+                ? List.of(rt)
+                : resourceTypeService.getAllResourceTypeByAlias(filter.getResourceType());
+        return SearchService.resolveBrowseBy(resourceTypes, filter.getBrowseBy());
     }
 
     private List<Highlight> getHighlightsFromMap(Map<String, HighlightField> highlightsMap) {

@@ -17,14 +17,32 @@
 package gr.uoa.di.madgik.registry_starter.autoconfigure;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+
+import java.time.Duration;
 
 @AutoConfiguration
+@EnableCaching
 @ComponentScan({
         "gr.uoa.di.madgik.registry",
         "gr.uoa.di.madgik.registry.controllers"
 })
 public class RegistryServiceAutoConfiguration {
+
+    @Bean
+    public CacheManager cacheManager() {
+        CaffeineCacheManager manager = new CaffeineCacheManager();
+        manager.setAsyncCacheMode(false);
+
+        return manager;
+    }
 
 //    @Bean
 //    @ConditionalOnMissingBean(ResourceDao.class)
