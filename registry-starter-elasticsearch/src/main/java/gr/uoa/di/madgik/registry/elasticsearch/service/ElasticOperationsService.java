@@ -23,26 +23,15 @@ import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Segment;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.domain.index.IndexedField;
+import gr.uoa.di.madgik.registry.elasticsearch.ElasticRestUtils;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.IndexOperationsService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
-import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.support.WriteRequest;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.indices.CreateIndexRequest;
-import org.elasticsearch.client.indices.CreateIndexResponse;
-import org.elasticsearch.client.indices.GetIndexRequest;
-import org.elasticsearch.xcontent.XContentType;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.ResponseException;
+import org.elasticsearch.client.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.retry.annotation.Backoff;
@@ -51,11 +40,24 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static gr.uoa.di.madgik.registry.service.EmbeddingService.VECTOR_SIZE;
 
+/**
+ * Elasticsearch-backed implementation of {@link IndexOperationsService}.
+ *
+ * <p>This class preserves the registry's existing indexing contract while issuing raw JSON
+ * requests through Elasticsearch 8's low-level REST client. That keeps the module compatible
+ * with Elasticsearch 8 without reintroducing the removed high-level client API.</p>
+ */
 @Transactional
 public class ElasticOperationsService implements IndexOperationsService {
 
@@ -81,11 +83,14 @@ public class ElasticOperationsService implements IndexOperationsService {
     private static final Map<String, Object> DENSE_VECTOR_MAP = Map.of("type", "dense_vector", "dims", VECTOR_SIZE);
 
     private final ResourceTypeService resourceTypeService;
-    private final RestHighLevelClient client;
+    private final RestClient client;
     private final EmbeddingService embeddingService;
     private final ObjectMapper objectMapper;
 
-    public ElasticOperationsService(ResourceTypeService resourceTypeService, RestHighLevelClient client,
+    /**
+     * Creates an indexing service backed by Elasticsearch's low-level REST client.
+     */
+    public ElasticOperationsService(ResourceTypeService resourceTypeService, RestClient client,
                                     EmbeddingService embeddingService, ObjectMapper objectMapper) {
         this.resourceTypeService = resourceTypeService;
         this.client = client;
@@ -93,6 +98,9 @@ public class ElasticOperationsService implements IndexOperationsService {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Produces a searchable plain-text representation from the stored payload.
+     */
     private static String strip(String input, String format) {
         if ("xml".equals(format)) {
             return input.replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ");
@@ -103,114 +111,87 @@ public class ElasticOperationsService implements IndexOperationsService {
         }
     }
 
+    @Override
     public void addBulk(List<Resource> resources) {
-        BulkRequest bulkRequest = new BulkRequest();
-
-
-        for (Resource resource : resources) {
-            bulkRequest.add(new IndexRequest(resource.getResourceType().getName())
-                    .source(createDocumentForInsert(resource), XContentType.JSON)
-                    .id(resource.getId()));
+        if (resources == null || resources.isEmpty()) {
+            return;
         }
 
-        logger.info("Sending bulk request for {} resources", resources.size());
-        bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-        BulkResponse bulkResponse = null;
+        StringBuilder bulkBody = new StringBuilder();
         try {
-            bulkResponse = client.bulk(bulkRequest, RequestOptions.DEFAULT);
-        } catch (IOException e) {
-            logger.error("Elastic bulk request ended up with some errors");
-        }
+            for (Resource resource : resources) {
+                bulkBody.append(objectMapper.writeValueAsString(Map.of("index", Map.of(
+                        "_index", resource.getResourceType().getName(),
+                        "_id", resource.getId()
+                )))).append('\n');
+                bulkBody.append(objectMapper.writeValueAsString(createDocumentForInsert(resource))).append('\n');
+            }
 
-        if (bulkResponse.hasFailures()) {
-            logger.error("Elastic bulk request ended up with some errors");
+            logger.info("Sending bulk request for {} resources", resources.size());
+            ElasticRestUtils.performNdjsonRequest(client, "POST", "/_bulk", Map.of("refresh", "true"), bulkBody.toString());
+        } catch (IOException e) {
+            throw new ServiceException("Elastic bulk request failed", e);
         }
     }
 
+    @Override
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void add(Resource resource) {
-        Map<String, Object> payload = createDocumentForInsert(resource);
-
-        IndexRequest indexRequest = new IndexRequest(resource.getResourceType().getName());
-        indexRequest.id(resource.getId());
-        indexRequest.source(payload, XContentType.JSON);
-        indexRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-
-        try {
-            IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
-        } catch (IOException e) {
-            throw new ServiceException(e);
-        }
+        writeDocument("PUT", "/" + resource.getResourceType().getName() + "/_doc/" + resource.getId(),
+                createDocumentForInsert(resource));
     }
 
+    @Override
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void update(Resource previousResource, Resource newResource) {
-        UpdateRequest updateRequest = new UpdateRequest();
-
-        updateRequest.index(newResource.getResourceType().getName());
-        updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-        updateRequest.id(previousResource.getId());
-        updateRequest.doc(createDocumentForInsert(newResource), XContentType.JSON);
-        try {
-            client.update(updateRequest, RequestOptions.DEFAULT);
-        } catch (IOException e) {
-            throw new ServiceException(e);
-        }
+        writeDocument("POST", "/" + newResource.getResourceType().getName() + "/_update/" + previousResource.getId(),
+                Map.of("doc", createDocumentForInsert(newResource)));
     }
 
+    @Override
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void delete(String resourceId, String resourceType) {
-        DeleteRequest deleteRequest = new DeleteRequest(resourceType, resourceId);
-        try {
-            client.delete(deleteRequest, RequestOptions.DEFAULT);
-        } catch (IOException e) {
-            throw new ServiceException(e);
-        }
+        deleteDocument(resourceType, resourceId);
     }
 
+    @Override
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void delete(Resource resource) {
-        DeleteRequest deleteRequest = new DeleteRequest(resource.getResourceType().getName(), resource.getId());
-        try {
-            client.delete(deleteRequest, RequestOptions.DEFAULT);
-        } catch (IOException e) {
-            throw new ServiceException(e);
-        }
+        deleteDocument(resource.getResourceType().getName(), resource.getId());
     }
 
+    @Override
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void createIndex(ResourceType resourceType) {
         if (exists(resourceType.getName())) {
             return;
         }
 
-        CreateIndexRequest request = new CreateIndexRequest(resourceType.getName());
-
+        Map<String, Object> requestBody = new LinkedHashMap<>();
+        Map<String, Object> aliases = new LinkedHashMap<>();
         if (resourceType.getAliasGroup() != null) {
-            request.alias(new Alias(resourceType.getAliasGroup()));
+            aliases.put(resourceType.getAliasGroup(), Map.of());
         }
-
         if (resourceType.getAliases() != null) {
             for (String alias : resourceType.getAliases()) {
-                request.alias(new Alias(alias));
+                aliases.put(alias, Map.of());
             }
         }
-
-        Map<String, Object> jsonObjectForMapping = createMapping(resourceType.getIndexFields());
-
-        request.mapping(jsonObjectForMapping);
+        if (!aliases.isEmpty()) {
+            requestBody.put("aliases", aliases);
+        }
+        requestBody.put("mappings", createMapping(resourceType.getIndexFields()));
 
         try {
-            CreateIndexResponse putMappingResponse = client.indices().create(request, RequestOptions.DEFAULT); //request, RequestOptions.DEFAULT);
-            if (!putMappingResponse.isAcknowledged()) {
-                logger.error("Error creating result");
-            }
+            ElasticRestUtils.performRequest(client, "PUT", "/" + resourceType.getName(), Map.of(),
+                    new org.apache.http.entity.StringEntity(objectMapper.writeValueAsString(requestBody),
+                            org.apache.http.entity.ContentType.APPLICATION_JSON));
         } catch (IOException e) {
-            throw new ServiceException(e);
+            throw new ServiceException("Failed to create index " + resourceType.getName(), e);
         }
-
     }
 
+    @Override
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void deleteIndex(String name) {
         logger.info("Deleting index");
@@ -218,31 +199,76 @@ public class ElasticOperationsService implements IndexOperationsService {
         if (!exists(name)) {
             return;
         }
-        AcknowledgedResponse deleteResponse = null;
+
         try {
-            deleteResponse = client.indices().delete(new DeleteIndexRequest(name), RequestOptions.DEFAULT);
-            if (!deleteResponse.isAcknowledged()) {
-                logger.error("Error deleting index \"{}\"", name);
+            client.performRequest(new Request("DELETE", "/" + name));
+        } catch (ResponseException e) {
+            if (!ElasticRestUtils.isNotFound(e)) {
+                throw new ServiceException("Error deleting index: " + name, e);
             }
         } catch (IOException e) {
-            logger.error("Error deleting index: " + name, e);
+            throw new ServiceException("Error deleting index: " + name, e);
         }
-
-
     }
 
+    /**
+     * Writes a JSON document to Elasticsearch and requests an immediate refresh.
+     */
+    private void writeDocument(String method, String endpoint, Map<String, Object> body) {
+        try {
+            ElasticRestUtils.performJsonRequest(client, objectMapper, method, endpoint, Map.of("refresh", "true"),
+                    objectMapper.writeValueAsString(body));
+        } catch (IOException e) {
+            throw new ServiceException("Failed to serialize Elasticsearch request for " + endpoint, e);
+        }
+    }
+
+    /**
+     * Deletes a single document, treating HTTP 404 as a no-op.
+     */
+    private void deleteDocument(String resourceType, String resourceId) {
+        Request request = new Request("DELETE", "/" + resourceType + "/_doc/" + resourceId);
+        request.addParameter("refresh", "true");
+        try {
+            client.performRequest(request);
+        } catch (ResponseException e) {
+            if (!ElasticRestUtils.isNotFound(e)) {
+                throw new ServiceException("Failed deleting Elasticsearch document", e);
+            }
+        } catch (IOException e) {
+            throw new ServiceException("Failed deleting Elasticsearch document", e);
+        }
+    }
+
+    /**
+     * Checks whether an Elasticsearch index already exists.
+     */
     private boolean exists(String indexName) {
         try {
-            GetIndexRequest request = new GetIndexRequest(indexName);
-            boolean result = client.indices().exists(request, RequestOptions.DEFAULT);
-            logger.info("Existence of index '{}' result is: {}", indexName, result);
-            return result;
+            Response response = client.performRequest(new Request("HEAD", "/" + indexName));
+            switch (response.getStatusLine().getStatusCode()) {
+                case 200 -> {
+                    logger.info("Existence of index '{}' result is: true", indexName);
+                    return true;
+                }
+                default -> {
+                    return false;
+                }
+            }
+        } catch (ResponseException e) {
+            if (ElasticRestUtils.isNotFound(e)) {
+                logger.info("Existence of index '{}' result is: false", indexName);
+                return false;
+            }
+            throw new ServiceException("Failed to check index existence for " + indexName, e);
         } catch (IOException e) {
-            logger.error("Exception at waiting for IndicesExistsResponse", e);
-            return false;
+            throw new ServiceException("Failed to check index existence for " + indexName, e);
         }
     }
 
+    /**
+     * Builds Elasticsearch mapping JSON from registry {@link IndexField} metadata.
+     */
     private Map<String, Object> createMapping(List<IndexField> indexFields) {
 
         Map<String, Object> jsonObjectGeneral = new HashMap<>();
@@ -255,6 +281,8 @@ public class ElasticOperationsService implements IndexOperationsService {
                     case "java.util.Date", "java.time.Instant" -> typeMap.put("format", "epoch_millis");
                     case "java.lang.String" -> typeMap.put("fields", Map.of("analyzed", TEXT_MAP));
                     case "embedding" -> typeMap.put("dims", VECTOR_SIZE);
+                    default -> {
+                    }
                 }
                 jsonObjectProperties.put(indexField.getName(), typeMap);
             }
@@ -271,11 +299,19 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectProperties.put("embedding", DENSE_VECTOR_MAP);
 
         jsonObjectGeneral.put("properties", jsonObjectProperties);
-//        jsonObjectGeneral.put("_source", Map.of("excludes", List.of("embedding"))); // TODO: enable on ES v8
+        // TODO: enable on ES v8
+        jsonObjectGeneral.put("_source", Map.of("excludes", List.of("embedding")));
         return jsonObjectGeneral;
 
     }
 
+    /**
+     * Converts a registry {@link Resource} into the JSON document stored in Elasticsearch.
+     *
+     * <p>Besides raw payload fields, this normalizes temporal values to epoch millis, derives the
+     * plain-text searchable area, and adds an embedding when the resource type marks fields as
+     * embedding contributors.</p>
+     */
     private Map<String, Object> createDocumentForInsert(Resource resource) {
 
         Map<String, Object> jsonObjectField = new LinkedHashMap<>();
@@ -298,7 +334,10 @@ public class ElasticOperationsService implements IndexOperationsService {
         if (resource.getIndexedFields() != null) {
             for (IndexedField<?> field : resource.getIndexedFields()) {
                 IndexField rtif = indexMap.get(field.getName());
-                if (!indexMap.get(field.getName()).isMultivalued()) {
+                if (rtif == null) {
+                    continue;
+                }
+                if (!rtif.isMultivalued()) {
                     for (Object value : field.getValues()) {
 
                         String fieldType = rtif.getType();

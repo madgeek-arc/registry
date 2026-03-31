@@ -16,20 +16,17 @@
 
 package gr.uoa.di.madgik.registry.elasticsearch;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.service.IndexOperationsService;
 import gr.uoa.di.madgik.registry.service.ResourceService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
+import gr.uoa.di.madgik.registry.service.ServiceException;
 import jakarta.annotation.PostConstruct;
-import org.elasticsearch.ElasticsearchStatusException;
-import org.elasticsearch.action.search.*;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.core.TimeValue;
-import org.elasticsearch.search.Scroll;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -39,24 +36,31 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import javax.sql.DataSource;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Background consistency check between the SQL-backed registry and the Elasticsearch index.
+ *
+ * <p>At startup, this component enumerates each registered resource type, recreates missing
+ * Elasticsearch indices on demand, re-indexes database rows that are absent from Elasticsearch,
+ * and logs the inverse mismatch when Elasticsearch contains documents that no longer exist in
+ * the database.</p>
+ */
 public class IndexDbSync {
 
     private static final Logger logger = LoggerFactory.getLogger(IndexDbSync.class);
 
-    private final RestHighLevelClient client;
+    private final RestClient client;
     private final IndexOperationsService indexOperationsService;
     private final ResourceTypeService resourceTypeService;
     private final ResourceService resourceService;
     private final DataSource dataSource;
     private final TaskExecutor taskExecutor = new VirtualThreadTaskExecutor();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public IndexDbSync(RestHighLevelClient client,
+    public IndexDbSync(RestClient client,
                        IndexOperationsService indexOperationsService,
                        ResourceTypeService resourceTypeService,
                        ResourceService resourceService,
@@ -127,64 +131,87 @@ public class IndexDbSync {
     }
 
     /**
-     * Returns all resource ids of the requested index ({@link ResourceType}) from Elastic.
+     * Returns all document ids for the given Elasticsearch index using the scroll API.
      *
-     * @param resourceType The {@link ResourceType} describing the index.
-     * @return {@link List}
-     * @throws IOException
-     * @throws ElasticsearchStatusException - When index is missing
+     * <p>The request fetches ids only, keeping the response payload small while walking large
+     * indices. Transport and parsing failures are wrapped in {@link ServiceException}.</p>
      */
-    private List<String> findAllResourceIdsFromElasticIndex(String resourceType) throws IOException, ElasticsearchStatusException {
+    private List<String> findAllResourceIdsFromElasticIndex(String resourceType) {
         List<String> resourceIds = new ArrayList<>();
+        String scrollId = null;
 
-        final Scroll scroll = new Scroll(TimeValue.timeValueSeconds(1L));
-        SearchRequest searchRequest = new SearchRequest(resourceType);
-        searchRequest.scroll(scroll);
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder
-                .size(10000)
-                .fetchField("*_id")
-                .fetchSource(false)
-                .explain(false);
-        searchRequest.source(searchSourceBuilder);
-
-        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-        String scrollId = searchResponse.getScrollId();
-        SearchHit[] searchHits = searchResponse.getHits().getHits();
-
-        while (searchHits != null && searchHits.length > 0) {
-            resourceIds.addAll(
-                    Arrays.stream(searchHits)
-                            .map(SearchHit::getId)
-                            .toList()
+        try {
+            JsonNode searchResponse = ElasticRestUtils.performJsonRequest(
+                    client,
+                    objectMapper,
+                    "POST",
+                    "/" + resourceType + "/_search",
+                    Map.of("scroll", "1m"),
+                    "{\"size\":10000,\"_source\":false}"
             );
 
-            SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
-            scrollRequest.scroll(scroll);
-            searchResponse = client.scroll(scrollRequest, RequestOptions.DEFAULT);
-            scrollId = searchResponse.getScrollId();
-            searchHits = searchResponse.getHits().getHits();
-        }
+            scrollId = searchResponse.path("_scroll_id").asText(null);
+            JsonNode hits = searchResponse.path("hits").path("hits");
 
-        ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
-        clearScrollRequest.addScrollId(scrollId);
-        ClearScrollResponse clearScrollResponse = client.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
-        boolean succeeded = clearScrollResponse.isSucceeded();
-        if (!succeeded) {
-            logger.error("clear scroll request failed...");
+            while (hits.isArray() && !hits.isEmpty()) {
+                for (JsonNode hit : hits) {
+                    resourceIds.add(hit.path("_id").asText());
+                }
+
+                if (scrollId == null || scrollId.isBlank()) {
+                    break;
+                }
+
+                JsonNode scrollResponse = ElasticRestUtils.performJsonRequest(
+                        client,
+                        objectMapper,
+                        "POST",
+                        "/_search/scroll",
+                        objectMapper.writeValueAsString(Map.of("scroll", "1m", "scroll_id", scrollId))
+                );
+                scrollId = scrollResponse.path("_scroll_id").asText(scrollId);
+                hits = scrollResponse.path("hits").path("hits");
+            }
+        } catch (Exception e) {
+            throw new ServiceException("Failed to read Elasticsearch index " + resourceType, e);
+        } finally {
+            clearScroll(scrollId);
         }
 
         return resourceIds;
     }
 
     /**
-     * Returns all resource ids of an index. If index is missing, the method creates it.
-     *
-     * @param resourceType The {@link ResourceType} describing the index.
-     * @return {@link List}
+     * Best-effort cleanup of an active Elasticsearch scroll context.
+     */
+    private void clearScroll(String scrollId) {
+        if (scrollId == null || scrollId.isBlank()) {
+            return;
+        }
+        try {
+            ElasticRestUtils.performJsonRequest(
+                    client,
+                    objectMapper,
+                    "DELETE",
+                    "/_search/scroll",
+                    objectMapper.writeValueAsString(Map.of("scroll_id", List.of(scrollId)))
+            );
+        } catch (Exception e) {
+            logger.error("clear scroll request failed", e);
+        }
+    }
+
+    /**
+     * Loads all ids from Elasticsearch, creating the index first when the backend reports 404.
      */
     private List<String> fetchResourceIdsFromIndex(String resourceType) {
         List<String> resourceIds = new ArrayList<>();
+
+        if (!exists(resourceType)) {
+            logger.warn("Elasticsearch index '{}' is missing. Recreating it from the resource type definition.", resourceType);
+            resourceTypeService.addResourceType(resourceTypeService.getResourceType(resourceType));
+            return resourceIds;
+        }
 
         boolean done = false;
         short retries = 5;
@@ -192,12 +219,14 @@ public class IndexDbSync {
             try {
                 resourceIds = findAllResourceIdsFromElasticIndex(resourceType);
                 done = true;
-            } catch (IOException e) {
-                logger.error(e.getMessage(), e);
-            } catch (ElasticsearchStatusException e) {
-                logger.warn(e.getMessage());
-                // index must be missing - add it
-                resourceTypeService.addResourceType(resourceTypeService.getResourceType(resourceType));
+            } catch (ServiceException e) {
+                if (isNotFound(e)) {
+                    logger.warn("Elasticsearch index '{}' missing. Recreating it from the resource type definition.", resourceType);
+                    resourceTypeService.addResourceType(resourceTypeService.getResourceType(resourceType));
+                    return new ArrayList<>();
+                } else {
+                    logger.error(e.getMessage(), e);
+                }
             }
             retries--;
         } while (!done && retries > 0);
@@ -205,9 +234,39 @@ public class IndexDbSync {
     }
 
     /**
-     * Reindex missing resources of a {@link ResourceType}.
-     *
-     * @param resourceType The {@link ResourceType} describing the index to populate.
+     * Unwraps nested exceptions to detect an Elasticsearch HTTP 404 response.
+     */
+    private boolean isNotFound(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof org.elasticsearch.client.ResponseException responseException
+                    && ElasticRestUtils.isNotFound(responseException)) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    /**
+     * Checks whether an Elasticsearch index currently exists.
+     */
+    private boolean exists(String indexName) {
+        try {
+            client.performRequest(new Request("HEAD", "/" + indexName));
+            return true;
+        } catch (org.elasticsearch.client.ResponseException e) {
+            if (ElasticRestUtils.isNotFound(e)) {
+                return false;
+            }
+            throw new ServiceException("Failed to check index existence for " + indexName, e);
+        } catch (Exception e) {
+            throw new ServiceException("Failed to check index existence for " + indexName, e);
+        }
+    }
+
+    /**
+     * Reindexes database rows that are missing from the target Elasticsearch index.
      */
     private void reindex(String resourceType) {
         List<String> indexResources = fetchResourceIdsFromIndex(resourceType);

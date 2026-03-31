@@ -17,45 +17,25 @@
 package gr.uoa.di.madgik.registry.elasticsearch.service;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import gr.uoa.di.madgik.registry.domain.*;
-import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import gr.uoa.di.madgik.registry.domain.Facet;
+import gr.uoa.di.madgik.registry.domain.FacetFilter;
+import gr.uoa.di.madgik.registry.domain.Highlight;
+import gr.uoa.di.madgik.registry.domain.HighlightedResult;
+import gr.uoa.di.madgik.registry.domain.Paging;
+import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
-import org.elasticsearch.ResourceNotFoundException;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.document.DocumentField;
-import org.elasticsearch.common.text.Text;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.script.Script;
-import org.elasticsearch.script.ScriptType;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.aggregations.bucket.MultiBucketsAggregation;
-import org.elasticsearch.search.aggregations.bucket.terms.Terms;
-import org.elasticsearch.search.aggregations.metrics.TopHits;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
-import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
-import org.elasticsearch.search.sort.SortBuilders;
-import org.elasticsearch.search.sort.SortOrder;
+import org.elasticsearch.client.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -63,19 +43,33 @@ import org.xbib.cql.CQLParser;
 import org.xbib.cql.elasticsearch.ElasticsearchQueryGenerator;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
+import gr.uoa.di.madgik.registry.elasticsearch.ElasticRestUtils;
 
+/**
+ * Elasticsearch-backed implementation of {@link SearchService}.
+ *
+ * <p>The service keeps the existing registry search semantics but renders all queries,
+ * aggregations, highlighting, and recommendation requests as raw Elasticsearch JSON. This avoids
+ * the removed 7.x client APIs while preserving the public search contract used by the rest of the
+ * application.</p>
+ */
 public class ElasticSearchService implements SearchService {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticSearchService.class);
-
     private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "payloadFormat", "version"};
 
-    private final RestHighLevelClient elasticsearchClient;
+    private final RestClient elasticsearchClient;
     private final EmbeddingService embeddingService;
     private final ResourceTypeService resourceTypeService;
     private final ObjectMapper mapper;
@@ -87,7 +81,10 @@ public class ElasticSearchService implements SearchService {
     private int maxQuantity;
 
 
-    public ElasticSearchService(RestHighLevelClient elasticsearchClient,
+    /**
+     * Creates a search service backed by Elasticsearch's low-level REST client.
+     */
+    public ElasticSearchService(RestClient elasticsearchClient,
                                 EmbeddingService embeddingService,
                                 ResourceTypeService resourceTypeService) {
         mapper = new ObjectMapper();
@@ -98,296 +95,258 @@ public class ElasticSearchService implements SearchService {
     }
 
     /**
-     * Custom painless script to score using cosine similarity in ElasticSearch version 7.x.x.
-     * The script creates a weighted score between text search and vector search (using the {@code embedding} field).
-     *
-     * @param queryVector the embedding vector
-     * @return {@link Script}
+     * Builds the painless script used to blend text relevance with embedding similarity.
      */
-    public static Script cosineScriptScoreQuery(float[] queryVector) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("q", queryVector);
+    private ObjectNode cosineScriptScoreQuery(float[] queryVector) {
+        ObjectNode script = mapper.createObjectNode();
+        ObjectNode params = script.putObject("params");
+        ArrayNode q = params.putArray("q");
+        for (float value : queryVector) {
+            q.add(value);
+        }
         params.put("text_w", 1.0);
-        params.put("vec_w", 2.0); // give double weight to embedding
-
-        return new Script(
-                ScriptType.INLINE,
-                "painless",
-                """
+        params.put("vec_w", 2.0);
+        script.put("source", """
                             double text = _score;
                             if (!doc.containsKey('embedding') || doc['embedding'].size() == 0) {
                                 return text;
                             }
                             double vec = cosineSimilarity(params.q, doc['embedding']) + 1.0;
                             return params.text_w * text + params.vec_w * vec;
-                        """,
-                params
-        );
+                        """);
+        return script;
     }
 
-    public BoolQueryBuilder createQueryBuilder(FacetFilter filter) {
-        BoolQueryBuilder qBuilder = new BoolQueryBuilder();
-        if (!filter.getKeyword().isEmpty()) {
+    /**
+     * Builds the main boolean query from the incoming facet filter.
+     */
+    private ObjectNode createQueryNode(FacetFilter filter) {
+        ObjectNode bool = mapper.createObjectNode();
+        ArrayNode must = bool.putArray("must");
+
+        if (filter.getKeyword() != null && !filter.getKeyword().isEmpty()) {
             Set<String> textFields = new HashSet<>(getTextFields(filter.getResourceType()));
-            qBuilder.must(
-                    QueryBuilders.scriptScoreQuery(
-                            QueryBuilders.multiMatchQuery(filter.getKeyword(), textFields.toArray(new String[0])),
-                            cosineScriptScoreQuery(embeddingService.embed(filter.getKeyword()))
-                    )
-            );
+            ObjectNode scriptScore = mapper.createObjectNode();
+            ObjectNode scriptScoreBody = scriptScore.putObject("script_score");
+            ObjectNode multiMatch = scriptScoreBody.putObject("query").putObject("multi_match");
+            multiMatch.put("query", filter.getKeyword());
+            ArrayNode fields = multiMatch.putArray("fields");
+            textFields.forEach(fields::add);
+            scriptScoreBody.set("script", cosineScriptScoreQuery(embeddingService.embed(filter.getKeyword())));
+            must.add(scriptScore);
         } else {
-            qBuilder.must(QueryBuilders.matchAllQuery());
+            must.addObject().putObject("match_all");
         }
-        applyFilters(filter.getFilter(), qBuilder);
-        return qBuilder;
+
+        applyFilters(filter.getFilter(), bool);
+        return mapper.createObjectNode().set("bool", bool);
     }
 
-    private void applyFilters(Map<String, Object> filters, BoolQueryBuilder qBuilder) {
+    /**
+     * Adds exact or multi-value filters to the supplied bool query node.
+     */
+    private void applyFilters(Map<String, Object> filters, ObjectNode boolNode) {
+        if (filters == null || filters.isEmpty()) {
+            return;
+        }
+        ArrayNode must = withArray(boolNode, "must");
         for (Map.Entry<String, Object> filterSet : filters.entrySet()) {
-            // Check if Filter value is a Collection, and create should matches for every value in the collection.
-            BoolQueryBuilder internalBuilder = new BoolQueryBuilder();
-            if (Collection.class.isAssignableFrom(filterSet.getValue().getClass())) {
-                for (Object value : ((Collection) filterSet.getValue())) {
-                    internalBuilder.should(QueryBuilders.matchQuery(filterSet.getKey(), value));
+            if (filterSet.getValue() instanceof Collection<?> values) {
+                ObjectNode internal = mapper.createObjectNode();
+                ArrayNode should = internal.putObject("bool").putArray("should");
+                for (Object value : values) {
+                    ObjectNode match = mapper.createObjectNode();
+                    match.putObject("match").set(filterSet.getKey(), mapper.valueToTree(value));
+                    should.add(match);
                 }
-                internalBuilder.minimumShouldMatch(1);
+                internal.with("bool").put("minimum_should_match", 1);
+                must.add(internal);
             } else {
-                internalBuilder.must(QueryBuilders.termQuery(filterSet.getKey(), filterSet.getValue()));
+                ObjectNode term = mapper.createObjectNode();
+                term.putObject("term").set(filterSet.getKey(), mapper.valueToTree(filterSet.getValue()));
+                must.add(term);
             }
-            qBuilder.must(internalBuilder);
         }
     }
 
+    /**
+     * Reads the current index mapping and returns every field that is searchable as text.
+     */
     private List<String> getTextFields(String indexName) {
         try {
-            GetMappingsRequest request = new GetMappingsRequest().indices(indexName);
-            GetMappingsResponse response = elasticsearchClient.indices().getMapping(request, RequestOptions.DEFAULT);
+            JsonNode response = ElasticRestUtils.performJsonRequest(
+                    elasticsearchClient,
+                    mapper,
+                    "GET",
+                    "/" + indexName + "/_mapping",
+                    (String) null
+            );
 
-            ImmutableOpenMap<String, MappingMetadata> mappingMetaData = response.mappings().get(indexName);
-            if (mappingMetaData == null) {
+            JsonNode properties = response.path(indexName).path("mappings").path("properties");
+            if (properties.isMissingNode()) {
                 return Collections.emptyList();
             }
 
-            Map<String, Object> mapping = mappingMetaData.get("_doc").getSourceAsMap();
-            Map<String, Object> properties = (Map<String, Object>) mapping.get("properties");
-
             return findTextFields(properties, "");
-        } catch (IOException e) { // fallback to default fields
+        } catch (ServiceException e) {
             logger.warn("Reading resourceType '{}' fields from Elastic failed, using 'searchableArea' and 'payload' instead.", indexName, e);
             return List.of("searchableArea", "payload");
         }
     }
 
-    private List<String> findTextFields(Map<String, Object> properties, String pathPrefix) {
+    /**
+     * Recursively traverses an Elasticsearch mapping tree and collects all text fields.
+     */
+    private List<String> findTextFields(JsonNode properties, String pathPrefix) {
         List<String> result = new ArrayList<>();
 
-        for (Map.Entry<String, Object> entry : properties.entrySet()) {
+        properties.fields().forEachRemaining(entry -> {
             String fieldName = entry.getKey();
-            Map<String, Object> fieldProps = (Map<String, Object>) entry.getValue();
+            JsonNode fieldProps = entry.getValue();
             String fullPath = pathPrefix.isEmpty() ? fieldName : pathPrefix + "." + fieldName;
 
-            Object type = fieldProps.get("type");
-            if ("text".equals(type)) {
+            if ("text".equals(fieldProps.path("type").asText())) {
                 result.add(fullPath);
             }
 
-            // Check for nested properties
-            if (fieldProps.containsKey("properties")) {
-                Map<String, Object> nestedProps = (Map<String, Object>) fieldProps.get("properties");
-                result.addAll(findTextFields(nestedProps, fullPath));
+            JsonNode nestedProperties = fieldProps.path("properties");
+            if (!nestedProperties.isMissingNode()) {
+                result.addAll(findTextFields(nestedProperties, fullPath));
             }
 
-            // Check multi-fields
-            if (fieldProps.containsKey("fields")) {
-                Map<String, Object> subfields = (Map<String, Object>) fieldProps.get("fields");
-                for (Map.Entry<String, Object> subfieldEntry : subfields.entrySet()) {
-                    String subfieldName = subfieldEntry.getKey();
-                    Map<String, Object> subfieldProps = (Map<String, Object>) subfieldEntry.getValue();
-                    Object subfieldType = subfieldProps.get("type");
-                    if ("text".equals(subfieldType)) {
-                        result.add(fullPath + "." + subfieldName);
+            JsonNode subfields = fieldProps.path("fields");
+            if (!subfields.isMissingNode()) {
+                subfields.fields().forEachRemaining(subfieldEntry -> {
+                    if ("text".equals(subfieldEntry.getValue().path("type").asText())) {
+                        result.add(fullPath + "." + subfieldEntry.getKey());
                     }
-                }
+                });
             }
-        }
+        });
 
         return result;
     }
 
+    /**
+     * Executes a grouped search and returns the top hits per aggregation bucket.
+     */
     private Map<String, List<Resource>> buildTopHitAggregation(FacetFilter filter, String category) {
-        Map<String, List<Resource>> results;
-        BoolQueryBuilder qBuilder = createQueryBuilder(filter);
-        SearchRequest search = new SearchRequest(filter.getResourceType());
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        search.searchType(SearchType.DFS_QUERY_THEN_FETCH);
-        searchSourceBuilder.query(qBuilder)
-                .fetchSource(INCLUDES, null)
-                .from(filter.getFrom()).size(0).explain(false);
-        searchSourceBuilder.aggregation(
-                AggregationBuilders.terms("agg_category").field(category).size(bucketSize)
-                        .subAggregation(AggregationBuilders.topHits("documents").size(topHitsSize).fetchSource(INCLUDES, null)
-                        ));
-        search.source(searchSourceBuilder);
-        SearchResponse response = null;
-        try {
-            response = elasticsearchClient.search(search, RequestOptions.DEFAULT);
-        } catch (IOException e) {
-            throw new ServiceException(e.getMessage());
+        ObjectNode body = baseSearchBody(filter, 0, false);
+        ObjectNode termsAggregation = mapper.createObjectNode();
+        termsAggregation.putObject("terms")
+                .put("field", category)
+                .put("size", bucketSize);
+        ObjectNode topHits = termsAggregation.putObject("aggs").putObject("documents").putObject("top_hits");
+        topHits.put("size", topHitsSize);
+        topHits.set("_source", includesNode());
+
+        body.putObject("aggs").set("agg_category", termsAggregation);
+
+        JsonNode response = executeSearch(filter.getResourceType(), body);
+        JsonNode buckets = response.path("aggregations").path("agg_category").path("buckets");
+        Map<String, List<Resource>> results = new HashMap<>();
+        for (JsonNode bucket : buckets) {
+            results.put(bucket.path("key").asText(),
+                    toResources(bucket.path("documents").path("hits").path("hits")));
         }
-
-        Terms terms = response.getAggregations().get("agg_category");
-        mapper.configure(JsonGenerator.Feature.IGNORE_UNKNOWN, true);
-        results = terms.getBuckets()
-                .parallelStream()
-                .collect(Collectors.toMap(
-                        MultiBucketsAggregation.Bucket::getKeyAsString,
-                        y -> StreamSupport.stream(
-                                        ((TopHits) y.getAggregations()
-                                                .get("documents"))
-                                                .getHits()
-                                                .spliterator(), true
-                                )
-                                .map(r -> {
-                                    try {
-                                        Resource resource = mapper.readValue(r.getSourceAsString(), Resource.class);
-                                        resource.setResourceTypeName(r.getIndex());
-                                        return resource;
-                                    } catch (IOException e) {
-                                        throw new ServiceException(e.getMessage());
-                                    }
-                                })
-                                .collect(Collectors.toList())
-                ));
-
         return results;
     }
 
+    /**
+     * Executes a standard search with highlighting enabled.
+     */
     private Paging<HighlightedResult<Resource>> buildSearchWithHighlights(FacetFilter filter) {
         filter.setBrowseBy(resolveBrowseBy(filter));
         int quantity = filter.getQuantity();
         validateQuantity(quantity);
-        BoolQueryBuilder qBuilder = createQueryBuilder(filter);
-        SearchRequest search = new SearchRequest(filter.getResourceType()).
-                searchType(SearchType.DFS_QUERY_THEN_FETCH);
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(qBuilder)
-                .fetchSource(INCLUDES, null)
-                .from(filter.getFrom())
-                .size(quantity)
-                .explain(false);
 
-        HighlightBuilder hb = new HighlightBuilder();
-        hb.field("*.analyzed").fragmentSize(2000).numOfFragments(5);
-        hb.order("score");
-        searchSourceBuilder.highlighter(hb);
+        ObjectNode body = baseSearchBody(filter, quantity, true);
+        ObjectNode highlight = body.putObject("highlight");
+        highlight.put("order", "score");
+        highlight.putObject("fields").putObject("*.analyzed")
+                .put("fragment_size", 2000)
+                .put("number_of_fragments", 5);
 
-        if (filter.getOrderBy() != null) {
-            for (Map.Entry<String, Object> order : filter.getOrderBy().entrySet()) {
-                Map op = (Map) order.getValue();
-                searchSourceBuilder.sort(order.getKey(), SortOrder.fromString(op.get("order").toString()));
-            }
-        }
-
-        for (String browseBy : filter.getBrowseBy()) {
-            searchSourceBuilder.aggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy).size(bucketSize));
-        }
-        search.source(searchSourceBuilder);
-        SearchResponse response = null;
-        try {
-            response = elasticsearchClient.search(search, RequestOptions.DEFAULT);
-        } catch (IOException e) {
-            throw new ServiceException(e.getMessage());
-        }
-
+        JsonNode response = executeSearch(filter.getResourceType(), body);
         return highlightedResponseToPaging(response, filter.getFrom(), filter.getBrowseBy(), filter.getResourceType());
     }
 
+    /**
+     * Executes a standard faceted search without highlights.
+     */
     private Paging<Resource> buildSearch(FacetFilter filter) {
         filter.setBrowseBy(resolveBrowseBy(filter));
         int quantity = filter.getQuantity();
         validateQuantity(quantity);
-        BoolQueryBuilder qBuilder = createQueryBuilder(filter);
-        SearchRequest search = new SearchRequest(filter.getResourceType()).
-                searchType(SearchType.DFS_QUERY_THEN_FETCH);
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(qBuilder)
-                .fetchSource(INCLUDES, null)
-                .from(filter.getFrom()).size(quantity).explain(false);
 
-        if (filter.getOrderBy() != null) {
-            for (Map.Entry<String, Object> order : filter.getOrderBy().entrySet()) {
-                Map op = (Map) order.getValue();
-                searchSourceBuilder.sort(order.getKey(), SortOrder.fromString(op.get("order").toString()));
-            }
-        }
-
-        for (String browseBy : filter.getBrowseBy()) {
-            searchSourceBuilder.aggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy).size(bucketSize));
-        }
-        search.source(searchSourceBuilder);
-        SearchResponse response = null;
-        try {
-            response = elasticsearchClient.search(search, RequestOptions.DEFAULT);
-        } catch (IOException e) {
-            throw new ServiceException(e.getMessage());
-        }
-
+        JsonNode response = executeSearch(filter.getResourceType(), baseSearchBody(filter, quantity, true));
         return responseToPaging(response, filter.getFrom(), filter.getBrowseBy(), filter.getResourceType());
     }
 
-    private Facet transformAggregation(String browseBy, Terms terms, Map<String, String> fieldLabels) {
+    /**
+     * Creates the common request body shared by search endpoints.
+     */
+    private ObjectNode baseSearchBody(FacetFilter filter, int quantity, boolean includeBrowseBy) {
+        ObjectNode body = mapper.createObjectNode();
+        body.set("query", createQueryNode(filter));
+        body.set("_source", includesNode());
+        body.put("from", filter.getFrom());
+        body.put("size", quantity);
+        body.put("track_total_hits", true);
+
+        applySorting(filter.getOrderBy(), body);
+        if (includeBrowseBy) {
+            applyBrowseByAggregations(filter.getBrowseBy(), body);
+        }
+        return body;
+    }
+
+    /**
+     * Renders sort directives from the registry search model into Elasticsearch JSON.
+     */
+    private void applySorting(Map<String, Object> orderBy, ObjectNode body) {
+        if (orderBy == null || orderBy.isEmpty()) {
+            return;
+        }
+        ArrayNode sortArray = body.putArray("sort");
+        for (Map.Entry<String, Object> order : orderBy.entrySet()) {
+            Map<?, ?> op = (Map<?, ?>) order.getValue();
+            sortArray.addObject().putObject(order.getKey()).put("order", op.get("order").toString());
+        }
+    }
+
+    /**
+     * Appends terms aggregations for each requested browse-by field.
+     */
+    private void applyBrowseByAggregations(List<String> browseBy, ObjectNode body) {
+        if (browseBy == null || browseBy.isEmpty()) {
+            return;
+        }
+        ObjectNode aggs = body.with("aggs");
+        for (String browseField : browseBy) {
+            aggs.putObject("by_" + browseField).putObject("terms")
+                    .put("field", browseField)
+                    .put("size", bucketSize);
+        }
+    }
+
+    /**
+     * Converts an Elasticsearch terms aggregation into the registry {@link Facet} model.
+     */
+    private Facet transformAggregation(String browseBy, JsonNode buckets, Map<String, String> fieldLabels) {
         Facet facet = new Facet();
         facet.setField(browseBy);
         facet.setLabel(fieldLabels.get(browseBy));
-        List<gr.uoa.di.madgik.registry.domain.Value> values;
-        if (terms.getBuckets() != null && !terms.getBuckets().isEmpty()) {
-            values = terms.getBuckets()
-                    .stream()
-                    .map(x -> new gr.uoa.di.madgik.registry.domain.Value(x.getKeyAsString(), x.getDocCount()))
-                    .sorted()
-                    .collect(Collectors.toList());
-        } else {
-            values = new ArrayList<>();
+        List<gr.uoa.di.madgik.registry.domain.Value> values = new ArrayList<>();
+        if (buckets != null && buckets.isArray()) {
+            buckets.forEach(bucket -> values.add(new gr.uoa.di.madgik.registry.domain.Value(
+                    bucket.path("key").asText(),
+                    bucket.path("doc_count").asLong()
+            )));
+            Collections.sort(values);
         }
         facet.setValues(values);
         return facet;
-    }
-
-    public Paging<Resource> cqlQuery(FacetFilter filter) throws IOException {
-        validateQuantity(filter.getQuantity());
-        CQLParser parser = new CQLParser(filter.getKeyword());
-        parser.parse();
-        ElasticsearchQueryGenerator generator = new ElasticsearchQueryGenerator(null);
-
-        parser.getCQLQuery().accept(generator);
-
-        SearchRequest searchRequest = new SearchRequest(filter.getResourceType());
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query((QueryBuilders.wrapperQuery(generator.getQueryResult())));
-        searchSourceBuilder.size(filter.getQuantity())
-                .from(filter.getFrom())
-                .fetchSource(INCLUDES, null)
-                .explain(true);
-
-        if (filter.getOrderBy() != null) {
-            for (Map.Entry<String, Object> order : filter.getOrderBy().entrySet()) {
-                Map op = (Map) order.getValue();
-                searchSourceBuilder.sort(order.getKey(), SortOrder.fromString(op.get("order").toString()));
-            }
-        }
-
-        for (String browseBy : filter.getBrowseBy()) {
-            searchSourceBuilder.aggregation(AggregationBuilders.terms("by_" + browseBy).field(browseBy).size(bucketSize));
-        }
-        searchRequest.source(searchSourceBuilder);
-        SearchResponse response = null;
-        try {
-            response = elasticsearchClient.search(searchRequest, RequestOptions.DEFAULT);
-        } catch (IOException e) {
-            throw new ServiceException(e);
-        }
-
-        return responseToPaging(response, filter.getFrom(), filter.getBrowseBy(), filter.getResourceType());
     }
 
     @Override
@@ -400,7 +359,7 @@ public class ElasticSearchService implements SearchService {
         validateQuantity(quantity);
         CQLParser parser = new CQLParser(query);
         parser.parse();
-        ElasticsearchQueryGenerator generator = null;
+        ElasticsearchQueryGenerator generator;
         try {
             generator = new ElasticsearchQueryGenerator(null);
         } catch (IOException e) {
@@ -409,92 +368,80 @@ public class ElasticSearchService implements SearchService {
 
         parser.getCQLQuery().accept(generator);
 
-        SearchRequest searchRequest = new SearchRequest(resourceType);
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.fetchSource(INCLUDES, null)
-                .query(QueryBuilders.wrapperQuery(generator.getQueryResult()))
-                .size(quantity)
-                .from(from)
-                .explain(false);
+        ObjectNode body = mapper.createObjectNode();
+        try {
+            body.set("query", mapper.readTree(generator.getQueryResult()));
+        } catch (IOException e) {
+            throw new ServiceException("Failed to parse generated CQL query", e);
+        }
+        body.set("_source", includesNode());
+        body.put("size", quantity);
+        body.put("from", from);
+        body.put("track_total_hits", true);
 
         if (!sortByField.isEmpty()) {
-            searchSourceBuilder.sort(SortBuilders.fieldSort(sortByField).order(SortOrder.valueOf(sortOrder)));
+            body.putArray("sort").addObject().putObject(sortByField).put("order", sortOrder);
         }
 
-        searchRequest.source(searchSourceBuilder);
-        SearchResponse response = null;
-        try {
-            response = elasticsearchClient.search(searchRequest, RequestOptions.DEFAULT);
-        } catch (IOException e) {
-            throw new ServiceException(e);
-        }
+        JsonNode response = executeSearch(resourceType, body);
         return responseToPaging(response, from, null, null);
-
     }
 
-    private Paging<Resource> responseToPaging(SearchResponse response, int from, List<String> browseBy,
+    private Paging<Resource> responseToPaging(JsonNode response, int from, List<String> browseBy,
                                               String resourceTypeName) {
-        if (response == null || response.getHits().getTotalHits().value == 0) {
+        JsonNode hits = response.path("hits").path("hits");
+        if (!hits.isArray() || hits.isEmpty()) {
             return new Paging<>();
         }
-        List<Resource> resources = StreamSupport
-                .stream(response.getHits().spliterator(), true)
-                .map(r -> {
-                    try {
-                        Resource res = mapper.readValue(r.getSourceAsString(), Resource.class);
-                        res.setResourceTypeName(r.getIndex());
-                        return res;
-                    } catch (IOException e) {
-                        throw new ServiceException(e.getMessage());
-                    }
-                })
-                .collect(Collectors.toList());
+
+        List<Resource> resources = toResources(hits);
 
         List<Facet> facets = new ArrayList<>();
         if (browseBy != null) {
             Map<String, String> fieldLabels = resourceTypeService.getIndexFieldLabels(resourceTypeName);
             facets = browseBy.stream()
-                    .map(x -> transformAggregation(x, response.getAggregations().get("by_" + x), fieldLabels))
+                    .map(x -> transformAggregation(x, response.path("aggregations").path("by_" + x).path("buckets"), fieldLabels))
                     .collect(Collectors.toList());
         }
 
-        return new Paging<>((int) response.getHits().getTotalHits().value, from, from + resources.size(), resources, facets);
+        return new Paging<>(extractTotal(response), from, from + resources.size(), resources, facets);
     }
 
-    private Paging<HighlightedResult<Resource>> highlightedResponseToPaging(SearchResponse response, int from,
-                                                                             List<String> browseBy,
-                                                                             String resourceTypeName) {
-        if (response == null || response.getHits().getTotalHits().value == 0) {
+    /**
+     * Converts a highlighted Elasticsearch response into the registry paging model.
+     */
+    private Paging<HighlightedResult<Resource>> highlightedResponseToPaging(JsonNode response, int from,
+                                                                            List<String> browseBy,
+                                                                            String resourceTypeName) {
+        JsonNode hits = response.path("hits").path("hits");
+        if (!hits.isArray() || hits.isEmpty()) {
             return new Paging<>();
         }
-        List<HighlightedResult<Resource>> resources = StreamSupport
-                .stream(response.getHits().spliterator(), true)
-                .map(r -> {
-                    try {
-                        HighlightedResult<Resource> hr = new HighlightedResult<>();
-                        hr.setHighlights(getHighlightsFromMap(r.getHighlightFields()));
-                        Resource res = mapper.readValue(r.getSourceAsString(), Resource.class);
-                        res.setResourceTypeName(r.getIndex());
-                        hr.setResult(res);
-                        hr.setScore(r.getScore());
-                        return hr;
-                    } catch (IOException e) {
-                        throw new ServiceException(e.getMessage());
-                    }
-                })
-                .toList();
+
+        List<HighlightedResult<Resource>> resources = new ArrayList<>();
+        for (JsonNode hit : hits) {
+            Resource resource = toResource(hit);
+            HighlightedResult<Resource> result = new HighlightedResult<>();
+            result.setHighlights(getHighlightsFromMap(hit.path("highlight")));
+            result.setResult(resource);
+            result.setScore((float) hit.path("_score").asDouble(0.0));
+            resources.add(result);
+        }
 
         List<Facet> facets = new ArrayList<>();
         if (browseBy != null) {
             Map<String, String> fieldLabels = resourceTypeService.getIndexFieldLabels(resourceTypeName);
             facets = browseBy.stream()
-                    .map(x -> transformAggregation(x, response.getAggregations().get("by_" + x), fieldLabels))
+                    .map(x -> transformAggregation(x, response.path("aggregations").path("by_" + x).path("buckets"), fieldLabels))
                     .toList();
         }
 
-        return new Paging<>((int) response.getHits().getTotalHits().value, from, from + resources.size(), resources, facets);
+        return new Paging<>(extractTotal(response), from, from + resources.size(), resources, facets);
     }
 
+    /**
+     * Resolves browse-by fields for direct resource types and alias groups.
+     */
     private List<String> resolveBrowseBy(FacetFilter filter) {
         ResourceType rt = resourceTypeService.getResourceType(filter.getResourceType());
         List<ResourceType> resourceTypes = rt != null
@@ -503,14 +450,18 @@ public class ElasticSearchService implements SearchService {
         return SearchService.resolveBrowseBy(resourceTypes, filter.getBrowseBy());
     }
 
-    private List<Highlight> getHighlightsFromMap(Map<String, HighlightField> highlightsMap) {
+    /**
+     * Converts Elasticsearch highlight fragments into the registry highlight model.
+     */
+    private List<Highlight> getHighlightsFromMap(JsonNode highlightsMap) {
         List<Highlight> highlights = new ArrayList<>();
-        for (Map.Entry<String, HighlightField> hf : highlightsMap.entrySet()) {
-            String key = hf.getKey().replace(".analyzed", "");
-            for (Text highlight : hf.getValue().fragments()) {
-                highlights.add(new Highlight(key, highlight.toString()));
-            }
+        if (!highlightsMap.isObject()) {
+            return highlights;
         }
+        highlightsMap.fields().forEachRemaining(hf -> {
+            String key = hf.getKey().replace(".analyzed", "");
+            hf.getValue().forEach(highlight -> highlights.add(new Highlight(key, highlight.asText())));
+        });
         return highlights;
     }
 
@@ -528,127 +479,73 @@ public class ElasticSearchService implements SearchService {
     public List<Resource> recommend(FacetFilter filter, KeyValue resourceIdAndValue) {
         int quantity = filter.getQuantity();
         validateQuantity(quantity);
-        BoolQueryBuilder qBuilder = createRecommendationQuery(filter.getResourceType(), resourceIdAndValue);
 
-        if (!filter.getKeyword().isEmpty()) {
+        float[] embedding = getEmbeddingForResource(filter.getResourceType(), resourceIdAndValue);
+        if (embeddingIsEmpty(embedding)) {
+            throw new gr.uoa.di.madgik.registry.exception.ResourceNotFoundException(
+                    "There are no recommendations available for this resource",
+                    new UnsupportedOperationException("Embedding value is empty, cannot find recommendations")
+            );
+        }
+
+        ObjectNode bool = mapper.createObjectNode();
+        ArrayNode mustNot = bool.putArray("must_not");
+        mustNot.addObject().putObject("terms")
+                .set(resourceIdAndValue.getField(), mapper.createArrayNode().add(resourceIdAndValue.getValue()));
+
+        ArrayNode must = bool.putArray("must");
+        ObjectNode scriptScore = must.addObject().putObject("script_score");
+        scriptScore.putObject("query").putObject("match_all");
+        scriptScore.set("script", cosineScriptScoreQuery(embedding));
+
+        if (filter.getKeyword() != null && !filter.getKeyword().isEmpty()) {
             Set<String> textFields = new HashSet<>(getTextFields(filter.getResourceType()));
-            qBuilder.must(QueryBuilders.multiMatchQuery(filter.getKeyword(), textFields.toArray(new String[0])));
+            ObjectNode multiMatch = must.addObject().putObject("multi_match");
+            multiMatch.put("query", filter.getKeyword());
+            ArrayNode fields = multiMatch.putArray("fields");
+            textFields.forEach(fields::add);
         }
 
-        applyFilters(filter.getFilter(), qBuilder);
-        logger.debug("Search query: {} in the index {}", qBuilder, filter.getResourceType());
+        applyFilters(filter.getFilter(), bool);
 
-        SearchRequest search = new SearchRequest(filter.getResourceType()).
-                searchType(SearchType.DFS_QUERY_THEN_FETCH);
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(qBuilder)
-                .fetchSource(INCLUDES, null)
-                .from(filter.getFrom()).size(quantity).explain(false);
-        search.source(searchSourceBuilder);
+        ObjectNode body = mapper.createObjectNode();
+        body.set("query", mapper.createObjectNode().set("bool", bool));
+        body.set("_source", includesNode());
+        body.put("from", filter.getFrom());
+        body.put("size", quantity);
+        body.put("track_total_hits", true);
 
-        SearchResponse response = null;
-        try {
-            response = elasticsearchClient.search(search, RequestOptions.DEFAULT);
-            return StreamSupport
-                    .stream(response.getHits().spliterator(), true)
-                    .map(r -> {
-                        try {
-                            Resource res = mapper.readValue(r.getSourceAsString(), Resource.class);
-                            res.setResourceTypeName(r.getIndex());
-                            return res;
-                        } catch (IOException e) {
-                            throw new ServiceException(e.getMessage());
-                        }
-
-                    })
-                    .toList();
-        } catch (IOException e) {
-            throw new ServiceException(e.getMessage());
-        }
+        JsonNode response = executeSearch(filter.getResourceType(), body);
+        return toResources(response.path("hits").path("hits"));
     }
 
     /**
-     * Creates a {@link BoolQueryBuilder} that matches documents similar to the given reference document.
-     * Similarity is computed using cosine similarity on the {@code embedding} field.
-     *
-     * @param resourceType       the resourceType to search over
-     * @param resourceIdAndValue a {@link KeyValue} pair containing the identifier field and value of the
-     *                           reference document used for similarity matching
-     * @return {@link BoolQueryBuilder}
-     * @throws ServiceException if the reference resource cannot be retrieved
+     * Loads the stored embedding of the reference resource used by recommendation queries.
      */
-    private BoolQueryBuilder createRecommendationQuery(String resourceType, KeyValue resourceIdAndValue) {
-        float[] embedding;
-        BoolQueryBuilder qBuilder = new BoolQueryBuilder();
-        //iterate all key values and add them to the elastic query
-        qBuilder.must(QueryBuilders.termsQuery(resourceIdAndValue.getField(), resourceIdAndValue.getValue()));
-        logger.debug("Search query: {} in the index {}", qBuilder, resourceType);
+    private float[] getEmbeddingForResource(String resourceType, KeyValue resourceIdAndValue) {
+        ObjectNode body = mapper.createObjectNode();
+        body.put("size", 1);
+        body.put("track_total_hits", true);
+        body.putArray("_source").add("embedding");
+        body.set("query", termsQuery(resourceIdAndValue.getField(), List.of(resourceIdAndValue.getValue())));
 
-        SearchRequest searchRequest = new SearchRequest(resourceType);
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.fetchSource(false);
-        searchSourceBuilder.fetchField("embedding");
-        searchSourceBuilder.query(qBuilder)
-                .size(1).explain(false);
-
-        searchRequest.source(searchSourceBuilder);
-
-        try {
-            SearchResponse searchResponse = elasticsearchClient.search(searchRequest, RequestOptions.DEFAULT);
-            SearchHits ss = searchResponse.getHits();
-            Optional<SearchHit> hit = Optional.ofNullable(ss.getTotalHits().value == 0 ? null : ss.getAt(0));
-            if (hit.isEmpty()) {
-                throw new gr.uoa.di.madgik.registry.exception.ResourceNotFoundException("Could not find resource");
-            }
-            DocumentField embeddingField = hit.get().getFields().getOrDefault("embedding", null);
-            embedding = getEmbeddingFromField(embeddingField);
-            if (embeddingIsEmpty(embedding)) {
-                throw new UnsupportedOperationException("Embedding value is empty, cannot find recommendations");
-            }
-
-            BoolQueryBuilder queryBuilder = new BoolQueryBuilder();
-
-            // excludes the reference resource from the results
-            queryBuilder.mustNot(
-                    QueryBuilders.termsQuery(resourceIdAndValue.getField(), resourceIdAndValue.getValue())
-            );
-
-            // performs cosine similarity check for similar resources
-            queryBuilder.must(
-                    QueryBuilders.scriptScoreQuery(
-                            QueryBuilders.matchAllQuery(),
-                            cosineScriptScoreQuery(embedding))
-            );
-            return queryBuilder;
-
-        } catch (ResourceNotFoundException | UnsupportedOperationException
-                 | gr.uoa.di.madgik.registry.exception.ResourceNotFoundException e) {
-            throw new gr.uoa.di.madgik.registry.exception.ResourceNotFoundException("There are no recommendations available for this resource", e);
-        } catch (IOException e) {
-            throw new ServiceException("Failed to retrieve ES document", e.getMessage());
+        JsonNode response = executeSearch(resourceType, body);
+        JsonNode hits = response.path("hits").path("hits");
+        if (!hits.isArray() || hits.isEmpty()) {
+            throw new gr.uoa.di.madgik.registry.exception.ResourceNotFoundException("There are no recommendations available for this resource",
+                    new gr.uoa.di.madgik.registry.exception.ResourceNotFoundException("Could not find resource"));
         }
+
+        JsonNode embeddingNode = hits.get(0).path("_source").path("embedding");
+        if (!embeddingNode.isArray()) {
+            throw new gr.uoa.di.madgik.registry.exception.ResourceNotFoundException("There are no recommendations available for this resource",
+                    new gr.uoa.di.madgik.registry.exception.ResourceNotFoundException("Embedding field missing"));
+        }
+        return mapper.convertValue(embeddingNode, float[].class);
     }
 
     /**
-     * Deserializes the embedding vector from an Elasticsearch {@link DocumentField}.
-     *
-     * @param embeddingField the {@link DocumentField} containing the vector
-     * @return the embedding vector
-     * @throws gr.uoa.di.madgik.registry.exception.ResourceNotFoundException
-     */
-    private float[] getEmbeddingFromField(DocumentField embeddingField) {
-        if (embeddingField == null) {
-            throw new gr.uoa.di.madgik.registry.exception.ResourceNotFoundException("Embedding field missing");
-        }
-        return mapper.convertValue(embeddingField.getValues(), new TypeReference<>() {
-        });
-    }
-
-    /**
-     * Checks whether an embedding vector contains values and is not zero.
-     *
-     * @param embedding the vector
-     * @return true/false
+     * Returns whether an embedding vector is absent or effectively empty.
      */
     private boolean embeddingIsEmpty(float[] embedding) {
         boolean empty = true;
@@ -679,42 +576,22 @@ public class ElasticSearchService implements SearchService {
     @Override
     @Retryable(value = ServiceException.class, backoff = @Backoff(value = 200))
     public Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException {
-        logger.debug(String.format("@Retryable 'searchId(resourceType=%s, ids={%s})'", resourceType, String.join(",", Arrays.stream(fields).map(keyValue -> keyValue.getField() + "=" + keyValue.getValue()).collect(Collectors.toSet()))));
-        BoolQueryBuilder qBuilder = new BoolQueryBuilder();
-        //iterate all key values and add them to the elastic query
-        Arrays.stream(fields)
-                .map(kv -> QueryBuilders.termsQuery(kv.getField(), kv.getValue()))
-                .forEach(qBuilder::must);
-        logger.debug("Search query: {} in the index {}", qBuilder, resourceType);
+        logger.debug(String.format("@Retryable 'searchId(resourceType=%s, ids={%s})'", resourceType, String.join(",", java.util.Arrays.stream(fields).map(keyValue -> keyValue.getField() + "=" + keyValue.getValue()).collect(Collectors.toSet()))));
 
-        SearchRequest searchRequest = new SearchRequest(resourceType);
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.fetchSource(INCLUDES, null);
-        searchRequest.searchType(SearchType.DFS_QUERY_THEN_FETCH);
-        searchSourceBuilder.query(qBuilder)
-                .size(1).explain(false);
+        ObjectNode bool = mapper.createObjectNode();
+        ArrayNode must = bool.putArray("must");
+        java.util.Arrays.stream(fields)
+                .forEach(kv -> must.add(termsQuery(kv.getField(), List.of(kv.getValue()))));
 
-        searchRequest.source(searchSourceBuilder);
+        ObjectNode body = mapper.createObjectNode();
+        body.set("query", mapper.createObjectNode().set("bool", bool));
+        body.set("_source", includesNode());
+        body.put("size", 1);
+        body.put("track_total_hits", true);
 
-        try {
-            SearchResponse searchResponse = elasticsearchClient.search(searchRequest, RequestOptions.DEFAULT);
-            SearchHits ss = searchResponse.getHits();
-            Optional<SearchHit> hit = Optional.ofNullable(ss.getTotalHits().value == 0 ? null : ss.getAt(0));
-
-            return hit.map(x -> {
-                try {
-                    Resource resource = mapper.readValue(x.getSourceAsString(), Resource.class);
-                    resource.setResourceTypeName(x.getIndex());
-                    return resource;
-                } catch (IOException e) {
-                    logger.debug("@Retryable 'searchId' - ERROR:\n", e);
-                    throw new ServiceException(e.getMessage());
-                }
-            }).orElse(null);
-        } catch (IOException e) {
-            logger.debug("@Retryable 'searchId' - ERROR:\n", e);
-            throw new ServiceException(e.getMessage());
-        }
+        JsonNode response = executeSearch(resourceType, body);
+        JsonNode hits = response.path("hits").path("hits");
+        return hits.isArray() && !hits.isEmpty() ? toResource(hits.get(0)) : null;
     }
 
     @Override
@@ -722,14 +599,6 @@ public class ElasticSearchService implements SearchService {
         return buildTopHitAggregation(filter, category);
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Executes a single {@code terms} query against the {@code resourceType} index, fetching
-     * only the {@code idField} and {@code labelField} via source filtering. Field names are
-     * pre-validated by {@code FacetLabelService} against the registry metadata before this method
-     * is called, so no additional validation is performed here.
-     */
     @Override
     public Map<String, String> getLabels(String resourceType, String idField,
                                          List<String> ids, String labelField) {
@@ -737,31 +606,22 @@ public class ElasticSearchService implements SearchService {
             return Collections.emptyMap();
         }
 
-        SearchRequest request = new SearchRequest(resourceType)
-                .searchType(SearchType.DFS_QUERY_THEN_FETCH);
+        ObjectNode body = mapper.createObjectNode();
+        body.set("query", termsQuery(idField, ids));
+        ArrayNode sourceFields = body.putArray("_source");
+        sourceFields.add(idField);
+        sourceFields.add(labelField);
+        body.put("size", ids.size());
+        body.put("track_total_hits", true);
 
-        SearchSourceBuilder source = new SearchSourceBuilder()
-                .query(QueryBuilders.termsQuery(idField, ids))
-                .fetchSource(new String[]{idField, labelField}, null)
-                .size(ids.size())
-                .explain(false);
-
-        request.source(source);
-
-        SearchResponse response;
-        try {
-            response = elasticsearchClient.search(request, RequestOptions.DEFAULT);
-        } catch (IOException e) {
-            throw new ServiceException(e.getMessage());
-        }
-
+        JsonNode response = executeSearch(resourceType, body);
         Map<String, String> result = new HashMap<>();
-        for (SearchHit hit : response.getHits().getHits()) {
-            Map<String, Object> src = hit.getSourceAsMap();
-            Object id    = src.get(idField);
-            Object label = src.get(labelField);
+        for (JsonNode hit : response.path("hits").path("hits")) {
+            JsonNode source = hit.path("_source");
+            JsonNode id = source.get(idField);
+            JsonNode label = source.get(labelField);
             if (id != null && label != null) {
-                result.put(id.toString(), label.toString());
+                result.put(id.asText(), label.asText());
             }
         }
         return result;
@@ -773,6 +633,95 @@ public class ElasticSearchService implements SearchService {
         } else if (quantity < 0) {
             throw new IllegalArgumentException("Quantity cannot be negative.");
         }
+    }
+
+    /**
+     * Executes the rendered Elasticsearch search request against the target index.
+     */
+    private JsonNode executeSearch(String resourceType, ObjectNode body) {
+        try {
+            return ElasticRestUtils.performJsonRequest(
+                    elasticsearchClient,
+                    mapper,
+                    "POST",
+                    "/" + resourceType + "/_search",
+                    Map.of("search_type", "dfs_query_then_fetch"),
+                    mapper.writeValueAsString(body)
+            );
+        } catch (IOException e) {
+            throw new ServiceException("Failed to serialize Elasticsearch query", e);
+        }
+    }
+
+    /**
+     * Builds the source filtering array used by registry search responses.
+     */
+    private ArrayNode includesNode() {
+        ArrayNode includes = mapper.createArrayNode();
+        for (String include : INCLUDES) {
+            includes.add(include);
+        }
+        return includes;
+    }
+
+    /**
+     * Extracts total hits from both legacy integer and object-based Elasticsearch formats.
+     */
+    private int extractTotal(JsonNode response) {
+        JsonNode total = response.path("hits").path("total");
+        if (total.isIntegralNumber()) {
+            return total.asInt();
+        }
+        return total.path("value").asInt(0);
+    }
+
+    /**
+     * Deserializes a hit array into registry resources.
+     */
+    private List<Resource> toResources(JsonNode hits) {
+        List<Resource> resources = new ArrayList<>();
+        if (hits == null || !hits.isArray()) {
+            return resources;
+        }
+        for (JsonNode hit : hits) {
+            resources.add(toResource(hit));
+        }
+        return resources;
+    }
+
+    /**
+     * Deserializes a single Elasticsearch hit into a registry resource.
+     */
+    private Resource toResource(JsonNode hit) {
+        try {
+            Resource resource = mapper.treeToValue(hit.path("_source"), Resource.class);
+            resource.setResourceTypeName(hit.path("_index").asText());
+            return resource;
+        } catch (IOException e) {
+            throw new ServiceException(e.getMessage());
+        }
+    }
+
+    /**
+     * Builds a JSON {@code terms} query for the provided field and values.
+     */
+    private ObjectNode termsQuery(String field, List<String> values) {
+        ObjectNode terms = mapper.createObjectNode();
+        ArrayNode array = mapper.createArrayNode();
+        values.forEach(array::add);
+        terms.putObject("terms").set(field, array);
+        return terms;
+    }
+
+    /**
+     * Returns an existing array node or creates it when absent.
+     */
+    private ArrayNode withArray(ObjectNode objectNode, String field) {
+        JsonNode existing = objectNode.get(field);
+        if (existing instanceof ArrayNode arrayNode) {
+            return arrayNode;
+        }
+        return objectNode.putArray(field);
     }
 
     private static class ResourcePropertyName extends PropertyNamingStrategies.NamingBase {

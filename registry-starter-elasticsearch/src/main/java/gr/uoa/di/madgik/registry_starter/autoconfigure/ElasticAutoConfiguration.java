@@ -34,7 +34,6 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -48,6 +47,13 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.retry.annotation.EnableRetry;
 
+/**
+ * Auto-configuration entry point for the registry's Elasticsearch integration.
+ *
+ * <p>When enabled, this configuration provides the low-level Elasticsearch {@link RestClient},
+ * wires the indexing and search service implementations, and registers listeners that keep the
+ * search index synchronized with resource and resource-type lifecycle events.</p>
+ */
 @AutoConfiguration
 @ConditionalOnProperty(
         value="registry.elasticsearch.enabled",
@@ -70,8 +76,11 @@ public class ElasticAutoConfiguration {
         return new ElasticsearchProperties();
     }
 
+    /**
+     * Creates the shared Elasticsearch REST client from Spring Boot's bound properties.
+     */
     @Bean
-    RestHighLevelClient restHighLevelClient(ElasticsearchProperties properties) {
+    RestClient restClient(ElasticsearchProperties properties) {
         BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         if (properties.getUsername() != null) {
             credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(properties.getUsername(), properties.getPassword()));
@@ -84,31 +93,43 @@ public class ElasticAutoConfiguration {
         RestClientBuilder restClientBuilder = RestClient.builder(new HttpHost(parts[1], Integer.parseInt(parts[2]), parts[0]))
                 .setHttpClientConfigCallback(httpClientBuilder ->
                         httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
-        logger.info("Elasticsearch RestHighLevelClient created for {}", host);
-        return new RestHighLevelClient(restClientBuilder);
+        logger.info("Elasticsearch RestClient created for {}", host);
+        return restClientBuilder.build();
     }
 
+    /**
+     * Registers the Elasticsearch-backed index operations service as the primary implementation.
+     */
     @Bean
     @Primary
-    IndexOperationsService indexOperationsService(ResourceTypeService resourceTypeService, RestHighLevelClient client,
+    IndexOperationsService indexOperationsService(ResourceTypeService resourceTypeService, RestClient client,
                                                   ObjectMapper objectMapper, EmbeddingService embeddingService) {
         return new ElasticOperationsService(resourceTypeService, client, embeddingService, objectMapper);
     }
 
+    /**
+     * Registers the resource-type listener responsible for index creation and deletion.
+     */
     @Bean
     ResourceTypeListener elasticResourceTypeListener(IndexOperationsService indexOperationsService) {
         return new ElasticResourceTypeListener(indexOperationsService);
     }
 
+    /**
+     * Registers the resource listener responsible for document-level index updates.
+     */
     @Bean
     ResourceListener elasticResourceListener(IndexOperationsService indexOperationsService) {
         return new ElasticResourceListener(indexOperationsService);
     }
 
+    /**
+     * Registers the Elasticsearch-backed search service as the primary search implementation.
+     */
     @Bean
     @Primary
     @Order(Ordered.HIGHEST_PRECEDENCE)
-    SearchService elasticSearchService(RestHighLevelClient client, EmbeddingService embeddingService,
+    SearchService elasticSearchService(RestClient client, EmbeddingService embeddingService,
                                        ResourceTypeService resourceTypeService) {
         ElasticSearchService service = new ElasticSearchService(client, embeddingService, resourceTypeService);
         return service;

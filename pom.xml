@@ -29,7 +29,7 @@
         <logging.version>2.25.3</logging.version>
         <joda-time.version>2.12.5</joda-time.version>
         <hibernate.version>6.5.2.Final</hibernate.version>
-        <elasticsearch.version>7.17.24</elasticsearch.version>
+        <elasticsearch.version>8.19.13</elasticsearch.version>
     </properties>
 
     <modules>
@@ -122,7 +122,7 @@
 
             <dependency>
                 <groupId>org.elasticsearch.client</groupId>
-                <artifactId>elasticsearch-rest-high-level-client</artifactId>
+                <artifactId>elasticsearch-rest-client</artifactId>
                 <version>${elasticsearch.version}</version>
             </dependency>
 
