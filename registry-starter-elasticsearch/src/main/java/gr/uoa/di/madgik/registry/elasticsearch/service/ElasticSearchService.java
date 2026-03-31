@@ -608,22 +608,32 @@ public class ElasticSearchService implements SearchService {
 
         ObjectNode body = mapper.createObjectNode();
         body.set("query", termsQuery(idField, ids));
-        ArrayNode sourceFields = body.putArray("_source");
-        sourceFields.add(idField);
-        sourceFields.add(labelField);
+        body.put("_source", false);
+        ArrayNode fields = body.putArray("fields");
+        fields.add(idField);
+        fields.add(labelField);
         body.put("size", ids.size());
         body.put("track_total_hits", true);
 
+        logger.debug("getLabels: index='{}', idField='{}', labelField='{}', ids={}",
+                resourceType, idField, labelField, ids);
+
         JsonNode response = executeSearch(resourceType, body);
+        int total = extractTotal(response);
+        logger.debug("getLabels: total hits={}", total);
+
         Map<String, String> result = new HashMap<>();
         for (JsonNode hit : response.path("hits").path("hits")) {
-            JsonNode source = hit.path("_source");
-            JsonNode id = source.get(idField);
-            JsonNode label = source.get(labelField);
-            if (id != null && label != null) {
-                result.put(id.asText(), label.asText());
+            JsonNode hitFields = hit.path("fields");
+            JsonNode idValues = hitFields.path(idField);
+            JsonNode labelValues = hitFields.path(labelField);
+            if (!idValues.isMissingNode() && !labelValues.isMissingNode()
+                    && idValues.isArray() && labelValues.isArray()
+                    && !idValues.isEmpty() && !labelValues.isEmpty()) {
+                result.put(idValues.get(0).asText(), labelValues.get(0).asText());
             }
         }
+        logger.debug("getLabels: resolved {}/{} labels", result.size(), ids.size());
         return result;
     }
 

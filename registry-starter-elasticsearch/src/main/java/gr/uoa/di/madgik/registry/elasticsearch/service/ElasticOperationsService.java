@@ -183,9 +183,12 @@ public class ElasticOperationsService implements IndexOperationsService {
         requestBody.put("mappings", createMapping(resourceType.getIndexFields()));
 
         try {
-            ElasticRestUtils.performRequest(client, "PUT", "/" + resourceType.getName(), Map.of(),
+            Response response = ElasticRestUtils.performRequest(client, "PUT", "/" + resourceType.getName(), Map.of(),
                     new org.apache.http.entity.StringEntity(objectMapper.writeValueAsString(requestBody),
                             org.apache.http.entity.ContentType.APPLICATION_JSON));
+            if (response.getStatusLine().getStatusCode() != 200) {
+                logger.warn(response.getStatusLine().getReasonPhrase());
+            }
         } catch (IOException e) {
             throw new ServiceException("Failed to create index " + resourceType.getName(), e);
         }
@@ -299,7 +302,6 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectProperties.put("embedding", DENSE_VECTOR_MAP);
 
         jsonObjectGeneral.put("properties", jsonObjectProperties);
-        // TODO: enable on ES v8
         jsonObjectGeneral.put("_source", Map.of("excludes", List.of("embedding")));
         return jsonObjectGeneral;
 
