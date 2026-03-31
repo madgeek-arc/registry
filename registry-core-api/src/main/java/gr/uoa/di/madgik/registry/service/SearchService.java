@@ -16,11 +16,7 @@
 
 package gr.uoa.di.madgik.registry.service;
 
-import gr.uoa.di.madgik.registry.domain.FacetFilter;
-import gr.uoa.di.madgik.registry.domain.HighlightedResult;
-import gr.uoa.di.madgik.registry.domain.Paging;
-import gr.uoa.di.madgik.registry.domain.Resource;
-import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -44,7 +40,7 @@ public interface SearchService {
      * Recommends resources that are similar to the resource identified by the given {@code resourceIdAndValue},
      * further constrained by the provided {@code filter}.
      *
-     * @param filter the additional filter criteria to apply
+     * @param filter             the additional filter criteria to apply
      * @param resourceIdAndValue the (field, value) pair used to resolve the reference resource for similarity matching
      * @return a list of recommended resources
      * @throws ServiceException if the reference resource cannot be retrieved or the recommendation query fails
@@ -89,35 +85,45 @@ public interface SearchService {
     /**
      * Derives the effective {@code browseBy} field list for a search request.
      *
-     * <p>Starts with any fields in {@code existingBrowseBy}, then appends the intersection of
-     * labeled {@link IndexField} names across all supplied resource types (alias groups use
-     * intersection so only fields present in every member are shown).</p>
+     * <p>First computes the intersection of labeled {@link IndexField} names across all supplied
+     * resource types (alias groups only expose fields present in every member). When
+     * {@code requestedBrowseBy} is provided, only the requested fields that still exist in that
+     * intersection are kept. If none of the requested fields are valid, the full available
+     * intersection is returned instead.</p>
      *
-     * @param resourceTypes    the resolved resource types for the query (direct or alias group)
-     * @param existingBrowseBy caller-supplied fields to include regardless (may be {@code null})
-     * @return ordered, deduplicated list of field names to browse by
+     * @param resourceTypes     the resolved resource types for the query (direct or alias group)
+     * @param requestedBrowseBy caller-supplied fields to preserve when they still exist
+     * @return ordered, deduplicated list of effective browse-by fields
      */
-    static List<String> resolveBrowseBy(List<ResourceType> resourceTypes, List<String> existingBrowseBy) {
-        Set<String> browseBy = new LinkedHashSet<>();
-        if (existingBrowseBy != null) {
-            browseBy.addAll(existingBrowseBy);
-        }
-        Set<String> fromConfig = null;
+    static List<String> resolveBrowseBy(List<ResourceType> resourceTypes, List<String> requestedBrowseBy) {
+        Set<String> availableBrowseBy = null;
         for (ResourceType rt : resourceTypes) {
-            Set<String> labeled = rt.getIndexFields().stream()
+            Set<String> labeledFields = rt.getIndexFields().stream()
                     .filter(f -> f.getLabel() != null)
                     .map(IndexField::getName)
                     .collect(Collectors.toCollection(LinkedHashSet::new));
-            if (fromConfig == null) {
-                fromConfig = labeled;
+            if (availableBrowseBy == null) {
+                availableBrowseBy = labeledFields;
             } else {
-                fromConfig.retainAll(labeled);
+                availableBrowseBy.retainAll(labeledFields);
             }
         }
-        if (fromConfig != null) {
-            browseBy.addAll(fromConfig);
+
+        if (availableBrowseBy == null) {
+            return new ArrayList<>();
         }
-        return new ArrayList<>(browseBy);
+
+        if (requestedBrowseBy == null || requestedBrowseBy.isEmpty()) {
+            return new ArrayList<>(availableBrowseBy);
+        }
+
+        LinkedHashSet<String> browseBy = requestedBrowseBy.stream()
+                .filter(availableBrowseBy::contains)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        return browseBy.isEmpty()
+                ? new ArrayList<>(availableBrowseBy)
+                : new ArrayList<>(browseBy);
     }
 
     class KeyValue {
