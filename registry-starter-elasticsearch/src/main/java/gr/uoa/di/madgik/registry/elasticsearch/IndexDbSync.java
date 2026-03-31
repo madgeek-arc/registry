@@ -16,8 +16,11 @@
 
 package gr.uoa.di.madgik.registry.elasticsearch;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch.core.ScrollResponse;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.service.IndexOperationsService;
@@ -25,8 +28,6 @@ import gr.uoa.di.madgik.registry.service.ResourceService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import jakarta.annotation.PostConstruct;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -36,6 +37,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -52,20 +54,19 @@ public class IndexDbSync {
 
     private static final Logger logger = LoggerFactory.getLogger(IndexDbSync.class);
 
-    private final RestClient client;
+    private final ElasticsearchClient elasticsearchClient;
     private final IndexOperationsService indexOperationsService;
     private final ResourceTypeService resourceTypeService;
     private final ResourceService resourceService;
     private final DataSource dataSource;
     private final TaskExecutor taskExecutor = new VirtualThreadTaskExecutor();
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public IndexDbSync(RestClient client,
+    public IndexDbSync(ElasticsearchClient elasticsearchClient,
                        IndexOperationsService indexOperationsService,
                        ResourceTypeService resourceTypeService,
                        ResourceService resourceService,
                        @Qualifier("registryDataSource") DataSource dataSource) {
-        this.client = client;
+        this.elasticsearchClient = elasticsearchClient;
         this.indexOperationsService = indexOperationsService;
         this.resourceTypeService = resourceTypeService;
         this.resourceService = resourceService;
@@ -139,45 +140,30 @@ public class IndexDbSync {
     private List<String> findAllResourceIdsFromElasticIndex(String resourceType) {
         List<String> resourceIds = new ArrayList<>();
         String scrollId = null;
-
         try {
-            JsonNode searchResponse = ElasticRestUtils.performJsonRequest(
-                    client,
-                    objectMapper,
-                    "POST",
-                    "/" + resourceType + "/_search",
-                    Map.of("scroll", "1m"),
-                    "{\"size\":10000,\"_source\":false}"
-            );
-
-            scrollId = searchResponse.path("_scroll_id").asText(null);
-            JsonNode hits = searchResponse.path("hits").path("hits");
-
-            while (hits.isArray() && !hits.isEmpty()) {
-                for (JsonNode hit : hits) {
-                    resourceIds.add(hit.path("_id").asText());
-                }
-
-                if (scrollId == null || scrollId.isBlank()) {
-                    break;
-                }
-
-                JsonNode scrollResponse = ElasticRestUtils.performJsonRequest(
-                        client,
-                        objectMapper,
-                        "POST",
-                        "/_search/scroll",
-                        objectMapper.writeValueAsString(Map.of("scroll", "1m", "scroll_id", scrollId))
-                );
-                scrollId = scrollResponse.path("_scroll_id").asText(scrollId);
-                hits = scrollResponse.path("hits").path("hits");
+            SearchResponse<Void> response = elasticsearchClient.search(s -> s
+                    .index(resourceType)
+                    .scroll(t -> t.time("1m"))
+                    .size(10000)
+                    .source(src -> src.fetch(false))
+                    .query(q -> q.matchAll(m -> m)),
+                    Void.class);
+            scrollId = response.scrollId();
+            List<Hit<Void>> hits = response.hits().hits();
+            while (!hits.isEmpty()) {
+                hits.stream().map(Hit::id).forEach(resourceIds::add);
+                String currentScrollId = scrollId;
+                ScrollResponse<Void> scrollResponse = elasticsearchClient.scroll(
+                        sr -> sr.scrollId(currentScrollId).scroll(t -> t.time("1m")),
+                        Void.class);
+                scrollId = scrollResponse.scrollId();
+                hits = scrollResponse.hits().hits();
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new ServiceException("Failed to read Elasticsearch index " + resourceType, e);
         } finally {
             clearScroll(scrollId);
         }
-
         return resourceIds;
     }
 
@@ -189,13 +175,7 @@ public class IndexDbSync {
             return;
         }
         try {
-            ElasticRestUtils.performJsonRequest(
-                    client,
-                    objectMapper,
-                    "DELETE",
-                    "/_search/scroll",
-                    objectMapper.writeValueAsString(Map.of("scroll_id", List.of(scrollId)))
-            );
+            elasticsearchClient.clearScroll(cs -> cs.scrollId(scrollId));
         } catch (Exception e) {
             logger.error("clear scroll request failed", e);
         }
@@ -234,35 +214,28 @@ public class IndexDbSync {
     }
 
     /**
+     * Checks whether an Elasticsearch index currently exists.
+     */
+    private boolean exists(String indexName) {
+        try {
+            return elasticsearchClient.indices().exists(e -> e.index(indexName)).value();
+        } catch (IOException e) {
+            throw new ServiceException("Failed to check index existence for " + indexName, e);
+        }
+    }
+
+    /**
      * Unwraps nested exceptions to detect an Elasticsearch HTTP 404 response.
      */
     private boolean isNotFound(Throwable throwable) {
         Throwable current = throwable;
         while (current != null) {
-            if (current instanceof org.elasticsearch.client.ResponseException responseException
-                    && ElasticRestUtils.isNotFound(responseException)) {
+            if (current instanceof ElasticsearchException esEx && esEx.status() == 404) {
                 return true;
             }
             current = current.getCause();
         }
         return false;
-    }
-
-    /**
-     * Checks whether an Elasticsearch index currently exists.
-     */
-    private boolean exists(String indexName) {
-        try {
-            client.performRequest(new Request("HEAD", "/" + indexName));
-            return true;
-        } catch (org.elasticsearch.client.ResponseException e) {
-            if (ElasticRestUtils.isNotFound(e)) {
-                return false;
-            }
-            throw new ServiceException("Failed to check index existence for " + indexName, e);
-        } catch (Exception e) {
-            throw new ServiceException("Failed to check index existence for " + indexName, e);
-        }
     }
 
     /**

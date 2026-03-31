@@ -16,6 +16,10 @@
 
 package gr.uoa.di.madgik.registry_starter.autoconfigure;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.transport.ElasticsearchTransport;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.elasticsearch.IndexDbSync;
 import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceListener;
@@ -77,7 +81,7 @@ public class ElasticAutoConfiguration {
     }
 
     /**
-     * Creates the shared Elasticsearch REST client from Spring Boot's bound properties.
+     * Creates the shared Elasticsearch low-level REST client from Spring Boot's bound properties.
      */
     @Bean
     RestClient restClient(ElasticsearchProperties properties) {
@@ -98,12 +102,38 @@ public class ElasticAutoConfiguration {
     }
 
     /**
+     * Creates a {@link JacksonJsonpMapper} that wraps the application's {@link ObjectMapper}.
+     */
+    @Bean
+    JacksonJsonpMapper jacksonJsonpMapper(ObjectMapper objectMapper) {
+        return new JacksonJsonpMapper(objectMapper);
+    }
+
+    /**
+     * Creates the {@link ElasticsearchTransport} backed by the low-level REST client.
+     */
+    @Bean
+    ElasticsearchTransport elasticsearchTransport(RestClient restClient, JacksonJsonpMapper jsonpMapper) {
+        return new RestClientTransport(restClient, jsonpMapper);
+    }
+
+    /**
+     * Creates the typed {@link ElasticsearchClient} used by all service beans.
+     */
+    @Bean
+    ElasticsearchClient elasticsearchClient(ElasticsearchTransport transport) {
+        return new ElasticsearchClient(transport);
+    }
+
+    /**
      * Registers the Elasticsearch-backed index operations service as the primary implementation.
      */
     @Bean
     @Primary
-    IndexOperationsService indexOperationsService(ResourceTypeService resourceTypeService, RestClient client,
-                                                  ObjectMapper objectMapper, EmbeddingService embeddingService) {
+    IndexOperationsService indexOperationsService(ResourceTypeService resourceTypeService,
+                                                  ElasticsearchClient client,
+                                                  EmbeddingService embeddingService,
+                                                  ObjectMapper objectMapper) {
         return new ElasticOperationsService(resourceTypeService, client, embeddingService, objectMapper);
     }
 
@@ -129,9 +159,9 @@ public class ElasticAutoConfiguration {
     @Bean
     @Primary
     @Order(Ordered.HIGHEST_PRECEDENCE)
-    SearchService elasticSearchService(RestClient client, EmbeddingService embeddingService,
+    SearchService elasticSearchService(ElasticsearchClient client, JacksonJsonpMapper jsonpMapper,
+                                       EmbeddingService embeddingService,
                                        ResourceTypeService resourceTypeService) {
-        ElasticSearchService service = new ElasticSearchService(client, embeddingService, resourceTypeService);
-        return service;
+        return new ElasticSearchService(client, jsonpMapper, embeddingService, resourceTypeService);
     }
 }
