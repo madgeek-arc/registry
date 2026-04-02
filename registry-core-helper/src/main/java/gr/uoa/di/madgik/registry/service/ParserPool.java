@@ -63,7 +63,7 @@ import java.io.StringWriter;
 public class ParserPool implements ParserService {
 
     private final JAXBContext jaxbContext;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
     public ParserPool(JAXBContext jaxbContext) {
         this.jaxbContext = jaxbContext;

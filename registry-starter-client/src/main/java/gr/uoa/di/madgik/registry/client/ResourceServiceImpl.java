@@ -52,7 +52,7 @@ public class ResourceServiceImpl implements ResourceService {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
         if (response.getStatusCode().is2xxSuccessful()) {
-            ObjectMapper objectMapper = new ObjectMapper();
+            ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
             try {
                 Paging<Resource> paging = objectMapper.readValue(response.getBody(), Paging.class);
                 return paging.getResults();
@@ -70,7 +70,7 @@ public class ResourceServiceImpl implements ResourceService {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> response = restTemplate.getForEntity(registryHost + "/resources/whatever/" + id, String.class);
         if (response.getStatusCode().is2xxSuccessful()) {
-            ObjectMapper objectMapper = new ObjectMapper();
+            ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
             try {
                 return objectMapper.readValue(response.getBody(), Resource.class);
             } catch (IOException e) {

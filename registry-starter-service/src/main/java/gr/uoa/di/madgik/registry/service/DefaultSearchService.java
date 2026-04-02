@@ -56,7 +56,7 @@ public class DefaultSearchService implements SearchService {
     public DefaultSearchService(@Qualifier("registryDataSource") DataSource dataSource,
                                 ResourceTypeService resourceTypeService) {
         this.npJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
-        mapper = new ObjectMapper();
+        mapper = new ObjectMapper().findAndRegisterModules();
         mapper.setPropertyNamingStrategy(new ResourcePropertyName());
 //        mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
         this.resourceTypeService = resourceTypeService;

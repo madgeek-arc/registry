@@ -51,7 +51,7 @@ public class DefaultIndexMapper implements IndexMapper {
 
     public List<IndexedField> getValues(String payload, ResourceType resourceType) throws ServiceException {
         List<IndexedField> res = new ArrayList<>();
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
         for (IndexField indexField : resourceType.getIndexFields()) {
             try {
                 String fieldName = indexField.getName();

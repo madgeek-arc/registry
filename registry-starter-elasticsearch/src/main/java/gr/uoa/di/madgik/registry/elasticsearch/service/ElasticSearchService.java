@@ -98,7 +98,7 @@ public class ElasticSearchService implements SearchService {
         this.jsonpMapper = jsonpMapper;
         this.embeddingService = embeddingService;
         this.resourceTypeService = resourceTypeService;
-        mapper = new ObjectMapper();
+        mapper = new ObjectMapper().findAndRegisterModules();
         mapper.setPropertyNamingStrategy(new ResourcePropertyName());
     }
 

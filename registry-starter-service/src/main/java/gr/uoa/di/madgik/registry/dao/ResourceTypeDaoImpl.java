@@ -85,8 +85,13 @@ public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements Re
     @Override
     public Set<IndexField> getResourceTypeIndexFields(String name) {
         Set<IndexField> indexFields = new HashSet<>();
-        Query query = getEntityManager().createQuery("from IndexField where resourceType in " +
-                "(from ResourceType rt LEFT JOIN rt.aliases a WHERE rt.name = :name OR a = :name)");
+        Query query = getEntityManager().createQuery(
+                "select distinct idx " +
+                        "from IndexField idx " +
+                        "join idx.resourceType rt " +
+                        "left join rt.aliases a " +
+                        "where rt.name = :name or a = :name"
+        );
         query.setParameter("name", name);
         indexFields.addAll(query.getResultList());
         return indexFields;

@@ -36,7 +36,7 @@ public class ResourceTypeInit {
     private static final Logger logger = LoggerFactory.getLogger(ResourceTypeInit.class);
 
     private final ResourceTypeService resourceTypeService;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
     private final String resourceTypesLocation;
 
 

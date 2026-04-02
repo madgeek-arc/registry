@@ -16,9 +16,6 @@
 
 package gr.uoa.di.madgik.registry_starter.autoconfigure;
 
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import gr.uoa.di.madgik.registry_starter.jms.JmsResourceListener;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.slf4j.Logger;
@@ -34,10 +31,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.jms.annotation.EnableJms;
 import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.support.converter.MappingJackson2MessageConverter;
+import org.springframework.jms.support.converter.JacksonJsonMessageConverter;
 import org.springframework.jms.support.converter.MessageType;
-
-import java.text.SimpleDateFormat;
+import tools.jackson.databind.json.JsonMapper;
 
 @AutoConfiguration
 @ConditionalOnClass(JmsProperties.class)
@@ -69,16 +65,16 @@ public class JmsAutoConfiguration {
             return connectionFactory;
         }
 
+        // Spring JMS 7 deprecates MappingJackson2MessageConverter; this JMS path now uses the
+        // Jackson 3-based replacement while the rest of the project still keeps Jackson 2 where
+        // required by the Elasticsearch client.
         @Bean // override registry bean
-        public MappingJackson2MessageConverter jacksonJmsMessageConverter() {
-            ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-            objectMapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX"));
+        public JacksonJsonMessageConverter jacksonJmsMessageConverter() {
+            JsonMapper.Builder builder = JsonMapper.builder().findAndAddModules();
 
-            MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
+            JacksonJsonMessageConverter converter = new JacksonJsonMessageConverter(builder);
             converter.setTargetType(MessageType.TEXT);
             converter.setTypeIdPropertyName("_type");
-            converter.setObjectMapper(objectMapper);
             return converter;
         }
 
@@ -107,9 +103,9 @@ public class JmsAutoConfiguration {
 //        }
 
         @Bean
-        @ConditionalOnBean(value = {ActiveMQConnectionFactory.class, MappingJackson2MessageConverter.class})
+        @ConditionalOnBean(value = {ActiveMQConnectionFactory.class, JacksonJsonMessageConverter.class})
         public JmsTemplate jmsQueueTemplate(ActiveMQConnectionFactory connectionFactory,
-                                            MappingJackson2MessageConverter jacksonJmsMessageConverter) {
+                                            JacksonJsonMessageConverter jacksonJmsMessageConverter) {
             JmsTemplate template = new JmsTemplate();
             template.setConnectionFactory(connectionFactory);
             template.setPubSubDomain(false); //false is for queue
@@ -118,9 +114,9 @@ public class JmsAutoConfiguration {
         }
 
         @Bean
-        @ConditionalOnBean(value = {ActiveMQConnectionFactory.class, MappingJackson2MessageConverter.class})
+        @ConditionalOnBean(value = {ActiveMQConnectionFactory.class, JacksonJsonMessageConverter.class})
         public JmsTemplate jmsTopicTemplate(ActiveMQConnectionFactory connectionFactory,
-                                            MappingJackson2MessageConverter jacksonJmsMessageConverter) {
+                                            JacksonJsonMessageConverter jacksonJmsMessageConverter) {
             JmsTemplate template = new JmsTemplate();
             template.setConnectionFactory(connectionFactory);
             template.setPubSubDomain(true); //true is for topic
