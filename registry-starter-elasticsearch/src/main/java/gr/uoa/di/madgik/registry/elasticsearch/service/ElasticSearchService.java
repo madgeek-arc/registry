@@ -27,6 +27,7 @@ import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
 import co.elastic.clients.elasticsearch._types.mapping.Property;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.HighlightField;
 import co.elastic.clients.elasticsearch.core.search.HighlighterOrder;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.TotalHits;
@@ -34,6 +35,7 @@ import co.elastic.clients.elasticsearch.indices.GetMappingResponse;
 import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
 import co.elastic.clients.json.JsonData;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.util.NamedValue;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -62,7 +64,7 @@ import java.util.stream.Collectors;
 /**
  * Elasticsearch-backed implementation of {@link SearchService}.
  *
- * <p>All queries are issued through the official ES8 typed Java client
+ * <p>All queries are issued through the official Elasticsearch Java client
  * ({@code co.elastic.clients:elasticsearch-java}). ObjectNode-based query builders are retained
  * for complex query construction and converted to typed {@link Query} objects via
  * {@link co.elastic.clients.json.WithJson#withJson}.</p>
@@ -271,7 +273,8 @@ public class ElasticSearchService implements SearchService {
                             .aggregations(buildAggregations(filter.getBrowseBy()))
                             .highlight(h -> h
                                     .order(HighlighterOrder.Score)
-                                    .fields("*.analyzed", hf -> hf.fragmentSize(2000).numberOfFragments(5))),
+                                    .fields(NamedValue.of("*.analyzed",
+                                            HighlightField.of(hf -> hf.fragmentSize(2000).numberOfFragments(5))))),
                     ObjectNode.class);
             return highlightedResponseToPaging(response, filter.getFrom(), filter.getBrowseBy(), filter.getResourceType());
         } catch (IOException e) {
@@ -425,7 +428,7 @@ public class ElasticSearchService implements SearchService {
     private List<String> getTextFields(String indexName) {
         try {
             GetMappingResponse mappingResponse = client.indices().getMapping(r -> r.index(indexName));
-            IndexMappingRecord record = mappingResponse.result().values().stream().findFirst().orElse(null);
+            IndexMappingRecord record = mappingResponse.mappings().values().stream().findFirst().orElse(null);
             if (record == null) return Collections.emptyList();
             return findTextFields(record.mappings().properties(), "");
         } catch (IOException e) {

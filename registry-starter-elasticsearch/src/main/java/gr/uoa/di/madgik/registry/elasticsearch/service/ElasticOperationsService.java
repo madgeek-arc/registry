@@ -59,7 +59,8 @@ import static gr.uoa.di.madgik.registry.service.EmbeddingService.VECTOR_SIZE;
  * Elasticsearch-backed implementation of {@link IndexOperationsService}.
  *
  * <p>This class preserves the registry's existing indexing contract while issuing typed requests
- * through the official Elasticsearch 8 Java client ({@code co.elastic.clients:elasticsearch-java}).
+ * through the official Elasticsearch Java client 9.x
+ * ({@code co.elastic.clients:elasticsearch-java}).
  */
 @Transactional
 public class ElasticOperationsService implements IndexOperationsService {

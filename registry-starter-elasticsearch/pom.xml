@@ -43,6 +43,10 @@
             <groupId>co.elastic.clients</groupId>
             <artifactId>elasticsearch-java</artifactId>
         </dependency>
+        <dependency>
+            <groupId>co.elastic.clients</groupId>
+            <artifactId>elasticsearch-rest5-client</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>gr.uoa.di.madgik</groupId>

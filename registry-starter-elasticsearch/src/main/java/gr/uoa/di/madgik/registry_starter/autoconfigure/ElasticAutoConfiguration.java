@@ -19,7 +19,9 @@ package gr.uoa.di.madgik.registry_starter.autoconfigure;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
-import co.elastic.clients.transport.rest_client.RestClientTransport;
+import co.elastic.clients.transport.rest5_client.Rest5ClientTransport;
+import co.elastic.clients.transport.rest5_client.low_level.Rest5Client;
+import co.elastic.clients.transport.rest5_client.low_level.Rest5ClientBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.elasticsearch.IndexDbSync;
 import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceListener;
@@ -32,12 +34,9 @@ import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.IndexOperationsService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.SearchService;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestClientBuilder;
+import org.apache.hc.client5.http.auth.AuthScope;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
+import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -91,13 +90,15 @@ public class ElasticAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    RestClient restClient(ElasticsearchProperties properties) {
+    Rest5Client restClient(ElasticsearchProperties properties) {
         URI uri = firstUri(properties.getUris());
         BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         if (properties.getUsername() != null) {
-            credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(properties.getUsername(), properties.getPassword()));
+            credentialsProvider.setCredentials(
+                    new AuthScope(uri.getHost(), port(uri)),
+                    new UsernamePasswordCredentials(properties.getUsername(), properties.getPassword().toCharArray()));
         }
-        RestClientBuilder restClientBuilder = RestClient.builder(new HttpHost(uri.getHost(), port(uri), uri.getScheme()))
+        Rest5ClientBuilder restClientBuilder = Rest5Client.builder(uri)
                 .setHttpClientConfigCallback(httpClientBuilder ->
                         httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
         logger.info("Elasticsearch REST transport created for {}", uri);
@@ -118,8 +119,8 @@ public class ElasticAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    ElasticsearchTransport elasticsearchTransport(RestClient restClient, JacksonJsonpMapper jsonpMapper) {
-        return new RestClientTransport(restClient, jsonpMapper);
+    ElasticsearchTransport elasticsearchTransport(Rest5Client restClient, JacksonJsonpMapper jsonpMapper) {
+        return new Rest5ClientTransport(restClient, jsonpMapper);
     }
 
     /**
