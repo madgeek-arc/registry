@@ -19,12 +19,11 @@ package gr.uoa.di.madgik.registry.domain.index;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import org.hibernate.annotations.Check;
 import org.hibernate.annotations.Comment;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * Created by antleb on 5/20/16.
@@ -166,5 +165,26 @@ public class IndexField implements Serializable {
 
     public void setRelatedResourceTypeField(String relatedResourceTypeField) {
         this.relatedResourceTypeField = relatedResourceTypeField;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof IndexField that)) {
+            return false;
+        }
+        return Objects.equals(resourceTypeName(resourceType), resourceTypeName(that.resourceType))
+                && Objects.equals(name, that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(resourceTypeName(resourceType), name);
+    }
+
+    private static String resourceTypeName(ResourceType resourceType) {
+        return resourceType == null ? null : resourceType.getName();
     }
 }

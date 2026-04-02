@@ -31,6 +31,8 @@
         <hibernate.version>6.5.2.Final</hibernate.version>
         <elasticsearch.version>9.3.2</elasticsearch.version>
         <testcontainers.version>2.0.3</testcontainers.version>
+        <!-- Preserve test JVM args from other plugins/builds and append the Mockito agent in surefire. -->
+        <argLine></argLine>
     </properties>
 
     <modules>
@@ -319,6 +321,14 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- MockitoBean uses Mockito's inline mock maker, which needs the agent on newer JDKs. -->
+                    <argLine>${argLine} -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
