@@ -22,8 +22,7 @@ import gr.uoa.di.madgik.registry.domain.index.IndexedField;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.*;
 
 @Entity
@@ -63,11 +62,11 @@ public class Resource {
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "creation_date", nullable = false, updatable = false)
-    private Date creationDate;
+    private Instant creationDate;
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "modification_date", nullable = false)
-    private Date modificationDate;
+    private Instant modificationDate;
 
     @OneToMany(cascade = {CascadeType.ALL}, orphanRemoval = true, mappedBy = "resource", fetch = FetchType.LAZY)
     @JsonIgnore
@@ -122,19 +121,19 @@ public class Resource {
         this.payloadFormat = payloadFormat;
     }
 
-    public Date getCreationDate() {
+    public Instant getCreationDate() {
         return creationDate;
     }
 
-    public void setCreationDate(Date creationDate) {
+    public void setCreationDate(Instant creationDate) {
         this.creationDate = creationDate;
     }
 
-    public Date getModificationDate() {
+    public Instant getModificationDate() {
         return modificationDate;
     }
 
-    public void setModificationDate(Date modificationDate) {
+    public void setModificationDate(Instant modificationDate) {
         this.modificationDate = modificationDate;
     }
 
@@ -166,10 +165,10 @@ public class Resource {
     protected void onCreate() {
 
         if (creationDate == null)
-            creationDate = new Date();
+            creationDate = Instant.now();
 
         if (modificationDate == null)
-            modificationDate = new Date();
+            modificationDate = Instant.now();
 
         version = generateVersion();
     }
@@ -177,7 +176,7 @@ public class Resource {
     @PreUpdate
     protected void onUpdate() {
 
-        modificationDate = new Date();
+        modificationDate = Instant.now();
         version = generateVersion();
     }
 

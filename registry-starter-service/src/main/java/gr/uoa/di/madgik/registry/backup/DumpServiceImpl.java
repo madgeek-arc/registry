@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.Date;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -58,7 +59,7 @@ public class DumpServiceImpl implements DumpService {
     }
 
     private static File pack(String sourceDirPath) throws IOException {
-        Path p = Files.createTempFile("dump-", "-" + new Date().getTime());
+        Path p = Files.createTempFile("dump-", "-" + Instant.now().toEpochMilli());
         try (ZipOutputStream zs = new ZipOutputStream(Files.newOutputStream(p))) {
             Path pp = Paths.get(sourceDirPath);
             Files.walk(pp)
@@ -91,7 +92,7 @@ public class DumpServiceImpl implements DumpService {
             resourceTypesList = String.join(",", resourceTypes);
 
         JobParametersBuilder builder = new JobParametersBuilder();
-        builder.addDate("date", new Date());
+        builder.addDate("date", Date.from(Instant.now()));
         builder.addString("resourceTypes", resourceTypesList);
         builder.addString("save", Boolean.toString(wantSchema));
         builder.addString("raw", Boolean.toString(isRaw));

@@ -28,7 +28,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 
 @RestController
@@ -96,8 +96,8 @@ public class ResourceTypeController {
 
     @RequestMapping(value = "/resourceType", method = RequestMethod.POST, headers = "Accept=application/json")
     public ResponseEntity<ResourceType> addResourceType(@RequestBody ResourceType resourceType) {
-        resourceType.setCreationDate(new Date());
-        resourceType.setModificationDate(new Date());
+        resourceType.setCreationDate(Instant.now());
+        resourceType.setModificationDate(Instant.now());
         try {
             resourceTypeService.addResourceType(resourceType);
             return new ResponseEntity<>(resourceType, HttpStatus.CREATED);

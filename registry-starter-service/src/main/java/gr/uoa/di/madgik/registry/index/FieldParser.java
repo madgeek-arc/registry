@@ -19,7 +19,6 @@ package gr.uoa.di.madgik.registry.index;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.Instant;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -42,8 +41,8 @@ public interface FieldParser {
                 case "java.lang.Double":
                     values.add(Double.parseDouble(typeValue));
                     break;
-                case "java.util.Date":
-                    values.add(Date.from(Instant.ofEpochMilli(Long.parseLong(typeValue))));
+                case "java.time.Instant":
+                    values.add(Instant.ofEpochMilli(Long.parseLong(typeValue)));
                     break;
                 case "java.lang.Boolean":
                     values.add(Boolean.parseBoolean(typeValue));

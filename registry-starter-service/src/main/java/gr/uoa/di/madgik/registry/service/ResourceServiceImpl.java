@@ -36,7 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -114,8 +114,8 @@ public class ResourceServiceImpl implements ResourceService {
             throw new ServiceException("Resource type does not exist");
         }
         if (resource.getPayloadUrl() != null ^ resource.getPayload() != null) {
-            resource.setCreationDate(new Date());
-            resource.setModificationDate(new Date());
+            resource.setCreationDate(Instant.now());
+            resource.setModificationDate(Instant.now());
             resource.setPayloadFormat(resource.getResourceType().getPayloadType());
         } else {
             throw new ServiceException("Payload and PayloadUrl conflict : neither set or both set");

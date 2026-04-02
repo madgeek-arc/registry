@@ -28,6 +28,7 @@ import org.springframework.web.client.RestTemplate;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Date;
 
 @Service
@@ -45,7 +46,7 @@ public class DumpServiceImpl implements DumpService {
         if (response.getStatusCode().is2xxSuccessful()) {
             FileOutputStream output = null;
             try {
-                File file = File.createTempFile("dump-" + (new Date().getTime()), ".zip");
+                File file = File.createTempFile("dump-" + (Instant.now().getEpochSecond()), ".zip");
                 output = new FileOutputStream(file);
                 IOUtils.write(response.getBody(), output);
                 return file;

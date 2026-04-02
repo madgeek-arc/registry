@@ -25,6 +25,7 @@ import jakarta.validation.constraints.Size;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.*;
 
 @Entity
@@ -52,11 +53,11 @@ public class ResourceType implements Serializable {
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "creation_date", nullable = false, updatable = false)
-    private Date creationDate;
+    private Instant creationDate;
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "modification_date", nullable = false)
-    private Date modificationDate;
+    private Instant modificationDate;
 
     @Column
     private String indexMapperClass;
@@ -117,19 +118,19 @@ public class ResourceType implements Serializable {
         this.payloadType = payloadType;
     }
 
-    public Date getCreationDate() {
+    public Instant getCreationDate() {
         return creationDate;
     }
 
-    public void setCreationDate(Date creationDate) {
+    public void setCreationDate(Instant creationDate) {
         this.creationDate = creationDate;
     }
 
-    public Date getModificationDate() {
+    public Instant getModificationDate() {
         return modificationDate;
     }
 
-    public void setModificationDate(Date modificationDate) {
+    public void setModificationDate(Instant modificationDate) {
         this.modificationDate = modificationDate;
     }
 
@@ -171,12 +172,12 @@ public class ResourceType implements Serializable {
 
     @PrePersist
     protected void onCreate() {
-        modificationDate = creationDate = new Date();
+        modificationDate = creationDate = Instant.now();
     }
 
     @PreUpdate
     protected void onUpdate() {
-        modificationDate = new Date();
+        modificationDate = Instant.now();
     }
 
 

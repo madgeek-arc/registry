@@ -29,7 +29,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 
 import static gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration.TEST_MISSING_RESOURCE_ID;
@@ -81,7 +81,7 @@ class ResourceDaoImplTest {
     @Test
     @Order(3)
     void getModifiedSince_OK() throws ParseException {
-        Date date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-18 15:59:22.122");
+        Instant date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-18 15:59:22.122").toInstant();
         List<Resource> resources = resourceDao.getModifiedSince(date);
         Assertions.assertNotEquals(resources.size(), 0);
 
@@ -91,7 +91,7 @@ class ResourceDaoImplTest {
     @Test
     @Order(4)
     void getModifiedSince_NOTHING_MODIFIED_SINCE() throws ParseException {
-        Date date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-20 15:59:22.122");
+        Instant date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-20 15:59:22.122").toInstant();
         List<Resource> resources = resourceDao.getModifiedSince(date);
         Assertions.assertEquals(resources.size(), 0);
     }
@@ -99,7 +99,7 @@ class ResourceDaoImplTest {
     @Test
     @Order(5)
     void getCreatedSince_OK() throws ParseException {
-        Date date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-18 15:59:22.122");
+        Instant date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-18 15:59:22.122").toInstant();
         List<Resource> resources = resourceDao.getCreatedSince(date);
         Assertions.assertNotEquals(resources.size(), 0);
         Resource resource = resources.get(0);
@@ -109,7 +109,7 @@ class ResourceDaoImplTest {
     @Test
     @Order(6)
     void getCreatedSince_NOTHING_CREATED_SINCE() throws ParseException {
-        Date date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-20 15:59:22.122");
+        Instant date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-20 15:59:22.122").toInstant();
         List<Resource> resources = resourceDao.getCreatedSince(date);
         Assertions.assertEquals(resources.size(), 0);
     }
@@ -156,8 +156,8 @@ class ResourceDaoImplTest {
 
         Resource resource = new Resource();
         resource.setId("12345");
-        resource.setCreationDate(new Date());
-        resource.setModificationDate(new Date());
+        resource.setCreationDate(Instant.now());
+        resource.setModificationDate(Instant.now());
         resource.setPayload("test payload");
         resource.setResourceType(testingResourceType);
         resource.setPayloadFormat("xml");
@@ -174,8 +174,8 @@ class ResourceDaoImplTest {
 
         Resource resource = new Resource();
         resource.setId("12345");
-        resource.setCreationDate(new Date());
-        resource.setModificationDate(new Date());
+        resource.setCreationDate(Instant.now());
+        resource.setModificationDate(Instant.now());
         resource.setPayload("test payload");
         resource.setPayloadFormat("xml");
         resource.setPayloadUrl("not_set");

@@ -79,6 +79,9 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
                     case "java.util.Date":
                         indexFieldString = "dateindexedfield";
                         break;
+                    case "java.time.Instant":
+                        indexFieldString = "dateindexedfield";
+                        break;
                     case "embedding":
                         break;
                     default:

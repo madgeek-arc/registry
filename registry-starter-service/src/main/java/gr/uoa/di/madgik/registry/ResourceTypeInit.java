@@ -28,7 +28,7 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.Date;
+import java.time.Instant;
 
 @Component
 public class ResourceTypeInit {
@@ -105,8 +105,8 @@ public class ResourceTypeInit {
         ResourceType resourceType = mapper.readValue(resource.getInputStream(), ResourceType.class);
         if (resourceTypeService.getResourceType(resourceType.getName()) == null) {
             logger.info("Adding [resourceType={}]", resourceType.getName());
-            resourceType.setCreationDate(new Date());
-            resourceType.setModificationDate(new Date());
+            resourceType.setCreationDate(Instant.now());
+            resourceType.setModificationDate(Instant.now());
             resourceTypeService.addResourceType(resourceType);
         } else {
             logger.debug("Found [resourceType={}]", resourceType.getName());

@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 
-import java.util.Date;
+import java.time.Instant;
 
 @Entity
 @Table(name = "ResourceVersion")
@@ -54,9 +54,9 @@ public class Version {
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "creation_date", nullable = false, updatable = false)
-    private Date creationDate;
+    private Instant creationDate;
 
-    public Version(String id, Resource resource, ResourceType resourceType, String version, String payload, Date creationDate) {
+    public Version(String id, Resource resource, ResourceType resourceType, String version, String payload, Instant creationDate) {
         this.id = id;
         this.resource = resource;
         this.resourceType = resourceType;
@@ -110,18 +110,18 @@ public class Version {
         this.payload = payload;
     }
 
-    public Date getCreationDate() {
+    public Instant getCreationDate() {
         return creationDate;
     }
 
-    public void setCreationDate(Date creationDate) {
+    public void setCreationDate(Instant creationDate) {
         this.creationDate = creationDate;
     }
 
     @PrePersist
     protected void onCreate() {
         if (creationDate == null)
-            creationDate = new Date();
+            creationDate = Instant.now();
     }
 
     public Resource getResource() {

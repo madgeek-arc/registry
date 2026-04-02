@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.Instant;
 
 @RestController
 public class DumpController {
@@ -98,7 +98,7 @@ public class DumpController {
         // set headers for the response
         String headerKey = "Content-Disposition";
         SimpleDateFormat sdfDate = new SimpleDateFormat("ddMMyyyy");//dd/MM/yyyy
-        Date now = new Date();
+        Instant now = Instant.now();
         String strDate = sdfDate.format(now);
         String headerValue = String.format("attachment; filename=\"dump-%s.zip\"",
                 strDate);

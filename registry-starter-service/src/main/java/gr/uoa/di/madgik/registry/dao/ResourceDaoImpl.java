@@ -30,7 +30,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -50,10 +50,10 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
         return getSingleResult("id", id);
     }
 
-    private List<Resource> getSince(Date date, String resourceType, String dateType) {
+    private List<Resource> getSince(Instant date, String resourceType, String dateType) {
         CriteriaQuery<Resource> criteriaQuery = getCriteriaQuery();
         Root<Resource> root = criteriaQuery.from(Resource.class);
-        Expression<Date> dateTypeExp = root.<Date>get(dateType);
+        Expression<Instant> dateTypeExp = root.<Instant>get(dateType);
         Expression<String> resourceTypeExp = root.<String>get("resourceType").get("name");
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(getCriteriaBuilder().greaterThan(dateTypeExp, date));
@@ -66,22 +66,22 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
     }
 
     @Override
-    public List<Resource> getModifiedSince(Date date, String resourceType) {
+    public List<Resource> getModifiedSince(Instant date, String resourceType) {
         return getSince(date, resourceType, "modificationDate");
     }
 
     @Override
-    public List<Resource> getModifiedSince(Date date) {
+    public List<Resource> getModifiedSince(Instant date) {
         return getSince(date, "", "modificationDate");
     }
 
     @Override
-    public List<Resource> getCreatedSince(Date date) {
+    public List<Resource> getCreatedSince(Instant date) {
         return getSince(date, "", "creationDate");
     }
 
     @Override
-    public List<Resource> getCreatedSince(Date date, String resourceType) {
+    public List<Resource> getCreatedSince(Instant date, String resourceType) {
         return getSince(date, resourceType, "creationDate");
     }
 
@@ -134,7 +134,7 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 
     @Transactional
     public Resource updateResource(Resource resource) {
-        resource.setModificationDate(new Date());
+        resource.setModificationDate(Instant.now());
         return getEntityManager().merge(resource);
     }
 

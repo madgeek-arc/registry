@@ -141,7 +141,7 @@ VALUES
 ('first_name', NULL, 'first_name', false, '//*[local-name()=''author'']/text()', true, 'java.lang.String', 'employee'),
 ('age', NULL, 'age', false, '//*[local-name()=''age'']/text()', false, 'java.lang.Integer', 'employee'),
 ('single', NULL, 'single', false, '//*[local-name()=''single'']/text()', false, 'java.lang.Boolean', 'employee'),
-('birthday', NULL, 'birthday', false, '//*[local-name()=''birthday'']/text()', false, 'java.util.Date','employee'),
+('birthday', NULL, 'birthday', false, '//*[local-name()=''birthday'']/text()', false, 'java.time.Instant','employee'),
 ('salary', NULL, 'salary', false, '//*[local-name()=''salary'']/text()', false, 'java.lang.Float', 'employee'),
 ('amka', NULL, 'amka', false, '//*[local-name()=''amka'']/text()', false, 'java.lang.Long', 'employee');
 

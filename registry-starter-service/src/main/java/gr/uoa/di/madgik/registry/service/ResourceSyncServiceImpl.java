@@ -67,7 +67,7 @@ public class ResourceSyncServiceImpl implements ResourceSyncService {
         ResourceList resourceList = new ResourceList();
         resourceTypeDao.getResourceType(resourceType).getResources().stream().forEach(resource -> {
             URL entry = new URL();
-            entry.setLoc(host + "/resources/" + resourceType + "/" + resource.getId(), resource.getModificationDate());
+            entry.setLoc(host + "/resources/" + resourceType + "/" + resource.getId(), new Date(resource.getModificationDate().toEpochMilli()));
             resourceList.addUrl(entry);
         });
 
@@ -100,23 +100,23 @@ public class ResourceSyncServiceImpl implements ResourceSyncService {
         changeList.setFrom(date);
         changeList.setUntil(new Date());
         HashMap<String, Resource> resourcesHash = new HashMap<>();
-        List<Resource> resources = resourceDao.getCreatedSince(date, resourceType);
+        List<Resource> resources = resourceDao.getCreatedSince(date.toInstant(), resourceType);
 
         resources.forEach(resource -> {
             resourcesHash.put(resource.getId(), resource);
-            changeList.addChange(host + "/resources/" + resource.getResourceTypeName() + "/" + resource.getId(), resource.getModificationDate(), ResourceSync.CHANGE_CREATED);
+            changeList.addChange(host + "/resources/" + resource.getResourceTypeName() + "/" + resource.getId(), new Date(resource.getModificationDate().toEpochMilli()), ResourceSync.CHANGE_CREATED);
         });
 
-        resources = resourceDao.getModifiedSince(date, resourceType);
+        resources = resourceDao.getModifiedSince(date.toInstant(), resourceType);
 
         resources.forEach(resource -> {
             if (!resourcesHash.containsKey(resource.getId())) {
-                changeList.addChange(host + "/resources/" + resource.getResourceTypeName() + "/" + resource.getId(), resource.getModificationDate(), ResourceSync.CHANGE_UPDATED);
+                changeList.addChange(host + "/resources/" + resource.getResourceTypeName() + "/" + resource.getId(), new Date(resource.getModificationDate().toEpochMilli()), ResourceSync.CHANGE_UPDATED);
             }
         });
 
         versionDao.getOrphans().forEach(version -> {
-            changeList.addChange(host + "/resources/" + version.getResourceType().getName() + "/" + version.getParentId(), version.getCreationDate(), ResourceSync.CHANGE_DELETED);
+            changeList.addChange(host + "/resources/" + version.getResourceType().getName() + "/" + version.getParentId(), new Date(version.getCreationDate().toEpochMilli()), ResourceSync.CHANGE_DELETED);
         });
 
         return changeList;

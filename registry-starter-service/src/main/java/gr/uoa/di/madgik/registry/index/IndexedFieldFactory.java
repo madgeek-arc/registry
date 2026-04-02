@@ -19,6 +19,7 @@ package gr.uoa.di.madgik.registry.index;
 import gr.uoa.di.madgik.registry.domain.index.*;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.Set;
 
@@ -39,6 +40,8 @@ public class IndexedFieldFactory {
         } else if (Integer.class.getName().equals(fieldType)) {
             field = new IntegerIndexedField(fieldName, value);
         } else if (Date.class.getName().equals(fieldType)) {
+            field = new DateIndexedField(fieldName, value);
+        } else if (Instant.class.getName().equals(fieldType)) {
             field = new DateIndexedField(fieldName, value);
         } else if (Float.class.getName().equals(fieldType)) {
             field = new FloatIndexedField(fieldName, value);

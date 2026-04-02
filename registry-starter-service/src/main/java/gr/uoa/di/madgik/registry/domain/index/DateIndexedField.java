@@ -16,23 +16,22 @@
 
 package gr.uoa.di.madgik.registry.domain.index;
 
-import gr.uoa.di.madgik.registry.domain.index.IndexedField;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Entity
 @Table
-public class DateIndexedField extends IndexedField<Date> {
+public class DateIndexedField extends IndexedField<Instant> {
 
     @Column/*(name = "vals")*/ // TODO: change column name because "values" is a db reserved keyword.
     @ElementCollection
-    private Set<Date> values;
+    private Set<Instant> values;
 
 
     public DateIndexedField() {
@@ -41,16 +40,16 @@ public class DateIndexedField extends IndexedField<Date> {
 
     public DateIndexedField(String name, Set<Object> values) {
         setName(name);
-        setValues(values.stream().map(x -> ((Date) x)).collect(Collectors.toSet()));
+        setValues(values.stream().map(x -> ((Instant) x)).collect(Collectors.toSet()));
     }
 
     @Override
-    public Set<Date> getValues() {
+    public Set<Instant> getValues() {
         return values;
     }
 
     @Override
-    public void setValues(Set<Date> value) {
+    public void setValues(Set<Instant> value) {
         this.values = value;
     }
 }

@@ -30,7 +30,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 
 @RestController
@@ -109,7 +109,7 @@ public class ResourceController {
 
     @RequestMapping(value = "/resources", method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Resource> updateResource(@RequestBody Resource resource) {
-        resource.setModificationDate(new Date());
+        resource.setModificationDate(Instant.now());
         Resource resourceFinal;
         resourceFinal = resourceService.updateResource(resource);
         return new ResponseEntity<>(resourceFinal, HttpStatus.NO_CONTENT);

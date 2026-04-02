@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.UUID;
 
 @Component
@@ -63,7 +63,7 @@ public class VersionMonitor implements ResourceListener {
 
         Version version = new Version();
 
-        version.setCreationDate(new Date());
+        version.setCreationDate(Instant.now());
         version.setId(UUID.randomUUID().toString());
         version.setPayload(newResource.getPayload());
         version.setResource(newResource);

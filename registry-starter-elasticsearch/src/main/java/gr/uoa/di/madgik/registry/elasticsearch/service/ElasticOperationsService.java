@@ -17,13 +17,10 @@
 package gr.uoa.di.madgik.registry.elasticsearch.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.Refresh;
-import co.elastic.clients.elasticsearch._types.mapping.Property;
-import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.indices.Alias;
-import co.elastic.clients.elasticsearch.indices.GetMappingResponse;
-import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.Resource;
@@ -47,6 +44,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -140,13 +138,17 @@ public class ElasticOperationsService implements IndexOperationsService {
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void add(Resource resource) {
         try {
+            Map<String, Object> doc = createDocumentForInsert(resource);
             client.index(i -> i
                     .index(resource.getResourceType().getName())
                     .id(resource.getId())
-                    .document(createDocumentForInsert(resource))
+                    .document(doc)
                     .refresh(Refresh.True));
         } catch (IOException e) {
             throw new ServiceException("Failed to index resource " + resource.getId(), e);
+        } catch (ElasticsearchException e) {
+            logger.error("Index: {} | Error: {}", resource.getResourceTypeName(), e.getLocalizedMessage());
+            throw e;
         }
     }
 
@@ -294,10 +296,10 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectField.put("payloadFormat", resource.getPayloadFormat());
         jsonObjectField.put("version", resource.getVersion());
         jsonObjectField.put("searchableArea", strip(resource.getPayload(), resource.getPayloadFormat()));
-        jsonObjectField.put("modification_date", resource.getModificationDate().getTime());
+        jsonObjectField.put("modification_date", resource.getModificationDate().toString());
         //The creation date exists and should not be updated
         if (resource.getCreationDate() != null) {
-            jsonObjectField.put("creation_date", resource.getCreationDate().getTime());
+            jsonObjectField.put("creation_date", resource.getCreationDate().toString());
         }
         Map<String, IndexField> indexMap = resourceTypeService.getResourceTypeIndexFields(
                         resource.getResourceType().getName()).
@@ -315,13 +317,13 @@ public class ElasticOperationsService implements IndexOperationsService {
 
                         String fieldType = rtif.getType();
                         switch (fieldType) {
-                            case "java.util.Date" -> {
-                                Date date = (Date) value;
-                                jsonObjectField.put(field.getName(), date.getTime());
-                            }
-                            case "java.time.Instant" -> {
-                                Instant instant = (Instant) value;
-                                jsonObjectField.put(field.getName(), instant.toEpochMilli());
+                            case "java.util.Date", "java.time.Instant" -> {
+                                if (value instanceof Date date) {
+                                    jsonObjectField.put(field.getName(), date.toInstant().toString());
+                                } else if (value instanceof Instant instant) {
+                                    jsonObjectField.put(field.getName(), instant.toString());
+                                }
+
                             }
                             default -> jsonObjectField.put(field.getName(), value);
                         }
