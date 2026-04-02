@@ -42,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -51,12 +52,16 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.retry.annotation.EnableRetry;
 
+import java.net.URI;
+import java.util.List;
+
 /**
- * Auto-configuration entry point for the registry's Elasticsearch integration.
+ * Autoconfiguration entry point for the registry's Elasticsearch integration.
  *
- * <p>When enabled, this configuration provides the low-level Elasticsearch {@link RestClient},
- * wires the indexing and search service implementations, and registers listeners that keep the
- * search index synchronized with resource and resource-type lifecycle events.</p>
+ * <p>When enabled, this configuration wires the official Elasticsearch Java API client
+ * ({@link ElasticsearchClient}), exposes the transport beans it depends on, and registers the
+ * indexing/search services plus listeners that keep the search index synchronized with resource
+ * and resource-type lifecycle events.</p>
  */
 @AutoConfiguration
 @ConditionalOnProperty(
@@ -75,29 +80,27 @@ public class ElasticAutoConfiguration {
 
     @Bean
     @Primary
+    @ConditionalOnMissingBean
     @ConfigurationProperties("registry.elasticsearch")
     ElasticsearchProperties elasticsearchProperties() {
         return new ElasticsearchProperties();
     }
 
     /**
-     * Creates the shared Elasticsearch low-level REST client from Spring Boot's bound properties.
+     * Creates the low-level REST transport client required by the official typed API client.
      */
     @Bean
+    @ConditionalOnMissingBean
     RestClient restClient(ElasticsearchProperties properties) {
+        URI uri = firstUri(properties.getUris());
         BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         if (properties.getUsername() != null) {
             credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(properties.getUsername(), properties.getPassword()));
         }
-        String host = properties.getUris().get(0);
-        if (!host.startsWith("http")) { // add http prefix if missing (needed in the code below)
-            host = "http://" + host;
-        }
-        String[] parts = host.split(":(//)?"); // split url to scheme / server / port
-        RestClientBuilder restClientBuilder = RestClient.builder(new HttpHost(parts[1], Integer.parseInt(parts[2]), parts[0]))
+        RestClientBuilder restClientBuilder = RestClient.builder(new HttpHost(uri.getHost(), port(uri), uri.getScheme()))
                 .setHttpClientConfigCallback(httpClientBuilder ->
                         httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
-        logger.info("Elasticsearch RestClient created for {}", host);
+        logger.info("Elasticsearch REST transport created for {}", uri);
         return restClientBuilder.build();
     }
 
@@ -105,6 +108,7 @@ public class ElasticAutoConfiguration {
      * Creates a {@link JacksonJsonpMapper} that wraps the application's {@link ObjectMapper}.
      */
     @Bean
+    @ConditionalOnMissingBean
     JacksonJsonpMapper jacksonJsonpMapper(ObjectMapper objectMapper) {
         return new JacksonJsonpMapper(objectMapper);
     }
@@ -113,6 +117,7 @@ public class ElasticAutoConfiguration {
      * Creates the {@link ElasticsearchTransport} backed by the low-level REST client.
      */
     @Bean
+    @ConditionalOnMissingBean
     ElasticsearchTransport elasticsearchTransport(RestClient restClient, JacksonJsonpMapper jsonpMapper) {
         return new RestClientTransport(restClient, jsonpMapper);
     }
@@ -121,6 +126,7 @@ public class ElasticAutoConfiguration {
      * Creates the typed {@link ElasticsearchClient} used by all service beans.
      */
     @Bean
+    @ConditionalOnMissingBean
     ElasticsearchClient elasticsearchClient(ElasticsearchTransport transport) {
         return new ElasticsearchClient(transport);
     }
@@ -163,5 +169,20 @@ public class ElasticAutoConfiguration {
                                        EmbeddingService embeddingService,
                                        ResourceTypeService resourceTypeService) {
         return new ElasticSearchService(client, jsonpMapper, embeddingService, resourceTypeService);
+    }
+
+    private static URI firstUri(List<String> uris) {
+        if (uris == null || uris.isEmpty()) {
+            throw new IllegalStateException("registry.elasticsearch.uris must contain at least one URI");
+        }
+        String rawUri = uris.getFirst();
+        if (!rawUri.contains("://")) {
+            rawUri = "http://" + rawUri;
+        }
+        return URI.create(rawUri);
+    }
+
+    private static int port(URI uri) {
+        return uri.getPort() == -1 ? ("https".equalsIgnoreCase(uri.getScheme()) ? 443 : 9200) : uri.getPort();
     }
 }
