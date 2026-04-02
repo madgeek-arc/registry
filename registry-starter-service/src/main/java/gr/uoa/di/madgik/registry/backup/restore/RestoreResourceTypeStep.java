@@ -62,7 +62,7 @@ public class RestoreResourceTypeStep implements Tasklet, StepExecutionListener {
     }
 
     private static ResourceType readResourceType(File file) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
         return mapper.readValue(FileUtils
                         .readFileToString(file)
                         .replaceAll("^\t$", "")

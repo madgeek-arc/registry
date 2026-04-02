@@ -1,27 +1,61 @@
 package gr.uoa.di.madgik.registry.configuration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import gr.uoa.di.madgik.registry.dao.ResourceDao;
+import gr.uoa.di.madgik.registry.dao.ResourceTypeDao;
+import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import gr.uoa.di.madgik.registry.monitor.ViewResourceTypeListener;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.job.JobExecution;
+import org.springframework.batch.core.job.parameters.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.core.task.SyncTaskExecutor;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.jdbc.SqlMergeMode;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.util.FileSystemUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import jakarta.transaction.Transactional;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Callable;
 
 @SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
-@Transactional
+@SqlMergeMode(SqlMergeMode.MergeMode.MERGE)
+@Sql(scripts = "/data.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+@Sql(scripts = "/cleanup.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class BatchConfigurationSmokeTest extends PostgreSqlTestContainerSupport {
+
+    private static final String TEST_RESOURCE_TYPE = "employee_restore";
+    private static final String TEST_RESOURCE_ID = "restore-job-resource";
 
     @MockitoBean
     EmbeddingModel embeddingModel;
+
+    @MockitoBean
+    ViewResourceTypeListener viewResourceTypeListener;
 
     @Autowired
     private JobRepository jobRepository;
@@ -37,6 +71,19 @@ class BatchConfigurationSmokeTest extends PostgreSqlTestContainerSupport {
     @Autowired
     private JobLauncher jobLauncher;
 
+    @Autowired
+    private ResourceTypeDao resourceTypeDao;
+
+    @Autowired
+    private ResourceDao resourceDao;
+
+    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+
+    @BeforeEach
+    void setUpRequestContext() {
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
+    }
+
     @AfterEach
     void clearRequestContext() {
         RequestContextHolder.resetRequestAttributes();
@@ -51,7 +98,111 @@ class BatchConfigurationSmokeTest extends PostgreSqlTestContainerSupport {
 
     @Test
     void jobLauncher_is_resolvable_with_request_scope() {
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
         Assertions.assertNotNull(jobLauncher);
+    }
+
+    @Test
+    void dumpJob_executes_and_writes_expected_files() throws Exception {
+        JobExecution execution = jobLauncher.run(dumpJob, new JobParametersBuilder()
+                .addString("resourceTypes", "employee")
+                .addString("save", "true")
+                .addString("raw", "false")
+                .addString("versions", "false")
+                .addLong("timestamp", System.nanoTime())
+                .toJobParameters());
+
+        Assertions.assertEquals(BatchStatus.COMPLETED, execution.getStatus());
+
+        Path directory = Path.of(execution.getExecutionContext().getString("directory"));
+        try {
+            Path employeeDirectory = directory.resolve("employee");
+            Assertions.assertTrue(Files.exists(employeeDirectory.resolve("schema.json")));
+            Assertions.assertTrue(execution.getExecutionContext().containsKey("addedResourceTypes"));
+            Assertions.assertTrue(((List<?>) execution.getExecutionContext().get("addedResourceTypes")).contains("employee"));
+        } finally {
+            FileSystemUtils.deleteRecursively(directory);
+        }
+    }
+
+    @Test
+    void restoreJob_executes_and_persists_restored_data() throws Exception {
+        Path resourceTypeDir = Files.createTempDirectory("restore-job-test").resolve(TEST_RESOURCE_TYPE);
+        Files.createDirectories(resourceTypeDir);
+        Files.writeString(resourceTypeDir.resolve("schema.json"), objectMapper.writeValueAsString(restoreResourceType()));
+        Files.writeString(resourceTypeDir.resolve(TEST_RESOURCE_ID + ".json"), objectMapper.writeValueAsString(restoreResource()));
+
+        try {
+            JobExecution execution = jobLauncher.run(restoreJob, new JobParametersBuilder()
+                    .addString("resourceType", TEST_RESOURCE_TYPE)
+                    .addString("resourceTypeDir", resourceTypeDir.toString())
+                    .addDate("date", new java.util.Date())
+                    .toJobParameters());
+
+            Assertions.assertEquals(BatchStatus.COMPLETED, execution.getStatus());
+            Assertions.assertNotNull(resourceTypeDao.getResourceType(TEST_RESOURCE_TYPE));
+            Assertions.assertNotNull(resourceDao.getResource(TEST_RESOURCE_ID));
+        } finally {
+            FileSystemUtils.deleteRecursively(resourceTypeDir.getParent());
+        }
+    }
+
+    private ResourceType restoreResourceType() {
+        ResourceType seeded = resourceTypeDao.getResourceType("employee");
+        ResourceType resourceType = new ResourceType();
+        resourceType.setName(TEST_RESOURCE_TYPE);
+        resourceType.setPayloadType(seeded.getPayloadType());
+        resourceType.setSchema(seeded.getSchema());
+        resourceType.setSchemaUrl("not_set");
+        resourceType.setIndexMapperClass(seeded.getIndexMapperClass());
+        resourceType.setAliases(Set.of("restoreTypes"));
+
+        List<IndexField> fields = new ArrayList<>();
+        for (IndexField seededField : seeded.getIndexFields()) {
+            IndexField field = new IndexField();
+            field.setName(seededField.getName());
+            field.setPath(seededField.getPath());
+            field.setType(seededField.getType());
+            field.setLabel(seededField.getLabel());
+            field.setDefaultValue(seededField.getDefaultValue());
+            field.setMultivalued(seededField.isMultivalued());
+            field.setPrimaryKey(seededField.isPrimaryKey());
+            field.setEmbeddingWeight(seededField.getEmbeddingWeight());
+            field.setRelatedResourceType(seededField.getRelatedResourceType());
+            field.setRelatedResourceTypeField(seededField.getRelatedResourceTypeField());
+            field.setResourceType(resourceType);
+            fields.add(field);
+        }
+        resourceType.setIndexFields(fields);
+        return resourceType;
+    }
+
+    private Resource restoreResource() {
+        Resource resource = new Resource();
+        resource.setId(TEST_RESOURCE_ID);
+        resource.setPayloadFormat("xml");
+        resource.setPayload("""
+                <?xml version="1.0"?>
+                <employee>
+                  <author>Restored Person</author>
+                  <age>35</age>
+                  <single>true</single>
+                  <birthday>645544821000</birthday>
+                  <salary>2321.500</salary>
+                  <amka>123456789012345</amka>
+                </employee>
+                """);
+        resource.setVersion("restore-version");
+        resource.setCreationDate(Instant.parse("2026-04-02T10:15:30Z"));
+        resource.setModificationDate(Instant.parse("2026-04-02T10:15:30Z"));
+        return resource;
+    }
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class TestBatchOverrides {
+
+        @Bean(name = "threadPoolExecutor")
+        Callable<TaskExecutor> threadPoolExecutor() {
+            return SyncTaskExecutor::new;
+        }
     }
 }

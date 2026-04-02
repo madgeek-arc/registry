@@ -1,0 +1,22 @@
+TRUNCATE TABLE
+    schemadatabase,
+    resourceversion,
+    stringindexedfield_values,
+    stringindexedfield,
+    longindexedfield_values,
+    longindexedfield,
+    integerindexedfield_values,
+    integerindexedfield,
+    floatindexedfield_values,
+    floatindexedfield,
+    dateindexedfield_values,
+    dateindexedfield,
+    booleanindexedfield_values,
+    booleanindexedfield,
+    resource,
+    resourcetype_properties,
+    resourcetype_indexfield,
+    indexfield,
+    resourcetype_aliases,
+    resourcetype
+RESTART IDENTITY CASCADE;

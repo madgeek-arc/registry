@@ -7,9 +7,9 @@
 -- Data for Name: resourcetype; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.resourcetype (name, aliasgroup, creation_date, indexmapperclass, modification_date, payloadtype,
+INSERT INTO public.resourcetype (name, creation_date, indexmapperclass, modification_date, payloadtype,
                                  schema, schemaurl)
-VALUES ('employee', 'resourceTypes', '2018-12-03 13:03:59.871', 'gr.uoa.di.madgik.registry.index.DefaultIndexMapper',
+VALUES ('employee', '2018-12-03 13:03:59.871', 'gr.uoa.di.madgik.registry.index.DefaultIndexMapper',
         '2018-12-03 13:03:59.871', 'xml', '
 
 <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
@@ -26,6 +26,9 @@ VALUES ('employee', 'resourceTypes', '2018-12-03 13:03:59.871', 'gr.uoa.di.madgi
     </xs:complexType>
   </xs:element>
 </xs:schema>', 'not_set');
+
+INSERT INTO public.resourcetype_aliases (resourcetype_name, aliases)
+VALUES ('employee', 'resourceTypes');
 
 
 --
@@ -190,4 +193,3 @@ VALUES ('cccbd2ae2abfd0bb0d1c6c2216116ed1', 'employee', '
 --
 -- PostgreSQL database dump complete
 --
-

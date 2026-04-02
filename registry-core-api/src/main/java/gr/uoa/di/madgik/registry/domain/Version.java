@@ -52,7 +52,6 @@ public class Version {
     @Column(name = "payload", nullable = false, columnDefinition = "text")
     private String payload;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "creation_date", nullable = false, updatable = false)
     private Instant creationDate;
 

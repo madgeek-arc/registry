@@ -60,11 +60,9 @@ public class Resource {
     @Column(name = "payloadFormat", nullable = false)
     private String payloadFormat;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "creation_date", nullable = false, updatable = false)
     private Instant creationDate;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "modification_date", nullable = false)
     private Instant modificationDate;
 

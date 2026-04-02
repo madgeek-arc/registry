@@ -54,12 +54,19 @@ class ResourceTypeDaoImplTest extends PostgreSqlTestContainerSupport {
 
     @Test
     @Order(2)
+    void getAllResourceTypeByAlias_OK() {
+        Assertions.assertEquals(1, resourceTypeDao.getAllResourceTypeByAlias("resourceTypes").size());
+        Assertions.assertEquals("employee", resourceTypeDao.getAllResourceTypeByAlias("resourceTypes").getFirst().getName());
+    }
+
+    @Test
+    @Order(3)
     void getResourceTypeIndexFields_NOT_FOUND() {
         Assertions.assertNotEquals(resourceTypeDao.getResourceTypeIndexFields("event").toArray(), testingResourceType.getIndexFields().toArray());
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     void deleteResourceType() {
         resourceTypeDao.deleteResourceType(testingResourceType.getName());
         Assertions.assertNull(resourceTypeDao.getResourceType("employee"));

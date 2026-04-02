@@ -63,6 +63,7 @@ public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
         this.saveSchema = true;
         this.mapper = JsonMapper
                 .builder()
+                .findAndAddModules()
                 .configure(MapperFeature.USE_ANNOTATIONS, true)
                 .build();
     }
@@ -102,24 +103,25 @@ public class DumpResourceTypeStep implements Tasklet, StepExecutionListener {
 
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-        if (resourceTypeNames.isEmpty())
-            return RepeatStatus.FINISHED;
-        String resourceTypeName = resourceTypeNames.remove(0);
-        Path resourceTypePath = masterDirectory.resolve(resourceTypeName);
-        Files.createDirectories(resourceTypePath);
-        logger.info("Saving {}", resourceTypeName);
-        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
-        stepResourceTypes.add(resourceTypeName);
-        if (!saveSchema)
-            return RepeatStatus.CONTINUABLE;
-        resourceType.setSchema(resourceType.getSchema());
-        Path tempFile = resourceTypePath.resolve(FILENAME_FOR_SCHEMA);
-        Files.write(tempFile, mapper.writeValueAsBytes(resourceType),
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING,
-                StandardOpenOption.WRITE
-        );
-        return RepeatStatus.CONTINUABLE;
+        while (!resourceTypeNames.isEmpty()) {
+            String resourceTypeName = resourceTypeNames.remove(0);
+            Path resourceTypePath = masterDirectory.resolve(resourceTypeName);
+            Files.createDirectories(resourceTypePath);
+            logger.info("Saving {}", resourceTypeName);
+            ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
+            stepResourceTypes.add(resourceTypeName);
+            if (!saveSchema) {
+                continue;
+            }
+            resourceType.setSchema(resourceType.getSchema());
+            Path tempFile = resourceTypePath.resolve(FILENAME_FOR_SCHEMA);
+            Files.write(tempFile, mapper.writeValueAsBytes(resourceType),
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.WRITE
+            );
+        }
+        return RepeatStatus.FINISHED;
     }
 
 }

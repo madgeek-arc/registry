@@ -193,9 +193,6 @@ public class ElasticOperationsService implements IndexOperationsService {
 
         try {
             Map<String, Alias> aliases = new LinkedHashMap<>();
-            if (resourceType.getAliasGroup() != null) {
-                aliases.put(resourceType.getAliasGroup(), Alias.of(a -> a));
-            }
             if (resourceType.getAliases() != null) {
                 for (String alias : resourceType.getAliases()) {
                     aliases.put(alias, Alias.of(a -> a));

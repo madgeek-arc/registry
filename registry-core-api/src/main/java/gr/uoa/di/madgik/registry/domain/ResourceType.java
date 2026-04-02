@@ -51,11 +51,9 @@ public class ResourceType implements Serializable {
     @Column(name = "payloadType", nullable = false)
     private String payloadType;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "creation_date", nullable = false, updatable = false)
     private Instant creationDate;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "modification_date", nullable = false)
     private Instant modificationDate;
 
@@ -66,13 +64,6 @@ public class ResourceType implements Serializable {
     @JsonManagedReference(value = "resourcetype-indexfields")
     @Column
     private List<IndexField> indexFields;
-
-    /**
-     * @deprecated This field has been replaced with the multivalued 'aliases' field.
-     */
-    @Deprecated
-    @Column
-    private String aliasGroup;
 
     @ElementCollection(fetch = FetchType.EAGER)
 //    @CollectionTable(name = "resourcetype_aliases", joinColumns = @JoinColumn(name = "resourcetype_name"))
@@ -180,21 +171,12 @@ public class ResourceType implements Serializable {
         modificationDate = Instant.now();
     }
 
-
-    public String getAliasGroup() {
-        return aliasGroup;
-    }
-
-    public void setAliasGroup(String aliasGroup) {
-        this.aliasGroup = aliasGroup;
-    }
-
     public Set<String> getAliases() {
         return aliases;
     }
 
-    public void setAliases(Set<String> aliasGroups) {
-        this.aliases = aliasGroups;
+    public void setAliases(Set<String> aliases) {
+        this.aliases = aliases;
     }
 
     @JsonIgnore

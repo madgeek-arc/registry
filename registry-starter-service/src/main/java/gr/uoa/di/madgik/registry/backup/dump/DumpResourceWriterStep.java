@@ -56,6 +56,7 @@ public class DumpResourceWriterStep implements ItemWriter<Resource>, StepExecuti
     public DumpResourceWriterStep() {
         this.objectMapper = JsonMapper
                 .builder()
+                .findAndAddModules()
                 .configure(MapperFeature.USE_ANNOTATIONS, true)
                 .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
                 .build();

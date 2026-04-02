@@ -68,7 +68,7 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
     public RestoreResourceReaderStep(ResourceDao resourceDao, IndexMapperFactory indexMapperFactory) {
         this.resourceDao = resourceDao;
         this.indexMapperFactory = indexMapperFactory;
-        this.mapper = new ObjectMapper();
+        this.mapper = new ObjectMapper().findAndRegisterModules();
         this.mapper.configure(MapperFeature.USE_ANNOTATIONS, true);
         this.mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
     }
