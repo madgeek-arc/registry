@@ -17,6 +17,7 @@
 package gr.uoa.di.madgik.registry.dao;
 
 import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
+import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import jakarta.persistence.PersistenceException;
@@ -39,7 +40,7 @@ import static gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration.TEST
 @Transactional
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class ResourceDaoImplTest {
+class ResourceDaoImplTest extends PostgreSqlTestContainerSupport {
 
     @MockitoBean
     EmbeddingModel embeddingModel;
@@ -57,7 +58,7 @@ class ResourceDaoImplTest {
 
     private Resource testingResource;
 
-    @BeforeAll
+    @BeforeEach
     void initialize() {
         testingResourceType = resourceTypeDao.getResourceType("employee");
         testingResource = resourceDao.getResource().get(0);

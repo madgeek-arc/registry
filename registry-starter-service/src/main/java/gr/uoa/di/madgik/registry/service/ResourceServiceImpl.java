@@ -16,7 +16,6 @@
 
 package gr.uoa.di.madgik.registry.service;
 
-import gr.uoa.di.madgik.registry.dao.IndexedFieldDao;
 import gr.uoa.di.madgik.registry.dao.ResourceDao;
 import gr.uoa.di.madgik.registry.dao.ResourceTypeDao;
 import gr.uoa.di.madgik.registry.domain.Resource;
@@ -35,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.time.Instant;
 import java.util.List;
@@ -53,16 +53,14 @@ public class ResourceServiceImpl implements ResourceService {
     private final ResourceDao resourceDao;
     private final ResourceTypeDao resourceTypeDao;
     private final IndexMapperFactory indexMapperFactory;
-    private final IndexedFieldDao indexedFieldDao;
     private final ResourceValidator resourceValidator;
 
     public ResourceServiceImpl(ResourceDao resourceDao, ResourceTypeDao resourceTypeDao,
-                               IndexMapperFactory indexMapperFactory, IndexedFieldDao indexedFieldDao,
+                               IndexMapperFactory indexMapperFactory,
                                ResourceValidator resourceValidator) {
         this.resourceDao = resourceDao;
         this.resourceTypeDao = resourceTypeDao;
         this.indexMapperFactory = indexMapperFactory;
-        this.indexedFieldDao = indexedFieldDao;
         this.resourceValidator = resourceValidator;
     }
 
@@ -154,18 +152,36 @@ public class ResourceServiceImpl implements ResourceService {
             throw new ServiceException("Resource ID cannot be empty");
 
         Resource oldResource = resourceDao.getResource(resource.getId());
-        indexedFieldDao.deleteAllIndexedFields(oldResource);
-        resource.setIndexedFields(getIndexedFields(resource));
-        for (IndexedField indexedField : resource.getIndexedFields()) {
-            indexedField.setResource(resource);
-        }
-        Boolean response = checkValid(resource);
-        if (response) {
-            resource.regenerateVersion(); // version monitor aspect depends on this change
-            resourceDao.updateResource(resource);
+        if (oldResource == null) {
+            throw new ServiceException("Resource not found");
         }
 
-        return resource;
+        oldResource.setResourceType(resource.getResourceType());
+        oldResource.setPayload(resource.getPayload());
+        oldResource.setPayloadFormat(resource.getPayloadFormat());
+        oldResource.setPayloadUrl(resource.getPayloadUrl());
+        oldResource.setSearchableArea(resource.getSearchableArea());
+        oldResource.setResourceTypeName(resource.getResourceTypeName());
+
+        List<IndexedField> indexedFields = getIndexedFields(oldResource);
+        for (IndexedField indexedField : indexedFields) {
+            indexedField.setResource(oldResource);
+        }
+
+        if (oldResource.getIndexedFields() == null) {
+            oldResource.setIndexedFields(new ArrayList<>());
+        } else {
+            oldResource.getIndexedFields().clear();
+        }
+        oldResource.getIndexedFields().addAll(indexedFields);
+
+        Boolean response = checkValid(oldResource);
+        if (response) {
+            oldResource.regenerateVersion(); // version monitor aspect depends on this change
+            oldResource = resourceDao.updateResource(oldResource);
+        }
+
+        return oldResource;
     }
 
     @Override
@@ -173,6 +189,11 @@ public class ResourceServiceImpl implements ResourceService {
     public Resource changeResourceType(Resource resource, ResourceType resourceType) {
         if (resource.getResourceType() == null && (resource.getResourceTypeName() == null || resource.getResourceTypeName().isEmpty()))
             throw new ServiceException("Resource type not present");
+        Resource managedResource = resource.getId() == null ? null : resourceDao.getResource(resource.getId());
+        if (managedResource == null) {
+            throw new ServiceException("Resource not found");
+        }
+
         ResourceType oldResourceType = null;
         if (resource.getResourceType() != null)
             oldResourceType = resource.getResourceType();
@@ -182,27 +203,34 @@ public class ResourceServiceImpl implements ResourceService {
         if (oldResourceType == null)
             throw new ServiceException("Resource type not found");
 
-        resource.setResourceType(resourceType);
+        managedResource.setResourceType(resourceType);
+        managedResource.setResourceTypeName(resourceType.getName());
 
-        Boolean response = checkValid(resource);
+        Boolean response = checkValid(managedResource);
         if (!response)
             throw new ServiceException("Failed to validate resource with the new resource type");
 
-        resource.regenerateVersion(); // version monitor aspect depends on this change
+        managedResource.regenerateVersion(); // version monitor aspect depends on this change
         try {
-            resource.setIndexedFields(getIndexedFields(resource));
+            List<IndexedField> indexedFields = getIndexedFields(managedResource);
 
-            for (IndexedField indexedField : resource.getIndexedFields())
-                indexedField.setResource(resource);
+            for (IndexedField indexedField : indexedFields)
+                indexedField.setResource(managedResource);
 
-            resource.setResourceType(resourceType);
+            if (managedResource.getIndexedFields() == null) {
+                managedResource.setIndexedFields(new ArrayList<>());
+            } else {
+                managedResource.getIndexedFields().clear();
+            }
+            managedResource.getIndexedFields().addAll(indexedFields);
+
             // Save resource using DAO in order to keep the ID of the Resource
-            resource = resourceDao.updateResource(resource);
+            managedResource = resourceDao.updateResource(managedResource);
         } catch (Exception e) {
             throw new ServiceException("Error saving resource", e);
         }
 
-        return resource;
+        return managedResource;
     }
 
     @Override
@@ -262,4 +290,3 @@ public class ResourceServiceImpl implements ResourceService {
         return true;
     }
 }
-

@@ -17,6 +17,7 @@
 package gr.uoa.di.madgik.registry.dao;
 
 import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
+import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.index.IndexedField;
 import jakarta.transaction.Transactional;
@@ -34,7 +35,7 @@ import static gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration.TEST
 
 @SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
 @Transactional
-class IndexedFieldDaoImplTest {
+class IndexedFieldDaoImplTest extends PostgreSqlTestContainerSupport {
 
     @MockitoBean
     EmbeddingModel embeddingModel;

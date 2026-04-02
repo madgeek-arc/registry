@@ -28,9 +28,7 @@ import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.web.context.WebApplicationContext;
 
 @Configuration(proxyBeanMethods = false)
-@EnableBatchProcessing(
-        dataSourceRef = "registryDataSource",
-        transactionManagerRef = "registryTransactionManager")
+@EnableBatchProcessing(transactionManagerRef = "registryTransactionManager")
 public class BatchConfig {
 
     @Bean

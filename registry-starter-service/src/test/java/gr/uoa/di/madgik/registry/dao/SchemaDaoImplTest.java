@@ -17,6 +17,7 @@
 package gr.uoa.di.madgik.registry.dao;
 
 import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
+import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
 import gr.uoa.di.madgik.registry.domain.Schema;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Assertions;
@@ -29,7 +30,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
 @Transactional
-class SchemaDaoImplTest {
+class SchemaDaoImplTest extends PostgreSqlTestContainerSupport {
 
     public static final String TEST_SCHEMA_ID = "cccbd2ae2abfd0bb0d1c6c2216116ed1";
     public static final String TEST_MISSING_SCHEMA_ID = "not-existing-schema-id";

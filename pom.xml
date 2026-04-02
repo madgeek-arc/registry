@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.10</version>
+        <version>4.0.5</version>
     </parent>
 
     <groupId>gr.uoa.di.madgik</groupId>
@@ -30,6 +30,7 @@
         <joda-time.version>2.12.5</joda-time.version>
         <hibernate.version>6.5.2.Final</hibernate.version>
         <elasticsearch.version>9.3.2</elasticsearch.version>
+        <testcontainers.version>2.0.3</testcontainers.version>
     </properties>
 
     <modules>
@@ -100,6 +101,13 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency> <!-- Addresses issues of version 6.1.8 shipped by spring-boot 3.5.10 -->
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-bom</artifactId>
@@ -112,7 +120,7 @@
             <dependency>
                 <groupId>org.springframework.batch</groupId>
                 <artifactId>spring-batch-core</artifactId>
-                <version>5.1.2</version>
+                <version>6.0.2</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.retry</groupId>
@@ -170,7 +178,7 @@
             <dependency>
                 <groupId>jakarta.persistence</groupId>
                 <artifactId>jakarta.persistence-api</artifactId>
-                <version>3.1.0</version>
+                <version>3.2.0</version>
             </dependency>
             <dependency>
                 <groupId>jakarta.validation</groupId>

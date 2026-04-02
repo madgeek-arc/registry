@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -81,8 +80,8 @@ public class ElasticAutoConfiguration {
     @Primary
     @ConditionalOnMissingBean
     @ConfigurationProperties("registry.elasticsearch")
-    ElasticsearchProperties elasticsearchProperties() {
-        return new ElasticsearchProperties();
+    RegistryElasticsearchProperties elasticsearchProperties() {
+        return new RegistryElasticsearchProperties();
     }
 
     /**
@@ -90,7 +89,7 @@ public class ElasticAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    Rest5Client restClient(ElasticsearchProperties properties) {
+    Rest5Client restClient(RegistryElasticsearchProperties properties) {
         URI uri = firstUri(properties.getUris());
         BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         if (properties.getUsername() != null) {

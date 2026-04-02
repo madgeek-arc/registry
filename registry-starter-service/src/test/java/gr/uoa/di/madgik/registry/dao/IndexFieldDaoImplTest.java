@@ -17,11 +17,12 @@
 package gr.uoa.di.madgik.registry.dao;
 
 import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
+import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.ai.embedding.EmbeddingModel;
@@ -34,7 +35,7 @@ import java.util.List;
 @SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
 @Transactional
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class IndexFieldDaoImplTest {
+class IndexFieldDaoImplTest extends PostgreSqlTestContainerSupport {
 
     @MockitoBean
     EmbeddingModel embeddingModel;
@@ -48,7 +49,7 @@ class IndexFieldDaoImplTest {
     private ResourceType testingResourceType;
 
 
-    @BeforeAll
+    @BeforeEach
     void initialize() {
         testingResourceType = resourceTypeDao.getResourceType("employee");
     }

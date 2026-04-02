@@ -17,15 +17,25 @@
 package gr.uoa.di.madgik.registry.service;
 
 import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
+import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
+import gr.uoa.di.madgik.registry.dao.IndexedFieldDao;
 import gr.uoa.di.madgik.registry.dao.ResourceTypeDao;
+import gr.uoa.di.madgik.registry.dao.SchemaDao;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.domain.Schema;
+import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import gr.uoa.di.madgik.registry.domain.index.IndexedField;
+import gr.uoa.di.madgik.registry.domain.index.IntegerIndexedField;
+import gr.uoa.di.madgik.registry.domain.index.StringIndexedField;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.*;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import java.util.List;
 
 import static gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration.TEST_MISSING_RESOURCE_ID;
 import static gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration.TEST_RESOURCE_ID;
@@ -34,7 +44,7 @@ import static gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration.TEST
 @Transactional
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class ResourceServiceImplTest {
+class ResourceServiceImplTest extends PostgreSqlTestContainerSupport {
 
     @MockitoBean
     EmbeddingModel embeddingModel;
@@ -45,11 +55,17 @@ class ResourceServiceImplTest {
     @Autowired
     private ResourceTypeDao resourceTypeDao;
 
+    @Autowired
+    private IndexedFieldDao indexedFieldDao;
+
+    @Autowired
+    private SchemaDao schemaDao;
+
     private Resource testingResource;
 
     private ResourceType testingResourceType;
 
-    @BeforeAll
+    @BeforeEach
     void initialize() {
         testingResource = resourceService.getResource(TEST_RESOURCE_ID);
         testingResourceType = resourceTypeDao.getResourceType("employee");
@@ -108,26 +124,19 @@ class ResourceServiceImplTest {
 
     @Test
     @Order(9)
-        // TODO: remove expected exception when IndexedFields values column is renamed
     void addResource_OK() {
 
-        Resource resource = new Resource();
-        resource.setPayload("<?xml version=\"1.0\"?> " +
-                "<employee> " +
-                " <author>Jomazor</author> " +
-                " <age>28</age> " +
-                " <single>false</single>" +
-                " <birthday>645544821000</birthday>" +
-                " <salary>1292.123</salary>" +
-                " <amka>051417010293821</amka>" +
-                "</employee>");
+        Resource resource = newEmployeeResource("Jomazor", 28);
         resource.setResourceTypeName("employee");
         resource.setPayloadFormat("xml");
 
-        Assertions.assertThrows(ServiceException.class, () -> {
-            resourceService.addResource(resource);
-        });
+        Resource created = resourceService.addResource(resource);
+        List<IndexedField> indexedFields = indexedFieldDao.getIndexedFieldsOfResource(created);
+
         Assertions.assertEquals(resourceService.getResource().size(), 2);
+        Assertions.assertNotNull(created.getId());
+        Assertions.assertNotNull(created.getVersion());
+        Assertions.assertEquals(6, indexedFields.size());
 
     }
 
@@ -153,25 +162,34 @@ class ResourceServiceImplTest {
     @Test
     @Order(11)
     void updateResource_OK() {
-        testingResource.setPayload("<?xml version=\"1.0\"?> " +
-                "<employee> " +
-                " <author>Makis Dimakis</author> " +
-                " <age>28</age> " +
-                " <single>false</single>" +
-                " <birthday>645544821000</birthday>" +
-                " <salary>1292.123</salary>" +
-                " <amka>051417010293821</amka>" +
-                "</employee>");
-        resourceService.updateResource(testingResource);
+        String previousVersion = testingResource.getVersion();
+        testingResource.setPayload(newEmployeePayload("Makis Dimakis", 31));
+        Resource updated = resourceService.updateResource(testingResource);
 
         Resource resource = resourceService.getResource(TEST_RESOURCE_ID);
+        List<IndexedField> indexedFields = indexedFieldDao.getIndexedFieldsOfResource(resource);
 
         Assertions.assertEquals(resource.getPayload(), testingResource.getPayload());
-
+        Assertions.assertNotEquals(previousVersion, updated.getVersion());
+        Assertions.assertEquals(6, indexedFields.size());
+        Assertions.assertTrue(getIndexedField(indexedFields, "first_name", StringIndexedField.class).getValues().contains("Makis Dimakis"));
+        Assertions.assertTrue(getIndexedField(indexedFields, "age", IntegerIndexedField.class).getValues().contains(31L));
     }
 
     @Test
     @Order(12)
+    void updateResource_MISSING_ID() {
+        Resource missing = newEmployeeResource("Ghost Employee", 22);
+        missing.setId("missing-resource");
+        missing.setPayloadFormat("xml");
+        missing.setResourceType(testingResourceType);
+
+        ServiceException exception = Assertions.assertThrows(ServiceException.class, () -> resourceService.updateResource(missing));
+        Assertions.assertEquals("Resource not found", exception.getMessage());
+    }
+
+    @Test
+    @Order(13)
     void changeResourceType_OK() {
         String resourceTypeName = "employee";
         Resource resource = resourceService.changeResourceType(testingResource, resourceTypeDao.getResourceType(resourceTypeName));
@@ -179,10 +197,103 @@ class ResourceServiceImplTest {
     }
 
     @Test
-    @Order(13)
+    @Order(14)
+    void changeResourceType_REGENERATES_INDEXED_FIELDS() {
+        ResourceType minimalResourceType = createResourceType(
+                "employee-minimal",
+                testingResourceType.getSchema(),
+                List.of(indexField("author_only", "//*[local-name()='author']/text()", "java.lang.String", true))
+        );
+        schemaDao.addSchema(schema("employee-minimal", testingResourceType.getSchema()));
+        resourceTypeDao.addResourceType(minimalResourceType);
+
+        Resource changed = resourceService.changeResourceType(testingResource, minimalResourceType);
+        Resource reloaded = resourceService.getResource(changed.getId());
+        List<IndexedField> indexedFields = indexedFieldDao.getIndexedFieldsOfResource(reloaded);
+
+        Assertions.assertEquals("employee-minimal", reloaded.getResourceTypeName());
+        Assertions.assertEquals(1, indexedFields.size());
+        Assertions.assertTrue(getIndexedField(indexedFields, "author_only", StringIndexedField.class).getValues().contains("Jodeee"));
+    }
+
+    @Test
+    @Order(15)
+    void changeResourceType_INVALID_TARGET() {
+        ResourceType invalidResourceType = createResourceType(
+                "employee-json",
+                "{}",
+                List.of(indexField("author_only", "$.author", "java.lang.String", true))
+        );
+        invalidResourceType.setPayloadType("json");
+        invalidResourceType.setIndexMapperClass(testingResourceType.getIndexMapperClass());
+        resourceTypeDao.addResourceType(invalidResourceType);
+
+        Assertions.assertThrows(ServiceException.class, () -> resourceService.changeResourceType(testingResource, invalidResourceType));
+    }
+
+    @Test
+    @Order(16)
     void deleteResource() {
         resourceService.deleteResource(TEST_RESOURCE_ID);
         Assertions.assertEquals(resourceService.getResource().size(), 0);
+    }
+
+    private Resource newEmployeeResource(String author, int age) {
+        Resource resource = new Resource();
+        resource.setPayload(newEmployeePayload(author, age));
+        return resource;
+    }
+
+    private String newEmployeePayload(String author, int age) {
+        return "<?xml version=\"1.0\"?> " +
+                "<employee> " +
+                " <author>" + author + "</author> " +
+                " <age>" + age + "</age> " +
+                " <single>false</single>" +
+                " <birthday>645544821000</birthday>" +
+                " <salary>1292.123</salary>" +
+                " <amka>051417010293821</amka>" +
+                "</employee>";
+    }
+
+    private ResourceType createResourceType(String name, String schema, List<IndexField> indexFields) {
+        ResourceType resourceType = new ResourceType();
+        resourceType.setName(name);
+        resourceType.setSchema(schema);
+        resourceType.setSchemaUrl("not_set");
+        resourceType.setPayloadType("xml");
+        resourceType.setIndexMapperClass(testingResourceType.getIndexMapperClass());
+        indexFields.forEach(indexField -> indexField.setResourceType(resourceType));
+        resourceType.setIndexFields(indexFields);
+        return resourceType;
+    }
+
+    private IndexField indexField(String name, String path, String type, boolean primaryKey) {
+        IndexField indexField = new IndexField();
+        indexField.setName(name);
+        indexField.setLabel(name);
+        indexField.setPath(path);
+        indexField.setType(type);
+        indexField.setPrimaryKey(primaryKey);
+        indexField.setMultivalued(false);
+        return indexField;
+    }
+
+    private <T extends IndexedField<?>> T getIndexedField(List<IndexedField> indexedFields, String name, Class<T> type) {
+        return indexedFields.stream()
+                .filter(type::isInstance)
+                .map(type::cast)
+                .filter(indexedField -> name.equals(indexedField.getName()))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private Schema schema(String originalUrl, String value) {
+        Schema schema = new Schema();
+        schema.setId(originalUrl + "-schema");
+        schema.setOriginalUrl(originalUrl);
+        schema.setSchema(value);
+        return schema;
     }
 
 }

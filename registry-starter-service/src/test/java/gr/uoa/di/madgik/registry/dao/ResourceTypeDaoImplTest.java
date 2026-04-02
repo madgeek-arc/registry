@@ -17,6 +17,7 @@
 package gr.uoa.di.madgik.registry.dao;
 
 import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
+import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.*;
@@ -29,7 +30,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @Transactional
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class ResourceTypeDaoImplTest {
+class ResourceTypeDaoImplTest extends PostgreSqlTestContainerSupport {
 
     @MockitoBean
     EmbeddingModel embeddingModel;
@@ -40,7 +41,7 @@ class ResourceTypeDaoImplTest {
     private ResourceType testingResourceType;
 
 
-    @BeforeAll
+    @BeforeEach
     void initialize() {
         testingResourceType = resourceTypeDao.getResourceType("employee");
     }
