@@ -1,5 +1,5 @@
-/**
- * Copyright 2018-2025 OpenAIRE AMKE & Athena Research and Innovation Center
+/*
+ * Copyright 2018-2026 OpenAIRE AMKE & Athena Research and Innovation Center
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,10 @@ import gr.uoa.di.madgik.registry.domain.ResourceType;
 import jakarta.persistence.PersistenceException;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.*;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -38,6 +40,9 @@ import static gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration.TEST
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ResourceDaoImplTest {
+
+    @MockitoBean
+    EmbeddingModel embeddingModel;
 
     @Autowired
     ResourceDao resourceDao;

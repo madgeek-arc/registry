@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2026 OpenAIRE AMKE & Athena Research and Innovation Center
+ * Copyright 2026-2026 OpenAIRE AMKE & Athena Research and Innovation Center
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,27 +18,25 @@ package gr.uoa.di.madgik.registry.domain;
 
 import java.util.List;
 
-public class Facet {
+public class Segment {
 
-    private String field;
-    private String label;
-    private List<Value> values;
+    String label;
+    float weight;
+    List<String> values;
 
-    public Facet() {
+    public Segment() {
     }
 
-    public Facet(String field, String label, List<Value> values) {
-        this.field = field;
+    public Segment(String label, float weight, List<String> values) {
         this.label = label;
+        this.weight = weight;
         this.values = values;
     }
 
-    public String getField() {
-        return field;
-    }
-
-    public void setField(String field) {
-        this.field = field;
+    public Segment(String label, float weight, String... values) {
+        this.label = label;
+        this.weight = weight;
+        this.values = List.of(values);
     }
 
     public String getLabel() {
@@ -49,13 +47,19 @@ public class Facet {
         this.label = label;
     }
 
-    public List<Value> getValues() {
+    public List<String> getValues() {
         return values;
     }
 
-    public void setValues(List<Value> values) {
+    public void setValues(List<String> values) {
         this.values = values;
     }
 
+    public float getWeight() {
+        return weight;
+    }
 
+    public void setWeight(float weight) {
+        this.weight = weight;
+    }
 }

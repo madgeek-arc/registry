@@ -1,5 +1,5 @@
-/**
- * Copyright 2018-2025 OpenAIRE AMKE & Athena Research and Innovation Center
+/*
+ * Copyright 2018-2026 OpenAIRE AMKE & Athena Research and Innovation Center
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package gr.uoa.di.madgik.registry.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
+import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.service.SearchService;
@@ -135,6 +136,16 @@ public class ClientSearchService implements SearchService {
             }
         }
         return new Paging<>();
+    }
+
+    @Override
+    public Paging<HighlightedResult<Resource>> searchWithHighlights(FacetFilter filter) throws ServiceException {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @Override
+    public List<Resource> recommend(FacetFilter filter, KeyValue idValue) throws ServiceException {
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override

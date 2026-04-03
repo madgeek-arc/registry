@@ -1,5 +1,5 @@
-/**
- * Copyright 2018-2025 OpenAIRE AMKE & Athena Research and Innovation Center
+/*
+ * Copyright 2018-2026 OpenAIRE AMKE & Athena Research and Innovation Center
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,7 @@ package gr.uoa.di.madgik.registry.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import gr.uoa.di.madgik.registry.domain.Resource;
-import gr.uoa.di.madgik.registry.domain.ResourceType;
-import gr.uoa.di.madgik.registry.domain.Paging;
-import gr.uoa.di.madgik.registry.domain.FacetFilter;
-import gr.uoa.di.madgik.registry.domain.Facet;
-import gr.uoa.di.madgik.registry.domain.Value;
+import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import org.hibernate.type.SqlTypes;
 import org.slf4j.Logger;
@@ -133,6 +128,16 @@ public class DefaultSearchService implements SearchService {
 
         List<Resource> resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).collect(Collectors.toList());
         return new Paging<>(total, filter.getFrom(), filter.getFrom() + filter.getQuantity(), resources, createFacets(filter.getBrowseBy()));
+    }
+
+    @Override
+    public Paging<HighlightedResult<Resource>> searchWithHighlights(FacetFilter filter) throws ServiceException {
+        throw new UnsupportedOperationException(getClass().getSimpleName() + " does not support highlighted search.");
+    }
+
+    @Override
+    public List<Resource> recommend(FacetFilter filter, KeyValue idValue) throws ServiceException {
+        throw new UnsupportedOperationException(getClass().getSimpleName() + " does not support recommendations.");
     }
 
     private List<Facet> createFacets(List<String> browseBy) {

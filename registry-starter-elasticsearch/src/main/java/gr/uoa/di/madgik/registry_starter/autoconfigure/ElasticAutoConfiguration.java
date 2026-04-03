@@ -1,5 +1,5 @@
-/**
- * Copyright 2018-2025 OpenAIRE AMKE & Athena Research and Innovation Center
+/*
+ * Copyright 2018-2026 OpenAIRE AMKE & Athena Research and Innovation Center
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package gr.uoa.di.madgik.registry_starter.autoconfigure;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.elasticsearch.IndexDbSync;
 import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceListener;
 import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceTypeListener;
@@ -23,6 +24,7 @@ import gr.uoa.di.madgik.registry.elasticsearch.service.ElasticOperationsService;
 import gr.uoa.di.madgik.registry.elasticsearch.service.ElasticSearchService;
 import gr.uoa.di.madgik.registry.monitor.ResourceListener;
 import gr.uoa.di.madgik.registry.monitor.ResourceTypeListener;
+import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.IndexOperationsService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.SearchService;
@@ -88,8 +90,9 @@ public class ElasticAutoConfiguration {
 
     @Bean
     @Primary
-    IndexOperationsService indexOperationsService(ResourceTypeService resourceTypeService, RestHighLevelClient client) {
-        return new ElasticOperationsService(resourceTypeService, client);
+    IndexOperationsService indexOperationsService(ResourceTypeService resourceTypeService, RestHighLevelClient client,
+                                                  ObjectMapper objectMapper, EmbeddingService embeddingService) {
+        return new ElasticOperationsService(resourceTypeService, client, embeddingService, objectMapper);
     }
 
     @Bean
@@ -105,8 +108,8 @@ public class ElasticAutoConfiguration {
     @Bean
     @Primary
     @Order(Ordered.HIGHEST_PRECEDENCE)
-    SearchService elasticSearchService(RestHighLevelClient client) {
-        ElasticSearchService service = new ElasticSearchService(client);
+    SearchService elasticSearchService(RestHighLevelClient client, EmbeddingService embeddingService) {
+        ElasticSearchService service = new ElasticSearchService(client, embeddingService);
         return service;
     }
 }

@@ -1,5 +1,5 @@
-/**
- * Copyright 2018-2025 OpenAIRE AMKE & Athena Research and Innovation Center
+/*
+ * Copyright 2018-2026 OpenAIRE AMKE & Athena Research and Innovation Center
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,10 @@ package gr.uoa.di.madgik.registry.domain.index;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.Comment;
 
 import java.io.Serializable;
 
@@ -54,6 +58,11 @@ public class IndexField implements Serializable {
 
     @Column
     private boolean primaryKey = false;
+
+    @Comment("The weight this index field will have when creating an embedding vector for the resource.")
+    @Column(name = "embedding_weight")
+    @Check(constraints = "embedding_weight >= 0")
+    private Float embeddingWeight = 0.0f;
 
     public IndexField() {
     }
@@ -122,4 +131,14 @@ public class IndexField implements Serializable {
         this.primaryKey = primaryKey;
     }
 
+    public float getEmbeddingWeight() {
+        if (embeddingWeight == null) {
+            return 0.0f;
+        }
+        return embeddingWeight;
+    }
+
+    public void setEmbeddingWeight(float embeddingWeight) {
+        this.embeddingWeight = embeddingWeight;
+    }
 }
