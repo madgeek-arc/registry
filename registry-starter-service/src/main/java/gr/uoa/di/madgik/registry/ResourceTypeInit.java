@@ -36,14 +36,16 @@ public class ResourceTypeInit {
     private static final Logger logger = LoggerFactory.getLogger(ResourceTypeInit.class);
 
     private final ResourceTypeService resourceTypeService;
-    private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+    private final ObjectMapper mapper;
     private final String resourceTypesLocation;
 
 
-    public ResourceTypeInit(@Value("${registry.resource-type-init.location:classpath:resourceTypes}") String resourceTypesLocation,
-                            ResourceTypeService resourceTypeService) {
+    public ResourceTypeInit(@Value("${registry.resource-type-init.location:classpath*:resourceTypes}") String resourceTypesLocation,
+                            ResourceTypeService resourceTypeService,
+                            ObjectMapper objectMapper) {
         this.resourceTypesLocation = resourceTypesLocation;
         this.resourceTypeService = resourceTypeService;
+        this.mapper = objectMapper;
     }
 
     @PostConstruct
