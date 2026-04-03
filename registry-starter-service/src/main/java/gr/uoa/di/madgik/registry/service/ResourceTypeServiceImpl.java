@@ -106,7 +106,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     }
 
     @Override
-    @Cacheable(value = "resourceType", key = "#name")
+    @Cacheable(value = "resourceType", key = "#name", condition = "#name != null")
     public ResourceType getResourceType(String name) {
         return resourceTypeDao.getResourceType(name);
     }
@@ -118,7 +118,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     }
 
     @Override
-    @Cacheable(value = "resourceTypesByAlias", key = "#alias")
+    @Cacheable(value = "resourceTypesByAlias", key = "#alias", condition = "#alias != null")
     public List<ResourceType> getAllResourceTypeByAlias(String alias) {
         return resourceTypeDao.getAllResourceTypeByAlias(alias);
     }
@@ -129,7 +129,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     }
 
     @Override
-    @Cacheable(value = "resourceTypeIndexFields", key = "#name")
+    @Cacheable(value = "resourceTypeIndexFields", key = "#name", condition = "#name != null")
     public Set<IndexField> getResourceTypeIndexFields(String name) {
         return resourceTypeDao.getResourceTypeIndexFields(name);
     }
