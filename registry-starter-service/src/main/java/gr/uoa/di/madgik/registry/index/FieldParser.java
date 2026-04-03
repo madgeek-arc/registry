@@ -18,7 +18,9 @@ package gr.uoa.di.madgik.registry.index;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -42,7 +44,19 @@ public interface FieldParser {
                     values.add(Double.parseDouble(typeValue));
                     break;
                 case "java.time.Instant":
-                    values.add(Instant.ofEpochMilli(Long.parseLong(typeValue)));
+                    try {
+                        values.add(Instant.ofEpochMilli(Long.parseLong(typeValue)));
+                    } catch (NumberFormatException e) {
+                        try {
+                            // Jackson default: decimal epoch seconds (e.g. "1775228349.752653630")
+                            BigDecimal bd = new BigDecimal(typeValue);
+                            values.add(Instant.ofEpochSecond(bd.longValue(),
+                                    bd.remainder(BigDecimal.ONE).abs().movePointRight(9).longValue()));
+                        } catch (NumberFormatException e2) {
+                            // ISO-8601 format (e.g. "2026-01-27T16:34:56.438Z")
+                            values.add(Instant.parse(typeValue));
+                        }
+                    }
                     break;
                 case "java.lang.Boolean":
                     values.add(Boolean.parseBoolean(typeValue));
