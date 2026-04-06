@@ -38,7 +38,6 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.LinkedHashSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -317,6 +316,11 @@ public class DefaultSearchService implements SearchService {
         StringBuilder nestedQuery = new StringBuilder();
         nestedQuery.append("SELECT DISTINCT * FROM ");
         nestedQuery.append(resourceType.getName()).append("_view ");
+        Set<String> knownFields = resourceType.getIndexFields() == null
+                ? Collections.emptySet()
+                : resourceType.getIndexFields().stream()
+                .map(IndexField::getName)
+                .collect(Collectors.toSet());
 
         StringBuilder whereClause = new StringBuilder();
         boolean dirty = false;
@@ -352,6 +356,7 @@ public class DefaultSearchService implements SearchService {
             // Strip to [A-Za-z0-9_] — field name is interpolated into SQL, so must be safe
             String field = entry.getKey().replaceAll("[^A-Za-z0-9_]", "");
             if (field.isEmpty()) continue; // fully invalid name → skip rather than throw
+            if (!knownFields.contains(field)) continue; // unknown fields are ignored rather than queried
             RangeFilter rf = entry.getValue();
 
             List<String> conditions = new ArrayList<>();
