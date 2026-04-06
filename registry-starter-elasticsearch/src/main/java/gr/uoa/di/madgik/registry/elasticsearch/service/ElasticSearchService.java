@@ -164,6 +164,7 @@ public class ElasticSearchService implements SearchService {
         }
 
         applyFilters(filter.getFilter(), bool);
+        applyRangeFilters(filter.getRangeFilters(), bool);
         return mapper.createObjectNode().set("bool", bool);
     }
 
@@ -190,6 +191,53 @@ public class ElasticSearchService implements SearchService {
                 ObjectNode term = mapper.createObjectNode();
                 term.putObject("term").set(filterSet.getKey(), mapper.valueToTree(filterSet.getValue()));
                 must.add(term);
+            }
+        }
+    }
+
+    /**
+     * Adds inclusive range filters to the supplied bool query node.
+     * When {@link RangeFilter#isIncludeNull()} is true, records missing the field also pass.
+     */
+    private void applyRangeFilters(Map<String, RangeFilter> rangeFilters, ObjectNode boolNode) {
+        if (rangeFilters == null || rangeFilters.isEmpty()) {
+            return;
+        }
+        ArrayNode must = withArray(boolNode, "must");
+        for (Map.Entry<String, RangeFilter> entry : rangeFilters.entrySet()) {
+            String field = entry.getKey();
+            RangeFilter rf = entry.getValue();
+            boolean hasBounds = rf.getFrom() != null || rf.getTo() != null;
+
+            if (!hasBounds) {
+                if (rf.isIncludeNull()) {
+                    // No bounds but caller wants null-field records → match only docs missing the field
+                    ObjectNode missingOnly = mapper.createObjectNode();
+                    missingOnly.putObject("bool").putObject("must_not").putObject("exists").put("field", field);
+                    must.add(missingOnly);
+                }
+                // Both null + !includeNull → no constraint; adding range:{} would be a match-all, so skip
+                continue;
+            }
+
+            ObjectNode rangeQuery = mapper.createObjectNode();
+            ObjectNode rangeClause = rangeQuery.putObject("range").putObject(field);
+            if (rf.getFrom() != null) rangeClause.set("gte", mapper.valueToTree(rf.getFrom()));
+            if (rf.getTo() != null)   rangeClause.set("lte", mapper.valueToTree(rf.getTo()));
+
+            if (rf.isIncludeNull()) {
+                // ES equivalent of: field IS NULL OR field IN [from, to]
+                // bool/should with minimum_should_match=1 so either branch satisfies the filter
+                ObjectNode shouldWrapper = mapper.createObjectNode();
+                ArrayNode should = shouldWrapper.putObject("bool").putArray("should");
+                ObjectNode missingClause = mapper.createObjectNode();
+                missingClause.putObject("bool").putObject("must_not").putObject("exists").put("field", field);
+                should.add(missingClause);
+                should.add(rangeQuery);
+                ((ObjectNode) shouldWrapper.get("bool")).put("minimum_should_match", 1);
+                must.add(shouldWrapper);
+            } else {
+                must.add(rangeQuery);
             }
         }
     }
@@ -609,6 +657,7 @@ public class ElasticSearchService implements SearchService {
         }
 
         applyFilters(filter.getFilter(), bool);
+        applyRangeFilters(filter.getRangeFilters(), bool);
 
         Query query = toQuery(mapper.createObjectNode().set("bool", bool));
 

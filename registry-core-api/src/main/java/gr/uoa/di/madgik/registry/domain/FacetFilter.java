@@ -40,6 +40,8 @@ public class FacetFilter {
 
     private Map<String, Object> orderBy;
 
+    private Map<String, RangeFilter> rangeFilters;
+
     public FacetFilter() {
         this.filter = new HashMap<>();
         this.browseBy = new ArrayList<>();
@@ -47,6 +49,7 @@ public class FacetFilter {
         this.from = 0;
         this.quantity = 10;
         this.orderBy = null;
+        this.rangeFilters = new HashMap<>();
     }
 
     public FacetFilter(List<String> browseBy) {
@@ -56,6 +59,7 @@ public class FacetFilter {
         this.from = 0;
         this.quantity = 10;
         this.orderBy = null;
+        this.rangeFilters = new HashMap<>();
     }
 
     public FacetFilter(String keyword, String resourceType, int from, int quantity,
@@ -68,6 +72,7 @@ public class FacetFilter {
         this.filter = filter;
         this.browseBy = browseBy;
         this.orderBy = orderBy;
+        this.rangeFilters = new HashMap<>();
     }
 
     public Map<String, List<Object>> getFilterLists() {
@@ -196,6 +201,20 @@ public class FacetFilter {
     public void addFilter(String key, Object value) {
         if (!Objects.equals(value, ""))
             this.filter.put(key, value);
+    }
+
+    public Map<String, RangeFilter> getRangeFilters() {
+        // Unmodifiable view — callers must use addRangeFilter() to mutate
+        return Collections.unmodifiableMap(rangeFilters);
+    }
+
+    public void setRangeFilters(Map<String, RangeFilter> rangeFilters) {
+        // Defensive copy so external map mutations don't affect internal state; used by Jackson
+        this.rangeFilters = new HashMap<>(rangeFilters);
+    }
+
+    public void addRangeFilter(String field, Object from, Object to, boolean includeNull) {
+        this.rangeFilters.put(field, new RangeFilter(from, to, includeNull));
     }
 
     public List<String> getBrowseBy() {

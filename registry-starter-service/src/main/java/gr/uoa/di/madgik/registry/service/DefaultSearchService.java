@@ -348,6 +348,46 @@ public class DefaultSearchService implements SearchService {
                 }
             }
         }
+        for (Map.Entry<String, RangeFilter> entry : filter.getRangeFilters().entrySet()) {
+            // Strip to [A-Za-z0-9_] — field name is interpolated into SQL, so must be safe
+            String field = entry.getKey().replaceAll("[^A-Za-z0-9_]", "");
+            if (field.isEmpty()) continue; // fully invalid name → skip rather than throw
+            RangeFilter rf = entry.getValue();
+
+            List<String> conditions = new ArrayList<>();
+            if (rf.getFrom() != null) {
+                params.addValue(field + "_from", rf.getFrom());
+                conditions.add(String.format("%s >= :%s_from", field, field));
+            }
+            if (rf.getTo() != null) {
+                params.addValue(field + "_to", rf.getTo());
+                conditions.add(String.format("%s <= :%s_to", field, field));
+            }
+
+            if (conditions.isEmpty()) {
+                // Both bounds null: emit "IS NULL" only when caller wants null records to pass
+                if (rf.isIncludeNull()) {
+                    if (dirty) whereClause.append(" AND ");
+                    dirty = true;
+                    whereClause.append(String.format("(%s IS NULL)", field));
+                }
+                // includeNull=false + no bounds → no constraint, nothing to add
+                continue;
+            }
+
+            if (dirty) {
+                whereClause.append(" AND ");
+            }
+            dirty = true;
+            String rangeExpr = String.join(" AND ", conditions);
+            if (rf.isIncludeNull()) {
+                // Records where the field is NULL also pass (e.g. null expiryDate = never expires)
+                whereClause.append(String.format("(%s IS NULL OR (%s))", field, rangeExpr));
+            } else {
+                whereClause.append(String.format("(%s)", rangeExpr));
+            }
+        }
+
         if (StringUtils.hasText(whereClause)) {
             nestedQuery.append("WHERE ");
             nestedQuery.append(whereClause);
