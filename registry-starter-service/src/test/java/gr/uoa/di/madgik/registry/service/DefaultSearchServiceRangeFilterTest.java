@@ -6,13 +6,13 @@ import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.jdbc.Sql;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * </ul>
  */
 @SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
-@Sql(scripts = "/cleanup.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DefaultSearchServiceRangeFilterTest extends PostgreSqlTestContainerSupport {
 
     @MockitoBean
@@ -43,8 +43,10 @@ class DefaultSearchServiceRangeFilterTest extends PostgreSqlTestContainerSupport
     @Autowired
     ViewService viewService;
 
-    /** Creates the {@code employee_view} after {@code data.sql} has populated the DB. */
-    @BeforeEach
+    /**
+     * Creates the {@code employee_view} after {@code data.sql} has populated the DB.
+     */
+    @BeforeAll
     void createEmployeeView() {
         ResourceType resourceType = resourceTypeService.getResourceType("employee");
         viewService.createView(resourceType);
