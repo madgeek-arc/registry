@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS public.booleanindexedfield_values (
 
 CREATE TABLE IF NOT EXISTS public.resource (
                                                id character varying(255) NOT NULL,
-                                               creation_date timestamp(6) without time zone NOT NULL,
-                                               modification_date timestamp(6) without time zone NOT NULL,
+                                               creation_date timestamp(6) with time zone NOT NULL,
+                                               modification_date timestamp(6) with time zone NOT NULL,
                                                payload text NOT NULL,
                                                payloadformat character varying(255) NOT NULL,
                                                version character varying(255) NOT NULL,
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS public.dateindexedfield (
 
 CREATE TABLE IF NOT EXISTS public.dateindexedfield_values (
                                                               dateindexedfield_id integer NOT NULL,
-                                                              "values" timestamp(6) without time zone
+                                                              "values" timestamp(6) with time zone
 );
 
 --
@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS public.flyway_schema_history (
                                                             script character varying(1000) NOT NULL,
                                                             checksum integer,
                                                             installed_by character varying(100) NOT NULL,
-                                                            installed_on timestamp without time zone DEFAULT now() NOT NULL,
+                                                            installed_on timestamp with time zone DEFAULT now() NOT NULL,
                                                             execution_time integer NOT NULL,
                                                             success boolean NOT NULL
 );
@@ -164,9 +164,9 @@ CREATE TABLE IF NOT EXISTS public.longindexedfield_values (
 
 CREATE TABLE IF NOT EXISTS public.resourcetype (
                                                    name character varying(255) NOT NULL,
-                                                   creation_date timestamp(6) without time zone NOT NULL,
+                                                   creation_date timestamp(6) with time zone NOT NULL,
                                                    indexmapperclass character varying(255),
-                                                   modification_date timestamp(6) without time zone NOT NULL,
+                                                   modification_date timestamp(6) with time zone NOT NULL,
                                                    payloadtype character varying(255) NOT NULL,
                                                    schema text NOT NULL,
                                                    schemaurl character varying(255)
@@ -207,7 +207,7 @@ CREATE TABLE IF NOT EXISTS public.resourcetype_properties (
 
 CREATE TABLE IF NOT EXISTS public.resourceversion (
                                                       id character varying(255) NOT NULL,
-                                                      creation_date timestamp(6) without time zone NOT NULL,
+                                                      creation_date timestamp(6) with time zone NOT NULL,
                                                       parent_id character varying(255),
                                                       payload text NOT NULL,
                                                       resourcetype_name character varying(255),
