@@ -316,47 +316,44 @@ public class DefaultSearchService implements SearchService {
         StringBuilder nestedQuery = new StringBuilder();
         nestedQuery.append("SELECT DISTINCT * FROM ");
         nestedQuery.append(resourceType.getName()).append("_view ");
-        Set<String> knownFields = resourceType.getIndexFields() == null
-                ? Collections.emptySet()
-                : resourceType.getIndexFields().stream()
-                .map(IndexField::getName)
-                .collect(Collectors.toSet());
+        Set<String> knownFields = getKnownFieldNames(resourceType);
 
         StringBuilder whereClause = new StringBuilder();
         boolean dirty = false;
         for (Map.Entry<String, Object> entry : filter.getFilter().entrySet()) {
-            if (entry.getValue() != null) {
-                if (dirty) {
-                    whereClause.append(" AND ");
-                }
-                dirty = true;
+            String field = sanitizeFieldName(entry.getKey());
+            if (entry.getValue() == null || !knownFields.contains(field)) {
+                continue;
+            }
 
-                List<Object> filterValues = transformFilterValuesType(resourceType, entry);
-                params.addValue(entry.getKey(), unwrapListWhenSingle(filterValues));
+            if (dirty) {
+                whereClause.append(" AND ");
+            }
+            dirty = true;
 
-                // append where clause
-                if (isDataTypeArray(resourceType.getName(), entry.getKey())) {
-                    // PostgreSQL specific code: Checks whether the array contains any occurrence of the values list
-                    Connection conn;
-                    try {
-                        conn = Objects.requireNonNull(npJdbcTemplate.getJdbcTemplate().getDataSource()).getConnection();
-                        params.addValue(entry.getKey(), conn.createArrayOf("text", filterValues.toArray()), SqlTypes.ARRAY); // replace existing value with correct one
-                    } catch (SQLException e) {
-                        logger.error("Failed to execute SQL operation for entry: {} with values: {}. Error: {}", entry.getKey(), filterValues.toArray(), e.getMessage(), e);
-                    }
-                    whereClause.append(String.format("%s && :%s", entry.getKey(), entry.getKey()));
-                } else if (filterValues.size() != 1) {
-                    whereClause.append(String.format("%s IN (:%s)", entry.getKey(), entry.getKey()));
-                } else {
-                    whereClause.append(String.format("%s = :%s", entry.getKey(), entry.getKey()));
+            List<Object> filterValues = transformFilterValuesType(resourceType, field, entry.getValue());
+            params.addValue(field, unwrapListWhenSingle(filterValues));
+
+            // append where clause
+            if (isDataTypeArray(resourceType, field)) {
+                // PostgreSQL specific code: Checks whether the array contains any occurrence of the values list
+                Connection conn;
+                try {
+                    conn = Objects.requireNonNull(npJdbcTemplate.getJdbcTemplate().getDataSource()).getConnection();
+                    params.addValue(field, conn.createArrayOf("text", filterValues.toArray()), SqlTypes.ARRAY); // replace existing value with correct one
+                } catch (SQLException e) {
+                    logger.error("Failed to execute SQL operation for entry: {} with values: {}. Error: {}", field, filterValues.toArray(), e.getMessage(), e);
                 }
+                whereClause.append(String.format("%s && :%s", field, field));
+            } else if (filterValues.size() != 1) {
+                whereClause.append(String.format("%s IN (:%s)", field, field));
+            } else {
+                whereClause.append(String.format("%s = :%s", field, field));
             }
         }
         for (Map.Entry<String, RangeFilter> entry : filter.getRangeFilters().entrySet()) {
-            // Strip to [A-Za-z0-9_] — field name is interpolated into SQL, so must be safe
-            String field = entry.getKey().replaceAll("[^A-Za-z0-9_]", "");
-            if (field.isEmpty()) continue; // fully invalid name → skip rather than throw
-            if (!knownFields.contains(field)) continue; // unknown fields are ignored rather than queried
+            String field = sanitizeFieldName(entry.getKey());
+            if (!knownFields.contains(field)) continue;
             RangeFilter rf = entry.getValue();
 
             List<String> conditions = new ArrayList<>();
@@ -457,9 +454,50 @@ public class DefaultSearchService implements SearchService {
         }
     }
 
-    private boolean isDataTypeArray(String resourceTypeName, String columnName) {
-        IndexField field = resourceTypeService.getResourceTypeIndexFields(resourceTypeName).stream().filter(rt -> rt.getName().equals(columnName)).findFirst().orElseThrow(() -> new ServiceException("Could not find field"));
+    /**
+     * Resolves whether the given indexed field is multivalued for the provided resource type.
+     *
+     * @param resourceType the resource type owning the indexed fields
+     * @param columnName the validated field name to inspect
+     * @return {@code true} when the field is stored as an array-backed column
+     */
+    private boolean isDataTypeArray(ResourceType resourceType, String columnName) {
+        IndexField field = resourceType.getIndexFields().stream()
+                .filter(rt -> rt.getName().equals(columnName))
+                .findFirst()
+                .orElseThrow(() -> new ServiceException("Could not find field"));
         return field.isMultivalued();
+    }
+
+    /**
+     * Extracts the indexed field names declared for the resource type.
+     *
+     * @param resourceType the resource type whose searchable fields should be returned
+     * @return the set of known indexed field names, or an empty set when none are defined
+     */
+    private Set<String> getKnownFieldNames(ResourceType resourceType) {
+        if (resourceType.getIndexFields() == null) {
+            return Collections.emptySet();
+        }
+        return resourceType.getIndexFields().stream()
+                .map(IndexField::getName)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Normalizes a user-provided field name before it is interpolated into SQL.
+     *
+     * <p>Only alphanumeric characters and underscores are retained. Callers are still expected
+     * to validate the sanitized result against the resource type metadata.</p>
+     *
+     * @param field the raw field name supplied by the caller
+     * @return the sanitized field name, or an empty string when nothing valid remains
+     */
+    private String sanitizeFieldName(String field) {
+        if (field == null) {
+            return "";
+        }
+        return field.replaceAll("[^A-Za-z0-9_]", "");
     }
 
     static private class ResourcePropertyName extends PropertyNamingStrategies.NamingBase {
@@ -482,22 +520,23 @@ public class DefaultSearchService implements SearchService {
     }
 
     /**
-     * <p>Transforms filter values to their proper types (e.g. from String to Boolean).</p>
+     * Coerces filter values to the Java type declared by the indexed field metadata.
      *
-     * @param resourceType the resourceType to check for IndexFields.
-     * @param entry the key-value pair of the filter to transform.
-     * @return the values
+     * @param resourceType the resource type containing the indexed field definition
+     * @param fieldName the field name whose type should be applied
+     * @param value the raw filter value or collection of values
+     * @return the normalized values ready to be bound as SQL parameters
      */
-    private static List<Object> transformFilterValuesType(ResourceType resourceType, Map.Entry<String, Object> entry) {
+    private static List<Object> transformFilterValuesType(ResourceType resourceType, String fieldName, Object value) {
         List<Object> valuesList = new ArrayList<>();
-        if (Collection.class.isAssignableFrom(entry.getValue().getClass())) {
-            valuesList.addAll((Collection<?>) entry.getValue());
+        if (Collection.class.isAssignableFrom(value.getClass())) {
+            valuesList.addAll((Collection<?>) value);
         } else {
-            valuesList.add(entry.getValue());
+            valuesList.add(value);
         }
 
         if (resourceType.getIndexFields() != null) {
-            String type = resourceType.getIndexFields().stream().filter(i -> i.getName().equals(entry.getKey())).findFirst().get().getType();
+            String type = resourceType.getIndexFields().stream().filter(i -> i.getName().equals(fieldName)).findFirst().get().getType();
             if (Boolean.class.getName().equals(type)) {
                 valuesList = (List) valuesList.stream().map(v -> Boolean.parseBoolean(String.valueOf(v))).toList();
             }
