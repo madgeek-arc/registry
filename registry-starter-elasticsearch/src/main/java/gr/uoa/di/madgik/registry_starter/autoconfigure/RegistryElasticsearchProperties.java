@@ -16,12 +16,15 @@
 
 package gr.uoa.di.madgik.registry_starter.autoconfigure;
 
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Elasticsearch connection properties used by the registry starter.
  */
+@ConfigurationProperties("registry.elasticsearch")
 public class RegistryElasticsearchProperties {
 
     private List<String> uris = new ArrayList<>();

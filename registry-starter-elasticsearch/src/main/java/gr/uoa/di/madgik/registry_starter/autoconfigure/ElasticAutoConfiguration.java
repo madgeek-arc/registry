@@ -40,9 +40,9 @@ import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
@@ -67,6 +67,7 @@ import java.util.List;
         havingValue = "true",
         matchIfMissing = true)
 @EnableRetry
+@EnableConfigurationProperties(RegistryElasticsearchProperties.class)
 @Import(IndexDbSync.class)
 public class ElasticAutoConfiguration {
 
@@ -74,14 +75,6 @@ public class ElasticAutoConfiguration {
 
     public ElasticAutoConfiguration() {
         logger.info("Elastic Autoconfiguration enabled");
-    }
-
-    @Bean
-    @Primary
-    @ConditionalOnMissingBean
-    @ConfigurationProperties("registry.elasticsearch")
-    RegistryElasticsearchProperties elasticsearchProperties() {
-        return new RegistryElasticsearchProperties();
     }
 
     /**
