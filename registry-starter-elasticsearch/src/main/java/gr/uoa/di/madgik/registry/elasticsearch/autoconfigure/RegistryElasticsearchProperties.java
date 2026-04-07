@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gr.uoa.di.madgik.registry_starter.autoconfigure;
+package gr.uoa.di.madgik.registry.elasticsearch.autoconfigure;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gr.uoa.di.madgik.registry_starter.autoconfigure;
+package gr.uoa.di.madgik.registry.jms.autoconfigure;
 
 import gr.uoa.di.madgik.registry_starter.jms.JmsResourceListener;
 import org.apache.activemq.ActiveMQConnectionFactory;

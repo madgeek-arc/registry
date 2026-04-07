@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gr.uoa.di.madgik.registry_starter.autoconfigure;
+package gr.uoa.di.madgik.registry.autoconfigure;
 
 import gr.uoa.di.madgik.registry.ResourceTypeInit;
 import gr.uoa.di.madgik.registry.configuration.BackupRestoreConfig;

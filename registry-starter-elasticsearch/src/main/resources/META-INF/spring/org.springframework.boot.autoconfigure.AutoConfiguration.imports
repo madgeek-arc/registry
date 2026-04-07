@@ -1,1 +1,1 @@
-gr.uoa.di.madgik.registry_starter.autoconfigure.ElasticAutoConfiguration
+gr.uoa.di.madgik.registry.elasticsearch.autoconfigure.ElasticAutoConfiguration
