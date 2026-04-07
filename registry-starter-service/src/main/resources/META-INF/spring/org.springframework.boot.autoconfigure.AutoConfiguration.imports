@@ -1,1 +1,2 @@
 gr.uoa.di.madgik.registry.autoconfigure.RegistryServiceAutoConfiguration
+gr.uoa.di.madgik.registry.autoconfigure.JaxbAutoConfiguration

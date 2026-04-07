@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gr.uoa.di.madgik.registry.configuration;
+package gr.uoa.di.madgik.registry.autoconfigure;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
