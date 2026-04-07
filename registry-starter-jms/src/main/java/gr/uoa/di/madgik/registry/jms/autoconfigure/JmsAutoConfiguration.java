@@ -35,7 +35,7 @@ import org.springframework.jms.support.converter.JacksonJsonMessageConverter;
 import org.springframework.jms.support.converter.MessageType;
 import tools.jackson.databind.json.JsonMapper;
 
-@AutoConfiguration
+@AutoConfiguration(afterName = "gr.uoa.di.madgik.registry.autoconfigure.RegistryServiceAutoConfiguration")
 @ConditionalOnClass(ActiveMQConnectionFactory.class)
 @ConditionalOnProperty(prefix = "registry.jms", name = "enabled", matchIfMissing = true)
 @EnableConfigurationProperties(JmsProperties.class)

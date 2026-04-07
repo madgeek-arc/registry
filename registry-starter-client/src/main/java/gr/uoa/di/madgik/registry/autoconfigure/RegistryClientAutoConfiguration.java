@@ -23,7 +23,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.RestTemplate;
 
-@AutoConfiguration
+@AutoConfiguration(afterName = "org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration")
 @Import(RegistryClientComponentsConfiguration.class)
 public class RegistryClientAutoConfiguration {
 

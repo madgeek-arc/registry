@@ -27,6 +27,7 @@ import gr.uoa.di.madgik.registry.monitor.ResourceTypeListener;
 import gr.uoa.di.madgik.registry.jms.autoconfigure.JmsProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jms.core.JmsTemplate;
 
 public class JmsResourceListener implements ResourceListener, ResourceTypeListener {
@@ -36,7 +37,8 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
     private final JmsProperties jmsProperties;
     private final JmsTemplate jmsTopicTemplate;
 
-    public JmsResourceListener(JmsProperties jmsProperties, JmsTemplate jmsTopicTemplate) {
+    public JmsResourceListener(JmsProperties jmsProperties,
+                               @Qualifier("jmsTopicTemplate") JmsTemplate jmsTopicTemplate) {
         this.jmsProperties = jmsProperties;
         this.jmsTopicTemplate = jmsTopicTemplate;
     }

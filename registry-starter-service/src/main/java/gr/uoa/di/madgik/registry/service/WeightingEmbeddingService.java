@@ -20,13 +20,9 @@ import gr.uoa.di.madgik.registry.domain.Segment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.embedding.EmbeddingModel;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service
-@ConditionalOnBean(EmbeddingModel.class)
 public class WeightingEmbeddingService implements EmbeddingService {
 
     private static final Logger logger = LoggerFactory.getLogger(WeightingEmbeddingService.class);

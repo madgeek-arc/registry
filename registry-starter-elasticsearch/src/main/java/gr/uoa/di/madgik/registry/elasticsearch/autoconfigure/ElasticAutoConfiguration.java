@@ -61,7 +61,7 @@ import java.util.List;
  * indexing/search services plus listeners that keep the search index synchronized with resource
  * and resource-type lifecycle events.</p>
  */
-@AutoConfiguration
+@AutoConfiguration(afterName = "gr.uoa.di.madgik.registry.autoconfigure.RegistryServiceAutoConfiguration")
 @ConditionalOnProperty(
         value="registry.elasticsearch.enabled",
         havingValue = "true",

@@ -25,6 +25,8 @@ import gr.uoa.di.madgik.registry.configuration.ServiceConfiguration;
 import gr.uoa.di.madgik.registry.domain.Segment;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.GenericResourceService;
+import gr.uoa.di.madgik.registry.service.WeightingEmbeddingService;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -36,6 +38,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 @AutoConfiguration
 @EnableCaching
@@ -48,6 +53,13 @@ import java.util.List;
         RegistryServiceComponentsConfiguration.class,
 })
 public class RegistryServiceAutoConfiguration {
+
+    @Bean
+    @ConditionalOnBean(EmbeddingModel.class)
+    @ConditionalOnMissingBean(EmbeddingService.class)
+    EmbeddingService weightingEmbeddingService(EmbeddingModel embeddingModel) {
+        return new WeightingEmbeddingService(embeddingModel);
+    }
 
     @Bean
     @ConditionalOnMissingBean(EmbeddingService.class)
@@ -63,6 +75,9 @@ public class RegistryServiceAutoConfiguration {
     public CacheManager cacheManager() {
         CaffeineCacheManager manager = new CaffeineCacheManager();
         manager.setAsyncCacheMode(false);
+        manager.setCaffeine(Caffeine.newBuilder()
+                .maximumSize(1_000)
+                .expireAfterAccess(1, TimeUnit.HOURS));
 
         return manager;
     }
