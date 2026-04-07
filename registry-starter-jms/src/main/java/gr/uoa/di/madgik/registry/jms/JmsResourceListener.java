@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gr.uoa.di.madgik.registry_starter.jms;
+package gr.uoa.di.madgik.registry.jms;
 
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
@@ -24,14 +24,11 @@ import gr.uoa.di.madgik.registry.domain.jms.ResourceJmsDeleted;
 import gr.uoa.di.madgik.registry.domain.jms.ResourceJmsUpdated;
 import gr.uoa.di.madgik.registry.monitor.ResourceListener;
 import gr.uoa.di.madgik.registry.monitor.ResourceTypeListener;
-import gr.uoa.di.madgik.registry.jms.autoconfigure.JmsAutoConfiguration;
 import gr.uoa.di.madgik.registry.jms.autoconfigure.JmsProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.jms.core.JmsTemplate;
 
-@AutoConfigureAfter(JmsAutoConfiguration.ConfigureJms.class)
 public class JmsResourceListener implements ResourceListener, ResourceTypeListener {
 
     private static final Logger logger = LoggerFactory.getLogger(JmsResourceListener.class);

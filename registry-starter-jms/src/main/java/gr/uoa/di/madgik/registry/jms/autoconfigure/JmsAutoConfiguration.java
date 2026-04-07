@@ -16,7 +16,7 @@
 
 package gr.uoa.di.madgik.registry.jms.autoconfigure;
 
-import gr.uoa.di.madgik.registry_starter.jms.JmsResourceListener;
+import gr.uoa.di.madgik.registry.jms.JmsResourceListener;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +68,8 @@ public class JmsAutoConfiguration {
         // Spring JMS 7 deprecates MappingJackson2MessageConverter; this JMS path now uses the
         // Jackson 3-based replacement while the rest of the project still keeps Jackson 2 where
         // required by the Elasticsearch client.
-        @Bean // override registry bean
+        @Bean
+        @ConditionalOnMissingBean(JacksonJsonMessageConverter.class)
         public JacksonJsonMessageConverter jacksonJmsMessageConverter() {
             JsonMapper.Builder builder = JsonMapper.builder().findAndAddModules();
 

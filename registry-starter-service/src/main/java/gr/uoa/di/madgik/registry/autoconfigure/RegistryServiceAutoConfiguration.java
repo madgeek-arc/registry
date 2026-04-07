@@ -21,13 +21,17 @@ import gr.uoa.di.madgik.registry.configuration.BackupRestoreConfig;
 import gr.uoa.di.madgik.registry.configuration.BatchConfig;
 import gr.uoa.di.madgik.registry.configuration.HibernateConfiguration;
 import gr.uoa.di.madgik.registry.configuration.ServiceConfiguration;
+import gr.uoa.di.madgik.registry.domain.Segment;
+import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+
+import java.util.List;
 
 @AutoConfiguration
 @EnableCaching
@@ -40,6 +44,15 @@ import org.springframework.context.annotation.Import;
         RegistryServiceComponentsConfiguration.class,
 })
 public class RegistryServiceAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean(EmbeddingService.class)
+    EmbeddingService noopEmbeddingService() {
+        return new EmbeddingService() {
+            @Override public float[] embed(String text) { return new float[0]; }
+            @Override public float[] embed(List<Segment> segments) { return new float[0]; }
+        };
+    }
 
     @Bean
     @ConditionalOnMissingBean(CacheManager.class)

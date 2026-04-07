@@ -62,7 +62,6 @@ import java.util.List;
  * {@code ParserPool} never invokes JAXB.
  *
  * @see JaxbProperties
- * @see gr.uoa.di.madgik.registry.service.ParserPool
  */
 @AutoConfiguration
 @ConditionalOnClass(JAXBContext.class)
