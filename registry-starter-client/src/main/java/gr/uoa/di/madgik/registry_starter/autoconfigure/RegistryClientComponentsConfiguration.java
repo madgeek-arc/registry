@@ -16,10 +16,17 @@
 
 package gr.uoa.di.madgik.registry_starter.autoconfigure;
 
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 
-@AutoConfiguration
-@Import(RegistryClientComponentsConfiguration.class)
-public class RegistryClientAutoConfiguration {
-}
+/**
+ * Registers all stereotype beans contributed by the registry client starter.
+ *
+ * <p>This is a plain {@code @Configuration} class — not an {@code @AutoConfiguration} — and is
+ * imported explicitly by {@link RegistryClientAutoConfiguration}. Keeping the component scan
+ * here (rather than on the auto-configuration itself) is the Boot 4 convention: auto-configuration
+ * entry points must not carry {@code @ComponentScan}.
+ */
+@Configuration(proxyBeanMethods = false)
+@ComponentScan("gr.uoa.di.madgik.registry.client")
+class RegistryClientComponentsConfiguration {}

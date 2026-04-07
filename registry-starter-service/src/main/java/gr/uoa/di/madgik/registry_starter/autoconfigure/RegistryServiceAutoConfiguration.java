@@ -16,27 +16,33 @@
 
 package gr.uoa.di.madgik.registry_starter.autoconfigure;
 
+import gr.uoa.di.madgik.registry.ResourceTypeInit;
+import gr.uoa.di.madgik.registry.configuration.BackupRestoreConfig;
+import gr.uoa.di.madgik.registry.configuration.BatchConfig;
+import gr.uoa.di.madgik.registry.configuration.HibernateConfiguration;
+import gr.uoa.di.madgik.registry.configuration.ServiceConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.data.redis.cache.RedisCacheConfiguration;
-import org.springframework.data.redis.cache.RedisCacheManager;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-
-import java.time.Duration;
+import org.springframework.context.annotation.Import;
 
 @AutoConfiguration
 @EnableCaching
-@ComponentScan({
-        "gr.uoa.di.madgik.registry",
-        "gr.uoa.di.madgik.registry.controllers"
+@Import({
+        HibernateConfiguration.class,
+        BatchConfig.class,
+        BackupRestoreConfig.class,
+        ServiceConfiguration.class,
+        ResourceTypeInit.class,
+        RegistryServiceComponentsConfiguration.class,
 })
 public class RegistryServiceAutoConfiguration {
 
     @Bean
+    @ConditionalOnMissingBean(CacheManager.class)
     public CacheManager cacheManager() {
         CaffeineCacheManager manager = new CaffeineCacheManager();
         manager.setAsyncCacheMode(false);
