@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gr.uoa.di.madgik.registry.configuration;
+package gr.uoa.di.madgik.registry.autoconfigure;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -35,7 +35,7 @@ import java.util.List;
  *
  * <p>Every concrete class annotated with {@code @XmlRootElement} found in the listed packages
  * will be registered in the {@link jakarta.xml.bind.JAXBContext} bean. The context is created
- * once at startup and is shared by {@link gr.uoa.di.madgik.registry.service.ParserPool}.
+ * once at startup and is shared by {@code ParserPool}.
  *
  * <p>This configuration only takes effect when the resource type's {@code payloadType} is
  * {@code "xml"}. JSON-only deployments do not need to set any of these properties.

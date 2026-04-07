@@ -18,6 +18,7 @@ package gr.uoa.di.madgik.registry.configuration;
 
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
@@ -25,9 +26,13 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @Configuration
 @EnableJpaRepositories(basePackages = "gr.uoa.di.madgik.registry.dao")
 @EnableTransactionManagement
-@ComponentScan(value = {
-        "gr.uoa.di.madgik.registry.*"
-})
+@ComponentScan(
+        value = {"gr.uoa.di.madgik.registry.*"},
+        excludeFilters = @ComponentScan.Filter(
+                type = FilterType.REGEX,
+                pattern = "gr\\.uoa\\.di\\.madgik\\.registry\\.autoconfigure\\..*"
+        )
+)
 
 public class DatabaseConfiguration {
 

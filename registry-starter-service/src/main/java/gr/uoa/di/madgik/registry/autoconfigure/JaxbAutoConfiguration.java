@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gr.uoa.di.madgik.registry.configuration;
+package gr.uoa.di.madgik.registry.autoconfigure;
 
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
@@ -62,7 +62,6 @@ import java.util.List;
  * {@code ParserPool} never invokes JAXB.
  *
  * @see JaxbProperties
- * @see gr.uoa.di.madgik.registry.service.ParserPool
  */
 @AutoConfiguration
 @ConditionalOnClass(JAXBContext.class)

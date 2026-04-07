@@ -1,1 +1,1 @@
-gr.uoa.di.madgik.registry_starter.autoconfigure.JmsAutoConfiguration
+gr.uoa.di.madgik.registry.jms.autoconfigure.JmsAutoConfiguration

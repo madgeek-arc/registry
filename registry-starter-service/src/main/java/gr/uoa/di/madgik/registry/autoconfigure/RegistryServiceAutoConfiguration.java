@@ -14,29 +14,48 @@
  * limitations under the License.
  */
 
-package gr.uoa.di.madgik.registry_starter.autoconfigure;
+package gr.uoa.di.madgik.registry.autoconfigure;
 
+import gr.uoa.di.madgik.registry.ResourceTypeInit;
+import gr.uoa.di.madgik.registry.configuration.BackupRestoreConfig;
+import gr.uoa.di.madgik.registry.configuration.BatchConfig;
+import gr.uoa.di.madgik.registry.configuration.HibernateConfiguration;
+import gr.uoa.di.madgik.registry.configuration.ServiceConfiguration;
+import gr.uoa.di.madgik.registry.domain.Segment;
+import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.data.redis.cache.RedisCacheConfiguration;
-import org.springframework.data.redis.cache.RedisCacheManager;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.context.annotation.Import;
 
-import java.time.Duration;
+import java.util.List;
 
 @AutoConfiguration
 @EnableCaching
-@ComponentScan({
-        "gr.uoa.di.madgik.registry",
-        "gr.uoa.di.madgik.registry.controllers"
+@Import({
+        HibernateConfiguration.class,
+        BatchConfig.class,
+        BackupRestoreConfig.class,
+        ServiceConfiguration.class,
+        ResourceTypeInit.class,
+        RegistryServiceComponentsConfiguration.class,
 })
 public class RegistryServiceAutoConfiguration {
 
     @Bean
+    @ConditionalOnMissingBean(EmbeddingService.class)
+    EmbeddingService noopEmbeddingService() {
+        return new EmbeddingService() {
+            @Override public float[] embed(String text) { return new float[0]; }
+            @Override public float[] embed(List<Segment> segments) { return new float[0]; }
+        };
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(CacheManager.class)
     public CacheManager cacheManager() {
         CaffeineCacheManager manager = new CaffeineCacheManager();
         manager.setAsyncCacheMode(false);
