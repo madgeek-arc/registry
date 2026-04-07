@@ -17,14 +17,18 @@
 package gr.uoa.di.madgik.registry.autoconfigure;
 
 import gr.uoa.di.madgik.registry.ResourceTypeInit;
+import gr.uoa.di.madgik.registry.controllers.GenericController;
 import gr.uoa.di.madgik.registry.configuration.BackupRestoreConfig;
 import gr.uoa.di.madgik.registry.configuration.BatchConfig;
 import gr.uoa.di.madgik.registry.configuration.HibernateConfiguration;
 import gr.uoa.di.madgik.registry.configuration.ServiceConfiguration;
 import gr.uoa.di.madgik.registry.domain.Segment;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
+import gr.uoa.di.madgik.registry.service.GenericResourceService;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
@@ -63,24 +67,12 @@ public class RegistryServiceAutoConfiguration {
         return manager;
     }
 
-//    @Bean
-//    @ConditionalOnMissingBean(ResourceDao.class)
-//    public ResourceDao resourceDao() {
-//        return new ResourceDaoImpl();
-//    }
-//
-//    @Bean
-//    @ConditionalOnMissingBean(ResourceService.class)
-//    @ConditionalOnBean(value = {
-//            ResourceDao.class,
-//            ResourceTypeDao.class,
-//            IndexMapperFactory.class,
-//            IndexedFieldDao.class,
-//            ResourceValidator.class
-//    })
-//    ResourceService resourceService(ResourceDao resourceDao, ResourceTypeDao resourceTypeDao,
-//                                    IndexMapperFactory indexMapperFactory, IndexedFieldDao indexedFieldDao,
-//                                    ResourceValidator resourceValidator) {
-//        return new ResourceServiceImpl(resourceDao, resourceTypeDao, indexMapperFactory, indexedFieldDao, resourceValidator);
-//    }
+    @Bean
+    @ConditionalOnBean(GenericResourceService.class)
+    @ConditionalOnMissingBean(GenericController.class)
+    @ConditionalOnProperty(prefix = "registry.rest.generic-controller", name = "enabled", havingValue = "true", matchIfMissing = true)
+    GenericController genericController(GenericResourceService genericResourceService) {
+        return new GenericController(genericResourceService);
+    }
+
 }

@@ -16,8 +16,10 @@
 
 package gr.uoa.di.madgik.registry.autoconfigure;
 
+import gr.uoa.di.madgik.registry.controllers.GenericController;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 
 /**
  * Registers all stereotype beans contributed by the registry service starter.
@@ -33,7 +35,7 @@ import org.springframework.context.annotation.Configuration;
  * helper module alongside the service implementations in this module.
  */
 @Configuration(proxyBeanMethods = false)
-@ComponentScan({
+@ComponentScan(basePackages = {
         "gr.uoa.di.madgik.registry.service",      // @Service impls + registry-core-helper beans (cross-jar, same package)
         "gr.uoa.di.madgik.registry.dao",           // @Repository impls
         "gr.uoa.di.madgik.registry.index",         // @Component index/mapper/factory beans
@@ -41,5 +43,5 @@ import org.springframework.context.annotation.Configuration;
         "gr.uoa.di.madgik.registry.validation",    // @Service ResourceSchemaValidator
         "gr.uoa.di.madgik.registry.backup",        // @Service + @StepScope batch components (recursive — covers .dump and .restore)
         "gr.uoa.di.madgik.registry.controllers",   // @RestController controllers (from registry-core-rest jar)
-})
+}, excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = GenericController.class))
 class RegistryServiceComponentsConfiguration {}

@@ -18,21 +18,28 @@ package gr.uoa.di.madgik.registry.configuration;
 
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 
 @Configuration
+@Import({
+        HibernateConfiguration.class,
+        BatchConfig.class,
+        BackupRestoreConfig.class,
+        ServiceConfiguration.class
+})
 @EnableJpaRepositories(basePackages = "gr.uoa.di.madgik.registry.dao")
 @EnableTransactionManagement
-@ComponentScan(
-        value = {"gr.uoa.di.madgik.registry.*"},
-        excludeFilters = @ComponentScan.Filter(
-                type = FilterType.REGEX,
-                pattern = "gr\\.uoa\\.di\\.madgik\\.registry\\.autoconfigure\\..*"
-        )
-)
+@ComponentScan(basePackages = {
+        "gr.uoa.di.madgik.registry.dao",
+        "gr.uoa.di.madgik.registry.service",
+        "gr.uoa.di.madgik.registry.index",
+        "gr.uoa.di.madgik.registry.monitor",
+        "gr.uoa.di.madgik.registry.validation",
+        "gr.uoa.di.madgik.registry.backup"
+})
 
 public class DatabaseConfiguration {
 

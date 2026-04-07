@@ -16,10 +16,26 @@
 
 package gr.uoa.di.madgik.registry.autoconfigure;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.web.client.RestTemplate;
 
 @AutoConfiguration
 @Import(RegistryClientComponentsConfiguration.class)
 public class RegistryClientAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ObjectMapper objectMapper() {
+        return new ObjectMapper().findAndRegisterModules();
+    }
 }
