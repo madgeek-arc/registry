@@ -39,6 +39,12 @@ public class ViewResourceTypeListener implements ResourceTypeListener {
     }
 
     @Override
+    public void resourceTypeUpdated(ResourceType previous, ResourceType updated) {
+        viewService.deleteView(previous.getName());
+        viewService.createView(updated);
+    }
+
+    @Override
     public void resourceTypeDelete(String name) {
         viewService.deleteView(name);
     }

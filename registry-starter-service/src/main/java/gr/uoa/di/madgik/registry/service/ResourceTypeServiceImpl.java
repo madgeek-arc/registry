@@ -225,6 +225,90 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
         return resourceType;
     }
 
+    @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "resourceType", key = "#resourceType.name"),
+            @CacheEvict(value = "allResourceTypes", allEntries = true),
+            @CacheEvict(value = "resourceTypesByAlias", allEntries = true),
+            @CacheEvict(value = "resourceTypeIndexFields", key = "#resourceType.name")
+    })
+    public ResourceType updateResourceType(ResourceType resourceType) throws ServiceException {
+        ResourceType existing = resourceTypeDao.getResourceType(resourceType.getName());
+        if (existing == null) {
+            throw new ServiceException("ResourceType [" + resourceType.getName() + "] does not exist");
+        }
+
+        normalizeResourceType(resourceType);
+
+        if (resourceType.getIndexFields() == null ||
+                resourceType.getIndexFields().stream().noneMatch(IndexField::isPrimaryKey)) {
+            throw new ServiceException(
+                    String.format("ResourceType [%s] must have at least one IndexField with primaryKey=true",
+                            resourceType.getName()));
+        }
+
+        existing.setSchema(resourceType.getSchema());
+        existing.setSchemaUrl(resourceType.getSchemaUrl());
+        existing.setPayloadType(resourceType.getPayloadType());
+        existing.setIndexMapperClass(resourceType.getIndexMapperClass());
+        existing.setAliases(resourceType.getAliases() == null ? new java.util.HashSet<>() : new java.util.HashSet<>(resourceType.getAliases()));
+        existing.setProperties(resourceType.getProperties() == null ? new java.util.HashMap<>() : new java.util.HashMap<>(resourceType.getProperties()));
+
+        if (existing.getIndexFields() == null) {
+            existing.setIndexFields(new ArrayList<>());
+        } else {
+            existing.getIndexFields().clear();
+        }
+        for (IndexField field : resourceType.getIndexFields()) {
+            field.setResourceType(existing);
+            existing.getIndexFields().add(field);
+        }
+
+        try {
+            existing = resourceTypeDao.updateResourceType(existing);
+        } catch (Exception e) {
+            throw new ServiceException(e);
+        }
+
+        Schema existingSchema = schemaDao.getSchemaByUrl(existing.getName());
+        if (existingSchema != null) {
+            schemaDao.deleteSchema(existingSchema);
+        }
+        Schema resourceTypeSchema = new Schema();
+        resourceTypeSchema.setSchema(existing.getSchema());
+        resourceTypeSchema.setOriginalUrl(existing.getName());
+        schemaDao.addSchema(resourceTypeSchema);
+
+        return existing;
+    }
+
+    private void normalizeResourceType(ResourceType resourceType) throws ServiceException {
+        if (resourceType.getSchemaUrl() == null && resourceType.getSchema() == null) {
+            throw new ServiceException("Neither SchemaUrl nor Schema have been set");
+        } else if (resourceType.getSchemaUrl() != null && resourceType.getSchema() != null) {
+            throw new ServiceException("Both Schema and SchemaUrl are set");
+        }
+
+        if (resourceType.getSchemaUrl() == null || "not_set".equals(resourceType.getSchemaUrl())) {
+            resourceType.setSchemaUrl("not_set");
+        } else {
+            try {
+                String schemaStr = UrlResolver.getText(resourceType.getSchemaUrl());
+                resourceType.setSchema(schemaStr);
+                ArrayList<String> recursionPaths = new ArrayList<>();
+                validate(resourceType.getSchemaUrl());
+                exportIncludes(resourceType, resourceType.getSchemaUrl(), recursionPaths);
+            } catch (Exception e) {
+                throw new ServiceException(e.getMessage());
+            }
+        }
+
+        if (resourceType.getIndexMapperClass() == null) {
+            resourceType.setIndexMapperClass(DefaultIndexMapper.class.getName());
+        }
+    }
+
     private void exportIncludes(ResourceType resourceType, String baseUrl, ArrayList<String> recursionPaths)
             throws ServiceException {
         String type = resourceType.getPayloadType();

@@ -34,6 +34,8 @@ public interface ResourceTypeDao {
 
     void addResourceType(ResourceType resource);
 
+    ResourceType updateResourceType(ResourceType resourceType);
+
     Set<IndexField> getResourceTypeIndexFields(String name);
 
     void deleteResourceType(String resourceType);

@@ -83,6 +83,12 @@ public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements Re
     }
 
     @Override
+    @Transactional
+    public ResourceType updateResourceType(ResourceType resourceType) {
+        return super.update(resourceType);
+    }
+
+    @Override
     public Set<IndexField> getResourceTypeIndexFields(String name) {
         Set<IndexField> indexFields = new HashSet<>();
         Query query = getEntityManager().createQuery(

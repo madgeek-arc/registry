@@ -32,6 +32,7 @@ import gr.uoa.di.madgik.registry.monitor.ResourceListener;
 import gr.uoa.di.madgik.registry.monitor.ResourceTypeListener;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.IndexOperationsService;
+import gr.uoa.di.madgik.registry.service.ResourceService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import org.apache.hc.client5.http.auth.AuthScope;
@@ -130,10 +131,11 @@ public class ElasticAutoConfiguration {
     @Bean
     @Primary
     IndexOperationsService indexOperationsService(ResourceTypeService resourceTypeService,
+                                                  ResourceService resourceService,
                                                   ElasticsearchClient client,
                                                   EmbeddingService embeddingService,
                                                   ObjectMapper objectMapper) {
-        return new ElasticOperationsService(resourceTypeService, client, embeddingService, objectMapper);
+        return new ElasticOperationsService(resourceTypeService, resourceService, client, embeddingService, objectMapper);
     }
 
     /**

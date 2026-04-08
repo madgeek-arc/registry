@@ -73,6 +73,13 @@ public class NoopIndexOperationsService implements IndexOperationsService {
         logger.debug("createIndex() : no-op");
     }
 
+    @Override
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    public void updateIndex(ResourceType previous, ResourceType updated) {
+        // no-op
+        logger.debug("updateIndex() : no-op");
+    }
+
     @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void deleteIndex(String name) {
         // no-op

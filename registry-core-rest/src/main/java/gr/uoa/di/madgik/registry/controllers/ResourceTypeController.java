@@ -107,6 +107,19 @@ public class ResourceTypeController {
         }
     }
 
+    @RequestMapping(value = "/resourceType/{name}", method = RequestMethod.PUT, headers = "Accept=application/json")
+    public ResponseEntity<ResourceType> updateResourceType(@PathVariable("name") String name,
+                                                           @RequestBody ResourceType resourceType) {
+        resourceType.setName(name);
+        try {
+            ResourceType updated = resourceTypeService.updateResourceType(resourceType);
+            return new ResponseEntity<>(updated, HttpStatus.OK);
+        } catch (ServiceException e) {
+            logger.error("Error updating resource type", e);
+            throw new ServiceException(e);
+        }
+    }
+
     @RequestMapping(value = "/resourceType/{name}", method = RequestMethod.DELETE, headers = "Accept=application/json")
     public ResponseEntity<ResourceType> deleteResourceType(@PathVariable("name") String name) {
 

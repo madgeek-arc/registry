@@ -37,5 +37,7 @@ public interface IndexOperationsService {
 
     void createIndex(ResourceType resourceType);
 
+    void updateIndex(ResourceType previous, ResourceType updated);
+
     void deleteIndex(String name);
 }

@@ -129,6 +129,26 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     }
 
     @Override
+    public ResourceType updateResourceType(ResourceType resourceType) throws ServiceException {
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+
+        HttpEntity<ResourceType> request = new HttpEntity<>(resourceType, headers);
+        ResponseEntity<ResourceType> response = restTemplate.exchange(
+                registryHost + "/resourceType/" + resourceType.getName(),
+                HttpMethod.PUT,
+                request,
+                ResourceType.class
+        );
+
+        if (response.getStatusCode().is2xxSuccessful()) {
+            return response.getBody();
+        } else {
+            return null;
+        }
+    }
+
+    @Override
     public Set<IndexField> getResourceTypeIndexFields(String name) {
         ResourceType resourceType = getResourceType(name);
         Set<IndexField> indexFields = new HashSet<>();

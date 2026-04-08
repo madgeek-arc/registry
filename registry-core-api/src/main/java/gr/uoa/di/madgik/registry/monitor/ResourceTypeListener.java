@@ -25,5 +25,9 @@ public interface ResourceTypeListener {
 
     public void resourceTypeAdded(ResourceType resourceType);
 
+    default void resourceTypeUpdated(ResourceType previous, ResourceType updated) {
+        // no-op
+    }
+
     public void resourceTypeDelete(String name);
 }

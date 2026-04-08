@@ -17,6 +17,7 @@
 package gr.uoa.di.madgik.registry.monitor;
 
 import gr.uoa.di.madgik.registry.dao.ResourceDao;
+import gr.uoa.di.madgik.registry.dao.ResourceTypeDao;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.service.ServiceException;
@@ -41,12 +42,14 @@ public class ResourceMonitor {
     private final List<ResourceListener> resourceListeners;
     private final List<ResourceTypeListener> resourceTypeListeners;
     private final ResourceDao resourceDao;
+    private final ResourceTypeDao resourceTypeDao;
 
     public ResourceMonitor(List<ResourceListener> resourceListeners, List<ResourceTypeListener> resourceTypeListeners,
-                           ResourceDao resourceDao) {
+                           ResourceDao resourceDao, ResourceTypeDao resourceTypeDao) {
         this.resourceListeners = resourceListeners;
         this.resourceTypeListeners = resourceTypeListeners;
         this.resourceDao = resourceDao;
+        this.resourceTypeDao = resourceTypeDao;
     }
 
     @Around("execution (* gr.uoa.di.madgik.registry.service.ResourceService.addResource(gr.uoa.di.madgik.registry.domain.Resource)) && args(resource)")
@@ -137,6 +140,22 @@ public class ResourceMonitor {
         }
 
         return resourceType;
+    }
+
+    @Around("execution (* gr.uoa.di.madgik.registry.service.ResourceTypeService.updateResourceType(gr.uoa.di.madgik.registry.domain.ResourceType)) && args(resourceType)")
+    public ResourceType resourceTypeUpdated(ProceedingJoinPoint pjp, ResourceType resourceType) throws Throwable {
+        ResourceType previous = resourceType == null ? null : resourceTypeDao.getResourceType(resourceType.getName());
+        ResourceType updated = (ResourceType) pjp.proceed();
+
+        for (ResourceTypeListener listener : resourceTypeListeners) {
+            try {
+                listener.resourceTypeUpdated(previous, updated);
+            } catch (Exception e) {
+                logger.error("Error notifying listener", e);
+            }
+        }
+
+        return updated;
     }
 
     @Around("execution (* gr.uoa.di.madgik.registry.service.ResourceTypeService.deleteResourceType(String)) && args(name)")

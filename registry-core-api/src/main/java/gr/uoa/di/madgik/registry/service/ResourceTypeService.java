@@ -38,6 +38,8 @@ public interface ResourceTypeService {
 
     ResourceType addResourceType(ResourceType resourceType) throws ServiceException;
 
+    ResourceType updateResourceType(ResourceType resourceType) throws ServiceException;
+
     Set<IndexField> getResourceTypeIndexFields(String name);
 
     /**

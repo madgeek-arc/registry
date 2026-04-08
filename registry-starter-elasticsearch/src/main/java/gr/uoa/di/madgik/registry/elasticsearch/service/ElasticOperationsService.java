@@ -30,6 +30,7 @@ import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.domain.index.IndexedField;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.IndexOperationsService;
+import gr.uoa.di.madgik.registry.service.ResourceService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.slf4j.Logger;
@@ -85,6 +86,7 @@ public class ElasticOperationsService implements IndexOperationsService {
     private static final Map<String, Object> DENSE_VECTOR_MAP = Map.of("type", "dense_vector", "dims", VECTOR_SIZE);
 
     private final ResourceTypeService resourceTypeService;
+    private final ResourceService resourceService;
     private final ElasticsearchClient client;
     private final EmbeddingService embeddingService;
     private final ObjectMapper objectMapper;
@@ -92,9 +94,11 @@ public class ElasticOperationsService implements IndexOperationsService {
     /**
      * Creates an indexing service backed by the typed Elasticsearch Java client.
      */
-    public ElasticOperationsService(ResourceTypeService resourceTypeService, ElasticsearchClient client,
-                                    EmbeddingService embeddingService, ObjectMapper objectMapper) {
+    public ElasticOperationsService(ResourceTypeService resourceTypeService, ResourceService resourceService,
+                                    ElasticsearchClient client, EmbeddingService embeddingService,
+                                    ObjectMapper objectMapper) {
         this.resourceTypeService = resourceTypeService;
+        this.resourceService = resourceService;
         this.client = client;
         this.embeddingService = embeddingService;
         this.objectMapper = objectMapper;
@@ -208,6 +212,14 @@ public class ElasticOperationsService implements IndexOperationsService {
         } catch (IOException e) {
             throw new ServiceException("Failed to create index " + resourceType.getName(), e);
         }
+    }
+
+    @Override
+    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    public void updateIndex(ResourceType previous, ResourceType updated) {
+        deleteIndex(updated.getName());
+        createIndex(updated);
+        addBulk(resourceService.getResource(updated));
     }
 
     @Override

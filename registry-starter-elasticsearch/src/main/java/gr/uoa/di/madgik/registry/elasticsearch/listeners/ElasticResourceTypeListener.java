@@ -37,6 +37,11 @@ public class ElasticResourceTypeListener implements ResourceTypeListener {
     }
 
     @Override
+    public void resourceTypeUpdated(ResourceType previous, ResourceType updated) {
+        indexOperationsService.updateIndex(previous, updated);
+    }
+
+    @Override
     public void resourceTypeDelete(String name) {
         indexOperationsService.deleteIndex(name);
     }
