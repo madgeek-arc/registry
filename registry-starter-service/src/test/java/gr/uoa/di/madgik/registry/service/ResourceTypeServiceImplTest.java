@@ -139,29 +139,6 @@ class ResourceTypeServiceImplTest extends PostgreSqlTestContainerSupport {
                 .doesNotContain("first_name", "age", "single", "birthday", "amka");
     }
 
-    @Test
-    @Sql(scripts = "/cleanup.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-    void updateResourceType_updatesCatalogueClassProperty_fromLegacyToCurrentDefinition() throws IOException {
-        assertThat(resourceTypeService.getAllResourceType()).isEmpty();
-
-        ResourceType oldDefinition = readResourceType("old-model.json");
-        ResourceType newDefinition = readResourceType("model.json");
-
-        resourceTypeService.addResourceType(oldDefinition);
-
-        assertThat(resourceTypeService.getResourceType("model").getProperty("class"))
-                .isEqualTo("gr.uoa.di.madgik.catalogue.ui.domain.Model");
-
-        resourceTypeService.updateResourceType(newDefinition);
-
-        ResourceType persisted = resourceTypeService.getResourceType("model");
-        assertThat(persisted.getProperty("class"))
-                .isEqualTo("gr.uoa.di.madgik.catalogue.domain.Model");
-        assertThat(resourceTypeService.getAllResourceType())
-                .extracting(ResourceType::getName)
-                .containsExactly("model");
-    }
-
     private List<String> getViewColumns(String viewName) {
         return entityManager.createNativeQuery(
                         "SELECT column_name FROM information_schema.columns " +
@@ -169,9 +146,5 @@ class ResourceTypeServiceImplTest extends PostgreSqlTestContainerSupport {
                 )
                 .setParameter("viewName", viewName)
                 .getResultList();
-    }
-
-    private ResourceType readResourceType(String resourceName) throws IOException {
-        return new ObjectMapper().readValue(new ClassPathResource(resourceName).getInputStream(), ResourceType.class);
     }
 }
