@@ -97,9 +97,9 @@ public class DumpController {
 
         // set headers for the response
         String headerKey = "Content-Disposition";
-        SimpleDateFormat sdfDate = new SimpleDateFormat("ddMMyyyy");//dd/MM/yyyy
-        Instant now = Instant.now();
-        String strDate = sdfDate.format(now);
+        String strDate = java.time.format.DateTimeFormatter.ofPattern("ddMMyyyy")
+                .withZone(java.time.ZoneId.systemDefault())
+                .format(Instant.now());
         String headerValue = String.format("attachment; filename=\"dump-%s.zip\"",
                 strDate);
         response.setHeader(headerKey, headerValue);
