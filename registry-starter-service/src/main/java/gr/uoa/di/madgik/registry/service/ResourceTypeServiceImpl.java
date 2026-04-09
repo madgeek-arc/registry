@@ -284,15 +284,16 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     }
 
     private void normalizeResourceType(ResourceType resourceType) throws ServiceException {
+        if (resourceType.getSchemaUrl() == null || "not_set".equals(resourceType.getSchemaUrl())) {
+            resourceType.setSchemaUrl(null);
+        }
         if (resourceType.getSchemaUrl() == null && resourceType.getSchema() == null) {
             throw new ServiceException("Neither SchemaUrl nor Schema have been set");
         } else if (resourceType.getSchemaUrl() != null && resourceType.getSchema() != null) {
             throw new ServiceException("Both Schema and SchemaUrl are set");
         }
 
-        if (resourceType.getSchemaUrl() == null || "not_set".equals(resourceType.getSchemaUrl())) {
-            resourceType.setSchemaUrl("not_set");
-        } else {
+        if (resourceType.getSchemaUrl() != null) {
             try {
                 String schemaStr = UrlResolver.getText(resourceType.getSchemaUrl());
                 resourceType.setSchema(schemaStr);

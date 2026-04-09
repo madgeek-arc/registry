@@ -16,6 +16,7 @@
 
 package gr.uoa.di.madgik.registry.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
 import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
 import gr.uoa.di.madgik.registry.dao.SchemaDao;
@@ -26,8 +27,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.jdbc.Sql;
 
+import java.io.IOException;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.util.List;
 import java.util.Set;
 
@@ -45,6 +51,12 @@ class ResourceTypeServiceImplTest extends PostgreSqlTestContainerSupport {
 
     @Autowired
     SchemaDao schemaDao;
+
+    @Autowired
+    ViewService viewService;
+
+    @PersistenceContext(unitName = "registryEntityManager")
+    EntityManager entityManager;
 
     @Test
     void updateResourceType_replaces_index_fields_and_updates_schema_entry() {
@@ -85,5 +97,81 @@ class ResourceTypeServiceImplTest extends PostgreSqlTestContainerSupport {
                 .extracting(ResourceType::getName)
                 .containsExactly("employee");
         assertThat(schemaDao.getSchemaByUrl("employee").getSchema()).isEqualTo(existing.getSchema());
+    }
+
+    @Test
+    void updateResourceType_recreates_view_with_updated_columns() {
+        ResourceType existing = resourceTypeService.getResourceType("employee");
+        viewService.createView(existing);
+
+        assertThat(getViewColumns("employee_view"))
+                .contains("first_name", "age", "single", "birthday", "salary", "amka")
+                .doesNotContain("employee_id");
+
+        ResourceType updated = new ResourceType();
+        updated.setName(existing.getName());
+        updated.setPayloadType(existing.getPayloadType());
+        updated.setSchema(existing.getSchema());
+        updated.setSchemaUrl(null);
+        updated.setIndexMapperClass(existing.getIndexMapperClass());
+        updated.setAliases(existing.getAliases());
+        updated.setProperties(existing.getProperties());
+
+        IndexField primaryKey = new IndexField();
+        primaryKey.setName("employee_id");
+        primaryKey.setLabel("employee_id");
+        primaryKey.setPath("//*[local-name()='author']/text()");
+        primaryKey.setType("java.lang.String");
+        primaryKey.setPrimaryKey(true);
+
+        IndexField salary = new IndexField();
+        salary.setName("salary");
+        salary.setLabel("salary");
+        salary.setPath("//*[local-name()='salary']/text()");
+        salary.setType("java.lang.Float");
+
+        updated.setIndexFields(List.of(primaryKey, salary));
+
+        resourceTypeService.updateResourceType(updated);
+
+        assertThat(getViewColumns("employee_view"))
+                .contains("employee_id", "salary")
+                .doesNotContain("first_name", "age", "single", "birthday", "amka");
+    }
+
+    @Test
+    @Sql(scripts = "/cleanup.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    void updateResourceType_updatesCatalogueClassProperty_fromLegacyToCurrentDefinition() throws IOException {
+        assertThat(resourceTypeService.getAllResourceType()).isEmpty();
+
+        ResourceType oldDefinition = readResourceType("old-model.json");
+        ResourceType newDefinition = readResourceType("model.json");
+
+        resourceTypeService.addResourceType(oldDefinition);
+
+        assertThat(resourceTypeService.getResourceType("model").getProperty("class"))
+                .isEqualTo("gr.uoa.di.madgik.catalogue.ui.domain.Model");
+
+        resourceTypeService.updateResourceType(newDefinition);
+
+        ResourceType persisted = resourceTypeService.getResourceType("model");
+        assertThat(persisted.getProperty("class"))
+                .isEqualTo("gr.uoa.di.madgik.catalogue.domain.Model");
+        assertThat(resourceTypeService.getAllResourceType())
+                .extracting(ResourceType::getName)
+                .containsExactly("model");
+    }
+
+    private List<String> getViewColumns(String viewName) {
+        return entityManager.createNativeQuery(
+                        "SELECT column_name FROM information_schema.columns " +
+                                "WHERE table_name = :viewName ORDER BY ordinal_position"
+                )
+                .setParameter("viewName", viewName)
+                .getResultList();
+    }
+
+    private ResourceType readResourceType(String resourceName) throws IOException {
+        return new ObjectMapper().readValue(new ClassPathResource(resourceName).getInputStream(), ResourceType.class);
     }
 }
