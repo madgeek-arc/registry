@@ -23,7 +23,7 @@ import co.elastic.clients.transport.rest5_client.Rest5ClientTransport;
 import co.elastic.clients.transport.rest5_client.low_level.Rest5Client;
 import co.elastic.clients.transport.rest5_client.low_level.Rest5ClientBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gr.uoa.di.madgik.registry.elasticsearch.IndexDbSync;
+import gr.uoa.di.madgik.registry.elasticsearch.SearchIndexConsistencyService;
 import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceListener;
 import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceTypeListener;
 import gr.uoa.di.madgik.registry.elasticsearch.service.ElasticOperationsService;
@@ -69,7 +69,7 @@ import java.util.List;
         matchIfMissing = true)
 @EnableRetry
 @EnableConfigurationProperties(RegistryElasticsearchProperties.class)
-@Import(IndexDbSync.class)
+@Import({SearchIndexConsistencyService.class})
 public class ElasticAutoConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticAutoConfiguration.class);

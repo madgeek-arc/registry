@@ -25,70 +25,52 @@ import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.service.IndexOperationsService;
 import gr.uoa.di.madgik.registry.service.ResourceService;
+import gr.uoa.di.madgik.registry.service.ResourceTypeProjectionService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.core.task.VirtualThreadTaskExecutor;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import javax.sql.DataSource;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 /**
- * Background consistency check between the SQL-backed registry and the Elasticsearch index.
- *
- * <p>At startup, this component enumerates each registered resource type, recreates missing
- * Elasticsearch indices on demand, re-indexes database rows that are absent from Elasticsearch,
- * and logs the inverse mismatch when Elasticsearch contains documents that no longer exist in
- * the database.</p>
+ * Startup consistency check between SQL-backed resource projections and Elasticsearch indices.
  */
-public class IndexDbSync {
+public class SearchIndexConsistencyService {
 
-    private static final Logger logger = LoggerFactory.getLogger(IndexDbSync.class);
+    private static final Logger logger = LoggerFactory.getLogger(SearchIndexConsistencyService.class);
 
     private final ElasticsearchClient elasticsearchClient;
-    private final IndexOperationsService indexOperationsService;
     private final ResourceTypeService resourceTypeService;
+    private final ResourceTypeProjectionService resourceTypeProjectionService;
     private final ResourceService resourceService;
-    private final DataSource dataSource;
+    private final IndexOperationsService indexOperationsService;
     private final TaskExecutor taskExecutor = new VirtualThreadTaskExecutor();
 
-    public IndexDbSync(ElasticsearchClient elasticsearchClient,
-                       IndexOperationsService indexOperationsService,
-                       ResourceTypeService resourceTypeService,
-                       ResourceService resourceService,
-                       @Qualifier("registryDataSource") DataSource dataSource) {
+    public SearchIndexConsistencyService(ElasticsearchClient elasticsearchClient,
+                                         ResourceTypeService resourceTypeService,
+                                         ResourceTypeProjectionService resourceTypeProjectionService,
+                                         ResourceService resourceService,
+                                         IndexOperationsService indexOperationsService) {
         this.elasticsearchClient = elasticsearchClient;
-        this.indexOperationsService = indexOperationsService;
         this.resourceTypeService = resourceTypeService;
+        this.resourceTypeProjectionService = resourceTypeProjectionService;
         this.resourceService = resourceService;
-        this.dataSource = dataSource;
+        this.indexOperationsService = indexOperationsService;
     }
 
     @PostConstruct
     private void reindexOnInit() {
-        taskExecutor.execute(new Runnable() {
-            public void run() {
-                ensureDatabaseIndexConsistency();
-            }
-        });
+        taskExecutor.execute(() -> ensureDatabaseIndexConsistency());
     }
 
-    /**
-     * <p>
-     * Performs the following two operations to ensure data integrity.
-     * </p>
-     * <p>1. Reindexes all {@link Resource resources} from Database to Elastic.</p>
-     * <p>2. Checks Database for missing resources and prints errors.</p>
-     */
     public void ensureDatabaseIndexConsistency() {
         logger.info("Checking for index inconsistencies");
         resourceTypeService.getAllResourceType()
@@ -98,55 +80,25 @@ public class IndexDbSync {
                 });
     }
 
-    /**
-     * Reindex all Database {@link Resource resources} to Elastic.
-     */
     public void reindex() {
         resourceTypeService.getAllResourceType()
                 .forEach(resourceType -> reindex(resourceType.getName()));
     }
 
-    /**
-     * Fetches the ids of all {@link Resource resources} of a given {@link ResourceType resource type}
-     * from the Database.
-     *
-     * @param resourceType The {@link ResourceType} to search.
-     * @return {@link List}
-     */
-    private List<String> fetchResourceIdsFromDatabase(String resourceType) {
-        List<String> databaseResources = new ArrayList<>();
-        NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
-        MapSqlParameterSource in = new MapSqlParameterSource();
-
-        String query = "SELECT id FROM " + resourceType + "_view";
-
-        List<Map<String, Object>> records = namedParameterJdbcTemplate.queryForList(query, in);
-        if (!records.isEmpty()) {
-            databaseResources.addAll(records
-                    .stream()
-                    .map(r -> (String) r.get("id"))
-                    .toList()
-            );
-        }
-        return databaseResources;
+    private Set<String> fetchResourceIdsFromDatabase(String resourceType) {
+        return new LinkedHashSet<>(resourceTypeProjectionService.fetchResourceIds(resourceType));
     }
 
-    /**
-     * Returns all document ids for the given Elasticsearch index using the scroll API.
-     *
-     * <p>The request fetches ids only, keeping the response payload small while walking large
-     * indices. Transport and parsing failures are wrapped in {@link ServiceException}.</p>
-     */
     private List<String> findAllResourceIdsFromElasticIndex(String resourceType) {
         List<String> resourceIds = new ArrayList<>();
         String scrollId = null;
         try {
             SearchResponse<Void> response = elasticsearchClient.search(s -> s
-                    .index(resourceType)
-                    .scroll(t -> t.time("1m"))
-                    .size(10000)
-                    .source(src -> src.fetch(false))
-                    .query(q -> q.matchAll(m -> m)),
+                            .index(resourceType)
+                            .scroll(t -> t.time("1m"))
+                            .size(10000)
+                            .source(src -> src.fetch(false))
+                            .query(q -> q.matchAll(m -> m)),
                     Void.class);
             scrollId = response.scrollId();
             List<Hit<Void>> hits = response.hits().hits();
@@ -167,9 +119,6 @@ public class IndexDbSync {
         return resourceIds;
     }
 
-    /**
-     * Best-effort cleanup of an active Elasticsearch scroll context.
-     */
     private void clearScroll(String scrollId) {
         if (scrollId == null || scrollId.isBlank()) {
             return;
@@ -181,15 +130,12 @@ public class IndexDbSync {
         }
     }
 
-    /**
-     * Loads all ids from Elasticsearch, creating the index first when the backend reports 404.
-     */
-    private List<String> fetchResourceIdsFromIndex(String resourceType) {
-        List<String> resourceIds = new ArrayList<>();
+    private Set<String> fetchResourceIdsFromIndex(String resourceType) {
+        Set<String> resourceIds = new LinkedHashSet<>();
 
         if (!exists(resourceType)) {
             logger.warn("Elasticsearch index '{}' is missing. Recreating it from the resource type definition.", resourceType);
-            resourceTypeService.addResourceType(resourceTypeService.getResourceType(resourceType));
+            ensureIndexExists(resourceType);
             return resourceIds;
         }
 
@@ -197,25 +143,21 @@ public class IndexDbSync {
         short retries = 5;
         do {
             try {
-                resourceIds = findAllResourceIdsFromElasticIndex(resourceType);
+                resourceIds = new LinkedHashSet<>(findAllResourceIdsFromElasticIndex(resourceType));
                 done = true;
             } catch (ServiceException e) {
                 if (isNotFound(e)) {
                     logger.warn("Elasticsearch index '{}' missing. Recreating it from the resource type definition.", resourceType);
-                    resourceTypeService.addResourceType(resourceTypeService.getResourceType(resourceType));
-                    return new ArrayList<>();
-                } else {
-                    logger.error(e.getMessage(), e);
+                    ensureIndexExists(resourceType);
+                    return new LinkedHashSet<>();
                 }
+                logger.error(e.getMessage(), e);
             }
             retries--;
         } while (!done && retries > 0);
         return resourceIds;
     }
 
-    /**
-     * Checks whether an Elasticsearch index currently exists.
-     */
     private boolean exists(String indexName) {
         try {
             return elasticsearchClient.indices().exists(e -> e.index(indexName)).value();
@@ -224,9 +166,6 @@ public class IndexDbSync {
         }
     }
 
-    /**
-     * Unwraps nested exceptions to detect an Elasticsearch HTTP 404 response.
-     */
     private boolean isNotFound(Throwable throwable) {
         Throwable current = throwable;
         while (current != null) {
@@ -238,12 +177,9 @@ public class IndexDbSync {
         return false;
     }
 
-    /**
-     * Reindexes database rows that are missing from the target Elasticsearch index.
-     */
     private void reindex(String resourceType) {
-        List<String> indexResources = fetchResourceIdsFromIndex(resourceType);
-        List<String> databaseResources = fetchResourceIdsFromDatabase(resourceType);
+        Set<String> indexResources = fetchResourceIdsFromIndex(resourceType);
+        Set<String> databaseResources = fetchResourceIdsFromDatabase(resourceType);
 
         List<String> missingIndexIds = new ArrayList<>(databaseResources);
         missingIndexIds.removeAll(indexResources);
@@ -255,14 +191,9 @@ public class IndexDbSync {
         }
     }
 
-    /**
-     * Checks whether every resource of an index ({@link ResourceType}) exists in the database.
-     *
-     * @param resourceType The {@link ResourceType} to perform the check on.
-     */
     private void checkDatabaseConsistency(String resourceType) {
-        List<String> indexResources = fetchResourceIdsFromIndex(resourceType);
-        List<String> databaseResources = fetchResourceIdsFromDatabase(resourceType);
+        Set<String> indexResources = fetchResourceIdsFromIndex(resourceType);
+        Set<String> databaseResources = fetchResourceIdsFromDatabase(resourceType);
 
         List<String> missingDBIds = new ArrayList<>(indexResources);
         missingDBIds.removeAll(databaseResources);
@@ -273,21 +204,21 @@ public class IndexDbSync {
         }
     }
 
-    /**
-     * Reindex {@link Resource resources}.
-     *
-     * @param ids The resources' ids to reindex.
-     */
     private void reindexByIds(List<String> ids) {
         logger.info("Reindexing {} missing resource{}.", ids.size(), ids.size() == 1 ? "" : "s");
-        // TODO: Improve performance:
-        //  1. create method returning multiple resources by id
-        //  2. use indexOperationsService.addBulk() method to add them to the index
         for (String missingId : ids) {
             Resource resource = resourceService.getResource(missingId);
             logger.trace("Adding resource with id '{}' to index '{}'", resource.getId(), resource.getResourceTypeName());
             indexOperationsService.add(resource);
         }
         logger.info("Reindexing finished.");
+    }
+
+    private void ensureIndexExists(String resourceType) {
+        ResourceType definition = resourceTypeService.getResourceType(resourceType);
+        if (definition == null) {
+            throw new ServiceException("Cannot create missing index for unknown resource type " + resourceType);
+        }
+        indexOperationsService.createIndex(definition);
     }
 }
