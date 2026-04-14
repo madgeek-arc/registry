@@ -17,12 +17,13 @@
 package gr.uoa.di.madgik.registry.elasticsearch.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gr.uoa.di.madgik.registry.elasticsearch.IndexDbSync;
+import gr.uoa.di.madgik.registry.elasticsearch.SearchIndexConsistencyService;
 import gr.uoa.di.madgik.registry.monitor.ResourceListener;
 import gr.uoa.di.madgik.registry.monitor.ResourceTypeListener;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.IndexOperationsService;
 import gr.uoa.di.madgik.registry.service.ResourceService;
+import gr.uoa.di.madgik.registry.service.ResourceTypeProjectionService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import org.junit.jupiter.api.Test;
@@ -37,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class ElasticAutoConfigurationSmokeTest {
+class ElasticAutoConfigurationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(
@@ -55,6 +56,7 @@ class ElasticAutoConfigurationSmokeTest {
                 return service;
             })
             .withBean(ResourceService.class, () -> mock(ResourceService.class))
+            .withBean(ResourceTypeProjectionService.class, () -> mock(ResourceTypeProjectionService.class))
             .withBean(EmbeddingService.class, () -> mock(EmbeddingService.class))
             .withBean("registryDataSource", DataSource.class, () -> mock(DataSource.class));
 
@@ -62,7 +64,7 @@ class ElasticAutoConfigurationSmokeTest {
     void autoConfiguration_registers_elasticsearch_beans() {
         contextRunner.run(context -> {
             assertThat(context).hasSingleBean(RegistryElasticsearchProperties.class);
-            assertThat(context).hasSingleBean(IndexDbSync.class);
+            assertThat(context).hasSingleBean(SearchIndexConsistencyService.class);
             assertThat(context).hasSingleBean(IndexOperationsService.class);
             assertThat(context).hasSingleBean(SearchService.class);
             assertThat(context).hasSingleBean(ResourceListener.class);
@@ -82,7 +84,7 @@ class ElasticAutoConfigurationSmokeTest {
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(IndexOperationsService.class);
                     assertThat(context).doesNotHaveBean(SearchService.class);
-                    assertThat(context).doesNotHaveBean(IndexDbSync.class);
+                    assertThat(context).doesNotHaveBean(SearchIndexConsistencyService.class);
                 });
     }
 }

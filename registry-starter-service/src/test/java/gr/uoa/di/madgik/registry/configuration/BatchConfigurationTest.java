@@ -33,7 +33,6 @@ import org.springframework.util.FileSystemUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -46,7 +45,7 @@ import java.util.concurrent.Callable;
 @SqlMergeMode(SqlMergeMode.MergeMode.MERGE)
 @Sql(scripts = "/data.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 @Sql(scripts = "/cleanup.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
-class BatchConfigurationSmokeTest extends PostgreSqlTestContainerSupport {
+class BatchConfigurationTest extends PostgreSqlTestContainerSupport {
 
     private static final String TEST_RESOURCE_TYPE = "employee_restore";
     private static final String TEST_RESOURCE_ID = "restore-job-resource";
