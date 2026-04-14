@@ -22,6 +22,8 @@ import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.service.IndexOperationsService;
 import gr.uoa.di.madgik.registry.service.ResourceService;
+import gr.uoa.di.madgik.registry.service.ResourceTypeService;
+import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
@@ -53,21 +55,28 @@ public class RestoreResourceWriterStep implements ItemWriter<Resource>, StepExec
 
     private final IndexOperationsService indexOperationsService;
 
+    private final ResourceTypeService resourceTypeService;
+
     @Autowired
     public RestoreResourceWriterStep(ResourceService resourceService,
                                      ResourceDao resourceDao,
                                      VersionDao versionDao,
-                                     IndexOperationsService indexOperationsService) {
+                                     IndexOperationsService indexOperationsService,
+                                     ResourceTypeService resourceTypeService) {
         this.resourceService = resourceService;
         this.resourceDao = resourceDao;
         this.versionDao = versionDao;
         this.indexOperationsService = indexOperationsService;
+        this.resourceTypeService = resourceTypeService;
     }
 
     @Override
     public void beforeStep(StepExecution stepExecution) {
         ExecutionContext executionContext = stepExecution.getJobExecution().getExecutionContext();
-        resourceType = (ResourceType) executionContext.get("resourceType");
+        resourceType = resourceTypeService.getResourceType(executionContext.getString("resourceTypeName"));
+        if (resourceType == null) {
+            stepExecution.addFailureException(new ServiceException("Resource Type not provided"));
+        }
     }
 
     @Override

@@ -26,6 +26,7 @@ import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Version;
 import gr.uoa.di.madgik.registry.index.IndexMapper;
 import gr.uoa.di.madgik.registry.index.IndexMapperFactory;
+import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -62,12 +63,17 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
 
     private final IndexMapperFactory indexMapperFactory;
 
+    private final ResourceTypeService resourceTypeService;
+
     private IndexMapper indexMapper;
 
     @Autowired
-    public RestoreResourceReaderStep(ResourceDao resourceDao, IndexMapperFactory indexMapperFactory) {
+    public RestoreResourceReaderStep(ResourceDao resourceDao,
+                                     IndexMapperFactory indexMapperFactory,
+                                     ResourceTypeService resourceTypeService) {
         this.resourceDao = resourceDao;
         this.indexMapperFactory = indexMapperFactory;
+        this.resourceTypeService = resourceTypeService;
         this.mapper = new ObjectMapper().findAndRegisterModules();
         this.mapper.configure(MapperFeature.USE_ANNOTATIONS, true);
         this.mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
@@ -76,9 +82,15 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
     @Override
     public void beforeStep(StepExecution stepExecution) {
         ExecutionContext executionContext = stepExecution.getJobExecution().getExecutionContext();
-        resourceType = (ResourceType) executionContext.get("resourceType");
+        String resourceTypeName = executionContext.getString("resourceTypeName");
+        resourceType = resourceTypeService.getResourceType(resourceTypeName);
         File[] files = (File[]) executionContext.get("resources");
         resources = new ConcurrentLinkedQueue<>(Arrays.asList(files));
+
+        if (resourceType == null) {
+            stepExecution.addFailureException(new ServiceException("Resource Type not provided"));
+            return;
+        }
 
         try {
             indexMapper = indexMapperFactory.createIndexMapper(resourceType);

@@ -23,17 +23,13 @@ import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 
-import java.io.Serial;
-import java.io.Serializable;
 import java.time.Instant;
 import java.util.*;
 
 @Entity
 @Table(name = "ResourceType")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-public class ResourceType implements Serializable {
-    @Serial
-    private static final long serialVersionUID = 1L;
+public class ResourceType {
 
     @Id
     @Size(min = 3, max = 50)

@@ -89,7 +89,7 @@ public class RestoreResourceTypeStep implements Tasklet, StepExecutionListener {
                 resourceTypeDirFile.listFiles(f -> !f.getName().equalsIgnoreCase("schema.json") && !f.isDirectory())
         );
         stepExecution.getJobExecution().getExecutionContext().put("resources", resources.orElse(new File[]{}));
-        stepExecution.getJobExecution().getExecutionContext().put("resourceType", resourceType);
+        stepExecution.getJobExecution().getExecutionContext().putString("resourceTypeName", resourceType.getName());
         if (schemaFile.exists())
             return ExitStatus.COMPLETED;
         else
@@ -104,7 +104,7 @@ public class RestoreResourceTypeStep implements Tasklet, StepExecutionListener {
                 logger.info("Resource type is present, deleting it..");
                 resourceTypeService.deleteResourceType(r.getName());
             });
-            logger.info("Adding resource type " + resourceType.getName());
+            logger.info("Adding resource type {}", resourceType.getName());
             if ("not_set".equals(resourceType.getSchemaUrl())) {
                 resourceType.setSchemaUrl(null);
             }
@@ -113,7 +113,7 @@ public class RestoreResourceTypeStep implements Tasklet, StepExecutionListener {
             existingResourceType = Optional.of(resourceTypeService.addResourceType(resourceType));
         }
         String name = existingResourceType.orElseThrow(() -> new ServiceException("Resource Type not provided")).getName();
-        logger.info("Resource type " + name + " added");
+        logger.info("Resource type {} added", name);
         return RepeatStatus.FINISHED;
     }
 
