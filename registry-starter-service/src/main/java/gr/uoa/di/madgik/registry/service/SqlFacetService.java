@@ -17,6 +17,7 @@
 package gr.uoa.di.madgik.registry.service;
 
 import gr.uoa.di.madgik.registry.domain.Facet;
+import gr.uoa.di.madgik.registry.domain.FacetUtils;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Value;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
@@ -25,8 +26,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -43,22 +42,17 @@ class SqlFacetService {
 
     List<Facet> createFacets(List<String> browseBy, List<ResourceType> resourceTypes,
                              SearchSqlQueryBuilder.SearchSqlQuery sqlQuery) {
-        if (browseBy == null || browseBy.isEmpty()) {
-            return new ArrayList<>();
-        }
-        List<Facet> facets = new ArrayList<>();
-        for (String browse : browseBy) {
-            IndexField indexField = findFacetField(resourceTypes, browse);
-            if (indexField == null) {
-                continue;
-            }
-            Facet facet = new Facet();
-            facet.setField(browse);
-            facet.setLabel(indexField.getLabel());
-            facet.setValues(loadFacetValues(indexField, sqlQuery));
-            facets.add(facet);
-        }
-        return facets;
+        return FacetUtils.createFacets(
+                browseBy,
+                field -> {
+                    IndexField indexField = findFacetField(resourceTypes, field);
+                    return indexField != null ? indexField.getLabel() : null;
+                },
+                field -> {
+                    IndexField indexField = findFacetField(resourceTypes, field);
+                    return indexField != null ? loadFacetValues(indexField, sqlQuery) : null;
+                }
+        );
     }
 
     private IndexField findFacetField(List<ResourceType> resourceTypes, String fieldName) {
@@ -103,8 +97,6 @@ class SqlFacetService {
             value.setCount(rs.getLong("count"));
             return value;
         });
-        Collections.sort(values);
-        Collections.reverse(values);
-        return values;
+        return FacetUtils.normalizeValues(values);
     }
 }

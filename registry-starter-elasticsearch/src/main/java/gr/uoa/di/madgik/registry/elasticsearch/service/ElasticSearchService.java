@@ -43,6 +43,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import gr.uoa.di.madgik.registry.domain.*;
+import gr.uoa.di.madgik.registry.domain.FacetUtils;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.SearchService;
@@ -400,13 +401,7 @@ public class ElasticSearchService implements SearchService {
 
         List<Resource> resources = hits.stream().map(this::toResource).collect(Collectors.toList());
 
-        List<Facet> facets = new ArrayList<>();
-        if (browseBy != null) {
-            Map<String, String> fieldLabels = resourceTypeService.getIndexFieldLabels(resourceTypeName);
-            facets = browseBy.stream()
-                    .map(x -> transformAggregation(x, response.aggregations(), fieldLabels))
-                    .collect(Collectors.toList());
-        }
+        List<Facet> facets = createFacets(browseBy, resourceTypeName, response.aggregations());
 
         return new Paging<>(extractTotal(response), from, from + resources.size(), resources, facets);
     }
@@ -435,22 +430,22 @@ public class ElasticSearchService implements SearchService {
             resources.add(result);
         }
 
-        List<Facet> facets = new ArrayList<>();
-        if (browseBy != null) {
-            Map<String, String> fieldLabels = resourceTypeService.getIndexFieldLabels(resourceTypeName);
-            facets = browseBy.stream()
-                    .map(x -> transformAggregation(x, response.aggregations(), fieldLabels))
-                    .collect(Collectors.toList());
-        }
+        List<Facet> facets = createFacets(browseBy, resourceTypeName, response.aggregations());
 
         return new Paging<>(extractTotal(response), from, from + resources.size(), resources, facets);
     }
 
-    private Facet transformAggregation(String browseBy, Map<String, Aggregate> aggregations,
-                                       Map<String, String> fieldLabels) {
-        Facet facet = new Facet();
-        facet.setField(browseBy);
-        facet.setLabel(fieldLabels.get(browseBy));
+    private List<Facet> createFacets(List<String> browseBy, String resourceTypeName,
+                                     Map<String, Aggregate> aggregations) {
+        Map<String, String> fieldLabels = resourceTypeService.getIndexFieldLabels(resourceTypeName);
+        return FacetUtils.createFacets(
+                browseBy,
+                fieldLabels::get,
+                field -> aggregationValues(field, aggregations)
+        );
+    }
+
+    private List<gr.uoa.di.madgik.registry.domain.Value> aggregationValues(String browseBy, Map<String, Aggregate> aggregations) {
         List<gr.uoa.di.madgik.registry.domain.Value> values = new ArrayList<>();
         Aggregate agg = aggregations != null ? aggregations.get("by_" + browseBy) : null;
         if (agg != null && agg.isSterms()) {
@@ -458,10 +453,8 @@ public class ElasticSearchService implements SearchService {
                 values.add(new gr.uoa.di.madgik.registry.domain.Value(
                         bucket.key().stringValue(), bucket.docCount()));
             }
-            Collections.sort(values);
         }
-        facet.setValues(values);
-        return facet;
+        return FacetUtils.normalizeValues(values);
     }
 
     private int extractTotal(SearchResponse<?> response) {
