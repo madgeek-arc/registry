@@ -118,8 +118,15 @@ public class DefaultSearchService implements SearchService {
         Integer total = npJdbcTemplate.queryForObject(sqlQuery.countQuery(), sqlQuery.params(),
                 new SingleColumnRowMapper<>(Integer.class));
         List<Resource> resources = npJdbcTemplate.query(sqlQuery.resultQuery(), sqlQuery.params(), resourceRowMapper);
+        List<String> matchedIds = browseBy.isEmpty()
+                ? List.of()
+                : npJdbcTemplate.queryForList(
+                        "SELECT ar.id FROM (%s) ar WHERE ar.payload LIKE :keyword".formatted(sqlQuery.nestedQuery()),
+                        sqlQuery.params(),
+                        String.class
+                );
         return new Paging<>(total, filter.getFrom(), filter.getFrom() + filter.getQuantity(), resources,
-                sqlFacetService.createFacets(browseBy, resourceTypes, sqlQuery));
+                sqlFacetService.createFacets(browseBy, resourceTypes, matchedIds));
     }
 
     @Override

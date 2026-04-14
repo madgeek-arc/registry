@@ -27,6 +27,9 @@ import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 class SqlFacetService {
@@ -41,57 +44,59 @@ class SqlFacetService {
     }
 
     List<Facet> createFacets(List<String> browseBy, List<ResourceType> resourceTypes,
-                             SearchSqlQueryBuilder.SearchSqlQuery sqlQuery) {
+                             List<String> matchedIds) {
+        if (matchedIds == null || matchedIds.isEmpty()) {
+            return List.of();
+        }
+        Map<String, IndexField> fieldMap = buildFieldMap(resourceTypes);
         return FacetUtils.createFacets(
                 browseBy,
                 field -> {
-                    IndexField indexField = findFacetField(resourceTypes, field);
+                    IndexField indexField = fieldMap.get(field);
                     return indexField != null ? indexField.getLabel() : null;
                 },
                 field -> {
-                    IndexField indexField = findFacetField(resourceTypes, field);
-                    return indexField != null ? loadFacetValues(indexField, sqlQuery) : null;
+                    IndexField indexField = fieldMap.get(field);
+                    return indexField != null ? loadFacetValues(indexField, matchedIds) : null;
                 }
         );
     }
 
-    private IndexField findFacetField(List<ResourceType> resourceTypes, String fieldName) {
+    private Map<String, IndexField> buildFieldMap(List<ResourceType> resourceTypes) {
+        Map<String, IndexField> fieldMap = new LinkedHashMap<>();
         for (ResourceType resourceType : resourceTypes) {
             for (IndexField indexField : resourceTypeService.getResourceTypeIndexFields(resourceType.getName())) {
-                if (fieldName.equals(indexField.getName())) {
-                    return indexField;
-                }
+                fieldMap.putIfAbsent(indexField.getName(), indexField);
             }
         }
-        return null;
+        return fieldMap;
     }
 
-    private List<Value> loadFacetValues(IndexField field, SearchSqlQueryBuilder.SearchSqlQuery sqlQuery) {
-        String matchedIdsQuery = "SELECT ar.id FROM (%s) ar WHERE ar.payload LIKE :keyword".formatted(sqlQuery.nestedQuery());
+    private List<Value> loadFacetValues(IndexField field, List<String> matchedIds) {
         String valueExpression = field.isMultivalued() ? "facet_value" : "view_row.%s".formatted(field.getName());
         String joinExpression = field.isMultivalued()
                 ? "CROSS JOIN LATERAL unnest(view_row.%s) AS facet_value ".formatted(field.getName())
                 : "";
-        String countExpression = field.isMultivalued() ? "COUNT(DISTINCT matched.id)" : "COUNT(*)";
+        String countExpression = field.isMultivalued() ? "COUNT(DISTINCT view_row.id)" : "COUNT(*)";
         String sql = """
                 SELECT CAST(%s AS text) AS value, %s AS count
-                FROM (%s) matched
-                INNER JOIN %s_view view_row ON view_row.id = matched.id
+                FROM %s_view view_row
                 %s
-                WHERE %s IS NOT NULL
+                WHERE view_row.id IN (:matchedIds) AND %s IS NOT NULL
                 GROUP BY %s
                 ORDER BY count DESC, value ASC
                 """.formatted(
                 valueExpression,
                 countExpression,
-                matchedIdsQuery,
                 field.getResourceType().getName(),
                 joinExpression,
                 valueExpression,
                 valueExpression
         );
 
-        List<Value> values = npJdbcTemplate.query(sql, sqlQuery.params(), (rs, rowNum) -> {
+        Map<String, Object> params = new HashMap<>();
+        params.put("matchedIds", matchedIds);
+        List<Value> values = npJdbcTemplate.query(sql, params, (rs, rowNum) -> {
             Value value = new Value();
             value.setValue(rs.getString("value"));
             value.setCount(rs.getLong("count"));

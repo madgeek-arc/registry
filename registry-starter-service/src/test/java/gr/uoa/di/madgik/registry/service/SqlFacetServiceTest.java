@@ -19,7 +19,6 @@ package gr.uoa.di.madgik.registry.service;
 import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
 import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
 import gr.uoa.di.madgik.registry.domain.Facet;
-import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Value;
 import org.junit.jupiter.api.Test;
@@ -28,7 +27,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import javax.sql.DataSource;
@@ -60,11 +58,10 @@ class SqlFacetServiceTest extends PostgreSqlTestContainerSupport {
     @Test
     void createFacets_returnsScalarFacetBuckets() {
         refreshEmployeeView();
-        FacetFilter filter = employeeFilter();
-        SearchSqlQueryBuilder.SearchSqlQuery sqlQuery = searchQuery(filter);
+        List<String> matchedIds = List.of(DatabaseConfiguration.TEST_RESOURCE_ID);
 
         List<Facet> facets = sqlFacetService.createFacets(List.of("age"),
-                List.of(resourceTypeService.getResourceType("employee")), sqlQuery);
+                List.of(resourceTypeService.getResourceType("employee")), matchedIds);
 
         assertEquals(1, facets.size());
         Facet facet = facets.getFirst();
@@ -103,12 +100,9 @@ class SqlFacetServiceTest extends PostgreSqlTestContainerSupport {
 
         refreshEmployeeView();
         ResourceType employee = resourceTypeService.getResourceType("employee");
+        List<String> matchedIds = List.of(DatabaseConfiguration.TEST_RESOURCE_ID);
 
-        FacetFilter filter = employeeFilter();
-        filter.addFilter("tags", List.of("beta"));
-        SearchSqlQueryBuilder.SearchSqlQuery sqlQuery = searchQuery(filter);
-
-        List<Facet> facets = sqlFacetService.createFacets(List.of("tags"), List.of(employee), sqlQuery);
+        List<Facet> facets = sqlFacetService.createFacets(List.of("tags"), List.of(employee), matchedIds);
 
         assertEquals(1, facets.size());
         Facet facet = facets.getFirst();
@@ -117,26 +111,6 @@ class SqlFacetServiceTest extends PostgreSqlTestContainerSupport {
         Map<String, Long> counts = facet.getValues().stream()
                 .collect(Collectors.toMap(Value::getValue, Value::getCount));
         assertEquals(Map.of("alpha", 1L, "beta", 1L), counts);
-    }
-
-    private SearchSqlQueryBuilder.SearchSqlQuery searchQuery(FacetFilter filter) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("keyword", "%");
-        params.addValue("from", filter.getFrom());
-        params.addValue("quantity", filter.getQuantity());
-
-        return SearchSqlQueryBuilder.builder(dataSource)
-                .withFilter(filter)
-                .withResourceTypes(List.of(resourceTypeService.getResourceType("employee")))
-                .withParameters(params)
-                .buildSearchQuery();
-    }
-
-    private FacetFilter employeeFilter() {
-        FacetFilter filter = new FacetFilter();
-        filter.setResourceType("employee");
-        filter.setQuantity(10);
-        return filter;
     }
 
     private void refreshEmployeeView() {
