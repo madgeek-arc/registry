@@ -17,8 +17,6 @@
 package gr.uoa.di.madgik.registry.service;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import org.slf4j.Logger;
@@ -44,20 +42,20 @@ public class DefaultSearchService implements SearchService {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultSearchService.class);
 
-    private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "payloadFormat", "version"};
     private final NamedParameterJdbcTemplate npJdbcTemplate;
     private final DataSource dataSource;
-    private final ObjectMapper mapper;
     private final ResourceTypeService resourceTypeService;
+    private final SqlFacetService sqlFacetService;
+    private final ResourceRowMapper resourceRowMapper;
 
     public DefaultSearchService(@Qualifier("registryDataSource") DataSource dataSource,
-                                ResourceTypeService resourceTypeService) {
+                                ResourceTypeService resourceTypeService,
+                                SqlFacetService sqlFacetService) {
         this.dataSource = dataSource;
         this.npJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
-        mapper = new ObjectMapper().findAndRegisterModules();
-        mapper.setPropertyNamingStrategy(new ResourcePropertyName());
-//        mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
         this.resourceTypeService = resourceTypeService;
+        this.sqlFacetService = sqlFacetService;
+        this.resourceRowMapper = new ResourceRowMapper();
     }
 
     @Override
@@ -85,12 +83,9 @@ public class DefaultSearchService implements SearchService {
                 .withCqlQuery(query)
                 .buildCqlQuery();
 
-        Integer total = 0;
-        List<Resource> resources;
-
-        total = npJdbcTemplate.queryForObject(sqlQuery.countQuery(), sqlQuery.params(), new SingleColumnRowMapper<>(Integer.class));
-        List<Map<String, Object>> results = npJdbcTemplate.queryForList(sqlQuery.resultQuery(), sqlQuery.params());
-        resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).toList();
+        Integer total = npJdbcTemplate.queryForObject(sqlQuery.countQuery(), sqlQuery.params(),
+                new SingleColumnRowMapper<>(Integer.class));
+        List<Resource> resources = npJdbcTemplate.query(sqlQuery.resultQuery(), sqlQuery.params(), resourceRowMapper);
 
         return new Paging<>(total, from, from + quantity, resources, new ArrayList<>());
     }
@@ -120,12 +115,11 @@ public class DefaultSearchService implements SearchService {
                 .withParameters(params)
                 .buildSearchQuery();
 
-        Integer total = npJdbcTemplate.queryForObject(sqlQuery.countQuery(), sqlQuery.params(), new SingleColumnRowMapper<>(Integer.class));
-        List<Map<String, Object>> results = npJdbcTemplate.queryForList(sqlQuery.resultQuery(), sqlQuery.params());
-
-        List<Resource> resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).toList();
+        Integer total = npJdbcTemplate.queryForObject(sqlQuery.countQuery(), sqlQuery.params(),
+                new SingleColumnRowMapper<>(Integer.class));
+        List<Resource> resources = npJdbcTemplate.query(sqlQuery.resultQuery(), sqlQuery.params(), resourceRowMapper);
         return new Paging<>(total, filter.getFrom(), filter.getFrom() + filter.getQuantity(), resources,
-                createFacets(browseBy, resourceTypes, sqlQuery));
+                sqlFacetService.createFacets(browseBy, resourceTypes, sqlQuery));
     }
 
     @Override
@@ -136,73 +130,6 @@ public class DefaultSearchService implements SearchService {
     @Override
     public List<Resource> recommend(FacetFilter filter, KeyValue idValue) throws ServiceException {
         throw new UnsupportedOperationException(getClass().getSimpleName() + " does not support recommendations.");
-    }
-
-    private List<Facet> createFacets(List<String> browseBy, List<ResourceType> resourceTypes,
-                                     SearchSqlQueryBuilder.SearchSqlQuery sqlQuery) {
-        if (browseBy == null || browseBy.isEmpty()) {
-            return new ArrayList<>();
-        }
-        List<Facet> facets = new ArrayList<>();
-        for (String browse : browseBy) {
-            IndexField indexField = findFacetField(resourceTypes, browse);
-            if (indexField == null) {
-                continue;
-            }
-            Facet facet = new Facet();
-            facet.setField(browse);
-            facet.setLabel(indexField.getLabel());
-            facet.setValues(loadFacetValues(indexField, sqlQuery));
-            facets.add(facet);
-        }
-        return facets;
-    }
-
-    private IndexField findFacetField(List<ResourceType> resourceTypes, String fieldName) {
-        for (ResourceType resourceType : resourceTypes) {
-            for (IndexField indexField : resourceTypeService.getResourceTypeIndexFields(resourceType.getName())) {
-                if (fieldName.equals(indexField.getName())) {
-                    return indexField;
-                }
-            }
-        }
-        return null;
-    }
-
-    private List<Value> loadFacetValues(IndexField field, SearchSqlQueryBuilder.SearchSqlQuery sqlQuery) {
-        String matchedIdsQuery = "SELECT ar.id FROM (%s) ar WHERE ar.payload LIKE :keyword".formatted(sqlQuery.nestedQuery());
-        String valueExpression = field.isMultivalued() ? "facet_value" : "view_row.%s".formatted(field.getName());
-        String joinExpression = field.isMultivalued()
-                ? "CROSS JOIN LATERAL unnest(view_row.%s) AS facet_value ".formatted(field.getName())
-                : "";
-        String countExpression = field.isMultivalued() ? "COUNT(DISTINCT matched.id)" : "COUNT(*)";
-        String sql = """
-                SELECT CAST(%s AS text) AS value, %s AS count
-                FROM (%s) matched
-                INNER JOIN %s_view view_row ON view_row.id = matched.id
-                %s
-                WHERE %s IS NOT NULL
-                GROUP BY %s
-                ORDER BY count DESC, value ASC
-                """.formatted(
-                valueExpression,
-                countExpression,
-                matchedIdsQuery,
-                field.getResourceType().getName(),
-                joinExpression,
-                valueExpression,
-                valueExpression
-        );
-
-        List<Value> values = npJdbcTemplate.query(sql, sqlQuery.params(), (rs, rowNum) -> {
-            Value value = new Value();
-            value.setValue(rs.getString("value"));
-            value.setCount(rs.getLong("count"));
-            return value;
-        });
-        Collections.sort(values);
-        Collections.reverse(values);
-        return values;
     }
 
     private List<String> resolveBrowseBy(FacetFilter filter) {
@@ -249,7 +176,7 @@ public class DefaultSearchService implements SearchService {
 
         Resource result = null;
         try {
-            result = npJdbcTemplate.queryForObject(sqlQuery.resultQuery(), sqlQuery.params(), new ResourceRowMapper());
+            result = npJdbcTemplate.queryForObject(sqlQuery.resultQuery(), sqlQuery.params(), resourceRowMapper);
         } catch (EmptyResultDataAccessException _) {
             return null; // when no result is found
         } catch (Exception e) {
@@ -341,25 +268,6 @@ public class DefaultSearchService implements SearchService {
     private void validateQuantity(int quantity) {
         if (quantity < 0) {
             throw new IllegalArgumentException("Quantity cannot be negative.");
-        }
-    }
-
-    private static class ResourcePropertyName extends PropertyNamingStrategies.NamingBase {
-
-        @Override
-        public String translate(String propertyName) {
-            switch (propertyName) {
-                case "modificationDate":
-                    return "modification_date";
-                case "creationDate":
-                    return "creation_date";
-                case "resourceTypeName":
-                    return "fk_name";
-                case "payloadFormat":
-                    return "payloadformat";
-                default:
-                    return propertyName;
-            }
         }
     }
 }
