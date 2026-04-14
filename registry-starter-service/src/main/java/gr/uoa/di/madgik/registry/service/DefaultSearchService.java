@@ -24,6 +24,7 @@ import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Primary;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -103,6 +104,7 @@ public class DefaultSearchService implements SearchService {
     public Paging<Resource> search(FacetFilter filter) {
         validateQuantity(filter.getQuantity());
         List<String> browseBy = resolveBrowseBy(filter);
+        List<ResourceType> resourceTypes = getResourceTypes(filter.getResourceType());
         String keyword = StringUtils.hasText(filter.getKeyword())
                 ? "%" + filter.getKeyword() + "%"
                 : "%";
@@ -114,7 +116,7 @@ public class DefaultSearchService implements SearchService {
 
         SearchSqlQueryBuilder.SearchSqlQuery sqlQuery = SearchSqlQueryBuilder.builder(dataSource)
                 .withFilter(filter)
-                .withResourceTypes(getResourceTypes(filter.getResourceType()))
+                .withResourceTypes(resourceTypes)
                 .withParameters(params)
                 .buildSearchQuery();
 
@@ -122,7 +124,8 @@ public class DefaultSearchService implements SearchService {
         List<Map<String, Object>> results = npJdbcTemplate.queryForList(sqlQuery.resultQuery(), sqlQuery.params());
 
         List<Resource> resources = results.stream().map(r -> mapper.convertValue(r, Resource.class)).toList();
-        return new Paging<>(total, filter.getFrom(), filter.getFrom() + filter.getQuantity(), resources, createFacets(browseBy, filter.getResourceType()));
+        return new Paging<>(total, filter.getFrom(), filter.getFrom() + filter.getQuantity(), resources,
+                createFacets(browseBy, resourceTypes, sqlQuery));
     }
 
     @Override
@@ -135,20 +138,71 @@ public class DefaultSearchService implements SearchService {
         throw new UnsupportedOperationException(getClass().getSimpleName() + " does not support recommendations.");
     }
 
-    private List<Facet> createFacets(List<String> browseBy, String resourceTypeName) {
+    private List<Facet> createFacets(List<String> browseBy, List<ResourceType> resourceTypes,
+                                     SearchSqlQueryBuilder.SearchSqlQuery sqlQuery) {
         if (browseBy == null || browseBy.isEmpty()) {
             return new ArrayList<>();
         }
-        Map<String, String> fieldLabels = resourceTypeService.getIndexFieldLabels(resourceTypeName);
         List<Facet> facets = new ArrayList<>();
         for (String browse : browseBy) {
+            IndexField indexField = findFacetField(resourceTypes, browse);
+            if (indexField == null) {
+                continue;
+            }
             Facet facet = new Facet();
             facet.setField(browse);
-            facet.setLabel(fieldLabels.get(browse));
-            facet.setValues(new ArrayList<>()); // TODO: populate values
+            facet.setLabel(indexField.getLabel());
+            facet.setValues(loadFacetValues(indexField, sqlQuery));
             facets.add(facet);
         }
         return facets;
+    }
+
+    private IndexField findFacetField(List<ResourceType> resourceTypes, String fieldName) {
+        for (ResourceType resourceType : resourceTypes) {
+            for (IndexField indexField : resourceTypeService.getResourceTypeIndexFields(resourceType.getName())) {
+                if (fieldName.equals(indexField.getName())) {
+                    return indexField;
+                }
+            }
+        }
+        return null;
+    }
+
+    private List<Value> loadFacetValues(IndexField field, SearchSqlQueryBuilder.SearchSqlQuery sqlQuery) {
+        String matchedIdsQuery = "SELECT ar.id FROM (%s) ar WHERE ar.payload LIKE :keyword".formatted(sqlQuery.nestedQuery());
+        String valueExpression = field.isMultivalued() ? "facet_value" : "view_row.%s".formatted(field.getName());
+        String joinExpression = field.isMultivalued()
+                ? "CROSS JOIN LATERAL unnest(view_row.%s) AS facet_value ".formatted(field.getName())
+                : "";
+        String countExpression = field.isMultivalued() ? "COUNT(DISTINCT matched.id)" : "COUNT(*)";
+        String sql = """
+                SELECT CAST(%s AS text) AS value, %s AS count
+                FROM (%s) matched
+                INNER JOIN %s_view view_row ON view_row.id = matched.id
+                %s
+                WHERE %s IS NOT NULL
+                GROUP BY %s
+                ORDER BY count DESC, value ASC
+                """.formatted(
+                valueExpression,
+                countExpression,
+                matchedIdsQuery,
+                field.getResourceType().getName(),
+                joinExpression,
+                valueExpression,
+                valueExpression
+        );
+
+        List<Value> values = npJdbcTemplate.query(sql, sqlQuery.params(), (rs, rowNum) -> {
+            Value value = new Value();
+            value.setValue(rs.getString("value"));
+            value.setCount(rs.getLong("count"));
+            return value;
+        });
+        Collections.sort(values);
+        Collections.reverse(values);
+        return values;
     }
 
     private List<String> resolveBrowseBy(FacetFilter filter) {

@@ -2,10 +2,12 @@ package gr.uoa.di.madgik.registry.service;
 
 import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
 import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
+import gr.uoa.di.madgik.registry.domain.Facet;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.domain.Value;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -166,6 +168,22 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
         searchService.search(filter);
 
         assertEquals("John", filter.getKeyword());
+    }
+
+    @Test
+    void search_populatesFacetValues() {
+        FacetFilter filter = employeeFilter();
+        filter.setBrowseBy(List.of("age"));
+
+        Paging<Resource> result = searchService.search(filter);
+
+        assertEquals(1, result.getFacets().size());
+        Facet facet = result.getFacets().getFirst();
+        assertEquals("age", facet.getField());
+        assertEquals(1, facet.getValues().size());
+        Value value = facet.getValues().getFirst();
+        assertEquals("28", value.getValue());
+        assertEquals(1L, value.getCount());
     }
 
     @Test

@@ -76,10 +76,8 @@ public interface SearchService {
      * @return an immutable-safe map from id value to label value;
      *         entries are absent when no matching resource was found
      */
-    default Map<String, String> getLabels(String resourceType, String idField,
-                                          List<String> ids, String labelField) {
-        throw new UnsupportedOperationException(
-                getClass().getSimpleName() + " does not implement getLabels()");
+    default Map<String, String> getLabels(String resourceType, String idField, List<String> ids, String labelField) {
+        throw new UnsupportedOperationException(getClass().getSimpleName() + " does not implement getLabels()");
     }
 
     /**
