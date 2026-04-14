@@ -57,7 +57,8 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
 
     private ResourceType resourceType;
 
-    private int from, to;
+    private int from;
+    private int to;
 
     public DumpResourceReader(ResourceTypeDao resourceTypeDao, IndexMapperFactory indexMapperFactory) {
         this.resourceTypeDao = resourceTypeDao;

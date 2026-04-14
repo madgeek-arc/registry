@@ -21,6 +21,7 @@ import org.springframework.jdbc.core.RowMapper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 
 public class ResourceRowMapper implements RowMapper<Resource> {
 
@@ -28,8 +29,14 @@ public class ResourceRowMapper implements RowMapper<Resource> {
     public Resource mapRow(ResultSet rs, int rowNum) throws SQLException {
         Resource resource = new Resource();
         resource.setId(rs.getString("id"));
-        resource.setCreationDate(rs.getDate("creation_date").toInstant());
-        resource.setModificationDate(rs.getDate("modification_date").toInstant());
+        Timestamp creationDate = rs.getTimestamp("creation_date");
+        if (creationDate != null) {
+            resource.setCreationDate(creationDate.toInstant());
+        }
+        Timestamp modificationDate = rs.getTimestamp("modification_date");
+        if (modificationDate != null) {
+            resource.setModificationDate(modificationDate.toInstant());
+        }
         resource.setPayload(rs.getString("payload"));
         resource.setPayloadFormat(rs.getString("payloadformat"));
         resource.setVersion(rs.getString("version"));

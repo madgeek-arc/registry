@@ -49,7 +49,7 @@ public class ResourceController {
 
     @GetMapping(value = "/resources/indexed/{resourceId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<IndexedField>> getIndexedFields(@PathVariable("resourceId") String resourceId) {
-        return new ResponseEntity<>(indexedFieldService.getIndexedFields(resourceId), HttpStatus.OK);
+        return ResponseEntity.ok(indexedFieldService.getIndexedFields(resourceId));
     }
 
 
@@ -59,7 +59,7 @@ public class ResourceController {
         if (resource == null) {
             throw new ResourceNotFoundException();
         } else {
-            return new ResponseEntity<>(resource, HttpStatus.OK);
+            return ResponseEntity.ok(resource);
         }
     }
 
@@ -71,7 +71,7 @@ public class ResourceController {
         int total = resourceService.getTotal(resourceTypeService.getResourceType(resourceType)).intValue();
 
         Paging<Resource> paging = new Paging<>(total, from, to, results, null);
-        return new ResponseEntity<>(paging, HttpStatus.OK);
+        return ResponseEntity.ok(paging);
     }
 
     @GetMapping(value = "/resources", params = {"from", "to"}, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -81,7 +81,7 @@ public class ResourceController {
         int total = resourceService.getTotal(null).intValue();
 
         Paging<Resource> paging = new Paging<>(total, from, to, results, null);
-        return new ResponseEntity<>(paging, HttpStatus.OK);
+        return ResponseEntity.ok(paging);
     }
 
     @PostMapping(value = "/resources", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -112,7 +112,7 @@ public class ResourceController {
         resource.setModificationDate(Instant.now());
         Resource resourceFinal;
         resourceFinal = resourceService.updateResource(resource);
-        return new ResponseEntity<>(resourceFinal, HttpStatus.NO_CONTENT);
+        return ResponseEntity.ok(resourceFinal);
     }
 
     @DeleteMapping(value = "/resources/{id}")

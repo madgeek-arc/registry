@@ -62,8 +62,14 @@ public class ViewServiceImpl implements ViewService, ResourceTypeProjectionServi
     @Override
     @Transactional(readOnly = true)
     public List<String> fetchResourceIds(String resourceType) {
+        ResourceType resourceTypeDefinition = resourceTypeService.getResourceType(resourceType);
+        if (resourceTypeDefinition == null) {
+            throw new ServiceException("Unknown resource type '" + resourceType + "'");
+        }
+
+        String resourceTypeName = resourceTypeDefinition.getName();
         NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
-        String query = "SELECT id FROM " + resourceType + "_view";
+        String query = "SELECT id FROM " + resourceTypeName + "_view";
 
         List<Map<String, Object>> records;
         try {
@@ -72,7 +78,7 @@ public class ViewServiceImpl implements ViewService, ResourceTypeProjectionServi
             if (!isRecoverableViewFailure(e)) {
                 throw e;
             }
-            recreateView(resourceType);
+            recreateView(resourceTypeName);
             records = jdbcTemplate.queryForList(query, new MapSqlParameterSource());
         }
 
