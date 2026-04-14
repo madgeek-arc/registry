@@ -1,0 +1,11 @@
+spring:
+  ai:
+    model:
+      embedding: transformers
+    embedding:
+      transformer:
+        onnx:
+          modelUri: classpath:/onnx/all-MiniLM-L6-v2/model.onnx
+          modelOutputName: token_embeddings
+        tokenizer:
+          uri: classpath:/onnx/all-MiniLM-L6-v2/tokenizer.json

@@ -385,12 +385,15 @@
         <resources>
             <resource>
                 <directory>${basedir}/src/main/resources</directory>
+                <filtering>false</filtering>
+            </resource>
+            <resource>
+                <directory>${basedir}/src/main/resources</directory>
                 <filtering>true</filtering>
-                <excludes>
-                    <exclude>**/application*.yml</exclude>
-                    <exclude>**/application*.yaml</exclude>
-                    <exclude>**/application*.properties</exclude>
-                </excludes>
+                <includes>
+                    <include>**/application*.yaml</include>
+                    <include>**/application*.properties</include>
+                </includes>
             </resource>
         </resources>
     </build>
