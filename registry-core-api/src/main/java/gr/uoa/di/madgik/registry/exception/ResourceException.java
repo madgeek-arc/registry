@@ -22,7 +22,7 @@ import org.springframework.http.HttpStatus;
  * General resource exception.
  */
 public class ResourceException extends RuntimeException {
-    private HttpStatus status;
+    private final HttpStatus status;
 
     /**
      * Constructs a ResourceException having the specified {@link HttpStatus status} code.
@@ -36,7 +36,7 @@ public class ResourceException extends RuntimeException {
      */
     public ResourceException(String msg, HttpStatus status) {
         super(msg);
-        this.setStatus(status);
+        this.status = status;
     }
 
     /**
@@ -44,14 +44,11 @@ public class ResourceException extends RuntimeException {
      */
     public ResourceException(Exception e, HttpStatus status) {
         super(e);
-        this.setStatus(status);
+        this.status = status;
     }
 
     public HttpStatus getStatus() {
         return status;
     }
 
-    private void setStatus(HttpStatus status) {
-        this.status = status;
-    }
 }

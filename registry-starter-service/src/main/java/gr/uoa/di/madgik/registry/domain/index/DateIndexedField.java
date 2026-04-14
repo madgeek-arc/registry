@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 @Table
 public class DateIndexedField extends IndexedField<Instant> {
 
-    @Column/*(name = "vals")*/ // TODO: change column name because "values" is a db reserved keyword.
+    @Column
     @ElementCollection
     private Set<Instant> values;
 

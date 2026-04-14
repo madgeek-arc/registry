@@ -84,7 +84,7 @@ class ResourceDaoImplTest extends PostgreSqlTestContainerSupport {
     void getModifiedSince_OK() throws ParseException {
         Instant date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-18 15:59:22.122").toInstant();
         List<Resource> resources = resourceDao.getModifiedSince(date);
-        Assertions.assertNotEquals(resources.size(), 0);
+        Assertions.assertNotEquals(0, resources.size());
 
         Assertions.assertEquals(resources.get(0), testingResource);
     }
@@ -94,7 +94,7 @@ class ResourceDaoImplTest extends PostgreSqlTestContainerSupport {
     void getModifiedSince_NOTHING_MODIFIED_SINCE() throws ParseException {
         Instant date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-20 15:59:22.122").toInstant();
         List<Resource> resources = resourceDao.getModifiedSince(date);
-        Assertions.assertEquals(resources.size(), 0);
+        Assertions.assertEquals(0, resources.size());
     }
 
     @Test
@@ -102,7 +102,7 @@ class ResourceDaoImplTest extends PostgreSqlTestContainerSupport {
     void getCreatedSince_OK() throws ParseException {
         Instant date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-18 15:59:22.122").toInstant();
         List<Resource> resources = resourceDao.getCreatedSince(date);
-        Assertions.assertNotEquals(resources.size(), 0);
+        Assertions.assertNotEquals(0, resources.size());
         Resource resource = resources.get(0);
         Assertions.assertEquals(resource, testingResource);
     }
@@ -112,13 +112,13 @@ class ResourceDaoImplTest extends PostgreSqlTestContainerSupport {
     void getCreatedSince_NOTHING_CREATED_SINCE() throws ParseException {
         Instant date = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2018-09-20 15:59:22.122").toInstant();
         List<Resource> resources = resourceDao.getCreatedSince(date);
-        Assertions.assertEquals(resources.size(), 0);
+        Assertions.assertEquals(0, resources.size());
     }
 
     @Test
     @Order(7)
     void getResourceByResourceType_OK() {
-        Assertions.assertNotEquals(resourceDao.getResource(testingResourceType).size(), 0);
+        Assertions.assertNotEquals(0, resourceDao.getResource(testingResourceType).size());
     }
 
     @Test
@@ -130,25 +130,25 @@ class ResourceDaoImplTest extends PostgreSqlTestContainerSupport {
     @Test
     @Order(9)
     void getResourceByResourceTypeFromTo_OK() {
-        Assertions.assertNotEquals(resourceDao.getResource(testingResourceType, 0, 10).size(), 0);
+        Assertions.assertNotEquals(0, resourceDao.getResource(testingResourceType, 0, 10).size());
     }
 
     @Test
     @Order(10)
     void getResourceByResourceTypeFromTo_OUT_OF_RANGE() {
-        Assertions.assertEquals(resourceDao.getResource(testingResourceType, 2, 10).size(), 0);
+        Assertions.assertEquals(0, resourceDao.getResource(testingResourceType, 2, 10).size());
     }
 
     @Test
     @Order(11)
     void getResourcesFromTo_OK() {
-        Assertions.assertNotEquals(resourceDao.getResource(0, 10).size(), 0);
+        Assertions.assertNotEquals(0, resourceDao.getResource(0, 10).size());
     }
 
     @Test
     @Order(12)
     void getResourcesFromTo_OUT_OF_RANGE() {
-        Assertions.assertEquals(resourceDao.getResource(2, 10).size(), 0);
+        Assertions.assertEquals(0, resourceDao.getResource(2, 10).size());
     }
 
     @Test
@@ -166,7 +166,7 @@ class ResourceDaoImplTest extends PostgreSqlTestContainerSupport {
 
         resourceDao.addResource(resource);
 
-        Assertions.assertEquals(resourceDao.getResource().size(), 2);
+        Assertions.assertEquals(2, resourceDao.getResource().size());
     }
 
     @Test
@@ -201,6 +201,6 @@ class ResourceDaoImplTest extends PostgreSqlTestContainerSupport {
     @Order(16)
     void deleteResource() {
         resourceDao.deleteResource(resourceDao.getResource(TEST_RESOURCE_ID));
-        Assertions.assertEquals(resourceDao.getResource().size(), 0);
+        Assertions.assertEquals(0, resourceDao.getResource().size());
     }
 }

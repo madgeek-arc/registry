@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 @Entity
 public class FloatIndexedField extends IndexedField<Double> {
 
-    @Column/*(name = "vals")*/ // TODO: change column name because "values" is a db reserved keyword.
+    @Column
     @ElementCollection
     private Set<Double> values;
 

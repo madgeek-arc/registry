@@ -16,7 +16,6 @@
 
 package gr.uoa.di.madgik.registry.domain.index;
 
-import gr.uoa.di.madgik.registry.domain.index.IndexedField;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
@@ -32,7 +31,7 @@ import java.util.stream.Collectors;
 @Table
 public class BooleanIndexedField extends IndexedField<Boolean> {
 
-    @Column/*(name = "vals")*/ // TODO: change column name because "values" is a db reserved keyword.
+    @Column
     @ElementCollection
     private Set<Boolean> values;
 

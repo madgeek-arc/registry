@@ -45,7 +45,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -139,7 +138,7 @@ public class ElasticOperationsService implements IndexOperationsService {
     }
 
     @Override
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void add(Resource resource) {
         try {
             Map<String, Object> doc = createDocumentForInsert(resource);
@@ -150,14 +149,11 @@ public class ElasticOperationsService implements IndexOperationsService {
                     .refresh(Refresh.True));
         } catch (IOException e) {
             throw new ServiceException("Failed to index resource " + resource.getId(), e);
-        } catch (ElasticsearchException e) {
-            logger.error("Index: {} | Error: {}", resource.getResourceTypeName(), e.getLocalizedMessage());
-            throw e;
         }
     }
 
     @Override
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void update(Resource previousResource, Resource newResource) {
         try {
             Map<String, Object> newDoc = createDocumentForInsert(newResource);
@@ -173,7 +169,7 @@ public class ElasticOperationsService implements IndexOperationsService {
     }
 
     @Override
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void delete(String resourceId, String resourceType) {
         try {
             client.delete(d -> d.index(resourceType).id(resourceId).refresh(Refresh.True));
@@ -183,13 +179,13 @@ public class ElasticOperationsService implements IndexOperationsService {
     }
 
     @Override
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void delete(Resource resource) {
         delete(resource.getId(), resource.getResourceType().getName());
     }
 
     @Override
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void createIndex(ResourceType resourceType) {
         if (exists(resourceType.getName())) {
             return;
@@ -215,7 +211,7 @@ public class ElasticOperationsService implements IndexOperationsService {
     }
 
     @Override
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void updateIndex(ResourceType previous, ResourceType updated) {
         deleteIndex(updated.getName());
         createIndex(updated);
@@ -223,7 +219,7 @@ public class ElasticOperationsService implements IndexOperationsService {
     }
 
     @Override
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void deleteIndex(String name) {
         logger.info("Deleting index");
 

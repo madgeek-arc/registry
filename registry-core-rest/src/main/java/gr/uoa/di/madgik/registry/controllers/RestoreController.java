@@ -33,7 +33,7 @@ public class RestoreController {
         this.restoreService = restoreService;
     }
 
-    @RequestMapping(value = "/restore/", method = RequestMethod.POST)
+    @PostMapping(value = "/restore/")
     @ResponseBody
     public Map<String, BatchResult> restoreAll(@RequestParam("datafile") MultipartFile file) {
         return restoreService.restoreDataFromZip(file);

@@ -691,7 +691,7 @@ public class ElasticSearchService implements SearchService {
     }
 
     @Override
-    @Retryable(value = ServiceException.class, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, backoff = @Backoff(value = 200))
     public Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException {
         logger.debug(String.format("@Retryable 'searchId(resourceType=%s, ids={%s})'", resourceType,
                 String.join(",", Arrays.stream(fields)

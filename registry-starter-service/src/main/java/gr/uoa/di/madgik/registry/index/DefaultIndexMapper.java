@@ -59,7 +59,7 @@ public class DefaultIndexMapper implements IndexMapper {
                 String path = indexField.getPath();
                 String value = indexField.getDefaultValue();
                 Set<Object> values;
-                logger.debug("Indexing field " + fieldName + " (" + fieldType + ") with path " + path + " and DEFAULT VALUE:" + value);
+                logger.debug("Indexing field {} ({}) with path {} and DEFAULT VALUE: {}", fieldName, fieldType, path, value);
 
                 //if there is no xpath add default value
                 if (path == null) {
@@ -101,7 +101,9 @@ public class DefaultIndexMapper implements IndexMapper {
         else if (payloadType.equals("xml"))
             fieldParser = xmlFieldParser;
         else
-            fieldParser = null;
+            throw new ServiceException(
+                    "Unsupported payload format '" + payloadType + "'. "
+                            + "Supported formats are: 'json', 'xml'.");
 
         return fieldParser.parse(payload, fieldType, path, isMultiValued);
     }

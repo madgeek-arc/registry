@@ -82,7 +82,7 @@ public class ResourceType implements Serializable {
     private Map<String, String> properties = new HashMap<>();
 
     public ResourceType() {
-
+        // no-arg constructor
     }
 
     public String getName() {

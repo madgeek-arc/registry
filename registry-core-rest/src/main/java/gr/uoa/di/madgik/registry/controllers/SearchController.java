@@ -39,7 +39,7 @@ public class SearchController {
     }
 
     @BrowseParameters
-    @RequestMapping(value = "/search/{name}", method = RequestMethod.GET)
+    @GetMapping(value = "/search/{name}")
     public ResponseEntity<Paging> search(
             @PathVariable("name") String resourceType,
             @RequestParam(defaultValue = "{}") MultiValueMap<String, Object> allRequestParams
@@ -50,7 +50,7 @@ public class SearchController {
         return new ResponseEntity<>(searchService.search(filter), HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/search/cql/{resourceType}", method = RequestMethod.GET)
+    @GetMapping(value = "/search/cql/{resourceType}")
     public ResponseEntity<Paging> cql(@PathVariable("resourceType") String resourceType,
                                       @RequestParam("query") String query,
                                       @RequestParam(value = "from", required = false, defaultValue = "0") int from,

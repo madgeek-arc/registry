@@ -47,13 +47,13 @@ public class ResourceController {
         this.indexedFieldService = indexedFieldService;
     }
 
-    @RequestMapping(value = "/resources/indexed/{resourceId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/resources/indexed/{resourceId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<IndexedField>> getIndexedFields(@PathVariable("resourceId") String resourceId) {
         return new ResponseEntity<>(indexedFieldService.getIndexedFields(resourceId), HttpStatus.OK);
     }
 
 
-    @RequestMapping(value = "/resources/{resourceType}/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/resources/{resourceType}/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Resource> getResourceById(@PathVariable("resourceType") String resourceType, @PathVariable("id") String id) {
         Resource resource = resourceService.getResource(id);
         if (resource == null) {
@@ -63,7 +63,7 @@ public class ResourceController {
         }
     }
 
-    @RequestMapping(value = "/resources/{resourceType}", params = {"from", "to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/resources/{resourceType}", params = {"from", "to"}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Paging<Resource>> getResources(@PathVariable("resourceType") String resourceType,
                                                          @RequestParam(value = "from", defaultValue = "0") int from,
                                                          @RequestParam(value = "to", defaultValue = "10") int to) {
@@ -74,7 +74,7 @@ public class ResourceController {
         return new ResponseEntity<>(paging, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/resources", params = {"from", "to"}, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/resources", params = {"from", "to"}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Paging<Resource>> getAllResources(@RequestParam(value = "from", defaultValue = "0") int from,
                                                             @RequestParam(value = "to", defaultValue = "10") int to) {
         List<Resource> results = resourceService.getResource(from, to);
@@ -84,13 +84,13 @@ public class ResourceController {
         return new ResponseEntity<>(paging, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/resources", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/resources", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Resource> addResource(@RequestBody Resource resource) {
         resourceService.addResource(resource);
         return new ResponseEntity<>(resource, HttpStatus.CREATED);
     }
 
-    @RequestMapping(value = "/resources/{resourceId}/{resourceType}", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/resources/{resourceId}/{resourceType}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Resource> changeResourceType(
             @PathVariable("resourceId") String resourceId,
             @PathVariable("resourceType") String resourceTypeName
@@ -107,7 +107,7 @@ public class ResourceController {
         return new ResponseEntity<>(resource, HttpStatus.CREATED);
     }
 
-    @RequestMapping(value = "/resources", method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(value = "/resources", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Resource> updateResource(@RequestBody Resource resource) {
         resource.setModificationDate(Instant.now());
         Resource resourceFinal;
@@ -115,7 +115,7 @@ public class ResourceController {
         return new ResponseEntity<>(resourceFinal, HttpStatus.NO_CONTENT);
     }
 
-    @RequestMapping(value = "/resources/{id}", method = RequestMethod.DELETE)
+    @DeleteMapping(value = "/resources/{id}")
     public void deleteResources(@PathVariable("id") String id) {
         resourceService.deleteResource(id);
     }

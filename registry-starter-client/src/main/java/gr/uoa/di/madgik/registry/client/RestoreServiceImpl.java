@@ -48,7 +48,7 @@ public class RestoreServiceImpl implements RestoreService {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<String, Object>();
         body.add("datafile", file);
 
-        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<MultiValueMap<String, Object>>(body, headers);
+        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> response = restTemplate.postForEntity(registryHost + "/restore", requestEntity, String.class);

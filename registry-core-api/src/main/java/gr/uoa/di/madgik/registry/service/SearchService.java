@@ -27,13 +27,13 @@ import java.util.stream.Collectors;
 
 public interface SearchService {
 
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Paging<Resource> cqlQuery(String query, String resourceType, int quantity, int from, String sortByField, String sortOrder);
 
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Paging<Resource> cqlQuery(String query, String resourceType);
 
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Paging<Resource> search(FacetFilter filter) throws ServiceException;
 
     /**
@@ -45,19 +45,19 @@ public interface SearchService {
      * @return a list of recommended resources
      * @throws ServiceException if the reference resource cannot be retrieved or the recommendation query fails
      */
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     List<Resource> recommend(FacetFilter filter, KeyValue resourceIdAndValue) throws ServiceException;
 
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException;
 
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Paging<HighlightedResult<Resource>> searchWithHighlights(FacetFilter filter) throws ServiceException;
 
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException;
 
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category);
 
     /**

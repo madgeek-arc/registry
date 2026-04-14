@@ -43,44 +43,44 @@ public class NoopIndexOperationsService implements IndexOperationsService {
         logger.debug("addBulk() : no-op");
     }
 
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void add(Resource resource) {
         // no-op
         logger.debug("add() : no-op");
     }
 
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void update(Resource previousResource, Resource newResource) {
         // no-op
         logger.debug("update() : no-op");
     }
 
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void delete(String resourceId, String resourceType) {
         // no-op
         logger.debug("delete() : no-op");
     }
 
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void delete(Resource resource) {
         // no-op
         logger.debug("delete() : no-op");
     }
 
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void createIndex(ResourceType resourceType) {
         // no-op
         logger.debug("createIndex() : no-op");
     }
 
     @Override
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void updateIndex(ResourceType previous, ResourceType updated) {
         // no-op
         logger.debug("updateIndex() : no-op");
     }
 
-    @Retryable(value = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void deleteIndex(String name) {
         // no-op
         logger.debug("deleteIndex() : no-op");

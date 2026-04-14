@@ -37,7 +37,7 @@ public class SchemaController {
         this.resourceTypeService = resourceTypeService;
     }
 
-    @RequestMapping(value = "/schemaService/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_XML_VALUE)
+    @GetMapping(value = "/schemaService/{id}", produces = MediaType.APPLICATION_XML_VALUE)
     @ResponseBody
     public ResponseEntity getSchemaByName(@PathVariable("id") String id)  {
         Schema schema = resourceTypeService.getSchema(id);

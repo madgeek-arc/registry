@@ -54,7 +54,7 @@ public class DumpController {
     }
 
 
-    @RequestMapping(value = "/dump/", method = RequestMethod.GET)
+    @GetMapping(value = "/dump/")
     @ResponseBody
     public void dumpAll(
             @RequestParam(value = "raw", required = false, defaultValue = "false") String raw,

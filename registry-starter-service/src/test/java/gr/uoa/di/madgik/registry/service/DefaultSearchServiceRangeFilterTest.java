@@ -9,6 +9,8 @@ import gr.uoa.di.madgik.registry.domain.ResourceType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -56,54 +58,22 @@ class DefaultSearchServiceRangeFilterTest extends PostgreSqlTestContainerSupport
     // Integer range (age = 28)
     // -------------------------------------------------------------------------
 
-    @Test
-    void search_integerRange_bothBounds_hitsRecord() {
+    @ParameterizedTest
+    @CsvSource({
+            //"from, to, hits"
+            "20, 30, 1", // both bounds hits record
+            "30,  , 0",  // lower bound above value
+            ", 20, 0",   // upper bound below value
+            "20, , 1",   // lower bound hits record
+            ", 30, 1"    // upper bound hist record
+    })
+    void search_integerRange(Integer from, Integer to, int expected) {
         FacetFilter filter = employeeFilter();
-        filter.addRangeFilter("age", 20L, 30L, false);
+        filter.addRangeFilter("age", from, to, false);
 
         Paging<Resource> result = searchService.search(filter);
 
-        assertEquals(1, result.getTotal());
-    }
-
-    @Test
-    void search_integerRange_lowerBoundAboveValue_returnsEmpty() {
-        FacetFilter filter = employeeFilter();
-        filter.addRangeFilter("age", 30L, null, false);
-
-        Paging<Resource> result = searchService.search(filter);
-
-        assertEquals(0, result.getTotal());
-    }
-
-    @Test
-    void search_integerRange_upperBoundBelowValue_returnsEmpty() {
-        FacetFilter filter = employeeFilter();
-        filter.addRangeFilter("age", null, 20L, false);
-
-        Paging<Resource> result = searchService.search(filter);
-
-        assertEquals(0, result.getTotal());
-    }
-
-    @Test
-    void search_integerRange_onlyLowerBound_hitsRecord() {
-        FacetFilter filter = employeeFilter();
-        filter.addRangeFilter("age", 20L, null, false);
-
-        Paging<Resource> result = searchService.search(filter);
-
-        assertEquals(1, result.getTotal());
-    }
-
-    @Test
-    void search_integerRange_onlyUpperBound_hitsRecord() {
-        FacetFilter filter = employeeFilter();
-        filter.addRangeFilter("age", null, 30L, false);
-
-        Paging<Resource> result = searchService.search(filter);
-
-        assertEquals(1, result.getTotal());
+        assertEquals(expected, result.getTotal());
     }
 
     // -------------------------------------------------------------------------

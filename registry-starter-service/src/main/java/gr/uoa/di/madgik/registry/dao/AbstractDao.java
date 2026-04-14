@@ -39,7 +39,7 @@ public abstract class AbstractDao<T> {
     private EntityManager entityManager;
 
     @SuppressWarnings("unchecked")
-    public AbstractDao() {
+    protected AbstractDao() {
         this.persistentClass = (Class<T>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
     }
 
@@ -57,7 +57,6 @@ public abstract class AbstractDao<T> {
         return this.entityManager;
     }
 
-    @SuppressWarnings("unchecked")
     public T getSingleResult(String key, Object value) {
         CriteriaQuery<T> criteriaQuery = getCriteriaQuery();
         Root<T> root = criteriaQuery.from(persistentClass);

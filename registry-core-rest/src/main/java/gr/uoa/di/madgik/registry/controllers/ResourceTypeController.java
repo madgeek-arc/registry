@@ -44,12 +44,12 @@ public class ResourceTypeController {
         this.indexFieldService = indexFieldService;
     }
 
-    @RequestMapping(value = "/resourceType/index/{name}", method = RequestMethod.GET, headers = "Accept=application/json")
+    @GetMapping(value = "/resourceType/index/{name}", headers = "Accept=application/json")
     public ResponseEntity getResourceTypeIndexFields(@PathVariable("name") String name) {
         return new ResponseEntity(indexFieldService.getIndexFields(name), HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/resourceType/{name}", method = RequestMethod.GET, headers = "Accept=application/json")
+    @GetMapping(value = "/resourceType/{name}", headers = "Accept=application/json")
     public ResponseEntity<ResourceType> getResourceTypeByName(@PathVariable("name") String name) {
         ResourceType resourceType = resourceTypeService.getResourceType(name);
         if (resourceType == null) {
@@ -59,7 +59,7 @@ public class ResourceTypeController {
         }
     }
 
-    @RequestMapping(value = "/resourceType/", params = {"from"}, method = RequestMethod.GET, headers = "Accept=application/json")
+    @GetMapping(value = "/resourceType/", params = {"from"}, headers = "Accept=application/json")
     public ResponseEntity<Paging> getResourceTypes(@RequestParam(value = "from") int from) {
         List<ResourceType> results = resourceTypeService.getAllResourceType(from, 0);
         Paging paging = new Paging<>(results.size(), 0, results.size() - 1, results, null);
@@ -70,7 +70,7 @@ public class ResourceTypeController {
         }
     }
 
-    @RequestMapping(value = "/resourceType/", params = {"from", "to"}, method = RequestMethod.GET, headers = "Accept=application/json")
+    @GetMapping(value = "/resourceType/", params = {"from", "to"}, headers = "Accept=application/json")
     public ResponseEntity<Paging> getResourceTypes(@RequestParam(value = "from") int from, @RequestParam(value = "from") int to) {
         List<ResourceType> results = resourceTypeService.getAllResourceType(from, to);
         int total = resourceTypeService.getAllResourceType().size();
@@ -82,7 +82,7 @@ public class ResourceTypeController {
         }
     }
 
-    @RequestMapping(value = "/resourceType/", method = RequestMethod.GET, headers = "Accept=application/json")
+    @GetMapping(value = "/resourceType/", headers = "Accept=application/json")
     public ResponseEntity<Paging> getResourceTypes() {
         List<ResourceType> results = resourceTypeService.getAllResourceType();
         Paging paging = new Paging<>(results.size(), 0, results.size() - 1, results, null);
@@ -94,7 +94,7 @@ public class ResourceTypeController {
         }
     }
 
-    @RequestMapping(value = "/resourceType", method = RequestMethod.POST, headers = "Accept=application/json")
+    @PostMapping(value = "/resourceType", headers = "Accept=application/json")
     public ResponseEntity<ResourceType> addResourceType(@RequestBody ResourceType resourceType) {
         resourceType.setCreationDate(Instant.now());
         resourceType.setModificationDate(Instant.now());
@@ -107,7 +107,7 @@ public class ResourceTypeController {
         }
     }
 
-    @RequestMapping(value = "/resourceType/{name}", method = RequestMethod.PUT, headers = "Accept=application/json")
+    @PutMapping(value = "/resourceType/{name}", headers = "Accept=application/json")
     public ResponseEntity<ResourceType> updateResourceType(@PathVariable("name") String name,
                                                            @RequestBody ResourceType resourceType) {
         resourceType.setName(name);
@@ -120,7 +120,7 @@ public class ResourceTypeController {
         }
     }
 
-    @RequestMapping(value = "/resourceType/{name}", method = RequestMethod.DELETE, headers = "Accept=application/json")
+    @DeleteMapping(value = "/resourceType/{name}", headers = "Accept=application/json")
     public ResponseEntity<ResourceType> deleteResourceType(@PathVariable("name") String name) {
 
         try {

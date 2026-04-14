@@ -26,10 +26,7 @@ import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -114,7 +111,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
     @Override
     public ResourceType addResourceType(ResourceType resourceType) throws ServiceException {
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
 
 
@@ -130,7 +127,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
     @Override
     public ResourceType updateResourceType(ResourceType resourceType) throws ServiceException {
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
 
         HttpEntity<ResourceType> request = new HttpEntity<>(resourceType, headers);
