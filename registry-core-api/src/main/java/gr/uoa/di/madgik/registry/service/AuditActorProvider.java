@@ -14,21 +14,19 @@
  * limitations under the License.
  */
 
-package gr.uoa.di.madgik.registry.configuration;
+package gr.uoa.di.madgik.registry.service;
 
-import gr.uoa.di.madgik.registry.service.AuditActorProvider;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.EnableAspectJAutoProxy;
+/**
+ * Resolves the logical actor responsible for the current registry write operation.
+ *
+ * <p>Implementations may derive the actor id from Spring Security, batch jobs,
+ * API keys, or any other caller context without coupling the persistence layer
+ * to a specific security mechanism.
+ */
+public interface AuditActorProvider {
 
-@Configuration(proxyBeanMethods = false)
-@EnableAspectJAutoProxy
-public class ServiceConfiguration {
-
-    @Bean
-    @ConditionalOnMissingBean(AuditActorProvider.class)
-    AuditActorProvider auditActorProvider() {
-        return () -> "system";
-    }
+    /**
+     * Returns the actor id to persist on created/modified resources.
+     */
+    String currentActor();
 }

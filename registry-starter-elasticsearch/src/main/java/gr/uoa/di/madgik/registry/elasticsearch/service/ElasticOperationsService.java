@@ -278,6 +278,8 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectProperties.put("resourceType", TYPE_MAP);
         jsonObjectProperties.put("creation_date", DATE_MAP);
         jsonObjectProperties.put("modification_date", DATE_MAP);
+        jsonObjectProperties.put("created_by", TYPE_MAP);
+        jsonObjectProperties.put("modified_by", TYPE_MAP);
         jsonObjectProperties.put("embedding", DENSE_VECTOR_MAP);
 
         jsonObjectGeneral.put("properties", jsonObjectProperties);
@@ -302,6 +304,8 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectField.put("version", resource.getVersion());
         jsonObjectField.put("searchableArea", strip(resource.getPayload(), resource.getPayloadFormat()));
         jsonObjectField.put("modification_date", resource.getModificationDate().toString());
+        jsonObjectField.put("created_by", resource.getCreatedBy());
+        jsonObjectField.put("modified_by", resource.getModifiedBy());
         //The creation date exists and should not be updated
         if (resource.getCreationDate() != null) {
             jsonObjectField.put("creation_date", resource.getCreationDate().toString());

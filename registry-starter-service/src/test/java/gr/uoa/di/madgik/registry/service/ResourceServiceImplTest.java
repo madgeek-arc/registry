@@ -39,6 +39,7 @@ import java.util.List;
 
 import static gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration.TEST_MISSING_RESOURCE_ID;
 import static gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration.TEST_RESOURCE_ID;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
 @Transactional
@@ -46,8 +47,13 @@ import static gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration.TEST
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ResourceServiceImplTest extends PostgreSqlTestContainerSupport {
 
+    private static final String TEST_ACTOR = "resource-service-test";
+
     @MockitoBean
     EmbeddingModel embeddingModel;
+
+    @MockitoBean
+    AuditActorProvider auditActorProvider;
 
     @Autowired
     private ResourceService resourceService;
@@ -67,6 +73,7 @@ class ResourceServiceImplTest extends PostgreSqlTestContainerSupport {
 
     @BeforeEach
     void initialize() {
+        when(auditActorProvider.currentActor()).thenReturn(TEST_ACTOR);
         testingResource = resourceService.getResource(TEST_RESOURCE_ID);
         testingResourceType = resourceTypeDao.getResourceType("employee");
     }
@@ -76,6 +83,8 @@ class ResourceServiceImplTest extends PostgreSqlTestContainerSupport {
     void getResource_OK() {
         Resource resource = resourceService.getResource(TEST_RESOURCE_ID);
         Assertions.assertEquals(resource, testingResource);
+        Assertions.assertEquals("legacy", resource.getCreatedBy());
+        Assertions.assertEquals("legacy", resource.getModifiedBy());
     }
 
     @Test
@@ -136,6 +145,8 @@ class ResourceServiceImplTest extends PostgreSqlTestContainerSupport {
         Assertions.assertEquals(resourceService.getResource().size(), 2);
         Assertions.assertNotNull(created.getId());
         Assertions.assertNotNull(created.getVersion());
+        Assertions.assertEquals(TEST_ACTOR, created.getCreatedBy());
+        Assertions.assertEquals(TEST_ACTOR, created.getModifiedBy());
         Assertions.assertEquals(6, indexedFields.size());
 
     }
@@ -171,6 +182,8 @@ class ResourceServiceImplTest extends PostgreSqlTestContainerSupport {
 
         Assertions.assertEquals(resource.getPayload(), testingResource.getPayload());
         Assertions.assertNotEquals(previousVersion, updated.getVersion());
+        Assertions.assertEquals("legacy", updated.getCreatedBy());
+        Assertions.assertEquals(TEST_ACTOR, updated.getModifiedBy());
         Assertions.assertEquals(6, indexedFields.size());
         Assertions.assertTrue(getIndexedField(indexedFields, "first_name", StringIndexedField.class).getValues().contains("Makis Dimakis"));
         Assertions.assertTrue(getIndexedField(indexedFields, "age", IntegerIndexedField.class).getValues().contains(31L));
@@ -212,6 +225,7 @@ class ResourceServiceImplTest extends PostgreSqlTestContainerSupport {
         List<IndexedField> indexedFields = indexedFieldDao.getIndexedFieldsOfResource(reloaded);
 
         Assertions.assertEquals("employee-minimal", reloaded.getResourceTypeName());
+        Assertions.assertEquals(TEST_ACTOR, reloaded.getModifiedBy());
         Assertions.assertEquals(1, indexedFields.size());
         Assertions.assertTrue(getIndexedField(indexedFields, "author_only", StringIndexedField.class).getValues().contains("Jodeee"));
     }

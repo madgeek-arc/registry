@@ -73,7 +73,7 @@ import java.util.stream.Collectors;
 public class ElasticSearchService implements SearchService {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticSearchService.class);
-    private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "payloadFormat", "version"};
+    private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "created_by", "modified_by", "payloadFormat", "version"};
 
     private final ElasticsearchClient client;
     private final JacksonJsonpMapper jsonpMapper;

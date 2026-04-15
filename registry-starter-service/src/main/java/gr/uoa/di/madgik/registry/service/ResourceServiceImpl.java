@@ -23,6 +23,7 @@ import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.index.IndexedField;
 import gr.uoa.di.madgik.registry.index.IndexMapper;
 import gr.uoa.di.madgik.registry.index.IndexMapperFactory;
+import gr.uoa.di.madgik.registry.service.AuditActorProvider;
 import gr.uoa.di.madgik.registry.validation.ResourceSchemaValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,14 +52,17 @@ public class ResourceServiceImpl implements ResourceService {
     private final ResourceTypeDao resourceTypeDao;
     private final IndexMapperFactory indexMapperFactory;
     private final ResourceSchemaValidator resourceSchemaValidator;
+    private final AuditActorProvider auditActorProvider;
 
     public ResourceServiceImpl(ResourceDao resourceDao, ResourceTypeDao resourceTypeDao,
                                IndexMapperFactory indexMapperFactory,
-                               ResourceSchemaValidator resourceSchemaValidator) {
+                               ResourceSchemaValidator resourceSchemaValidator,
+                               AuditActorProvider auditActorProvider) {
         this.resourceDao = resourceDao;
         this.resourceTypeDao = resourceTypeDao;
         this.indexMapperFactory = indexMapperFactory;
         this.resourceSchemaValidator = resourceSchemaValidator;
+        this.auditActorProvider = auditActorProvider;
     }
 
     @Override
@@ -111,6 +115,9 @@ public class ResourceServiceImpl implements ResourceService {
         if (resource.getPayloadUrl() != null ^ resource.getPayload() != null) {
             resource.setCreationDate(Instant.now());
             resource.setModificationDate(Instant.now());
+            String actor = currentActor();
+            resource.setCreatedBy(actor);
+            resource.setModifiedBy(actor);
             resource.setPayloadFormat(resource.getResourceType().getPayloadType());
         } else {
             throw new ServiceException("Payload and PayloadUrl conflict : neither set or both set");
@@ -158,6 +165,7 @@ public class ResourceServiceImpl implements ResourceService {
         oldResource.setPayloadUrl(resource.getPayloadUrl());
         oldResource.setSearchableArea(resource.getSearchableArea());
         oldResource.setResourceTypeName(resource.getResourceTypeName());
+        oldResource.setModifiedBy(currentActor());
 
         List<IndexedField> indexedFields = getIndexedFields(oldResource);
         for (IndexedField indexedField : indexedFields) {
@@ -199,6 +207,7 @@ public class ResourceServiceImpl implements ResourceService {
 
         managedResource.setResourceType(resourceType);
         managedResource.setResourceTypeName(resourceType.getName());
+        managedResource.setModifiedBy(currentActor());
 
         resourceSchemaValidator.validate(managedResource);
 
@@ -242,5 +251,10 @@ public class ResourceServiceImpl implements ResourceService {
             throw new ServiceException("Error extracting fields", e);
         }
 
+    }
+
+    private String currentActor() {
+        String actor = auditActorProvider.currentActor();
+        return actor == null || actor.isBlank() ? "system" : actor;
     }
 }

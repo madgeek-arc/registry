@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS public.resource (
                                                id character varying(255) NOT NULL,
                                                creation_date timestamp(6) with time zone NOT NULL,
                                                modification_date timestamp(6) with time zone NOT NULL,
+                                               created_by character varying(255) NOT NULL,
+                                               modified_by character varying(255) NOT NULL,
                                                payload text NOT NULL,
                                                payloadformat character varying(255) NOT NULL,
                                                version character varying(255) NOT NULL,
@@ -165,8 +167,10 @@ CREATE TABLE IF NOT EXISTS public.longindexedfield_values (
 CREATE TABLE IF NOT EXISTS public.resourcetype (
                                                    name character varying(255) NOT NULL,
                                                    creation_date timestamp(6) with time zone NOT NULL,
+                                                   created_by character varying(255) NOT NULL,
                                                    indexmapperclass character varying(255),
                                                    modification_date timestamp(6) with time zone NOT NULL,
+                                                   modified_by character varying(255) NOT NULL,
                                                    payloadtype character varying(255) NOT NULL,
                                                    schema text NOT NULL,
                                                    schemaurl character varying(255)
@@ -256,4 +260,3 @@ CREATE INDEX flyway_schema_history_s_idx ON flyway_schema_history (success);
 --
 -- PostgreSQL database dump complete
 --
-

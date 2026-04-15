@@ -38,13 +38,19 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
 @Transactional
 class ResourceTypeServiceImplTest extends PostgreSqlTestContainerSupport {
 
+    private static final String TEST_ACTOR = "resource-type-test";
+
     @MockitoBean
     EmbeddingModel embeddingModel;
+
+    @MockitoBean
+    AuditActorProvider auditActorProvider;
 
     @Autowired
     ResourceTypeService resourceTypeService;
@@ -59,7 +65,19 @@ class ResourceTypeServiceImplTest extends PostgreSqlTestContainerSupport {
     EntityManager entityManager;
 
     @Test
+    void getResourceType_returns_seeded_audit_metadata() {
+        when(auditActorProvider.currentActor()).thenReturn(TEST_ACTOR);
+
+        ResourceType existing = resourceTypeService.getResourceType("employee");
+
+        assertThat(existing.getCreatedBy()).isEqualTo("legacy");
+        assertThat(existing.getModifiedBy()).isEqualTo("legacy");
+    }
+
+    @Test
     void updateResourceType_replaces_index_fields_and_updates_schema_entry() {
+        when(auditActorProvider.currentActor()).thenReturn(TEST_ACTOR);
+
         ResourceType existing = resourceTypeService.getResourceType("employee");
 
         ResourceType updated = new ResourceType();
@@ -90,9 +108,12 @@ class ResourceTypeServiceImplTest extends PostgreSqlTestContainerSupport {
         assertThat(persisted.getIndexFields())
                 .extracting(IndexField::getName)
                 .containsExactlyInAnyOrder("employee_id", "salary");
+        assertThat(persisted.getCreatedBy()).isEqualTo("legacy");
+        assertThat(persisted.getModifiedBy()).isEqualTo(TEST_ACTOR);
         assertThat(resourceTypeService.getResourceTypeIndexFields("employee"))
                 .extracting(IndexField::getName)
                 .containsExactlyInAnyOrder("employee_id", "salary");
+        assertThat(resourceTypeService.getResourceType("employee").getModifiedBy()).isEqualTo(TEST_ACTOR);
         assertThat(resourceTypeService.getAllResourceTypeByAlias("updatedTypes"))
                 .extracting(ResourceType::getName)
                 .containsExactly("employee");
@@ -101,6 +122,8 @@ class ResourceTypeServiceImplTest extends PostgreSqlTestContainerSupport {
 
     @Test
     void updateResourceType_recreates_view_with_updated_columns() {
+        when(auditActorProvider.currentActor()).thenReturn(TEST_ACTOR);
+
         ResourceType existing = resourceTypeService.getResourceType("employee");
         viewService.createView(existing);
 

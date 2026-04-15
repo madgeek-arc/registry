@@ -53,6 +53,12 @@ public class ResourceType {
     @Column(name = "modification_date", nullable = false)
     private Instant modificationDate;
 
+    @Column(name = "created_by", nullable = false, updatable = false, length = 255)
+    private String createdBy;
+
+    @Column(name = "modified_by", nullable = false, length = 255)
+    private String modifiedBy;
+
     @Column
     private String indexMapperClass;
 
@@ -121,6 +127,22 @@ public class ResourceType {
         this.modificationDate = modificationDate;
     }
 
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public String getModifiedBy() {
+        return modifiedBy;
+    }
+
+    public void setModifiedBy(String modifiedBy) {
+        this.modifiedBy = modifiedBy;
+    }
+
     public String getSchemaUrl() {
         return schemaUrl;
     }
@@ -160,11 +182,20 @@ public class ResourceType {
     @PrePersist
     protected void onCreate() {
         modificationDate = creationDate = Instant.now();
+        if (createdBy == null || createdBy.isBlank()) {
+            createdBy = "system";
+        }
+        if (modifiedBy == null || modifiedBy.isBlank()) {
+            modifiedBy = createdBy;
+        }
     }
 
     @PreUpdate
     protected void onUpdate() {
         modificationDate = Instant.now();
+        if (modifiedBy == null || modifiedBy.isBlank()) {
+            modifiedBy = createdBy == null || createdBy.isBlank() ? "system" : createdBy;
+        }
     }
 
     public Set<String> getAliases() {

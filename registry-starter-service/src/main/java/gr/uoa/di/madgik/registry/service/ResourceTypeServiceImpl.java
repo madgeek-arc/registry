@@ -74,11 +74,14 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
     private final ResourceTypeDao resourceTypeDao;
     private final SchemaDao schemaDao;
+    private final AuditActorProvider auditActorProvider;
 
 
-    public ResourceTypeServiceImpl(ResourceTypeDao resourceTypeDao, SchemaDao schemaDao) {
+    public ResourceTypeServiceImpl(ResourceTypeDao resourceTypeDao, SchemaDao schemaDao,
+                                   AuditActorProvider auditActorProvider) {
         this.resourceTypeDao = resourceTypeDao;
         this.schemaDao = schemaDao;
+        this.auditActorProvider = auditActorProvider;
     }
 
     private static int isValidUrl(String Url, boolean isFromUrl) {
@@ -199,6 +202,10 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
         if (resourceType.getIndexMapperClass() == null)
             resourceType.setIndexMapperClass(DefaultIndexMapper.class.getName());
 
+        String actor = currentActor();
+        resourceType.setCreatedBy(actor);
+        resourceType.setModifiedBy(actor);
+
         if (resourceType.getIndexFields() == null ||
                 resourceType.getIndexFields().stream().noneMatch(IndexField::isPrimaryKey)) {
             throw new ServiceException(
@@ -254,6 +261,7 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
         existing.setIndexMapperClass(resourceType.getIndexMapperClass());
         existing.setAliases(resourceType.getAliases() == null ? new java.util.HashSet<>() : new java.util.HashSet<>(resourceType.getAliases()));
         existing.setProperties(resourceType.getProperties() == null ? new java.util.HashMap<>() : new java.util.HashMap<>(resourceType.getProperties()));
+        existing.setModifiedBy(currentActor());
 
         if (existing.getIndexFields() == null) {
             existing.setIndexFields(new ArrayList<>());
@@ -406,5 +414,10 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
         } catch (Exception ex) {
             throw new RuntimeException("Error converting to String", ex);
         }
+    }
+
+    private String currentActor() {
+        String actor = auditActorProvider.currentActor();
+        return actor == null || actor.isBlank() ? "system" : actor;
     }
 }

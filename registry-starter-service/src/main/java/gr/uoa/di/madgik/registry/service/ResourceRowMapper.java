@@ -37,6 +37,8 @@ public class ResourceRowMapper implements RowMapper<Resource> {
         if (modificationDate != null) {
             resource.setModificationDate(modificationDate.toInstant());
         }
+        resource.setCreatedBy(rs.getString("created_by"));
+        resource.setModifiedBy(rs.getString("modified_by"));
         resource.setPayload(rs.getString("payload"));
         resource.setPayloadFormat(rs.getString("payloadformat"));
         resource.setVersion(rs.getString("version"));

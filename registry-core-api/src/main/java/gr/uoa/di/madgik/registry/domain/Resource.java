@@ -66,6 +66,12 @@ public class Resource {
     @Column(name = "modification_date", nullable = false)
     private Instant modificationDate;
 
+    @Column(name = "created_by", nullable = false, updatable = false, length = 255)
+    private String createdBy;
+
+    @Column(name = "modified_by", nullable = false, length = 255)
+    private String modifiedBy;
+
     @OneToMany(cascade = {CascadeType.ALL}, orphanRemoval = true, mappedBy = "resource", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<IndexedField> indexedFields;
@@ -135,6 +141,22 @@ public class Resource {
         this.modificationDate = modificationDate;
     }
 
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public String getModifiedBy() {
+        return modifiedBy;
+    }
+
+    public void setModifiedBy(String modifiedBy) {
+        this.modifiedBy = modifiedBy;
+    }
+
     public String getPayloadUrl() {
         return payloadUrl;
     }
@@ -168,6 +190,12 @@ public class Resource {
         if (modificationDate == null)
             modificationDate = Instant.now();
 
+        if (createdBy == null || createdBy.isBlank())
+            createdBy = "system";
+
+        if (modifiedBy == null || modifiedBy.isBlank())
+            modifiedBy = createdBy;
+
         version = generateVersion();
     }
 
@@ -175,6 +203,10 @@ public class Resource {
     protected void onUpdate() {
 
         modificationDate = Instant.now();
+
+        if (modifiedBy == null || modifiedBy.isBlank())
+            modifiedBy = createdBy == null || createdBy.isBlank() ? "system" : createdBy;
+
         version = generateVersion();
     }
 
@@ -219,11 +251,11 @@ public class Resource {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Resource resource = (Resource) o;
-        return Objects.equals(id, resource.id) && Objects.equals(resourceTypeName, resource.resourceTypeName) && Objects.equals(version, resource.version) && Objects.equals(payload, resource.payload) && Objects.equals(payloadUrl, resource.payloadUrl) && Objects.equals(searchableArea, resource.searchableArea) && Objects.equals(payloadFormat, resource.payloadFormat) && Objects.equals(creationDate, resource.creationDate) && Objects.equals(modificationDate, resource.modificationDate);
+        return Objects.equals(id, resource.id) && Objects.equals(resourceTypeName, resource.resourceTypeName) && Objects.equals(version, resource.version) && Objects.equals(payload, resource.payload) && Objects.equals(payloadUrl, resource.payloadUrl) && Objects.equals(searchableArea, resource.searchableArea) && Objects.equals(payloadFormat, resource.payloadFormat) && Objects.equals(creationDate, resource.creationDate) && Objects.equals(modificationDate, resource.modificationDate) && Objects.equals(createdBy, resource.createdBy) && Objects.equals(modifiedBy, resource.modifiedBy);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, resourceTypeName, version, payload, payloadUrl, searchableArea, payloadFormat, creationDate, modificationDate);
+        return Objects.hash(id, resourceTypeName, version, payload, payloadUrl, searchableArea, payloadFormat, creationDate, modificationDate, createdBy, modifiedBy);
     }
 }

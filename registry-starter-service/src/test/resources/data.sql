@@ -7,10 +7,10 @@
 -- Data for Name: resourcetype; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.resourcetype (name, creation_date, indexmapperclass, modification_date, payloadtype,
+INSERT INTO public.resourcetype (name, creation_date, created_by, indexmapperclass, modification_date, modified_by, payloadtype,
                                  schema, schemaurl)
-VALUES ('employee', '2018-12-03 13:03:59.871', 'gr.uoa.di.madgik.registry.index.DefaultIndexMapper',
-        '2018-12-03 13:03:59.871', 'xml', '
+VALUES ('employee', '2018-12-03 13:03:59.871', 'legacy', 'gr.uoa.di.madgik.registry.index.DefaultIndexMapper',
+        '2018-12-03 13:03:59.871', 'legacy', 'xml', '
 
 <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <xs:element name="employee">
@@ -35,8 +35,8 @@ VALUES ('employee', 'resourceTypes');
 -- Data for Name: resource; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
-INSERT INTO public.resource (id, creation_date, modification_date, payload, payloadformat, version, fk_name)
-VALUES ('e98db949-f3e3-4d30-9894-7dd2e291fbef', '2018-09-19 15:59:22.122', '2018-09-19 15:59:22.122', '<?xml version="1.0"?> <employee> <author>Jodeee</author> <age>28</age> <single>false</single> <birthday>645544821000</birthday> <salary>1292.123</salary> <amka>051417010293821</amka></employee>
+INSERT INTO public.resource (id, creation_date, modification_date, created_by, modified_by, payload, payloadformat, version, fk_name)
+VALUES ('e98db949-f3e3-4d30-9894-7dd2e291fbef', '2018-09-19 15:59:22.122', '2018-09-19 15:59:22.122', 'legacy', 'legacy', '<?xml version="1.0"?> <employee> <author>Jodeee</author> <age>28</age> <single>false</single> <birthday>645544821000</birthday> <salary>1292.123</salary> <amka>051417010293821</amka></employee>
 ', 'xml', '12032018130400', 'employee');
 
 
