@@ -72,6 +72,26 @@ public class GenericController {
         return ResponseEntity.ok(genericResourceService.getResults(filter));
     }
 
+    @GetMapping(path = "{resourceType}/semantic")
+    @BrowseParameters
+    public ResponseEntity<Paging<Object>> semanticBrowse(@Parameter(hidden = true)
+                                                         @RequestParam MultiValueMap<String, Object> params,
+                                                         @PathVariable("resourceType") String resourceType) {
+        FacetFilter filter = FacetFilter.from(params);
+        filter.setResourceType(resourceType);
+        return ResponseEntity.ok(genericResourceService.getSemanticResults(filter));
+    }
+
+    @GetMapping(path = "{resourceType}/hybrid")
+    @BrowseParameters
+    public ResponseEntity<Paging<Object>> hybridBrowse(@Parameter(hidden = true)
+                                                       @RequestParam MultiValueMap<String, Object> params,
+                                                       @PathVariable("resourceType") String resourceType) {
+        FacetFilter filter = FacetFilter.from(params);
+        filter.setResourceType(resourceType);
+        return ResponseEntity.ok(genericResourceService.getHybridResults(filter));
+    }
+
     @GetMapping("{resourceType}/highlighted")
     @BrowseParameters
     public ResponseEntity<Paging<HighlightedResult<Object>>> browseHighlighted(

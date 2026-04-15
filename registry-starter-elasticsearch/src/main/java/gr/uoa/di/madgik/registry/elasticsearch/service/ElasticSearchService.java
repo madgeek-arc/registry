@@ -53,6 +53,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
+import org.springframework.util.StringUtils;
 import org.xbib.cql.CQLParser;
 import org.xbib.cql.elasticsearch.ElasticsearchQueryGenerator;
 
@@ -120,49 +121,118 @@ public class ElasticSearchService implements SearchService {
         });
     }
 
-    /**
-     * Builds the painless script used to blend text relevance with embedding similarity.
-     */
-    private ObjectNode cosineScriptScoreQuery(float[] queryVector) {
-        ObjectNode script = mapper.createObjectNode();
-        ObjectNode params = script.putObject("params");
-        ArrayNode q = params.putArray("q");
+    private ObjectNode knnQueryNode(float[] queryVector, int k, float boost, Float similarity) {
+        ObjectNode query = mapper.createObjectNode();
+        ObjectNode knn = query.putObject("knn");
+        knn.put("field", "embedding");
+        ArrayNode vector = knn.putArray("query_vector");
         for (float value : queryVector) {
-            q.add(value);
+            vector.add(value);
         }
-        params.put("text_w", 1.0);
-        params.put("vec_w", 2.0);
-        script.put("source", """
-                    double text = _score;
-                    if (!doc.containsKey('embedding') || doc['embedding'].size() == 0) {
-                        return text;
-                    }
-                    double vec = cosineSimilarity(params.q, doc['embedding']) + 1.0;
-                    return params.text_w * text + params.vec_w * vec;
-                """);
-        return script;
+        knn.put("k", k);
+        knn.put("num_candidates", knnNumCandidates(k));
+        knn.put("boost", boost);
+        if (similarity != null) {
+            knn.put("similarity", similarity);
+        }
+        return query;
     }
 
-    /**
-     * Builds the main boolean query from the incoming facet filter.
-     */
-    private ObjectNode createQueryNode(FacetFilter filter) {
+    private ObjectNode createLexicalQueryNode(FacetFilter filter) {
         ObjectNode bool = mapper.createObjectNode();
         ArrayNode must = bool.putArray("must");
 
         if (filter.getKeyword() != null && !filter.getKeyword().isEmpty()) {
             Set<String> textFields = new HashSet<>(getTextFields(filter.getResourceType()));
-            ObjectNode scriptScore = mapper.createObjectNode();
-            ObjectNode scriptScoreBody = scriptScore.putObject("script_score");
-            ObjectNode multiMatch = scriptScoreBody.putObject("query").putObject("multi_match");
-            multiMatch.put("query", filter.getKeyword());
-            ArrayNode fields = multiMatch.putArray("fields");
+            ObjectNode textQuery = must.addObject().putObject("multi_match");
+            textQuery.put("query", filter.getKeyword());
+            ArrayNode fields = textQuery.putArray("fields");
             textFields.forEach(fields::add);
-            scriptScoreBody.set("script", cosineScriptScoreQuery(embeddingService.embed(filter.getKeyword())));
-            must.add(scriptScore);
         } else {
             must.addObject().putObject("match_all");
         }
+
+        applyFilters(filter.getFilter(), bool);
+        applyRangeFilters(filter.getRangeFilters(), bool);
+        return mapper.createObjectNode().set("bool", bool);
+    }
+
+    // Preserved for tests and internal callers that still expect the lexical query builder.
+    private ObjectNode createQueryNode(FacetFilter filter) {
+        return createLexicalQueryNode(filter);
+    }
+
+    /**
+     * Builds the hybrid lexical + vector query from the incoming facet filter.
+     */
+    private ObjectNode createHybridQueryNode(FacetFilter filter) {
+        ObjectNode bool = mapper.createObjectNode();
+        ArrayNode must = bool.putArray("must");
+
+        if (filter.getKeyword() != null && !filter.getKeyword().isEmpty()) {
+            Set<String> textFields = new HashSet<>(getTextFields(filter.getResourceType()));
+            ArrayNode should = bool.putArray("should");
+            ObjectNode textQuery = mapper.createObjectNode();
+            ObjectNode multiMatch = textQuery.putObject("multi_match");
+            multiMatch.put("query", filter.getKeyword());
+            ArrayNode fields = multiMatch.putArray("fields");
+            textFields.forEach(fields::add);
+            should.add(textQuery);
+
+            float[] embedding = embeddingService.embed(filter.getKeyword());
+            if (!embeddingIsEmpty(embedding)) {
+                should.add(knnQueryNode(embedding, knnWindow(filter), 2.0f, null));
+            }
+            bool.put("minimum_should_match", 1);
+        } else {
+            must.addObject().putObject("match_all");
+        }
+
+        applyFilters(filter.getFilter(), bool);
+        applyRangeFilters(filter.getRangeFilters(), bool);
+        return mapper.createObjectNode().set("bool", bool);
+    }
+
+    private ObjectNode createSemanticQueryNode(FacetFilter filter) {
+        if (!StringUtils.hasText(filter.getKeyword())) {
+            throw new ServiceException("Semantic search requires a non-empty keyword.");
+        }
+
+        float[] embedding = embeddingService.embed(filter.getKeyword());
+        if (embeddingIsEmpty(embedding)) {
+            ObjectNode bool = mapper.createObjectNode();
+            bool.putArray("must").addObject().putObject("match_none");
+            return mapper.createObjectNode().set("bool", bool);
+        }
+
+        ObjectNode bool = mapper.createObjectNode();
+        ArrayNode must = bool.putArray("must");
+        must.add(knnQueryNode(embedding, knnWindow(filter), 1.0f, 0.0f));
+
+        applyFilters(filter.getFilter(), bool);
+        applyRangeFilters(filter.getRangeFilters(), bool);
+        return mapper.createObjectNode().set("bool", bool);
+    }
+
+    private ObjectNode createRecommendationQueryNode(FacetFilter filter, KeyValue resourceIdAndValue, float[] embedding) {
+        ObjectNode bool = mapper.createObjectNode();
+        ArrayNode must = bool.putArray("must");
+        ArrayNode mustNot = bool.putArray("must_not");
+
+        must.add(knnQueryNode(embedding, knnWindow(filter), 1.0f, 0.0f));
+
+        if (filter.getKeyword() != null && !filter.getKeyword().isEmpty()) {
+            Set<String> textFields = new HashSet<>(getTextFields(filter.getResourceType()));
+            ObjectNode textQuery = mapper.createObjectNode();
+            ObjectNode multiMatch = textQuery.putObject("multi_match");
+            multiMatch.put("query", filter.getKeyword());
+            ArrayNode fields = multiMatch.putArray("fields");
+            textFields.forEach(fields::add);
+            must.add(textQuery);
+        }
+
+        mustNot.addObject().putObject("terms")
+                .set(resourceIdAndValue.getField(), mapper.createArrayNode().add(resourceIdAndValue.getValue()));
 
         applyFilters(filter.getFilter(), bool);
         applyRangeFilters(filter.getRangeFilters(), bool);
@@ -281,7 +351,7 @@ public class ElasticSearchService implements SearchService {
     // Search execution
     // -------------------------------------------------------------------------
 
-    private Paging<Resource> buildSearch(FacetFilter filter) {
+    private Paging<Resource> buildSearch(FacetFilter filter, ObjectNode queryNode) {
         filter.setBrowseBy(resolveBrowseBy(filter));
         int quantity = filter.getQuantity();
         validateQuantity(quantity);
@@ -290,7 +360,7 @@ public class ElasticSearchService implements SearchService {
             SearchResponse<ObjectNode> response = client.search(s -> s
                             .index(filter.getResourceType())
                             .searchType(SearchType.DfsQueryThenFetch)
-                            .query(toQuery(createQueryNode(filter)))
+                            .query(toQuery(queryNode))
                             .source(src -> src.filter(f -> f.includes(List.of(INCLUDES))))
                             .from(filter.getFrom())
                             .size(quantity)
@@ -313,7 +383,7 @@ public class ElasticSearchService implements SearchService {
             SearchResponse<ObjectNode> response = client.search(s -> s
                             .index(filter.getResourceType())
                             .searchType(SearchType.DfsQueryThenFetch)
-                            .query(toQuery(createQueryNode(filter)))
+                            .query(toQuery(createLexicalQueryNode(filter)))
                             .source(src -> src.filter(f -> f.includes(List.of(INCLUDES))))
                             .from(filter.getFrom())
                             .size(quantity)
@@ -336,7 +406,7 @@ public class ElasticSearchService implements SearchService {
             SearchResponse<ObjectNode> response = client.search(s -> s
                             .index(filter.getResourceType())
                             .searchType(SearchType.DfsQueryThenFetch)
-                            .query(toQuery(createQueryNode(filter)))
+                            .query(toQuery(createLexicalQueryNode(filter)))
                             .source(src -> src.fetch(false))
                             .size(0)
                             .trackTotalHits(t -> t.enabled(true))
@@ -531,6 +601,14 @@ public class ElasticSearchService implements SearchService {
         return empty;
     }
 
+    private int knnWindow(FacetFilter filter) {
+        return Math.max(1, Math.min(maxQuantity, filter.getFrom() + Math.max(filter.getQuantity(), 1)));
+    }
+
+    private int knnNumCandidates(int k) {
+        return Math.min(maxQuantity, Math.max(k * 2, 50));
+    }
+
     private float[] getEmbeddingForResource(String resourceType, KeyValue resourceIdAndValue) {
         try {
             List<FieldValue> fieldValues = List.of(FieldValue.of(resourceIdAndValue.getValue()));
@@ -615,7 +693,17 @@ public class ElasticSearchService implements SearchService {
 
     @Override
     public Paging<Resource> search(FacetFilter filter) {
-        return buildSearch(filter);
+        return buildSearch(filter, createLexicalQueryNode(filter));
+    }
+
+    @Override
+    public Paging<Resource> semanticSearch(FacetFilter filter) {
+        return buildSearch(filter, createSemanticQueryNode(filter));
+    }
+
+    @Override
+    public Paging<Resource> hybridSearch(FacetFilter filter) {
+        return buildSearch(filter, createHybridQueryNode(filter));
     }
 
     @Override
@@ -631,28 +719,7 @@ public class ElasticSearchService implements SearchService {
             );
         }
 
-        ObjectNode bool = mapper.createObjectNode();
-        ArrayNode mustNot = bool.putArray("must_not");
-        mustNot.addObject().putObject("terms")
-                .set(resourceIdAndValue.getField(), mapper.createArrayNode().add(resourceIdAndValue.getValue()));
-
-        ArrayNode must = bool.putArray("must");
-        ObjectNode scriptScore = must.addObject().putObject("script_score");
-        scriptScore.putObject("query").putObject("match_all");
-        scriptScore.set("script", cosineScriptScoreQuery(embedding));
-
-        if (filter.getKeyword() != null && !filter.getKeyword().isEmpty()) {
-            Set<String> textFields = new HashSet<>(getTextFields(filter.getResourceType()));
-            ObjectNode multiMatch = must.addObject().putObject("multi_match");
-            multiMatch.put("query", filter.getKeyword());
-            ArrayNode fields = multiMatch.putArray("fields");
-            textFields.forEach(fields::add);
-        }
-
-        applyFilters(filter.getFilter(), bool);
-        applyRangeFilters(filter.getRangeFilters(), bool);
-
-        Query query = toQuery(mapper.createObjectNode().set("bool", bool));
+        Query query = toQuery(createRecommendationQueryNode(filter, resourceIdAndValue, embedding));
 
         try {
             SearchResponse<ObjectNode> response = client.search(s -> s
@@ -675,7 +742,7 @@ public class ElasticSearchService implements SearchService {
         FacetFilter filter = new FacetFilter();
         filter.setResourceType(resourceType);
         filter.setKeyword(keyword);
-        return buildSearch(filter);
+        return search(filter);
     }
 
     @Override

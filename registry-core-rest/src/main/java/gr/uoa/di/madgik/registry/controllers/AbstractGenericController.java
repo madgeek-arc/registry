@@ -219,6 +219,34 @@ public abstract class AbstractGenericController<T> {
         return ResponseEntity.ok(results);
     }
 
+    @Operation(
+            summary = "Browse resources semantically",
+            description = "Returns a paginated list of resources using embedding-based semantic search."
+    )
+    @BrowseParameters
+    @GetMapping(path = "/semantic", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Paging<T>> browseSemantic(
+            @Parameter(hidden = true) @RequestParam MultiValueMap<String, Object> params) {
+        FacetFilter filter = FacetFilter.from(params);
+        filter.setResourceType(getResourceTypeName());
+        Paging<T> results = genericResourceService.getSemanticResults(filter);
+        return ResponseEntity.ok(results);
+    }
+
+    @Operation(
+            summary = "Browse resources with hybrid search",
+            description = "Returns a paginated list of resources using combined lexical and semantic ranking."
+    )
+    @BrowseParameters
+    @GetMapping(path = "/hybrid", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Paging<T>> browseHybrid(
+            @Parameter(hidden = true) @RequestParam MultiValueMap<String, Object> params) {
+        FacetFilter filter = FacetFilter.from(params);
+        filter.setResourceType(getResourceTypeName());
+        Paging<T> results = genericResourceService.getHybridResults(filter);
+        return ResponseEntity.ok(results);
+    }
+
     /**
      * Returns a paginated listing of resources with keyword-highlight fragments for each hit.
      *

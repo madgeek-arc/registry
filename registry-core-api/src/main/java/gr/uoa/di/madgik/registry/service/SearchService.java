@@ -36,6 +36,12 @@ public interface SearchService {
     @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Paging<Resource> search(FacetFilter filter) throws ServiceException;
 
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    Paging<Resource> semanticSearch(FacetFilter filter) throws ServiceException;
+
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    Paging<Resource> hybridSearch(FacetFilter filter) throws ServiceException;
+
     /**
      * Recommends resources that are similar to the resource identified by the given {@code resourceIdAndValue},
      * further constrained by the provided {@code filter}.

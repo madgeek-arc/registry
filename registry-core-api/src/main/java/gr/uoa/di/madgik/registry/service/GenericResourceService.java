@@ -109,6 +109,10 @@ public interface GenericResourceService {
      */
     <T> Paging<T> getResults(FacetFilter filter);
 
+    <T> Paging<T> getSemanticResults(FacetFilter filter);
+
+    <T> Paging<T> getHybridResults(FacetFilter filter);
+
     /**
      * Returns a paginated, faceted list of resources matching the given filter, with the
      * facet list post-processed by the supplied transformer.

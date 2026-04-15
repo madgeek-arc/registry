@@ -95,7 +95,21 @@ public class GenericResourceServiceImpl implements GenericResourceService {
 
     @Override
     public <T> Paging<T> getResults(FacetFilter filter) {
-        ResponseEntity<Paging> response = restTemplate.getForEntity(buildBrowseUri(filter, false), Paging.class);
+        ResponseEntity<Paging> response = restTemplate.getForEntity(buildBrowseUri(filter, null, false), Paging.class);
+        Paging<?> paging = response.getBody() == null ? new Paging<>() : response.getBody();
+        return convertPaging(paging, Objects.requireNonNull(filter.getResourceType()));
+    }
+
+    @Override
+    public <T> Paging<T> getSemanticResults(FacetFilter filter) {
+        ResponseEntity<Paging> response = restTemplate.getForEntity(buildBrowseUri(filter, "semantic", false), Paging.class);
+        Paging<?> paging = response.getBody() == null ? new Paging<>() : response.getBody();
+        return convertPaging(paging, Objects.requireNonNull(filter.getResourceType()));
+    }
+
+    @Override
+    public <T> Paging<T> getHybridResults(FacetFilter filter) {
+        ResponseEntity<Paging> response = restTemplate.getForEntity(buildBrowseUri(filter, "hybrid", false), Paging.class);
         Paging<?> paging = response.getBody() == null ? new Paging<>() : response.getBody();
         return convertPaging(paging, Objects.requireNonNull(filter.getResourceType()));
     }
@@ -109,7 +123,7 @@ public class GenericResourceServiceImpl implements GenericResourceService {
 
     @Override
     public <T> Paging<HighlightedResult<T>> getHighlightedResults(FacetFilter filter) {
-        ResponseEntity<Paging> response = restTemplate.getForEntity(buildBrowseUri(filter, true), Paging.class);
+        ResponseEntity<Paging> response = restTemplate.getForEntity(buildBrowseUri(filter, null, true), Paging.class);
         Paging<?> paging = response.getBody() == null ? new Paging<>() : response.getBody();
         return convertHighlightedPaging(paging, Objects.requireNonNull(filter.getResourceType()));
     }
@@ -225,8 +239,9 @@ public class GenericResourceServiceImpl implements GenericResourceService {
         return convertBody(response.getBody(), resourceTypeName);
     }
 
-    private String buildBrowseUri(FacetFilter filter, boolean highlighted) {
-        String base = registryHost + "/records/" + filter.getResourceType() + (highlighted ? "/highlighted" : "");
+    private String buildBrowseUri(FacetFilter filter, String mode, boolean highlighted) {
+        String suffix = highlighted ? "/highlighted" : mode == null ? "" : "/" + mode;
+        String base = registryHost + "/records/" + filter.getResourceType() + suffix;
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(base)
                 .queryParam("keyword", filter.getKeyword())
                 .queryParam("from", filter.getFrom())

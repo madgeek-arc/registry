@@ -26,11 +26,14 @@ import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the Elasticsearch range query JSON structure produced by
@@ -43,19 +46,36 @@ class ElasticSearchServiceRangeQueryTest {
 
     private ElasticSearchService service;
     private Method createQueryNode;
+    private Method createHybridQueryNode;
+    private Method createSemanticQueryNode;
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+    private EmbeddingService embeddingService;
+    private co.elastic.clients.elasticsearch.ElasticsearchClient client;
 
     @BeforeEach
     void setUp() throws Exception {
+        embeddingService = mock(EmbeddingService.class);
+        client = mock(co.elastic.clients.elasticsearch.ElasticsearchClient.class);
+        co.elastic.clients.elasticsearch.indices.ElasticsearchIndicesClient indicesClient =
+                mock(co.elastic.clients.elasticsearch.indices.ElasticsearchIndicesClient.class);
+        when(client.indices()).thenReturn(indicesClient);
+        doThrow(new IOException("mapping unavailable"))
+                .when(indicesClient)
+                .getMapping(org.mockito.ArgumentMatchers.any(java.util.function.Function.class));
+
         service = new ElasticSearchService(
-                mock(co.elastic.clients.elasticsearch.ElasticsearchClient.class),
+                client,
                 mock(JacksonJsonpMapper.class),
-                mock(EmbeddingService.class),
+                embeddingService,
                 mock(ResourceTypeService.class)
         );
         // Allow access to private createQueryNode(FacetFilter)
         createQueryNode = ElasticSearchService.class.getDeclaredMethod("createQueryNode", FacetFilter.class);
         createQueryNode.setAccessible(true);
+        createHybridQueryNode = ElasticSearchService.class.getDeclaredMethod("createHybridQueryNode", FacetFilter.class);
+        createHybridQueryNode.setAccessible(true);
+        createSemanticQueryNode = ElasticSearchService.class.getDeclaredMethod("createSemanticQueryNode", FacetFilter.class);
+        createSemanticQueryNode.setAccessible(true);
     }
 
     // -------------------------------------------------------------------------
@@ -230,6 +250,58 @@ class ElasticSearchServiceRangeQueryTest {
         assertNotNull(must.get(2).get("range"), "Expected range filter for age");
     }
 
+    @Test
+    void hybridKeywordQuery_usesMultiMatchAndKnnInsteadOfScriptScore() throws Exception {
+        when(embeddingService.embed("registry")).thenReturn(new float[]{0.2f, 0.4f});
+
+        FacetFilter filter = filter("my_index");
+        filter.setKeyword("registry");
+        filter.setQuantity(10);
+
+        ObjectNode query = invokeHybrid(filter);
+        ObjectNode bool = (ObjectNode) query.get("bool");
+
+        assertEquals(1, bool.get("minimum_should_match").asInt());
+        ArrayNode should = bool.withArray("should");
+        assertEquals(2, should.size());
+        assertNotNull(should.get(0).get("multi_match"));
+        assertNotNull(should.get(1).get("knn"));
+        ArrayNode must = must(query);
+        for (int i = 0; i < must.size(); i++) {
+            assertNull(must.get(i).get("script_score"));
+        }
+    }
+
+    @Test
+    void hybridKeywordQuery_skipsKnnWhenEmbeddingIsEmpty() throws Exception {
+        when(embeddingService.embed("registry")).thenReturn(new float[]{0.0f, Float.NaN});
+
+        FacetFilter filter = filter("my_index");
+        filter.setKeyword("registry");
+
+        ObjectNode query = invokeHybrid(filter);
+        ArrayNode should = query.get("bool").withArray("should");
+
+        assertEquals(1, should.size());
+        assertNotNull(should.get(0).get("multi_match"));
+    }
+
+    @Test
+    void semanticQuery_containsOnlyKnnAndFilters() throws Exception {
+        when(embeddingService.embed("registry")).thenReturn(new float[]{0.2f, 0.4f});
+
+        FacetFilter filter = filter("my_index");
+        filter.setKeyword("registry");
+        filter.addFilter("status", "APPROVED");
+
+        ObjectNode query = invokeSemantic(filter);
+        ArrayNode must = must(query);
+
+        assertNotNull(must.get(0).get("knn"));
+        assertNotNull(must.get(1).get("term"));
+        assertFalse(query.get("bool").has("should"));
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
@@ -242,6 +314,14 @@ class ElasticSearchServiceRangeQueryTest {
 
     private ObjectNode invoke(FacetFilter filter) throws Exception {
         return (ObjectNode) createQueryNode.invoke(service, filter);
+    }
+
+    private ObjectNode invokeHybrid(FacetFilter filter) throws Exception {
+        return (ObjectNode) createHybridQueryNode.invoke(service, filter);
+    }
+
+    private ObjectNode invokeSemantic(FacetFilter filter) throws Exception {
+        return (ObjectNode) createSemanticQueryNode.invoke(service, filter);
     }
 
     private ArrayNode must(ObjectNode query) {

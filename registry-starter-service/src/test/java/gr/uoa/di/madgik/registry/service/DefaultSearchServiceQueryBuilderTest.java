@@ -20,6 +20,7 @@ import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
 import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
 import gr.uoa.di.madgik.registry.domain.Facet;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
+import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
@@ -33,6 +34,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -42,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Transactional
 class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSupport {
 
     @MockitoBean
@@ -55,6 +58,9 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
 
     @Autowired
     ViewService viewService;
+
+    @Autowired
+    ResourceService resourceService;
 
     @Autowired
     @Qualifier("registryDataSource")
@@ -255,6 +261,48 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
                 List.of("Jodeee"), "first_name");
 
         assertEquals(Map.of("Jodeee", "Jodeee"), labels);
+    }
+
+    @Test
+    void searchWithHighlights_returnsPayloadHighlights() {
+        FacetFilter filter = employeeFilter();
+        filter.setKeyword("Jodeee");
+
+        Paging<HighlightedResult<Resource>> result = searchService.searchWithHighlights(filter);
+
+        assertEquals(1, result.getTotal());
+        assertEquals(1, result.getResults().size());
+        assertFalse(result.getResults().getFirst().getHighlights().isEmpty());
+        assertEquals("payload", result.getResults().getFirst().getHighlights().getFirst().getField());
+        assertTrue(result.getResults().getFirst().getHighlights().getFirst().getValue().contains("<em>Jodeee</em>"));
+    }
+
+    @Test
+    void recommend_returnsSimilarResourcesOrderedByFieldOverlap() {
+        Resource similar = new Resource();
+        similar.setResourceTypeName("employee");
+        similar.setPayload("""
+                <?xml version="1.0"?>
+                <employee>
+                  <author>Jane Doe</author>
+                  <age>28</age>
+                  <single>false</single>
+                  <birthday>645544821000</birthday>
+                  <salary>1292.123</salary>
+                  <amka>98765432101234</amka>
+                </employee>
+                """);
+        resourceService.addResource(similar);
+        viewService.createView(resourceTypeService.getResourceType("employee"));
+
+        FacetFilter filter = employeeFilter();
+        List<Resource> recommendations = searchService.recommend(
+                filter,
+                new SearchService.KeyValue("resource_internal_id", DatabaseConfiguration.TEST_RESOURCE_ID)
+        );
+
+        assertEquals(1, recommendations.size());
+        assertEquals(similar.getId(), recommendations.getFirst().getId());
     }
 
     private FacetFilter employeeFilter() {

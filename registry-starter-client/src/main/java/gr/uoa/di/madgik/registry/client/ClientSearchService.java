@@ -100,7 +100,24 @@ public class ClientSearchService implements SearchService {
 
     @Override
     public Paging<Resource> search(FacetFilter filter) throws ServiceException {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(registryHost + "/search/" + filter.getResourceType())
+        return executeSearch(filter, null);
+    }
+
+    @Override
+    public Paging<Resource> semanticSearch(FacetFilter filter) throws ServiceException {
+        return executeSearch(filter, "semantic");
+    }
+
+    @Override
+    public Paging<Resource> hybridSearch(FacetFilter filter) throws ServiceException {
+        return executeSearch(filter, "hybrid");
+    }
+
+    private Paging<Resource> executeSearch(FacetFilter filter, String mode) {
+        String path = mode == null
+                ? registryHost + "/search/" + filter.getResourceType()
+                : registryHost + "/search/" + filter.getResourceType() + "/" + mode;
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(path)
                 .queryParam("keyword", filter.getKeyword())
                 .queryParam("from", filter.getFrom())
                 .queryParam("quantity", filter.getQuantity())

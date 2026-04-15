@@ -17,7 +17,6 @@
 package gr.uoa.di.madgik.registry.elasticsearch.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.indices.Alias;
@@ -79,10 +78,15 @@ public class ElasticOperationsService implements IndexOperationsService {
         FIELD_TYPES_MAP = Collections.unmodifiableMap(classToTypeMap);
     }
 
-    private static final Map<String, Object> TYPE_MAP = Map.of("type", "keyword");
+    private static final Map<String, Object> KEYWORD_MAP = Map.of("type", "keyword");
     private static final Map<String, Object> DATE_MAP = Map.of("type", "date", "format", "strict_date_optional_time||epoch_millis");
     private static final Map<String, Object> TEXT_MAP = Map.of("type", "text");
-    private static final Map<String, Object> DENSE_VECTOR_MAP = Map.of("type", "dense_vector", "dims", VECTOR_SIZE);
+    private static final Map<String, Object> DENSE_VECTOR_MAP = Map.of(
+            "type", "dense_vector",
+            "dims", VECTOR_SIZE,
+            "index", true,
+            "similarity", "cosine"
+    );
 
     private final ResourceTypeService resourceTypeService;
     private final ResourceService resourceService;
@@ -270,16 +274,16 @@ public class ElasticOperationsService implements IndexOperationsService {
             }
         }
 
-        jsonObjectProperties.put("id", TYPE_MAP);
-        jsonObjectProperties.put("version", TYPE_MAP);
+        jsonObjectProperties.put("id", KEYWORD_MAP);
+        jsonObjectProperties.put("version", KEYWORD_MAP);
         jsonObjectProperties.put("payload", TEXT_MAP);
         jsonObjectProperties.put("searchableArea", TEXT_MAP);
-        jsonObjectProperties.put("payloadFormat", TYPE_MAP);
-        jsonObjectProperties.put("resourceType", TYPE_MAP);
+        jsonObjectProperties.put("payloadFormat", KEYWORD_MAP);
+        jsonObjectProperties.put("resourceType", KEYWORD_MAP);
         jsonObjectProperties.put("creation_date", DATE_MAP);
         jsonObjectProperties.put("modification_date", DATE_MAP);
-        jsonObjectProperties.put("created_by", TYPE_MAP);
-        jsonObjectProperties.put("modified_by", TYPE_MAP);
+        jsonObjectProperties.put("created_by", KEYWORD_MAP);
+        jsonObjectProperties.put("modified_by", KEYWORD_MAP);
         jsonObjectProperties.put("embedding", DENSE_VECTOR_MAP);
 
         jsonObjectGeneral.put("properties", jsonObjectProperties);

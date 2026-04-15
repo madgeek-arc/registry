@@ -19,6 +19,7 @@ package gr.uoa.di.madgik.registry.service;
 
 import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -33,6 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -130,13 +132,77 @@ public class DefaultSearchService implements SearchService {
     }
 
     @Override
+    public Paging<Resource> semanticSearch(FacetFilter filter) throws ServiceException {
+        throw new UnsupportedOperationException(getClass().getSimpleName() + " does not support semantic search.");
+    }
+
+    @Override
+    public Paging<Resource> hybridSearch(FacetFilter filter) throws ServiceException {
+        return search(filter);
+    }
+
+    @Override
     public Paging<HighlightedResult<Resource>> searchWithHighlights(FacetFilter filter) throws ServiceException {
-        throw new UnsupportedOperationException(getClass().getSimpleName() + " does not support highlighted search.");
+        Paging<Resource> paging = search(filter);
+        String keyword = filter.getKeyword();
+
+        List<HighlightedResult<Resource>> results = paging.getResults().stream()
+                .map(resource -> HighlightedResult.of(
+                        StringUtils.hasText(keyword) ? 1.0f : 0.0f,
+                        resource,
+                        buildPayloadHighlights(resource, keyword)
+                ))
+                .toList();
+
+        return new Paging<>(paging, results);
     }
 
     @Override
     public List<Resource> recommend(FacetFilter filter, KeyValue idValue) throws ServiceException {
-        throw new UnsupportedOperationException(getClass().getSimpleName() + " does not support recommendations.");
+        validateQuantity(filter.getQuantity());
+        ResourceType resourceType = requireSingleResourceType(filter.getResourceType());
+        String sourceField = normalizeLookupField(idValue.getField());
+
+        Map<String, Object> sourceRow = getSourceProjection(resourceType, sourceField, idValue.getValue());
+        String sourceId = Objects.toString(sourceRow.get("id"), null);
+        if (!StringUtils.hasText(sourceId)) {
+            throw new ResourceNotFoundException(idValue.getValue(), resourceType.getName());
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("keyword", StringUtils.hasText(filter.getKeyword()) ? "%" + filter.getKeyword() + "%" : "%");
+        params.addValue("source_id", sourceId);
+        params.addValue("from", filter.getFrom());
+        params.addValue("quantity", filter.getQuantity());
+
+        SearchSqlQueryBuilder.SearchSqlQuery sqlQuery = SearchSqlQueryBuilder.builder(dataSource)
+                .withFilter(filter)
+                .withResourceTypes(List.of(resourceType))
+                .withParameters(params)
+                .buildSearchQuery();
+
+        String scoreExpression = buildRecommendationScoreExpression(resourceType, sourceRow, params);
+        if (!StringUtils.hasText(scoreExpression)) {
+            return Collections.emptyList();
+        }
+
+        String candidateQuery = "SELECT * FROM (%s) ar WHERE ar.payload LIKE :keyword".formatted(sqlQuery.nestedQuery());
+        String scoredQuery = """
+                SELECT ar.id, %s AS score
+                FROM (%s) ar
+                INNER JOIN %s_view v ON ar.id = v.id
+                WHERE ar.id <> :source_id
+                """.formatted(scoreExpression, candidateQuery, resourceType.getName());
+        String recommendationQuery = """
+                SELECT r.*
+                FROM (%s) scored
+                INNER JOIN resource r ON r.id = scored.id
+                WHERE scored.score > 0
+                ORDER BY scored.score DESC, r.modification_date DESC
+                OFFSET :from LIMIT :quantity
+                """.formatted(scoredQuery);
+
+        return npJdbcTemplate.query(recommendationQuery, sqlQuery.params(), resourceRowMapper);
     }
 
     private List<String> resolveBrowseBy(FacetFilter filter) {
@@ -276,5 +342,102 @@ public class DefaultSearchService implements SearchService {
         if (quantity < 0) {
             throw new IllegalArgumentException("Quantity cannot be negative.");
         }
+    }
+
+    private List<Highlight> buildPayloadHighlights(Resource resource, String keyword) {
+        if (!StringUtils.hasText(keyword) || !StringUtils.hasText(resource.getPayload())) {
+            return Collections.emptyList();
+        }
+
+        String payload = resource.getPayload();
+        String lowerPayload = payload.toLowerCase(Locale.ROOT);
+        String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
+        List<Highlight> highlights = new ArrayList<>();
+        int fromIndex = 0;
+
+        while (highlights.size() < 5) {
+            int matchIndex = lowerPayload.indexOf(lowerKeyword, fromIndex);
+            if (matchIndex < 0) {
+                break;
+            }
+
+            int snippetStart = Math.max(0, matchIndex - 80);
+            int snippetEnd = Math.min(payload.length(), matchIndex + keyword.length() + 80);
+            String snippet = payload.substring(snippetStart, snippetEnd);
+
+            int snippetMatchStart = matchIndex - snippetStart;
+            int snippetMatchEnd = snippetMatchStart + keyword.length();
+            String emphasized = snippet.substring(0, snippetMatchStart)
+                    + "<em>" + snippet.substring(snippetMatchStart, snippetMatchEnd) + "</em>"
+                    + snippet.substring(snippetMatchEnd);
+
+            highlights.add(new Highlight("payload", emphasized));
+            fromIndex = matchIndex + keyword.length();
+        }
+
+        return highlights;
+    }
+
+    private ResourceType requireSingleResourceType(String resourceTypeOrAlias) {
+        List<ResourceType> resourceTypes = getResourceTypes(resourceTypeOrAlias);
+        if (resourceTypes.size() != 1) {
+            throw new ServiceException("Recommendations require a concrete resource type, not an alias group.");
+        }
+        return resourceTypes.getFirst();
+    }
+
+    private String normalizeLookupField(String field) {
+        if ("resource_internal_id".equals(field)) {
+            return "id";
+        }
+        return field;
+    }
+
+    private Map<String, Object> getSourceProjection(ResourceType resourceType, String field, String value) {
+        Set<String> knownFields = resourceType.getIndexFields().stream()
+                .map(IndexField::getName)
+                .collect(Collectors.toSet());
+
+        if (!"id".equals(field) && !knownFields.contains(field)) {
+            throw new ServiceException(
+                    String.format("Unknown recommendation field '%s' for resource type '%s'", field, resourceType.getName()));
+        }
+
+        String sql = "SELECT * FROM %s_view WHERE %s = :value LIMIT 1".formatted(resourceType.getName(), field);
+        try {
+            return npJdbcTemplate.queryForMap(sql, new MapSqlParameterSource("value", value));
+        } catch (EmptyResultDataAccessException e) {
+            throw new ResourceNotFoundException(value, resourceType.getName());
+        }
+    }
+
+    private String buildRecommendationScoreExpression(ResourceType resourceType,
+                                                      Map<String, Object> sourceRow,
+                                                      MapSqlParameterSource params) {
+        List<String> scoreTerms = new ArrayList<>();
+
+        for (IndexField field : resourceType.getIndexFields()) {
+            if (field.isPrimaryKey() || field.isMultivalued() || "embedding".equals(field.getType())) {
+                continue;
+            }
+
+            Object value = sourceRow.get(field.getName());
+            if (value == null) {
+                continue;
+            }
+
+            String paramName = "score_" + field.getName();
+            params.addValue(paramName, normalizeScoreValue(value));
+            scoreTerms.add("CASE WHEN v.%s = :%s THEN 1 ELSE 0 END".formatted(field.getName(), paramName));
+        }
+
+        return String.join(" + ", scoreTerms);
+    }
+
+    private Object normalizeScoreValue(Object value) {
+        if (value instanceof Date date) {
+            return new Timestamp(date.getTime());
+        }
+        return value;
     }
 }
