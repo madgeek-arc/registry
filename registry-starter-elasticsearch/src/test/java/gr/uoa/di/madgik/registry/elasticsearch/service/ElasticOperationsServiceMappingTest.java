@@ -58,9 +58,9 @@ class ElasticOperationsServiceMappingTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> embedding = (Map<String, Object>) properties.get("embedding");
         @SuppressWarnings("unchecked")
-        Map<String, Object> chunkEmbeddings = (Map<String, Object>) properties.get("chunk_embeddings");
+        Map<String, Object> resourceChunks = (Map<String, Object>) properties.get("resource_chunks");
         @SuppressWarnings("unchecked")
-        Map<String, Object> chunkEmbeddingProperties = (Map<String, Object>) chunkEmbeddings.get("properties");
+        Map<String, Object> chunkEmbeddingProperties = (Map<String, Object>) resourceChunks.get("properties");
         @SuppressWarnings("unchecked")
         Map<String, Object> chunkField = (Map<String, Object>) chunkEmbeddingProperties.get("field");
         @SuppressWarnings("unchecked")
@@ -76,7 +76,7 @@ class ElasticOperationsServiceMappingTest {
         assertEquals(Boolean.TRUE, embedding.get("index"));
         assertEquals("cosine", embedding.get("similarity"));
         assertTrue(((Number) embedding.get("dims")).intValue() > 0);
-        assertEquals("nested", chunkEmbeddings.get("type"));
+        assertEquals("nested", resourceChunks.get("type"));
         assertEquals("keyword", chunkField.get("type"));
         assertEquals("integer", chunkValueOrdinal.get("type"));
         assertEquals("integer", chunkFieldChunkIdx.get("type"));

@@ -17,12 +17,9 @@
 package gr.uoa.di.madgik.registry.domain;
 
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
-import gr.uoa.di.madgik.registry.domain.index.IndexedField;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public final class ResourceEmbeddingSegmenter {
 
@@ -35,49 +32,26 @@ public final class ResourceEmbeddingSegmenter {
             return List.of();
         }
 
-        Map<String, IndexedField<?>> valuesByName = new LinkedHashMap<>();
-        for (IndexedField<?> indexedField : resource.getIndexedFields()) {
-            valuesByName.put(indexedField.getName(), indexedField);
-        }
-
         List<Segment> segments = new ArrayList<>();
-        for (IndexField indexField : indexFields) {
-            if (indexField.getEmbeddingWeight() <= 0) {
-                continue;
-            }
-            if (!"java.lang.String".equals(indexField.getType())) {
-                continue;
-            }
-
-            IndexedField<?> indexedField = valuesByName.get(indexField.getName());
-            if (indexedField == null || indexedField.getValues() == null || indexedField.getValues().isEmpty()) {
-                continue;
-            }
-
+        for (ResourceEmbeddingTextPreparer.PreparedField preparedField
+                : ResourceEmbeddingTextPreparer.prepare(resource, indexFields,
+                indexField -> indexField.getEmbeddingWeight() > 0)) {
+            IndexField indexField = preparedField.indexField();
             List<String> values = new ArrayList<>();
-            for (Object value : indexedField.getValues()) {
-                String normalized = ResourceEmbeddingChunker.normalizeValue(value);
-                if (normalized.isBlank()) {
-                    continue;
-                }
-
-                values.addAll(ResourceEmbeddingChunker.splitValue(indexField, normalized));
+            for (ResourceEmbeddingTextPreparer.PreparedValue preparedValue : preparedField.values()) {
+                values.addAll(preparedValue.parts());
             }
 
             if (!values.isEmpty()) {
                 values.sort(String.CASE_INSENSITIVE_ORDER);
-                segments.add(new Segment(resolveLabel(indexField), indexField.getEmbeddingWeight(), values));
+                segments.add(new Segment(
+                        ResourceEmbeddingTextPreparer.resolveLabel(indexField),
+                        indexField.getEmbeddingWeight(),
+                        values
+                ));
             }
         }
 
         return segments;
-    }
-
-    private static String resolveLabel(IndexField indexField) {
-        String label = indexField.getLabel();
-        if (label != null && !label.isBlank()) {
-            return label;
-        }
-        return indexField.getName() == null ? "" : indexField.getName();
     }
 }

@@ -101,7 +101,7 @@ public class ElasticOperationsService implements IndexOperationsService {
             "index", true,
             "similarity", "cosine"
     );
-    private static final Map<String, Object> CHUNK_EMBEDDINGS_MAP = Map.of(
+    private static final Map<String, Object> RESOURCE_CHUNKS_MAP = Map.of(
             "type", "nested",
             "properties", Map.of(
                     "field", KEYWORD_MAP,
@@ -311,10 +311,10 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectProperties.put("embedding", DENSE_VECTOR_MAP);
         // Experimental only: chunk vectors are stored in Elasticsearch for inspection and future work,
         // but the active ES search path still queries only the resource-level "embedding" field.
-        jsonObjectProperties.put("chunk_embeddings", CHUNK_EMBEDDINGS_MAP);
+        jsonObjectProperties.put("resource_chunks", RESOURCE_CHUNKS_MAP);
 
         jsonObjectGeneral.put("properties", jsonObjectProperties);
-        jsonObjectGeneral.put("_source", Map.of("excludes", List.of("embedding", "chunk_embeddings.embedding")));
+        jsonObjectGeneral.put("_source", Map.of("excludes", List.of("embedding", "resource_chunks.embedding")));
 
         return jsonObjectGeneral;
     }
@@ -340,7 +340,7 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectField.put("modified_by", resource.getModifiedBy());
         // Experimental mirror of the SQL chunk index. These nested chunk vectors are not used by the
         // current Elasticsearch SearchService implementation, which ranks documents by resource embedding.
-        jsonObjectField.put("chunk_embeddings", createChunkEmbeddings(resource));
+        jsonObjectField.put("resource_chunks", createChunkEmbeddings(resource));
         //The creation date exists and should not be updated
         if (resource.getCreationDate() != null) {
             jsonObjectField.put("creation_date", resource.getCreationDate().toString());
