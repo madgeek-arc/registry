@@ -474,13 +474,12 @@ public class ElasticSearchService implements SearchService {
     private Paging<Resource> responseToPaging(SearchResponse<ObjectNode> response, int from,
                                               List<String> browseBy, String resourceTypeName) {
         List<Hit<ObjectNode>> hits = response.hits().hits();
+        List<Facet> facets = createFacets(browseBy, resourceTypeName, response.aggregations());
         if (hits.isEmpty()) {
-            return new Paging<>();
+            return new Paging<>(extractTotal(response), from, from, List.of(), facets);
         }
 
         List<Resource> resources = hits.stream().map(this::toResource).collect(Collectors.toList());
-
-        List<Facet> facets = createFacets(browseBy, resourceTypeName, response.aggregations());
 
         return new Paging<>(extractTotal(response), from, from + resources.size(), resources, facets);
     }
@@ -490,8 +489,9 @@ public class ElasticSearchService implements SearchService {
             List<String> browseBy, String resourceTypeName) {
 
         List<Hit<ObjectNode>> hits = response.hits().hits();
+        List<Facet> facets = createFacets(browseBy, resourceTypeName, response.aggregations());
         if (hits.isEmpty()) {
-            return new Paging<>();
+            return new Paging<>(extractTotal(response), from, from, List.of(), facets);
         }
 
         List<HighlightedResult<Resource>> resources = new ArrayList<>();
@@ -507,8 +507,6 @@ public class ElasticSearchService implements SearchService {
             result.setScore(hit.score() != null ? hit.score().floatValue() : 0.0f);
             resources.add(result);
         }
-
-        List<Facet> facets = createFacets(browseBy, resourceTypeName, response.aggregations());
 
         return new Paging<>(extractTotal(response), from, from + resources.size(), resources, facets);
     }
