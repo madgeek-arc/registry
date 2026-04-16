@@ -18,6 +18,24 @@ package gr.uoa.di.madgik.registry.jms.autoconfigure;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * Configuration properties for the registry JMS starter.
+ *
+ * <p>Bind these in your {@code application.yml}:
+ * <pre>{@code
+ * registry:
+ *   jms:
+ *     enabled: true
+ *     host: tcp://localhost:61616
+ *     prefix: registry
+ *     username: admin
+ *     password: secret
+ * }</pre>
+ *
+ * <p>When {@code enabled} is {@code true}, a {@link org.apache.activemq.ActiveMQConnectionFactory}
+ * is auto-configured and a {@link gr.uoa.di.madgik.registry.jms.JmsResourceListener} bean is
+ * registered to publish resource-operation events to ActiveMQ queues/topics.
+ */
 @ConfigurationProperties(prefix = "registry.jms")
 public class JmsProperties {
 

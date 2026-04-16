@@ -28,6 +28,7 @@ import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.elasticsearch.autoconfigure.RegistryElasticsearchProperties;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
@@ -103,15 +104,20 @@ class ElasticSearchServiceIntegrationTest {
         when(resourceTypeService.getIndexFieldLabels(anyString())).thenReturn(Map.of());
         when(resourceTypeService.getAllResourceTypeByAlias(anyString())).thenReturn(List.of());
 
+        RegistryElasticsearchProperties elasticsearchProperties = new RegistryElasticsearchProperties();
+        elasticsearchProperties.getAggregation().setTopHitsSize(100);
+        elasticsearchProperties.getAggregation().setBucketSize(100);
+        elasticsearchProperties.getIndex().setMaxResultWindow(1000);
+        elasticsearchProperties.getSearch().getHighlight().setFragmentSize(400);
+        elasticsearchProperties.getSearch().getHighlight().setNumberOfFragments(5);
+
         searchService = new ElasticSearchService(
                 client,
                 new JacksonJsonpMapper(objectMapper),
                 embeddingService,
-                resourceTypeService
+                resourceTypeService,
+                elasticsearchProperties
         );
-        setIntField(searchService, "maxQuantity", 1000);
-        setIntField(searchService, "bucketSize", 100);
-        setIntField(searchService, "topHitsSize", 100);
     }
 
     @AfterAll
@@ -388,15 +394,5 @@ class ElasticSearchServiceIntegrationTest {
         document.put("status", status);
         document.put("embedding", embedding);
         client.index(i -> i.index(index).id(id).document(document).refresh(Refresh.True));
-    }
-
-    private void setIntField(Object target, String fieldName, int value) {
-        try {
-            java.lang.reflect.Field field = target.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.setInt(target, value);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Failed to initialize test field " + fieldName, e);
-        }
     }
 }

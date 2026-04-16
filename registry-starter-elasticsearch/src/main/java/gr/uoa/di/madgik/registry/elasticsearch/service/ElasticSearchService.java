@@ -44,13 +44,13 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.FacetUtils;
+import gr.uoa.di.madgik.registry.elasticsearch.autoconfigure.RegistryElasticsearchProperties;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.util.StringUtils;
@@ -81,13 +81,11 @@ public class ElasticSearchService implements SearchService {
     private final EmbeddingService embeddingService;
     private final ResourceTypeService resourceTypeService;
     private final ObjectMapper mapper;
-
-    @Value("${elastic.aggregation.topHitsSize:100}")
-    private int topHitsSize;
-    @Value("${elastic.aggregation.bucketSize:100}")
-    private int bucketSize;
-    @Value("${elastic.index.max_result_window:10000}")
-    private int maxQuantity;
+    private final int highlightFragmentSize;
+    private final int highlightNumberOfFragments;
+    private final int topHitsSize;
+    private final int bucketSize;
+    private final int maxQuantity;
 
     /**
      * Creates a search service backed by the typed Elasticsearch Java client.
@@ -95,11 +93,17 @@ public class ElasticSearchService implements SearchService {
     public ElasticSearchService(ElasticsearchClient client,
                                 JacksonJsonpMapper jsonpMapper,
                                 EmbeddingService embeddingService,
-                                ResourceTypeService resourceTypeService) {
+                                ResourceTypeService resourceTypeService,
+                                RegistryElasticsearchProperties elasticsearchProperties) {
         this.client = client;
         this.jsonpMapper = jsonpMapper;
         this.embeddingService = embeddingService;
         this.resourceTypeService = resourceTypeService;
+        this.highlightFragmentSize = elasticsearchProperties.getSearch().getHighlight().getFragmentSize();
+        this.highlightNumberOfFragments = elasticsearchProperties.getSearch().getHighlight().getNumberOfFragments();
+        this.topHitsSize = elasticsearchProperties.getAggregation().getTopHitsSize();
+        this.bucketSize = elasticsearchProperties.getAggregation().getBucketSize();
+        this.maxQuantity = elasticsearchProperties.getIndex().getMaxResultWindow();
         mapper = new ObjectMapper().findAndRegisterModules();
         mapper.setPropertyNamingStrategy(new ResourcePropertyName());
     }
@@ -382,7 +386,9 @@ public class ElasticSearchService implements SearchService {
         try {
             List<NamedValue<HighlightField>> highlightFields = resolveTextFields(filter.getResourceType()).stream()
                     .map(field -> NamedValue.of(field,
-                            HighlightField.of(hf -> hf.fragmentSize(400).numberOfFragments(5))))
+                            HighlightField.of(hf -> hf
+                                    .fragmentSize(highlightFragmentSize)
+                                    .numberOfFragments(highlightNumberOfFragments))))
                     .toList();
             SearchResponse<ObjectNode> response = client.search(s -> s
                             .index(filter.getResourceType())

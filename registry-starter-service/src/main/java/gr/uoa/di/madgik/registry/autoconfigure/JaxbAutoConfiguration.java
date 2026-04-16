@@ -16,6 +16,7 @@
 
 package gr.uoa.di.madgik.registry.autoconfigure;
 
+import gr.uoa.di.madgik.registry.configuration.JaxbProperties;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.annotation.XmlRootElement;

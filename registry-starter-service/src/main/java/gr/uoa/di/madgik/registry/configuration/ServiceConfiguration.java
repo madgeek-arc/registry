@@ -24,6 +24,7 @@ import gr.uoa.di.madgik.registry.domain.Segment;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.core.env.Environment;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,6 +34,7 @@ import java.util.List;
 
 @Configuration(proxyBeanMethods = false)
 @EnableAspectJAutoProxy
+@EnableConfigurationProperties(SqlSearchHighlightProperties.class)
 public class ServiceConfiguration {
 
     @Bean

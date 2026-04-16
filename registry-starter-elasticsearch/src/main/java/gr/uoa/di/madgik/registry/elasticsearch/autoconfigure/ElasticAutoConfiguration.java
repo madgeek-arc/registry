@@ -162,8 +162,10 @@ public class ElasticAutoConfiguration {
     @Order(Ordered.HIGHEST_PRECEDENCE)
     SearchService elasticSearchService(ElasticsearchClient client, JacksonJsonpMapper jsonpMapper,
                                        EmbeddingService embeddingService,
-                                       ResourceTypeService resourceTypeService) {
-        return new ElasticSearchService(client, jsonpMapper, embeddingService, resourceTypeService);
+                                       ResourceTypeService resourceTypeService,
+                                       RegistryElasticsearchProperties elasticsearchProperties) {
+        return new ElasticSearchService(client, jsonpMapper, embeddingService, resourceTypeService,
+                elasticsearchProperties);
     }
 
     private static URI firstUri(List<String> uris) {

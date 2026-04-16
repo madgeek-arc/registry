@@ -22,14 +22,55 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Elasticsearch connection properties used by the registry starter.
+ * Configuration properties for the registry Elasticsearch starter.
+ *
+ * <p>Bind these in your {@code application.yml}:
+ * <pre>{@code
+ * registry:
+ *   elasticsearch:
+ *     uris:
+ *       - https://es-host:9200
+ *     username: elastic
+ *     password: secret
+ *     aggregation:
+ *       top-hits-size: 100
+ *       bucket-size: 100
+ *     index:
+ *       max-result-window: 10000
+ *     search:
+ *       highlight:
+ *         fragment-size: 400
+ *         number-of-fragments: 5
+ * }</pre>
+ *
+ * <p>At least one URI must be provided. When {@code username} and {@code password} are both set,
+ * HTTP Basic authentication is applied to every request via the Elasticsearch Java client.
  */
 @ConfigurationProperties("registry.elasticsearch")
 public class RegistryElasticsearchProperties {
 
+    /**
+     * List of Elasticsearch node URIs (scheme + host + port).
+     * At least one URI is required for the starter to connect.
+     * Example: {@code https://es-node1:9200}.
+     */
     private List<String> uris = new ArrayList<>();
+
+    /**
+     * Username for HTTP Basic authentication against Elasticsearch.
+     * Leave blank to disable authentication.
+     */
     private String username;
+
+    /**
+     * Password for HTTP Basic authentication against Elasticsearch.
+     * Leave blank to disable authentication.
+     */
     private String password;
+
+    private final Aggregation aggregation = new Aggregation();
+    private final Index index = new Index();
+    private final Search search = new Search();
 
     public List<String> getUris() {
         return uris;
@@ -53,5 +94,116 @@ public class RegistryElasticsearchProperties {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public Aggregation getAggregation() {
+        return aggregation;
+    }
+
+    public Index getIndex() {
+        return index;
+    }
+
+    public Search getSearch() {
+        return search;
+    }
+
+    /**
+     * Aggregation (facet) query tuning parameters.
+     */
+    public static class Aggregation {
+        /**
+         * Maximum number of hits to collect inside a {@code top_hits} sub-aggregation.
+         * Raising this value returns more matched documents per facet bucket but increases
+         * memory pressure on the Elasticsearch node.
+         */
+        private int topHitsSize = 100;
+
+        /**
+         * Maximum number of buckets to return per terms aggregation (facet).
+         * Corresponds to the {@code size} parameter of an Elasticsearch {@code terms} aggregation.
+         * Raising this value increases the cardinality of returned facet values.
+         */
+        private int bucketSize = 100;
+
+        public int getTopHitsSize() {
+            return topHitsSize;
+        }
+
+        public void setTopHitsSize(int topHitsSize) {
+            this.topHitsSize = topHitsSize;
+        }
+
+        public int getBucketSize() {
+            return bucketSize;
+        }
+
+        public void setBucketSize(int bucketSize) {
+            this.bucketSize = bucketSize;
+        }
+    }
+
+    /**
+     * Index-level settings applied when creating or querying registry indices.
+     */
+    public static class Index {
+        /**
+         * Value used as the {@code max_result_window} index setting and as the upper bound for
+         * {@code from + size} in search requests. Elasticsearch's default is {@code 10000};
+         * increase with caution as large windows require more heap on the coordinating node.
+         */
+        private int maxResultWindow = 10000;
+
+        public int getMaxResultWindow() {
+            return maxResultWindow;
+        }
+
+        public void setMaxResultWindow(int maxResultWindow) {
+            this.maxResultWindow = maxResultWindow;
+        }
+    }
+
+    /**
+     * Search-query tuning parameters.
+     */
+    public static class Search {
+        private final Highlight highlight = new Highlight();
+
+        public Highlight getHighlight() {
+            return highlight;
+        }
+    }
+
+    /**
+     * Highlight settings for the Elasticsearch search backend.
+     */
+    public static class Highlight {
+        /**
+         * Size in characters of each highlight fragment returned by Elasticsearch.
+         * Maps directly to the {@code fragment_size} highlight parameter.
+         */
+        private int fragmentSize = 400;
+
+        /**
+         * Maximum number of highlight fragments to return per field per result.
+         * Maps directly to the {@code number_of_fragments} highlight parameter.
+         */
+        private int numberOfFragments = 5;
+
+        public int getFragmentSize() {
+            return fragmentSize;
+        }
+
+        public void setFragmentSize(int fragmentSize) {
+            this.fragmentSize = fragmentSize;
+        }
+
+        public int getNumberOfFragments() {
+            return numberOfFragments;
+        }
+
+        public void setNumberOfFragments(int numberOfFragments) {
+            this.numberOfFragments = numberOfFragments;
+        }
     }
 }

@@ -16,6 +16,7 @@
 
 package gr.uoa.di.madgik.registry.service;
 
+import gr.uoa.di.madgik.registry.configuration.SqlSearchHighlightProperties;
 import gr.uoa.di.madgik.registry.dao.ResourceChunkDao;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.Highlight;
@@ -23,7 +24,6 @@ import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
-import gr.uoa.di.madgik.registry.domain.Value;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
@@ -66,12 +66,16 @@ public class DefaultSearchService implements SearchService {
     private final ResourceRowMapper resourceRowMapper;
     private final EmbeddingService embeddingService;
     private final ResourceChunkDao resourceChunkDao;
+    private final int payloadHighlightContextChars;
+    private final int payloadHighlightMaxFragments;
+    private final int semanticSnippetMaxChars;
 
     public DefaultSearchService(@Qualifier("registryDataSource") DataSource dataSource,
                                 ResourceTypeService resourceTypeService,
                                 SqlFacetService sqlFacetService,
                                 EmbeddingService embeddingService,
-                                ResourceChunkDao resourceChunkDao) {
+                                ResourceChunkDao resourceChunkDao,
+                                SqlSearchHighlightProperties highlightProperties) {
         this.dataSource = dataSource;
         this.npJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
         this.resourceTypeService = resourceTypeService;
@@ -79,6 +83,9 @@ public class DefaultSearchService implements SearchService {
         this.resourceRowMapper = new ResourceRowMapper();
         this.embeddingService = embeddingService;
         this.resourceChunkDao = resourceChunkDao;
+        this.payloadHighlightContextChars = highlightProperties.getPayloadContextChars();
+        this.payloadHighlightMaxFragments = highlightProperties.getPayloadMaxFragments();
+        this.semanticSnippetMaxChars = highlightProperties.getSemanticMaxChars();
     }
 
     @Override
@@ -640,14 +647,14 @@ public class DefaultSearchService implements SearchService {
         List<Highlight> highlights = new ArrayList<>();
         int fromIndex = 0;
 
-        while (highlights.size() < 5) {
+        while (highlights.size() < payloadHighlightMaxFragments) {
             int matchIndex = lowerPayload.indexOf(lowerKeyword, fromIndex);
             if (matchIndex < 0) {
                 break;
             }
 
-            int snippetStart = Math.max(0, matchIndex - 80);
-            int snippetEnd = Math.min(payload.length(), matchIndex + keyword.length() + 80);
+            int snippetStart = Math.max(0, matchIndex - payloadHighlightContextChars);
+            int snippetEnd = Math.min(payload.length(), matchIndex + keyword.length() + payloadHighlightContextChars);
             String snippet = payload.substring(snippetStart, snippetEnd);
 
             int snippetMatchStart = matchIndex - snippetStart;
@@ -675,10 +682,10 @@ public class DefaultSearchService implements SearchService {
 
     private String createSemanticSnippet(String content) {
         String normalized = content.replaceAll("\\s+", " ").trim();
-        if (normalized.length() <= 220) {
+        if (normalized.length() <= semanticSnippetMaxChars) {
             return normalized;
         }
-        return normalized.substring(0, 220).trim() + "...";
+        return normalized.substring(0, semanticSnippetMaxChars).trim() + "...";
     }
 
     private String emphasizeKeyword(String text, String keyword) {

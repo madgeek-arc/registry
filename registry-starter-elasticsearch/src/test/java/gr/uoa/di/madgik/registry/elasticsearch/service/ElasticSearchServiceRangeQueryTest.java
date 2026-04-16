@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
+import gr.uoa.di.madgik.registry.elasticsearch.autoconfigure.RegistryElasticsearchProperties;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,11 +64,13 @@ class ElasticSearchServiceRangeQueryTest {
                 .when(indicesClient)
                 .getMapping(org.mockito.ArgumentMatchers.any(java.util.function.Function.class));
 
+        RegistryElasticsearchProperties elasticsearchProperties = new RegistryElasticsearchProperties();
         service = new ElasticSearchService(
                 client,
                 mock(JacksonJsonpMapper.class),
                 embeddingService,
-                mock(ResourceTypeService.class)
+                mock(ResourceTypeService.class),
+                elasticsearchProperties
         );
         // Allow access to private createQueryNode(FacetFilter)
         createQueryNode = ElasticSearchService.class.getDeclaredMethod("createQueryNode", FacetFilter.class);
