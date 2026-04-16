@@ -20,11 +20,11 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.indices.Alias;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.ResourceEmbeddingChunk;
 import gr.uoa.di.madgik.registry.domain.ResourceEmbeddingChunker;
 import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.ResourceEmbeddingSegmenter;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Segment;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
@@ -349,7 +349,6 @@ public class ElasticOperationsService implements IndexOperationsService {
                         resource.getResourceType().getName()).
                 stream().collect(Collectors.toMap(IndexField::getName, p -> p)
                 );
-        List<Segment> embeddingSegments = new ArrayList<>();
         if (resource.getIndexedFields() != null) {
             for (IndexedField<?> field : resource.getIndexedFields()) {
                 IndexField rtif = indexMap.get(field.getName());
@@ -371,29 +370,18 @@ public class ElasticOperationsService implements IndexOperationsService {
                             }
                             default -> jsonObjectField.put(field.getName(), value);
                         }
-                        if (rtif.getEmbeddingWeight() > 0) {
-                            embeddingSegments.add(new Segment(
-                                    rtif.getLabel(),
-                                    rtif.getEmbeddingWeight(),
-                                    objectMapper.convertValue(value, String.class))
-                            );
-                        }
                     }
                 } else {
                     List<Object> values = new ArrayList<>(field.getValues());
                     jsonObjectField.put(field.getName(), values);
-                    if (!values.isEmpty() && rtif.getEmbeddingWeight() > 0) {
-                        embeddingSegments.add(new Segment(
-                                rtif.getLabel(),
-                                rtif.getEmbeddingWeight(),
-                                objectMapper.convertValue(values, new TypeReference<List<String>>() {}))
-                        );
-                    }
                 }
             }
         }
-        if (!embeddingSegments.isEmpty()) {
-            jsonObjectField.put("embedding", embeddingService.embed(embeddingSegments));
+        // Build field-weighted semantic segments after payload extraction so future backends can reuse
+        // the same TEXT/KEYWORD splitting policy independently of the embedding implementation.
+        List<Segment> segments = ResourceEmbeddingSegmenter.segment(resource, new ArrayList<>(indexMap.values()));
+        if (!segments.isEmpty()) {
+            jsonObjectField.put("embedding", embeddingService.embed(segments));
         }
         return jsonObjectField;
     }

@@ -89,7 +89,7 @@ public final class ResourceEmbeddingChunker {
         return chunks;
     }
 
-    private static List<String> splitValue(IndexField indexField, String value) {
+    static List<String> splitValue(IndexField indexField, String value) {
         String normalized = value.replaceAll("\\s+", " ").trim();
         if (normalized.isBlank()) {
             return List.of();
@@ -111,7 +111,7 @@ public final class ResourceEmbeddingChunker {
         return chunks;
     }
 
-    private static boolean isSentenceSplitCandidate(IndexField indexField) {
+    static boolean isSentenceSplitCandidate(IndexField indexField) {
         return "java.lang.String".equals(indexField.getType())
                 && indexField.hasSearchCapability(SearchCapability.TEXT)
                 && !indexField.isMultivalued()
@@ -164,7 +164,7 @@ public final class ResourceEmbeddingChunker {
         return prefix + ": " + content;
     }
 
-    private static String normalizeValue(Object value) {
+    static String normalizeValue(Object value) {
         if (value == null) {
             return "";
         }
