@@ -17,6 +17,7 @@
 package gr.uoa.di.madgik.registry.elasticsearch.listeners;
 
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.elasticsearch.service.ElasticIndexFieldsResolver;
 import gr.uoa.di.madgik.registry.monitor.ResourceTypeListener;
 import gr.uoa.di.madgik.registry.service.IndexOperationsService;
 import org.slf4j.Logger;
@@ -25,10 +26,13 @@ import org.slf4j.LoggerFactory;
 public class ElasticResourceTypeListener implements ResourceTypeListener {
 
     private final IndexOperationsService indexOperationsService;
+    private final ElasticIndexFieldsResolver indexFieldsResolver;
     private Logger logger = LoggerFactory.getLogger(ElasticResourceTypeListener.class);
 
-    public ElasticResourceTypeListener(IndexOperationsService indexOperationsService) {
+    public ElasticResourceTypeListener(IndexOperationsService indexOperationsService,
+                                       ElasticIndexFieldsResolver indexFieldsResolver) {
         this.indexOperationsService = indexOperationsService;
+        this.indexFieldsResolver = indexFieldsResolver;
     }
 
     @Override
@@ -39,11 +43,16 @@ public class ElasticResourceTypeListener implements ResourceTypeListener {
     @Override
     public void resourceTypeUpdated(ResourceType previous, ResourceType updated) {
         indexOperationsService.updateIndex(previous, updated);
+        indexFieldsResolver.evict(previous.getName());
+        if (!previous.getName().equals(updated.getName())) {
+            indexFieldsResolver.evict(updated.getName());
+        }
     }
 
     @Override
     public void resourceTypeDelete(String name) {
         indexOperationsService.deleteIndex(name);
+        indexFieldsResolver.evict(name);
     }
 
 }

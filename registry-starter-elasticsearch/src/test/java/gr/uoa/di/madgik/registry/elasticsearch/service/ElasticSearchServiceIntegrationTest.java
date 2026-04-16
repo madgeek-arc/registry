@@ -29,6 +29,7 @@ import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.elasticsearch.autoconfigure.RegistryElasticsearchProperties;
+import gr.uoa.di.madgik.registry.elasticsearch.service.ElasticIndexFieldsResolver;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
@@ -116,7 +117,8 @@ class ElasticSearchServiceIntegrationTest {
                 new JacksonJsonpMapper(objectMapper),
                 embeddingService,
                 resourceTypeService,
-                elasticsearchProperties
+                elasticsearchProperties,
+                new ElasticIndexFieldsResolver(client)
         );
     }
 

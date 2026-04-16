@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.elasticsearch.SearchIndexConsistencyService;
 import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceListener;
 import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceTypeListener;
+import gr.uoa.di.madgik.registry.elasticsearch.service.ElasticIndexFieldsResolver;
 import gr.uoa.di.madgik.registry.elasticsearch.service.ElasticOperationsService;
 import gr.uoa.di.madgik.registry.elasticsearch.service.ElasticSearchService;
 import gr.uoa.di.madgik.registry.monitor.ResourceListener;
@@ -139,11 +140,22 @@ public class ElasticAutoConfiguration {
     }
 
     /**
+     * Registers the index-field resolver that caches per-index text field lists.
+     * Backed by the shared Caffeine {@code CacheManager}; cache entries are evicted by
+     * {@link ElasticResourceTypeListener} on resource-type update and delete events.
+     */
+    @Bean
+    ElasticIndexFieldsResolver elasticIndexFieldsResolver(ElasticsearchClient client) {
+        return new ElasticIndexFieldsResolver(client);
+    }
+
+    /**
      * Registers the resource-type listener responsible for index creation and deletion.
      */
     @Bean
-    ResourceTypeListener elasticResourceTypeListener(IndexOperationsService indexOperationsService) {
-        return new ElasticResourceTypeListener(indexOperationsService);
+    ResourceTypeListener elasticResourceTypeListener(IndexOperationsService indexOperationsService,
+                                                     ElasticIndexFieldsResolver indexFieldsResolver) {
+        return new ElasticResourceTypeListener(indexOperationsService, indexFieldsResolver);
     }
 
     /**
@@ -163,9 +175,10 @@ public class ElasticAutoConfiguration {
     SearchService elasticSearchService(ElasticsearchClient client, JacksonJsonpMapper jsonpMapper,
                                        EmbeddingService embeddingService,
                                        ResourceTypeService resourceTypeService,
-                                       RegistryElasticsearchProperties elasticsearchProperties) {
+                                       RegistryElasticsearchProperties elasticsearchProperties,
+                                       ElasticIndexFieldsResolver indexFieldsResolver) {
         return new ElasticSearchService(client, jsonpMapper, embeddingService, resourceTypeService,
-                elasticsearchProperties);
+                elasticsearchProperties, indexFieldsResolver);
     }
 
     private static URI firstUri(List<String> uris) {

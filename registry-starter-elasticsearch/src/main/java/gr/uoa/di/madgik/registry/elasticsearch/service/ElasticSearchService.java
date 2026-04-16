@@ -24,15 +24,12 @@ import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
-import co.elastic.clients.elasticsearch._types.mapping.Property;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.HighlightField;
 import co.elastic.clients.elasticsearch.core.search.HighlighterOrder;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.TotalHits;
-import co.elastic.clients.elasticsearch.indices.GetMappingResponse;
-import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
 import co.elastic.clients.json.JsonData;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.util.NamedValue;
@@ -80,6 +77,7 @@ public class ElasticSearchService implements SearchService {
     private final JacksonJsonpMapper jsonpMapper;
     private final EmbeddingService embeddingService;
     private final ResourceTypeService resourceTypeService;
+    private final ElasticIndexFieldsResolver indexFieldsResolver;
     private final ObjectMapper mapper;
     private final int highlightFragmentSize;
     private final int highlightNumberOfFragments;
@@ -94,11 +92,13 @@ public class ElasticSearchService implements SearchService {
                                 JacksonJsonpMapper jsonpMapper,
                                 EmbeddingService embeddingService,
                                 ResourceTypeService resourceTypeService,
-                                RegistryElasticsearchProperties elasticsearchProperties) {
+                                RegistryElasticsearchProperties elasticsearchProperties,
+                                ElasticIndexFieldsResolver indexFieldsResolver) {
         this.client = client;
         this.jsonpMapper = jsonpMapper;
         this.embeddingService = embeddingService;
         this.resourceTypeService = resourceTypeService;
+        this.indexFieldsResolver = indexFieldsResolver;
         this.highlightFragmentSize = elasticsearchProperties.getSearch().getHighlight().getFragmentSize();
         this.highlightNumberOfFragments = elasticsearchProperties.getSearch().getHighlight().getNumberOfFragments();
         this.topHitsSize = elasticsearchProperties.getAggregation().getTopHitsSize();
@@ -542,41 +542,9 @@ public class ElasticSearchService implements SearchService {
     // Text-field discovery via mapping API
     // -------------------------------------------------------------------------
 
-    private List<String> getTextFields(String indexName) {
-        try {
-            GetMappingResponse mappingResponse = client.indices().getMapping(r -> r.index(indexName));
-            IndexMappingRecord record = mappingResponse.mappings().values().stream().findFirst().orElse(null);
-            if (record == null) return Collections.emptyList();
-            return findTextFields(record.mappings().properties(), "");
-        } catch (IOException e) {
-            logger.warn("Reading resourceType '{}' fields from Elastic failed, using 'searchableArea' fallback.", indexName, e);
-            return List.of("searchableArea");
-        }
-    }
-
     private List<String> resolveTextFields(String indexName) {
-        List<String> fields = getTextFields(indexName);
+        List<String> fields = indexFieldsResolver.getTextFields(indexName);
         return fields.isEmpty() ? List.of("searchableArea") : fields;
-    }
-
-    private List<String> findTextFields(Map<String, Property> properties, String pathPrefix) {
-        List<String> result = new ArrayList<>();
-        for (Map.Entry<String, Property> entry : properties.entrySet()) {
-            String fullPath = pathPrefix.isEmpty() ? entry.getKey() : pathPrefix + "." + entry.getKey();
-            Property prop = entry.getValue();
-            if (prop.isText()) {
-                result.add(fullPath);
-            } else if (prop.isKeyword() && prop.keyword().fields() != null) {
-                prop.keyword().fields().forEach((subName, subProp) -> {
-                    if (subProp.isText()) result.add(fullPath + "." + subName);
-                });
-            } else if (prop.isObject() && prop.object().properties() != null) {
-                result.addAll(findTextFields(prop.object().properties(), fullPath));
-            } else if (prop.isNested() && prop.nested().properties() != null) {
-                result.addAll(findTextFields(prop.nested().properties(), fullPath));
-            }
-        }
-        return result;
     }
 
     // -------------------------------------------------------------------------
