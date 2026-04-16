@@ -18,7 +18,9 @@ package gr.uoa.di.madgik.registry.controllers;
 
 import gr.uoa.di.madgik.registry.annotation.BrowseParameters;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
+import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
+import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.springframework.http.HttpStatus;
@@ -48,6 +50,46 @@ public class SearchController {
         FacetFilter filter = FacetFilter.from(allRequestParams);
         filter.setResourceType(resourceType);
         return new ResponseEntity<>(searchService.search(filter), HttpStatus.OK);
+    }
+
+    @BrowseParameters
+    @GetMapping(value = "/search/{name}/semantic")
+    public ResponseEntity<Paging<Resource>> semanticSearch(
+            @PathVariable("name") String resourceType,
+            @RequestParam(defaultValue = "{}") MultiValueMap<String, Object> allRequestParams) throws ServiceException {
+        FacetFilter filter = FacetFilter.from(allRequestParams);
+        filter.setResourceType(resourceType);
+        return new ResponseEntity<>(searchService.semanticSearch(filter), HttpStatus.OK);
+    }
+
+    @BrowseParameters
+    @GetMapping(value = "/search/{name}/hybrid")
+    public ResponseEntity<Paging<Resource>> hybridSearch(
+            @PathVariable("name") String resourceType,
+            @RequestParam(defaultValue = "{}") MultiValueMap<String, Object> allRequestParams) throws ServiceException {
+        FacetFilter filter = FacetFilter.from(allRequestParams);
+        filter.setResourceType(resourceType);
+        return new ResponseEntity<>(searchService.hybridSearch(filter), HttpStatus.OK);
+    }
+
+    @BrowseParameters
+    @GetMapping(value = "/search/{name}/highlighted")
+    public ResponseEntity<Paging<HighlightedResult<Resource>>> searchWithHighlights(
+            @PathVariable("name") String resourceType,
+            @RequestParam(defaultValue = "{}") MultiValueMap<String, Object> allRequestParams) throws ServiceException {
+        FacetFilter filter = FacetFilter.from(allRequestParams);
+        filter.setResourceType(resourceType);
+        return new ResponseEntity<>(searchService.searchWithHighlights(filter), HttpStatus.OK);
+    }
+
+    @BrowseParameters
+    @GetMapping(value = "/search/{name}/hybrid/highlighted")
+    public ResponseEntity<Paging<HighlightedResult<Resource>>> hybridSearchWithHighlights(
+            @PathVariable("name") String resourceType,
+            @RequestParam(defaultValue = "{}") MultiValueMap<String, Object> allRequestParams) throws ServiceException {
+        FacetFilter filter = FacetFilter.from(allRequestParams);
+        filter.setResourceType(resourceType);
+        return new ResponseEntity<>(searchService.hybridSearchWithHighlights(filter), HttpStatus.OK);
     }
 
     @GetMapping(value = "/search/cql/{resourceType}")

@@ -61,6 +61,9 @@ public interface SearchService {
     Paging<HighlightedResult<Resource>> searchWithHighlights(FacetFilter filter) throws ServiceException;
 
     @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    Paging<HighlightedResult<Resource>> hybridSearchWithHighlights(FacetFilter filter) throws ServiceException;
+
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Resource searchFields(String resourceType, KeyValue... fields) throws ServiceException;
 
     @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))

@@ -103,6 +103,17 @@ public class GenericController {
         return ResponseEntity.ok(genericResourceService.getHighlightedResults(filter));
     }
 
+    @GetMapping("{resourceType}/hybrid/highlighted")
+    @BrowseParameters
+    public ResponseEntity<Paging<HighlightedResult<Object>>> browseHybridHighlighted(
+            @PathVariable("resourceType") String resourceType,
+            @Parameter(hidden = true)
+            @RequestParam MultiValueMap<String, Object> params) {
+        FacetFilter filter = FacetFilter.from(params);
+        filter.setResourceType(resourceType);
+        return ResponseEntity.ok(genericResourceService.getHybridHighlightedResults(filter));
+    }
+
     @GetMapping("{resourceType}/{id}")
     public ResponseEntity<Object> get(@PathVariable("resourceType") String resourceType,
                                       @PathVariable("id") String id) {

@@ -22,11 +22,7 @@ import gr.uoa.di.madgik.registry.configuration.BackupRestoreConfig;
 import gr.uoa.di.madgik.registry.configuration.BatchConfig;
 import gr.uoa.di.madgik.registry.configuration.HibernateConfiguration;
 import gr.uoa.di.madgik.registry.configuration.ServiceConfiguration;
-import gr.uoa.di.madgik.registry.domain.Segment;
-import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.GenericResourceService;
-import gr.uoa.di.madgik.registry.service.WeightingEmbeddingService;
-import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -36,8 +32,6 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -53,22 +47,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
         RegistryServiceComponentsConfiguration.class,
 })
 public class RegistryServiceAutoConfiguration {
-
-    @Bean
-    @ConditionalOnBean(EmbeddingModel.class)
-    @ConditionalOnMissingBean(EmbeddingService.class)
-    EmbeddingService weightingEmbeddingService(EmbeddingModel embeddingModel) {
-        return new WeightingEmbeddingService(embeddingModel);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(EmbeddingService.class)
-    EmbeddingService noopEmbeddingService() {
-        return new EmbeddingService() {
-            @Override public float[] embed(String text) { return new float[0]; }
-            @Override public float[] embed(List<Segment> segments) { return new float[0]; }
-        };
-    }
 
     @Bean
     @ConditionalOnMissingBean(CacheManager.class)

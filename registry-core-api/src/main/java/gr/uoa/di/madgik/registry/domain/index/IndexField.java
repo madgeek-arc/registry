@@ -23,7 +23,9 @@ import org.hibernate.annotations.Check;
 import org.hibernate.annotations.Comment;
 
 import java.io.Serializable;
+import java.util.EnumSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Created by antleb on 5/20/16.
@@ -57,6 +59,11 @@ public class IndexField implements Serializable {
 
     @Column
     private boolean primaryKey = false;
+
+    @Comment("Search capabilities for string fields. Defaults to KEYWORD when unset.")
+    @Convert(converter = SearchCapabilitySetConverter.class)
+    @Column(name = "search_capabilities")
+    private Set<SearchCapability> searchCapabilities = EnumSet.noneOf(SearchCapability.class);
 
     @Comment("The weight this index field will have when creating an embedding vector for the resource.")
     @Column(name = "embedding_weight", columnDefinition = "real")
@@ -138,6 +145,25 @@ public class IndexField implements Serializable {
 
     public void setPrimaryKey(boolean primaryKey) {
         this.primaryKey = primaryKey;
+    }
+
+    public Set<SearchCapability> getSearchCapabilities() {
+        if (searchCapabilities == null || searchCapabilities.isEmpty()) {
+            return EnumSet.of(SearchCapability.KEYWORD);
+        }
+        return EnumSet.copyOf(searchCapabilities);
+    }
+
+    public void setSearchCapabilities(Set<SearchCapability> searchCapabilities) {
+        if (searchCapabilities == null || searchCapabilities.isEmpty()) {
+            this.searchCapabilities = EnumSet.noneOf(SearchCapability.class);
+            return;
+        }
+        this.searchCapabilities = EnumSet.copyOf(searchCapabilities);
+    }
+
+    public boolean hasSearchCapability(SearchCapability capability) {
+        return getSearchCapabilities().contains(capability);
     }
 
     public float getEmbeddingWeight() {

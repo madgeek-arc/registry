@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service("searchService")
 public class ClientSearchService implements SearchService {
@@ -113,6 +114,16 @@ public class ClientSearchService implements SearchService {
         return executeSearch(filter, "hybrid");
     }
 
+    @Override
+    public Paging<HighlightedResult<Resource>> searchWithHighlights(FacetFilter filter) throws ServiceException {
+        return executeHighlightedSearch(filter, null);
+    }
+
+    @Override
+    public Paging<HighlightedResult<Resource>> hybridSearchWithHighlights(FacetFilter filter) throws ServiceException {
+        return executeHighlightedSearch(filter, "hybrid");
+    }
+
     private Paging<Resource> executeSearch(FacetFilter filter, String mode) {
         String path = mode == null
                 ? registryHost + "/search/" + filter.getResourceType()
@@ -156,11 +167,6 @@ public class ClientSearchService implements SearchService {
     }
 
     @Override
-    public Paging<HighlightedResult<Resource>> searchWithHighlights(FacetFilter filter) throws ServiceException {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override
     public List<Resource> recommend(FacetFilter filter, KeyValue idValue) throws ServiceException {
         throw new UnsupportedOperationException("Not implemented");
     }
@@ -193,5 +199,63 @@ public class ClientSearchService implements SearchService {
     @Override
     public Map<String, List<Resource>> searchByCategory(FacetFilter filter, String category) {
         throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    private Paging<HighlightedResult<Resource>> executeHighlightedSearch(FacetFilter filter, String mode) {
+        String path = mode == null
+                ? registryHost + "/search/" + filter.getResourceType() + "/highlighted"
+                : registryHost + "/search/" + filter.getResourceType() + "/" + mode + "/highlighted";
+        UriComponentsBuilder builder = buildSearchUri(path, filter);
+
+        ResponseEntity<Paging> response = restTemplate.getForEntity(builder.toUriString(), Paging.class);
+        Paging<?> paging = response.getBody() == null ? new Paging<>() : response.getBody();
+        return convertHighlightedPaging(paging);
+    }
+
+    private UriComponentsBuilder buildSearchUri(String path, FacetFilter filter) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(path)
+                .queryParam("keyword", filter.getKeyword())
+                .queryParam("from", filter.getFrom())
+                .queryParam("quantity", filter.getQuantity())
+                .queryParam("browseBy", filter.getBrowseBy());
+        if (filter.getOrderBy() != null) {
+            builder.queryParam("sort", filter.getOrderBy().keySet());
+            builder.queryParam("order", filter.getOrderBy().values()
+                    .stream()
+                    .map(value -> ((Map<String, String>) value).get("order"))
+                    .toList());
+        }
+
+        for (Map.Entry<String, Object> entry : filter.getFilter().entrySet()) {
+            Object value = entry.getValue();
+            if (Collection.class.isAssignableFrom(value.getClass())) {
+                for (String val : ((List<String>) value)) {
+                    builder.queryParam(entry.getKey(), val);
+                }
+            } else {
+                builder.queryParam(entry.getKey(), entry.getValue());
+            }
+        }
+        return builder;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Paging<HighlightedResult<Resource>> convertHighlightedPaging(Paging<?> paging) {
+        Paging<HighlightedResult<Resource>> converted = new Paging<>();
+        converted.setTotal(paging.getTotal());
+        converted.setFrom(paging.getFrom());
+        converted.setTo(paging.getTo());
+        converted.setFacets(paging.getFacets());
+        converted.setResults(paging.getResults().stream()
+                .map(item -> objectMapper.convertValue(item, HighlightedResult.class))
+                .map(raw -> {
+                    HighlightedResult<Resource> result = new HighlightedResult<>();
+                    result.setScore(raw.getScore());
+                    result.setHighlights(raw.getHighlights());
+                    result.setResult(objectMapper.convertValue(Objects.requireNonNull(raw.getResult()), Resource.class));
+                    return result;
+                })
+                .toList());
+        return converted;
     }
 }

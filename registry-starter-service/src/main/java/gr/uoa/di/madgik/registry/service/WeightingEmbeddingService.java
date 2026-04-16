@@ -27,9 +27,11 @@ public class WeightingEmbeddingService implements EmbeddingService {
 
     private static final Logger logger = LoggerFactory.getLogger(WeightingEmbeddingService.class);
     private final EmbeddingModel embeddingModel;
+    private final String modelName;
 
-    public WeightingEmbeddingService(EmbeddingModel embeddingModel) {
+    public WeightingEmbeddingService(EmbeddingModel embeddingModel, String modelName) {
         this.embeddingModel = embeddingModel;
+        this.modelName = modelName;
     }
 
     @Override
@@ -73,5 +75,10 @@ public class WeightingEmbeddingService implements EmbeddingService {
         }
         // It is possible to normalize the result and use dot product instead of cosine similarity.
         return result;
+    }
+
+    @Override
+    public String modelName() {
+        return modelName;
     }
 }

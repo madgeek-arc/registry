@@ -129,6 +129,13 @@ public class GenericResourceServiceImpl implements GenericResourceService {
     }
 
     @Override
+    public <T> Paging<HighlightedResult<T>> getHybridHighlightedResults(FacetFilter filter) {
+        ResponseEntity<Paging> response = restTemplate.getForEntity(buildBrowseUri(filter, "hybrid", true), Paging.class);
+        Paging<?> paging = response.getBody() == null ? new Paging<>() : response.getBody();
+        return convertHighlightedPaging(paging, Objects.requireNonNull(filter.getResourceType()));
+    }
+
+    @Override
     public <T> Map<String, List<T>> getResultsGrouped(FacetFilter filter, String category) {
         throw new UnsupportedOperationException("Not implemented by registry-starter-client");
     }
@@ -240,7 +247,9 @@ public class GenericResourceServiceImpl implements GenericResourceService {
     }
 
     private String buildBrowseUri(FacetFilter filter, String mode, boolean highlighted) {
-        String suffix = highlighted ? "/highlighted" : mode == null ? "" : "/" + mode;
+        String suffix = highlighted
+                ? mode == null ? "/highlighted" : "/" + mode + "/highlighted"
+                : mode == null ? "" : "/" + mode;
         String base = registryHost + "/records/" + filter.getResourceType() + suffix;
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(base)
                 .queryParam("keyword", filter.getKeyword())

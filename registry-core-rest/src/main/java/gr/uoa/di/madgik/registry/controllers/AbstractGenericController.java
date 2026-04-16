@@ -273,6 +273,20 @@ public abstract class AbstractGenericController<T> {
         return ResponseEntity.ok(results);
     }
 
+    @Operation(
+            summary = "Browse resources with hybrid highlights",
+            description = "Returns hybrid-ranked results with lexical highlights and semantic snippets."
+    )
+    @BrowseParameters
+    @GetMapping(path = "/hybrid/highlighted", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Paging<HighlightedResult<T>>> browseHybridHighlighted(
+            @Parameter(hidden = true) @RequestParam MultiValueMap<String, Object> params) {
+        FacetFilter filter = FacetFilter.from(params);
+        filter.setResourceType(getResourceTypeName());
+        Paging<HighlightedResult<T>> results = genericResourceService.getHybridHighlightedResults(filter);
+        return ResponseEntity.ok(results);
+    }
+
     /**
      * Retrieves a single resource by its primary identifier.
      *

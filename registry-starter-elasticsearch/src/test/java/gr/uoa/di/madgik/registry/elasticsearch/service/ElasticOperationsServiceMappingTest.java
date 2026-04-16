@@ -54,10 +54,32 @@ class ElasticOperationsServiceMappingTest {
         Map<String, Object> properties = (Map<String, Object>) mapping.get("properties");
         @SuppressWarnings("unchecked")
         Map<String, Object> embedding = (Map<String, Object>) properties.get("embedding");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> chunkEmbeddings = (Map<String, Object>) properties.get("chunk_embeddings");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> chunkEmbeddingProperties = (Map<String, Object>) chunkEmbeddings.get("properties");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> chunkField = (Map<String, Object>) chunkEmbeddingProperties.get("field");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> chunkValueOrdinal = (Map<String, Object>) chunkEmbeddingProperties.get("value_ordinal");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> chunkFieldChunkIdx = (Map<String, Object>) chunkEmbeddingProperties.get("field_chunk_idx");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> chunkEmbedding = (Map<String, Object>) chunkEmbeddingProperties.get("embedding");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> chunkContent = (Map<String, Object>) chunkEmbeddingProperties.get("content");
 
         assertEquals("dense_vector", embedding.get("type"));
         assertEquals(Boolean.TRUE, embedding.get("index"));
         assertEquals("cosine", embedding.get("similarity"));
         assertTrue(((Number) embedding.get("dims")).intValue() > 0);
+        assertEquals("nested", chunkEmbeddings.get("type"));
+        assertEquals("keyword", chunkField.get("type"));
+        assertEquals("integer", chunkValueOrdinal.get("type"));
+        assertEquals("integer", chunkFieldChunkIdx.get("type"));
+        assertEquals("dense_vector", chunkEmbedding.get("type"));
+        assertEquals(Boolean.TRUE, chunkEmbedding.get("index"));
+        assertEquals("cosine", chunkEmbedding.get("similarity"));
+        assertEquals("text", chunkContent.get("type"));
     }
 }

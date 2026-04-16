@@ -19,7 +19,6 @@ package gr.uoa.di.madgik.registry.configuration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 
@@ -30,10 +29,10 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         BackupRestoreConfig.class,
         ServiceConfiguration.class
 })
-@EnableJpaRepositories(basePackages = "gr.uoa.di.madgik.registry.dao")
 @EnableTransactionManagement
 @ComponentScan(basePackages = {
         "gr.uoa.di.madgik.registry.dao",
+        "gr.uoa.di.madgik.registry.repository",
         "gr.uoa.di.madgik.registry.service",
         "gr.uoa.di.madgik.registry.index",
         "gr.uoa.di.madgik.registry.monitor",

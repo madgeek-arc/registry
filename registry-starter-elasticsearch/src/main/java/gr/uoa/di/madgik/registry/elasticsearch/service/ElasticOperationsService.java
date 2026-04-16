@@ -22,11 +22,14 @@ import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.indices.Alias;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gr.uoa.di.madgik.registry.domain.ResourceEmbeddingChunk;
+import gr.uoa.di.madgik.registry.domain.ResourceEmbeddingChunker;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Segment;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.domain.index.IndexedField;
+import gr.uoa.di.madgik.registry.domain.index.SearchCapability;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.IndexOperationsService;
 import gr.uoa.di.madgik.registry.service.ResourceService;
@@ -79,6 +82,7 @@ public class ElasticOperationsService implements IndexOperationsService {
     }
 
     private static final Map<String, Object> KEYWORD_MAP = Map.of("type", "keyword");
+    private static final Map<String, Object> INTEGER_MAP = Map.of("type", "integer");
     private static final Map<String, Object> DATE_MAP = Map.of("type", "date", "format", "strict_date_optional_time||epoch_millis");
     private static final Map<String, Object> TEXT_MAP = Map.of("type", "text");
     private static final Map<String, Object> DENSE_VECTOR_MAP = Map.of(
@@ -86,6 +90,16 @@ public class ElasticOperationsService implements IndexOperationsService {
             "dims", VECTOR_SIZE,
             "index", true,
             "similarity", "cosine"
+    );
+    private static final Map<String, Object> CHUNK_EMBEDDINGS_MAP = Map.of(
+            "type", "nested",
+            "properties", Map.of(
+                    "field", KEYWORD_MAP,
+                    "value_ordinal", INTEGER_MAP,
+                    "field_chunk_idx", INTEGER_MAP,
+                    "content", TEXT_MAP,
+                    "embedding", DENSE_VECTOR_MAP
+            )
     );
 
     private final ResourceTypeService resourceTypeService;
@@ -265,7 +279,16 @@ public class ElasticOperationsService implements IndexOperationsService {
                 Map<String, Object> typeMap = new HashMap<>();
                 typeMap.put("type", FIELD_TYPES_MAP.get(indexField.getType()));
                 switch (indexField.getType()) {
-                    case "java.lang.String" -> typeMap.put("fields", Map.of("analyzed", TEXT_MAP));
+                    case "java.lang.String" -> {
+                        if (indexField.hasSearchCapability(SearchCapability.TEXT)) {
+                            typeMap.put("type", "text");
+                            if (indexField.hasSearchCapability(SearchCapability.KEYWORD)) {
+                                typeMap.put("fields", Map.of("keyword", KEYWORD_MAP));
+                            }
+                        } else {
+                            typeMap.put("fields", Map.of("analyzed", TEXT_MAP));
+                        }
+                    }
                     case "embedding" -> typeMap.put("dims", VECTOR_SIZE);
                     default -> {
                     }
@@ -285,9 +308,14 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectProperties.put("created_by", KEYWORD_MAP);
         jsonObjectProperties.put("modified_by", KEYWORD_MAP);
         jsonObjectProperties.put("embedding", DENSE_VECTOR_MAP);
+        // Experimental only: chunk vectors are stored in Elasticsearch for inspection and future work,
+        // but the active ES search path still queries only the resource-level "embedding" field.
+        jsonObjectProperties.put("chunk_embeddings", CHUNK_EMBEDDINGS_MAP);
 
         jsonObjectGeneral.put("properties", jsonObjectProperties);
         jsonObjectGeneral.put("_source", Map.of("excludes", List.of("embedding")));
+//        jsonObjectGeneral.put("_source", Map.of("excludes", List.of("embedding", "chunk_embeddings.embedding")));
+
         return jsonObjectGeneral;
     }
 
@@ -310,6 +338,9 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectField.put("modification_date", resource.getModificationDate().toString());
         jsonObjectField.put("created_by", resource.getCreatedBy());
         jsonObjectField.put("modified_by", resource.getModifiedBy());
+        // Experimental mirror of the SQL chunk index. These nested chunk vectors are not used by the
+        // current Elasticsearch SearchService implementation, which ranks documents by resource embedding.
+        jsonObjectField.put("chunk_embeddings", createChunkEmbeddings(resource));
         //The creation date exists and should not be updated
         if (resource.getCreationDate() != null) {
             jsonObjectField.put("creation_date", resource.getCreationDate().toString());
@@ -365,5 +396,27 @@ public class ElasticOperationsService implements IndexOperationsService {
             jsonObjectField.put("embedding", embeddingService.embed(embeddingSegments));
         }
         return jsonObjectField;
+    }
+
+    private List<Map<String, Object>> createChunkEmbeddings(Resource resource) {
+        List<IndexField> indexFields = new ArrayList<>(
+                resourceTypeService.getResourceTypeIndexFields(resource.getResourceType().getName()));
+        List<ResourceEmbeddingChunk> embeddingChunks = ResourceEmbeddingChunker.chunk(resource, indexFields);
+        List<Map<String, Object>> chunks = new ArrayList<>();
+        for (ResourceEmbeddingChunk chunk : embeddingChunks) {
+            // Keep the chunk payload aligned with the PostgreSQL chunking/indexing pipeline so the
+            // experimental ES representation can be compared against the SQL-backed search behavior.
+            float[] embedding = embeddingService.embed(chunk.embeddingText());
+            if (embedding != null && embedding.length == VECTOR_SIZE) {
+                chunks.add(Map.of(
+                        "field", chunk.fieldName(),
+                        "value_ordinal", chunk.valueOrdinal(),
+                        "field_chunk_idx", chunk.fieldChunkIdx(),
+                        "content", chunk.content(),
+                        "embedding", embedding
+                ));
+            }
+        }
+        return chunks;
     }
 }

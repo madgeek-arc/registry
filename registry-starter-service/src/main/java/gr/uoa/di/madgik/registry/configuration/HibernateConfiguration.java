@@ -83,7 +83,7 @@ public class HibernateConfiguration {
             @Qualifier("registryJpaProperties") JpaProperties registryJpaProperties) {
         LocalContainerEntityManagerFactoryBean emf = new LocalContainerEntityManagerFactoryBean();
         emf.setDataSource(registryDataSource);
-        emf.setPackagesToScan("gr.uoa.di.madgik.registry.domain", "gr.uoa.di.madgik.registry.domain.index");
+        emf.setPackagesToScan("gr.uoa.di.madgik.registry.domain");
         emf.setPersistenceUnitName("registryEntityManager");
         emf.setEntityManagerFactoryInterface(EntityManagerFactory.class);
         emf.setJpaVendorAdapter(new HibernateJpaVendorAdapter());

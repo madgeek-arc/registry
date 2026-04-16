@@ -60,6 +60,7 @@ import java.util.concurrent.Callable;
 @SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
 @SqlMergeMode(SqlMergeMode.MergeMode.MERGE)
 @Sql(scripts = "/data.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+@Sql(scripts = "/resource_chunk.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 @Sql(scripts = "/cleanup.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class BatchConfigurationTest extends PostgreSqlTestContainerSupport {
 

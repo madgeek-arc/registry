@@ -156,9 +156,31 @@ public class GenericResourceManager implements GenericResourceService {
     }
 
     @Override
+    public <T> Paging<T> getSemanticResults(FacetFilter filter) {
+        Paging<T> results = convertToPaging(searchService.semanticSearch(filter), filter.getResourceType());
+        facetLabelService.enrichFacetLabels(results.getFacets(), filter.getResourceType());
+        return results;
+    }
+
+    @Override
+    public <T> Paging<T> getHybridResults(FacetFilter filter) {
+        Paging<T> results = convertToPaging(searchService.hybridSearch(filter), filter.getResourceType());
+        facetLabelService.enrichFacetLabels(results.getFacets(), filter.getResourceType());
+        return results;
+    }
+
+    @Override
     public <T> Paging<HighlightedResult<T>> getHighlightedResults(FacetFilter filter) {
         Paging<HighlightedResult<T>> results = convertToPagingWithHighlights(
                 searchService.searchWithHighlights(filter), filter.getResourceType());
+        facetLabelService.enrichFacetLabels(results.getFacets(), filter.getResourceType());
+        return results;
+    }
+
+    @Override
+    public <T> Paging<HighlightedResult<T>> getHybridHighlightedResults(FacetFilter filter) {
+        Paging<HighlightedResult<T>> results = convertToPagingWithHighlights(
+                searchService.hybridSearchWithHighlights(filter), filter.getResourceType());
         facetLabelService.enrichFacetLabels(results.getFacets(), filter.getResourceType());
         return results;
     }

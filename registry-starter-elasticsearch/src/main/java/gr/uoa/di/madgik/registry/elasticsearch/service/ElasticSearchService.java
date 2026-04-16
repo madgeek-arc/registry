@@ -374,7 +374,7 @@ public class ElasticSearchService implements SearchService {
         }
     }
 
-    private Paging<HighlightedResult<Resource>> buildSearchWithHighlights(FacetFilter filter) {
+    private Paging<HighlightedResult<Resource>> buildSearchWithHighlights(FacetFilter filter, ObjectNode queryNode) {
         filter.setBrowseBy(resolveBrowseBy(filter));
         int quantity = filter.getQuantity();
         validateQuantity(quantity);
@@ -383,7 +383,7 @@ public class ElasticSearchService implements SearchService {
             SearchResponse<ObjectNode> response = client.search(s -> s
                             .index(filter.getResourceType())
                             .searchType(SearchType.DfsQueryThenFetch)
-                            .query(toQuery(createLexicalQueryNode(filter)))
+                            .query(toQuery(queryNode))
                             .source(src -> src.filter(f -> f.includes(List.of(INCLUDES))))
                             .from(filter.getFrom())
                             .size(quantity)
@@ -747,7 +747,12 @@ public class ElasticSearchService implements SearchService {
 
     @Override
     public Paging<HighlightedResult<Resource>> searchWithHighlights(FacetFilter filter) {
-        return buildSearchWithHighlights(filter);
+        return buildSearchWithHighlights(filter, createLexicalQueryNode(filter));
+    }
+
+    @Override
+    public Paging<HighlightedResult<Resource>> hybridSearchWithHighlights(FacetFilter filter) {
+        return buildSearchWithHighlights(filter, createHybridQueryNode(filter));
     }
 
     @Override

@@ -141,6 +141,8 @@ public interface GenericResourceService {
      */
     <T> Paging<HighlightedResult<T>> getHighlightedResults(FacetFilter filter);
 
+    <T> Paging<HighlightedResult<T>> getHybridHighlightedResults(FacetFilter filter);
+
     /**
      * Returns resources grouped by the values of a categorical field.
      *

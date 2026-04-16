@@ -18,17 +18,19 @@ package gr.uoa.di.madgik.registry.service;
 
 import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
 import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
+import gr.uoa.di.madgik.registry.dao.ResourceChunkDao;
 import gr.uoa.di.madgik.registry.domain.Facet;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.ResourceChunk;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Value;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -41,6 +43,9 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -48,7 +53,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSupport {
 
     @MockitoBean
-    EmbeddingModel embeddingModel;
+    EmbeddingService embeddingService;
+
+    @MockitoBean
+    AuditActorProvider auditActorProvider;
 
     @Autowired
     SearchService searchService;
@@ -63,12 +71,26 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
     ResourceService resourceService;
 
     @Autowired
+    ResourceChunkIndexService resourceChunkIndexService;
+
+    @Autowired
+    ResourceChunkDao resourceChunkDao;
+
+    @Autowired
     @Qualifier("registryDataSource")
     DataSource dataSource;
 
     @BeforeAll
     void createEmployeeView() {
         viewService.createView(resourceTypeService.getResourceType("employee"));
+    }
+
+    @BeforeEach
+    void stubEmbeddingModel() {
+        when(auditActorProvider.currentActor()).thenReturn("search-test");
+        lenient().when(embeddingService.embed(anyString())).thenAnswer(invocation ->
+                embeddingFor(invocation.getArgument(0, String.class)));
+        lenient().when(embeddingService.modelName()).thenReturn("test-embedding-model");
     }
 
     @Test
@@ -278,22 +300,65 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
     }
 
     @Test
-    void recommend_returnsSimilarResourcesOrderedByFieldOverlap() {
-        Resource similar = new Resource();
-        similar.setResourceTypeName("employee");
-        similar.setPayload("""
-                <?xml version="1.0"?>
-                <employee>
-                  <author>Jane Doe</author>
-                  <age>28</age>
-                  <single>false</single>
-                  <birthday>645544821000</birthday>
-                  <salary>1292.123</salary>
-                  <amka>98765432101234</amka>
-                </employee>
-                """);
-        resourceService.addResource(similar);
-        viewService.createView(resourceTypeService.getResourceType("employee"));
+    void resourceLifecycle_indexesChunksWithEmbeddingModel() {
+        Resource created = resourceService.addResource(newEmployeeResource("Analytics Architect", 34));
+        resourceChunkIndexService.reindex(created);
+
+        List<ResourceChunk> chunks = resourceChunkDao.findByResourceIdOrderByChunkIdxAsc(created.getId());
+
+        assertFalse(chunks.isEmpty());
+        assertEquals(0, chunks.getFirst().getChunkIdx());
+        assertNotNull(chunks.getFirst().getFieldName());
+        assertTrue(chunks.getFirst().getValueOrdinal() >= 0);
+        assertEquals("test-embedding-model", chunks.getFirst().getEmbeddingModel());
+    }
+
+    @Test
+    void semanticSearch_returnsResourcesByChunkSimilarity() {
+        Resource analytics = resourceService.addResource(newEmployeeResource("Analytics Architect", 34));
+        Resource operations = resourceService.addResource(newEmployeeResource("Operations Lead", 41));
+        resourceChunkIndexService.reindex(analytics);
+        resourceChunkIndexService.reindex(operations);
+
+        FacetFilter filter = employeeFilter();
+        filter.setKeyword("analytics");
+
+        Paging<Resource> results = searchService.semanticSearch(filter);
+
+        assertTrue(results.getTotal() >= 1);
+        assertEquals(analytics.getId(), results.getResults().getFirst().getId());
+    }
+
+    @Test
+    void hybridSearchWithHighlights_returnsLexicalAndSemanticHighlights() {
+        Resource hybrid = resourceService.addResource(newEmployeeResource("Architect Analyst", 37));
+        resourceChunkIndexService.reindex(hybrid);
+
+        FacetFilter filter = employeeFilter();
+        filter.setKeyword("architect");
+
+        Paging<HighlightedResult<Resource>> results = searchService.hybridSearchWithHighlights(filter);
+
+        assertFalse(results.getResults().isEmpty());
+        HighlightedResult<Resource> first = results.getResults().stream()
+                .filter(result -> hybrid.getId().equals(result.getResult().getId()))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(first.getHighlights().stream().anyMatch(highlight -> "payload".equals(highlight.getField())));
+        assertTrue(first.getHighlights().stream().anyMatch(highlight -> !"payload".equals(highlight.getField())));
+    }
+
+    @Test
+    void recommend_returnsSimilarResourcesOrderedByChunkSimilarity() {
+        Resource source = resourceService.getResource(DatabaseConfiguration.TEST_RESOURCE_ID);
+        source.setPayload(newEmployeePayload("Analytics Source", 28));
+        source = resourceService.updateResource(source);
+        resourceChunkIndexService.reindex(source);
+
+        Resource similar = resourceService.addResource(newEmployeeResource("Analytics Peer", 28));
+        Resource operations = resourceService.addResource(newEmployeeResource("Operations Peer", 28));
+        resourceChunkIndexService.reindex(similar);
+        resourceChunkIndexService.reindex(operations);
 
         FacetFilter filter = employeeFilter();
         List<Resource> recommendations = searchService.recommend(
@@ -301,7 +366,7 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
                 new SearchService.KeyValue("resource_internal_id", DatabaseConfiguration.TEST_RESOURCE_ID)
         );
 
-        assertEquals(1, recommendations.size());
+        assertFalse(recommendations.isEmpty());
         assertEquals(similar.getId(), recommendations.getFirst().getId());
     }
 
@@ -310,5 +375,49 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
         filter.setResourceType("employee");
         filter.setQuantity(10);
         return filter;
+    }
+
+    private Resource newEmployeeResource(String author, int age) {
+        Resource resource = new Resource();
+        resource.setResourceTypeName("employee");
+        resource.setPayloadFormat("xml");
+        resource.setPayload(newEmployeePayload(author, age));
+        return resource;
+    }
+
+    private String newEmployeePayload(String author, int age) {
+        return """
+                <?xml version="1.0"?>
+                <employee>
+                  <author>%s</author>
+                  <age>%d</age>
+                  <single>false</single>
+                  <birthday>645544821000</birthday>
+                  <salary>1292.123</salary>
+                  <amka>%d</amka>
+                </employee>
+                """.formatted(author, age, Math.abs(author.hashCode()) + 10000000000000L);
+    }
+
+    private float[] embeddingFor(String text) {
+        String normalized = text == null ? "" : text.toLowerCase();
+        if (normalized.contains("analytics") || normalized.contains("architect")) {
+            return vector(1f, 0f, 0f);
+        }
+        if (normalized.contains("operations")) {
+            return vector(0f, 1f, 0f);
+        }
+        if (normalized.contains("jodeee")) {
+            return vector(0f, 0f, 1f);
+        }
+        return vector(0.2f, 0.2f, 0.2f);
+    }
+
+    private float[] vector(float x, float y, float z) {
+        float[] vector = new float[EmbeddingService.VECTOR_SIZE];
+        vector[0] = x;
+        vector[1] = y;
+        vector[2] = z;
+        return vector;
     }
 }

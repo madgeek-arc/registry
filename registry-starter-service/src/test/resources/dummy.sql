@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS public.indexfield (
                                                  type character varying(255),
                                                  resourcetype_name character varying(255) NOT NULL,
                                                  embedding_weight double precision DEFAULT 0.0,
+                                                 search_capabilities character varying(255),
                                                  related_resource_type character varying(255),
                                                  related_resource_type_field character varying(255)
 );

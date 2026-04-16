@@ -1,6 +1,7 @@
 TRUNCATE TABLE
     schemadatabase,
     resourceversion,
+    resource_chunk,
     stringindexedfield_values,
     stringindexedfield,
     longindexedfield_values,

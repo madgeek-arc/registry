@@ -39,4 +39,8 @@ public interface EmbeddingService {
      * @return the embedding vector
      */
     float[] embed(List<Segment> segments);
+
+    default String modelName() {
+        return getClass().getSimpleName();
+    }
 }
