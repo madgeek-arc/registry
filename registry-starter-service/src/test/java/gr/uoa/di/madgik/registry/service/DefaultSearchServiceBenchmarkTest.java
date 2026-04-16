@@ -21,6 +21,7 @@ import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.ResourceType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -60,6 +61,12 @@ class DefaultSearchServiceBenchmarkTest extends PostgreSqlTestContainerSupport {
     @Autowired
     ResourceService resourceService;
 
+    @Autowired
+    ResourceTypeService resourceTypeService;
+
+    @Autowired
+    ViewService viewService;
+
     @BeforeAll
     void seedBenchmarkDataset() {
         when(auditActorProvider.currentActor()).thenReturn("benchmark-test");
@@ -69,12 +76,15 @@ class DefaultSearchServiceBenchmarkTest extends PostgreSqlTestContainerSupport {
             int age = 25 + (i % 20);
             resourceService.addResource(newEmployeeResource(author, age));
         }
+
+        ResourceType resourceType = resourceTypeService.getResourceType("employee");
+        viewService.createView(resourceType);
     }
 
     @Test
     void benchmarkSearch_withAndWithoutFacets() {
         Supplier<FacetFilter> withoutFacets = () -> employeeFilter(null);
-        Supplier<FacetFilter> withFacets = () -> employeeFilter(List.of("age"));
+        Supplier<FacetFilter> withFacets = () -> employeeFilter(List.of("age", "birthday", "salary", "single", "amka"));
 
         BenchmarkResult plainSearch = measure("search/no-facets", withoutFacets);
         BenchmarkResult facetedSearch = measure("search/with-facets", withFacets);
