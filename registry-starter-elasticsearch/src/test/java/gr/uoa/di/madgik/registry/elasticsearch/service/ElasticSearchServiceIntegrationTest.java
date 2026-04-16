@@ -348,8 +348,9 @@ class ElasticSearchServiceIntegrationTest {
     }
 
     /**
-     * Creates an index with an extra {@code status} keyword field and a {@code payload.analyzed}
-     * text sub-field so that filter and highlight tests can exercise those paths.
+     * Creates an index with an extra {@code status} keyword field while leaving lexical search and
+     * highlighting to the real text fields (`searchableArea` here) instead of synthetic text
+     * sub-fields on every keyword field.
      */
     private String createIndexWithStatusField() throws Exception {
         String index = "semantic-" + UUID.randomUUID().toString().replace("-", "");
@@ -357,12 +358,7 @@ class ElasticSearchServiceIntegrationTest {
                 "mappings", Map.of(
                         "properties", Map.of(
                                 "id", Map.of("type", "keyword"),
-                                "payload", Map.of(
-                                        "type", "keyword",
-                                        "fields", Map.of(
-                                                "analyzed", Map.of("type", "text")
-                                        )
-                                ),
+                                "payload", Map.of("type", "keyword"),
                                 "searchableArea", Map.of("type", "text"),
                                 "payloadFormat", Map.of("type", "keyword"),
                                 "version", Map.of("type", "keyword"),

@@ -67,6 +67,11 @@ public class ElasticOperationsService implements IndexOperationsService {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticOperationsService.class);
     private static final Map<String, String> FIELD_TYPES_MAP;
+    // Keep the keyword cutoff high enough that realistic metadata values still participate in
+    // exact filters, facets, and sorting. A much smaller limit like 255 would silently drop
+    // longer titles/descriptions from the keyword representation, which is worse than the small
+    // storage cost of keeping them indexed as structured values.
+    private static final int KEYWORD_IGNORE_ABOVE = 8191;
 
     static {
         Map<String, String> classToTypeMap = new HashMap<>();
@@ -77,11 +82,16 @@ public class ElasticOperationsService implements IndexOperationsService {
         classToTypeMap.put("java.lang.String", "keyword");
         classToTypeMap.put("java.util.Date", "date");
         classToTypeMap.put("java.time.Instant", "date");
-        classToTypeMap.put("embedding", "dense_vector");
         FIELD_TYPES_MAP = Collections.unmodifiableMap(classToTypeMap);
     }
 
-    private static final Map<String, Object> KEYWORD_MAP = Map.of("type", "keyword");
+    // The base string field remains keyword-backed even for TEXT-capable fields so exact-match
+    // operations keep working on the original value while lexical search uses the .text
+    // sub-field when present.
+    private static final Map<String, Object> KEYWORD_MAP = Map.of(
+            "type", "keyword",
+            "ignore_above", KEYWORD_IGNORE_ABOVE
+    );
     private static final Map<String, Object> INTEGER_MAP = Map.of("type", "integer");
     private static final Map<String, Object> DATE_MAP = Map.of("type", "date", "format", "strict_date_optional_time||epoch_millis");
     private static final Map<String, Object> TEXT_MAP = Map.of("type", "text");
@@ -278,19 +288,10 @@ public class ElasticOperationsService implements IndexOperationsService {
             for (IndexField indexField : indexFields) {
                 Map<String, Object> typeMap = new HashMap<>();
                 typeMap.put("type", FIELD_TYPES_MAP.get(indexField.getType()));
-                switch (indexField.getType()) {
-                    case "java.lang.String" -> {
-                        if (indexField.hasSearchCapability(SearchCapability.TEXT)) {
-                            typeMap.put("type", "text");
-                            if (indexField.hasSearchCapability(SearchCapability.KEYWORD)) {
-                                typeMap.put("fields", Map.of("keyword", KEYWORD_MAP));
-                            }
-                        } else {
-                            typeMap.put("fields", Map.of("analyzed", TEXT_MAP));
-                        }
-                    }
-                    case "embedding" -> typeMap.put("dims", VECTOR_SIZE);
-                    default -> {
+                if ("java.lang.String".equals(indexField.getType())) {
+                    typeMap.put("ignore_above", KEYWORD_IGNORE_ABOVE);
+                    if (indexField.hasSearchCapability(SearchCapability.TEXT)) {
+                        typeMap.put("fields", Map.of("text", TEXT_MAP));
                     }
                 }
                 jsonObjectProperties.put(indexField.getName(), typeMap);
@@ -313,8 +314,7 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectProperties.put("chunk_embeddings", CHUNK_EMBEDDINGS_MAP);
 
         jsonObjectGeneral.put("properties", jsonObjectProperties);
-        jsonObjectGeneral.put("_source", Map.of("excludes", List.of("embedding")));
-//        jsonObjectGeneral.put("_source", Map.of("excludes", List.of("embedding", "chunk_embeddings.embedding")));
+        jsonObjectGeneral.put("_source", Map.of("excludes", List.of("embedding", "chunk_embeddings.embedding")));
 
         return jsonObjectGeneral;
     }

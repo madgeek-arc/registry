@@ -143,7 +143,7 @@ public class ElasticSearchService implements SearchService {
         ArrayNode must = bool.putArray("must");
 
         if (filter.getKeyword() != null && !filter.getKeyword().isEmpty()) {
-            Set<String> textFields = new HashSet<>(getTextFields(filter.getResourceType()));
+            Set<String> textFields = new HashSet<>(resolveTextFields(filter.getResourceType()));
             ObjectNode textQuery = must.addObject().putObject("multi_match");
             textQuery.put("query", filter.getKeyword());
             ArrayNode fields = textQuery.putArray("fields");
@@ -170,7 +170,7 @@ public class ElasticSearchService implements SearchService {
         ArrayNode must = bool.putArray("must");
 
         if (filter.getKeyword() != null && !filter.getKeyword().isEmpty()) {
-            Set<String> textFields = new HashSet<>(getTextFields(filter.getResourceType()));
+            Set<String> textFields = new HashSet<>(resolveTextFields(filter.getResourceType()));
             ArrayNode should = bool.putArray("should");
             ObjectNode textQuery = mapper.createObjectNode();
             ObjectNode multiMatch = textQuery.putObject("multi_match");
@@ -222,7 +222,7 @@ public class ElasticSearchService implements SearchService {
         must.add(knnQueryNode(embedding, knnWindow(filter), 1.0f, 0.0f));
 
         if (filter.getKeyword() != null && !filter.getKeyword().isEmpty()) {
-            Set<String> textFields = new HashSet<>(getTextFields(filter.getResourceType()));
+            Set<String> textFields = new HashSet<>(resolveTextFields(filter.getResourceType()));
             ObjectNode textQuery = mapper.createObjectNode();
             ObjectNode multiMatch = textQuery.putObject("multi_match");
             multiMatch.put("query", filter.getKeyword());
@@ -380,6 +380,10 @@ public class ElasticSearchService implements SearchService {
         validateQuantity(quantity);
 
         try {
+            List<NamedValue<HighlightField>> highlightFields = resolveTextFields(filter.getResourceType()).stream()
+                    .map(field -> NamedValue.of(field,
+                            HighlightField.of(hf -> hf.fragmentSize(400).numberOfFragments(5))))
+                    .toList();
             SearchResponse<ObjectNode> response = client.search(s -> s
                             .index(filter.getResourceType())
                             .searchType(SearchType.DfsQueryThenFetch)
@@ -392,8 +396,7 @@ public class ElasticSearchService implements SearchService {
                             .aggregations(buildAggregations(filter.getBrowseBy()))
                             .highlight(h -> h
                                     .order(HighlighterOrder.Score)
-                                    .fields(NamedValue.of("*.analyzed",
-                                            HighlightField.of(hf -> hf.fragmentSize(2000).numberOfFragments(5))))),
+                                    .fields(highlightFields)),
                     ObjectNode.class);
             return highlightedResponseToPaging(response, filter.getFrom(), filter.getBrowseBy(), filter.getResourceType());
         } catch (IOException e) {
@@ -491,8 +494,7 @@ public class ElasticSearchService implements SearchService {
             HighlightedResult<Resource> result = new HighlightedResult<>();
             List<Highlight> highlights = new ArrayList<>();
             hit.highlight().forEach((key, fragments) -> {
-                String cleanKey = key.replace(".analyzed", "");
-                fragments.forEach(frag -> highlights.add(new Highlight(cleanKey, frag)));
+                fragments.forEach(frag -> highlights.add(new Highlight(key, frag)));
             });
             result.setHighlights(highlights);
             result.setResult(resource);
@@ -543,9 +545,14 @@ public class ElasticSearchService implements SearchService {
             if (record == null) return Collections.emptyList();
             return findTextFields(record.mappings().properties(), "");
         } catch (IOException e) {
-            logger.warn("Reading resourceType '{}' fields from Elastic failed, using 'searchableArea' and 'payload' instead.", indexName, e);
-            return List.of("searchableArea", "payload");
+            logger.warn("Reading resourceType '{}' fields from Elastic failed, using 'searchableArea' fallback.", indexName, e);
+            return List.of("searchableArea");
         }
+    }
+
+    private List<String> resolveTextFields(String indexName) {
+        List<String> fields = getTextFields(indexName);
+        return fields.isEmpty() ? List.of("searchableArea") : fields;
     }
 
     private List<String> findTextFields(Map<String, Property> properties, String pathPrefix) {
