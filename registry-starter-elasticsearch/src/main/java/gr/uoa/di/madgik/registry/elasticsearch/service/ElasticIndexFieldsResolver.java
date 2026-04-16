@@ -40,7 +40,7 @@ import java.util.Map;
  */
 public class ElasticIndexFieldsResolver {
 
-    static final String CACHE_NAME = "esTextFields";
+    public static final String CACHE_NAME = "esTextFields";
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticIndexFieldsResolver.class);
 

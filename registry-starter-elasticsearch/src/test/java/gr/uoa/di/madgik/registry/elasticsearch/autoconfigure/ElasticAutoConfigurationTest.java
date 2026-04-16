@@ -27,8 +27,10 @@ import gr.uoa.di.madgik.registry.service.ResourceTypeProjectionService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import javax.sql.DataSource;
@@ -58,7 +60,10 @@ class ElasticAutoConfigurationTest {
             .withBean(ResourceService.class, () -> mock(ResourceService.class))
             .withBean(ResourceTypeProjectionService.class, () -> mock(ResourceTypeProjectionService.class))
             .withBean(EmbeddingService.class, () -> mock(EmbeddingService.class))
-            .withBean("registryDataSource", DataSource.class, () -> mock(DataSource.class));
+            .withBean("registryDataSource", DataSource.class, () -> mock(DataSource.class))
+            // Simulate the CacheManager normally provided by registry-starter-service.
+            // The ES starter always runs alongside the service starter in production.
+            .withBean(CacheManager.class, () -> new ConcurrentMapCacheManager());
 
     @Test
     void autoConfiguration_registers_elasticsearch_beans() {
@@ -69,6 +74,7 @@ class ElasticAutoConfigurationTest {
             assertThat(context).hasSingleBean(SearchService.class);
             assertThat(context).hasSingleBean(ResourceListener.class);
             assertThat(context).hasSingleBean(ResourceTypeListener.class);
+            assertThat(context).hasSingleBean(CacheManager.class);
             assertThat(context).hasNotFailed();
 
             RegistryElasticsearchProperties properties = context.getBean(RegistryElasticsearchProperties.class);

@@ -301,6 +301,44 @@ class ElasticSearchServiceIntegrationTest {
         assertTrue(results.getResults() == null || results.getResults().isEmpty());
     }
 
+    @Test
+    void search_emptyPageBeyondTotal_preservesTotalAndFrom() throws Exception {
+        String index = createIndex();
+        indexDocument(index, "doc1", "first document", List.of(1.0f, 0.0f, 0.0f));
+        indexDocument(index, "doc2", "second document", List.of(0.0f, 1.0f, 0.0f));
+
+        FacetFilter filter = filter(index, null);
+        filter.setFrom(100);   // well beyond the 2 indexed documents
+        filter.setQuantity(10);
+        Paging<Resource> results = searchService.search(filter);
+
+        assertEquals(2, results.getTotal());
+        assertEquals(100, results.getFrom());
+        assertTrue(results.getResults() == null || results.getResults().isEmpty());
+    }
+
+    @Test
+    void hybridSearch_allZeroEmbedding_matchesLexicalSearch() throws Exception {
+        String index = createIndex();
+        indexDocument(index, "match", "registry handbook", List.of(1.0f, 0.0f, 0.0f));
+        indexDocument(index, "no-match", "unrelated content", List.of(0.0f, 1.0f, 0.0f));
+
+        // All-zero vector with correct VECTOR_SIZE length → embeddingIsEmpty returns true → kNN skipped
+        float[] zeroEmbedding = new float[EmbeddingService.VECTOR_SIZE];
+        when(embeddingService.embed("registry")).thenReturn(zeroEmbedding);
+
+        FacetFilter filter = filter(index, "registry");
+        Paging<Resource> hybridResults = searchService.hybridSearch(filter);
+        Paging<Resource> lexicalResults = searchService.search(filter);
+
+        List<String> hybridIds = hybridResults.getResults().stream().map(Resource::getId).toList();
+        List<String> lexicalIds = lexicalResults.getResults().stream().map(Resource::getId).toList();
+
+        assertEquals(lexicalIds, hybridIds);
+        assertTrue(hybridIds.contains("match"));
+        assertFalse(hybridIds.contains("no-match"));
+    }
+
     private String createIndex() throws Exception {
         String index = "semantic-" + UUID.randomUUID().toString().replace("-", "");
         String mapping = objectMapper.writeValueAsString(Map.of(

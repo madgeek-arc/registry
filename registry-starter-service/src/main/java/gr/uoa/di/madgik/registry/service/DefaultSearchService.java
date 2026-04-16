@@ -249,7 +249,7 @@ public class DefaultSearchService implements SearchService {
         if (!StringUtils.hasText(sourceId)) {
             throw new ResourceNotFoundException(idValue.getValue(), resourceType.getName());
         }
-        if (countSourceChunks(sourceId) == 0) {
+        if (!hasSourceChunks(sourceId)) {
             throw new ResourceNotFoundException(
                     "There are no recommendations available for this resource",
                     new UnsupportedOperationException("Embedding chunks are missing for the requested resource")
@@ -480,6 +480,11 @@ public class DefaultSearchService implements SearchService {
                 ),
                 lexical_hits AS (
                     SELECT f.id,
+                           -- Approximate keyword frequency: count non-overlapping occurrences via
+                           -- string-length difference. GREATEST(1, …) ensures the score is never
+                           -- zero for a matching document, but note that the numeric value of
+                           -- lexical_score is NOT used in the final merged score — only the
+                           -- ROW_NUMBER() rank derived from it matters for RRF.
                            GREATEST(
                                1,
                                (length(lower(f.payload)) - length(replace(lower(f.payload), :keywordText, '')))
@@ -490,6 +495,8 @@ public class DefaultSearchService implements SearchService {
                 ),
                 lexical_ranked AS (
                     SELECT l.id,
+                           -- lexical_score is carried here only to drive ORDER BY for ROW_NUMBER().
+                           -- The final RRF score in merged_hits uses only lexical_rank, not this value.
                            l.lexical_score,
                            ROW_NUMBER() OVER (ORDER BY l.lexical_score DESC, f.modification_date DESC, l.id) AS lexical_rank
                     FROM lexical_hits l
@@ -627,8 +634,8 @@ public class DefaultSearchService implements SearchService {
         return joiner.toString();
     }
 
-    private int countSourceChunks(String sourceId) {
-        return Math.toIntExact(resourceChunkDao.countByResourceId(sourceId));
+    private boolean hasSourceChunks(String sourceId) {
+        return resourceChunkDao.countByResourceId(sourceId) > 0;
     }
 
     private ScoredRow mapScoredRow(ResultSet rs, int rowNum) throws SQLException {

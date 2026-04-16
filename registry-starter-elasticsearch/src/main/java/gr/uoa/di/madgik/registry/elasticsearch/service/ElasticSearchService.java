@@ -568,16 +568,19 @@ public class ElasticSearchService implements SearchService {
     }
 
     private boolean embeddingIsEmpty(float[] embedding) {
-        boolean empty = true;
-        if (embedding != null) {
-            for (float x : embedding) {
-                if (x != 0 && !Float.isNaN(x)) {
-                    empty = false;
-                    break;
-                }
+        if (embedding == null || embedding.length == 0) {
+            return true;
+        }
+        boolean hasNonZero = false;
+        for (float x : embedding) {
+            if (!Float.isFinite(x)) {
+                return true;   // any ±Infinity or NaN → reject the whole vector
+            }
+            if (x != 0) {
+                hasNonZero = true;
             }
         }
-        return empty;
+        return !hasNonZero;
     }
 
     private int knnWindow(FacetFilter filter) {

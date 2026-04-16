@@ -279,7 +279,21 @@ class ElasticSearchServiceRangeQueryTest {
     }
 
     @Test
-    void hybridKeywordQuery_skipsKnnWhenEmbeddingIsEmpty() throws Exception {
+    void hybridKeywordQuery_skipsKnnWhenEmbeddingIsAllZeroes() throws Exception {
+        when(embeddingService.embed("registry")).thenReturn(new float[]{0.0f, 0.0f});
+
+        FacetFilter filter = filter("my_index");
+        filter.setKeyword("registry");
+
+        ObjectNode query = invokeHybrid(filter);
+        ArrayNode should = query.get("bool").withArray("should");
+
+        assertEquals(1, should.size());
+        assertNotNull(should.get(0).get("multi_match"));
+    }
+
+    @Test
+    void hybridKeywordQuery_skipsKnnWhenEmbeddingContainsNaN() throws Exception {
         when(embeddingService.embed("registry")).thenReturn(new float[]{0.0f, Float.NaN});
 
         FacetFilter filter = filter("my_index");
@@ -288,6 +302,21 @@ class ElasticSearchServiceRangeQueryTest {
         ObjectNode query = invokeHybrid(filter);
         ArrayNode should = query.get("bool").withArray("should");
 
+        assertEquals(1, should.size());
+        assertNotNull(should.get(0).get("multi_match"));
+    }
+
+    @Test
+    void hybridKeywordQuery_skipsKnnWhenEmbeddingContainsInfinity() throws Exception {
+        when(embeddingService.embed("registry")).thenReturn(new float[]{Float.POSITIVE_INFINITY, 0.4f});
+
+        FacetFilter filter = filter("my_index");
+        filter.setKeyword("registry");
+
+        ObjectNode query = invokeHybrid(filter);
+        ArrayNode should = query.get("bool").withArray("should");
+
+        // An Infinity value is not a finite vector — kNN must be skipped.
         assertEquals(1, should.size());
         assertNotNull(should.get(0).get("multi_match"));
     }
