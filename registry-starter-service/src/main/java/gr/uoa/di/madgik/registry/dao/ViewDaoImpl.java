@@ -51,13 +51,14 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
             dataTypeMap.put("dateindexedfield", "timestamp with time zone");
 
             // Sort indexFields by name in lowercase (as the columns in DB are lowercase)
-            resourceType.getIndexFields().sort(Comparator.comparing(i -> i.getName().toLowerCase()));
+            List<IndexField> indexFields = new ArrayList<>(resourceType.getIndexFields());
+            indexFields.sort(Comparator.comparing(i -> i.getName().toLowerCase()));
 
             // create maps to store single and multivalued index names
             Map<String, List<String>> singleVal_indexMap = new LinkedHashMap<String, List<String>>();
             Map<String, List<String>> multiVal_indexMap = new LinkedHashMap<String, List<String>>();
 
-            for (IndexField indexField : resourceType.getIndexFields()) {
+            for (IndexField indexField : indexFields) {
                 String indexFieldString = "";
 
                 switch (indexField.getType()) {

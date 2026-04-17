@@ -240,12 +240,6 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
                 """,
                 "tags", "tags", "//*[local-name()='tag']/text()", "java.lang.String", "employee");
         jdbcTemplate.update("""
-                INSERT INTO public.resourcetype_indexfield
-                (resourcetype_name, indexfields_resourcetype_name, indexfields_name)
-                VALUES (?, ?, ?)
-                """,
-                "employee", "employee", "tags");
-        jdbcTemplate.update("""
                 INSERT INTO public.stringindexedfield (id, name, resource_id)
                 VALUES (?, ?, ?)
                 """,

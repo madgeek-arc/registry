@@ -148,19 +148,6 @@ VALUES
 ('salary', NULL, 'salary', false, '//*[local-name()=''salary'']/text()', false, 'java.lang.Float', 'employee'),
 ('amka', NULL, 'amka', false, '//*[local-name()=''amka'']/text()', false, 'java.lang.Long', 'employee');
 
---
--- Data for Name: resourcetype_indexfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
---
-
-INSERT INTO public.resourcetype_indexfield (resourcetype_name, indexfields_resourcetype_name, indexfields_name)
-VALUES
-    ('employee', 'employee', 'first_name'),
-    ('employee', 'employee', 'age'),
-    ('employee', 'employee', 'single'),
-    ('employee', 'employee', 'birthday'),
-    ('employee', 'employee', 'salary'),
-    ('employee', 'employee', 'amka');
-
 
 --
 -- Data for Name: resourceversion; Type: TABLE DATA; Schema: public; Owner: vrasidas

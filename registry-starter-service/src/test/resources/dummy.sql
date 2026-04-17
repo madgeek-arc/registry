@@ -187,16 +187,6 @@ CREATE TABLE IF NOT EXISTS public.resourcetype_aliases (
 );
 
 --
--- Name: resourcetype_indexfield; Type: TABLE; Schema: public; Owner: admin
---
-
-CREATE TABLE IF NOT EXISTS public.resourcetype_indexfield (
-                                                              resourcetype_name character varying(255) NOT NULL,
-                                                              indexfields_name character varying(255) NOT NULL,
-                                                              indexfields_resourcetype_name character varying(255) NOT NULL
-);
-
---
 -- Name: resourcetype_properties; Type: TABLE; Schema: public; Owner: admin
 --
 

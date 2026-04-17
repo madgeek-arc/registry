@@ -62,10 +62,9 @@ public class ResourceType {
     @Column
     private String indexMapperClass;
 
-    @OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL}, orphanRemoval = true)
+    @OneToMany(mappedBy = "resourceType", fetch = FetchType.EAGER, cascade = {CascadeType.ALL}, orphanRemoval = true)
     @JsonManagedReference(value = "resourcetype-indexfields")
-    @Column
-    private List<IndexField> indexFields;
+    private Set<IndexField> indexFields = new LinkedHashSet<>();
 
     @ElementCollection(fetch = FetchType.EAGER)
 //    @CollectionTable(name = "resourcetype_aliases", joinColumns = @JoinColumn(name = "resourcetype_name"))
@@ -160,11 +159,27 @@ public class ResourceType {
     }
 
     public List<IndexField> getIndexFields() {
-        return indexFields;
+        if (indexFields == null) {
+            return null;
+        }
+        return new ArrayList<>(indexFields);
     }
 
     public void setIndexFields(List<IndexField> indexFields) {
-        this.indexFields = indexFields;
+        if (indexFields == null) {
+            if (this.indexFields == null) {
+                this.indexFields = null;
+            } else {
+                this.indexFields.clear();
+            }
+            return;
+        }
+        if (this.indexFields == null) {
+            this.indexFields = new LinkedHashSet<>();
+        } else {
+            this.indexFields.clear();
+        }
+        this.indexFields.addAll(indexFields);
     }
 
     public Map<String, String> getProperties() {

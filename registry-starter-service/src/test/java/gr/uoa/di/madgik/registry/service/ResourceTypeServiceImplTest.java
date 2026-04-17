@@ -162,6 +162,29 @@ class ResourceTypeServiceImplTest extends PostgreSqlTestContainerSupport {
                 .doesNotContain("first_name", "age", "single", "birthday", "amka");
     }
 
+    @Test
+    void deleteResourceType_handles_multiple_aliases_and_properties_without_stale_index_field_delete() {
+        when(auditActorProvider.currentActor()).thenReturn(TEST_ACTOR);
+
+        ResourceType existing = resourceTypeService.getResourceType("employee");
+
+        ResourceType updated = new ResourceType();
+        updated.setName(existing.getName());
+        updated.setPayloadType(existing.getPayloadType());
+        updated.setSchema(existing.getSchema());
+        updated.setSchemaUrl(null);
+        updated.setIndexMapperClass(existing.getIndexMapperClass());
+        updated.setAliases(Set.of("resourceTypes", "employee-alt"));
+        updated.setProperties(java.util.Map.of("source", "test", "visibility", "public"));
+        updated.setIndexFields(existing.getIndexFields());
+
+        resourceTypeService.updateResourceType(updated);
+
+        resourceTypeService.deleteResourceType(existing.getName());
+
+        assertThat(resourceTypeService.getResourceType(existing.getName())).isNull();
+    }
+
     private List<String> getViewColumns(String viewName) {
         return entityManager.createNativeQuery(
                         "SELECT column_name FROM information_schema.columns " +

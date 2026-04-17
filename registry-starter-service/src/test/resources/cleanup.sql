@@ -16,7 +16,6 @@ TRUNCATE TABLE
     booleanindexedfield,
     resource,
     resourcetype_properties,
-    resourcetype_indexfield,
     indexfield,
     resourcetype_aliases,
     resourcetype

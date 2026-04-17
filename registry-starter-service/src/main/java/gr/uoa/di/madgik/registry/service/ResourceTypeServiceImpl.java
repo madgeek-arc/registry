@@ -263,15 +263,13 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
         existing.setProperties(resourceType.getProperties() == null ? new java.util.HashMap<>() : new java.util.HashMap<>(resourceType.getProperties()));
         existing.setModifiedBy(currentActor());
 
-        if (existing.getIndexFields() == null) {
-            existing.setIndexFields(new ArrayList<>());
-        } else {
-            existing.getIndexFields().clear();
-        }
+        existing.setIndexFields(new ArrayList<>());
+        List<IndexField> updatedFields = new ArrayList<>();
         for (IndexField field : resourceType.getIndexFields()) {
             field.setResourceType(existing);
-            existing.getIndexFields().add(field);
+            updatedFields.add(field);
         }
+        existing.setIndexFields(updatedFields);
 
         try {
             existing = resourceTypeDao.updateResourceType(existing);
