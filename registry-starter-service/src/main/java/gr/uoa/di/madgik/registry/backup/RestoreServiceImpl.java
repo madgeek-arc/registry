@@ -114,12 +114,14 @@ public class RestoreServiceImpl implements RestoreService {
         Optional<Throwable> e = j.getAllFailureExceptions().stream().reduce(Throwable::initCause);
         e.ifPresent(throwable -> logger.warn(throwable.getMessage(), throwable));
         List<StepExecution> steps = new ArrayList<>(j.getStepExecutions());
-        ret.setDroped(steps.get(0).getExitStatus().equals(ExitStatus.NOOP));
+        StepExecution resourceTypeStep = steps.isEmpty() ? null : steps.get(0);
+        StepExecution resourcesChunkStep = steps.size() > 1 ? steps.get(1) : null;
+        ret.setDroped(resourceTypeStep != null && resourceTypeStep.getExitStatus().equals(ExitStatus.NOOP));
         ret.setStatus(j.getStatus().name());
-        ret.setReadCount(steps.get(1).getReadCount());
-        ret.setReadSkipCount(steps.get(1).getReadSkipCount());
-        ret.setWriteCount(steps.get(1).getWriteCount());
-        ret.setWriteSkipCount(steps.get(1).getWriteSkipCount());
+        ret.setReadCount(resourcesChunkStep == null ? 0 : resourcesChunkStep.getReadCount());
+        ret.setReadSkipCount(resourcesChunkStep == null ? 0 : resourcesChunkStep.getReadSkipCount());
+        ret.setWriteCount(resourcesChunkStep == null ? 0 : resourcesChunkStep.getWriteCount());
+        ret.setWriteSkipCount(resourcesChunkStep == null ? 0 : resourcesChunkStep.getWriteSkipCount());
         ret.setResourceType(j.getJobParameters().getString("resourceType"));
         return ret;
     }

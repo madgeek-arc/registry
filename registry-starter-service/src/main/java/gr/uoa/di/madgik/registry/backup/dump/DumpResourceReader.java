@@ -26,6 +26,7 @@ import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
+import org.hibernate.Hibernate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
@@ -102,6 +103,7 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
         query.setMaxResults(to - from);
         resources = query.getResultList();
         try {
+            prepareExportSnapshot(resources);
             logger.info("Just read {} resources for {}", resources.size(), resourceType.getName());
             indexMapper = indexMapperFactory.createIndexMapper(resourceType);
         } catch (Exception e) {
@@ -135,5 +137,13 @@ public class DumpResourceReader extends AbstractDao<Resource> implements ItemRea
             }
         }
         return resource;
+    }
+
+    private void prepareExportSnapshot(List<Resource> resources) {
+        for (Resource resource : resources) {
+            Hibernate.initialize(resource.getIndexedFields());
+            Hibernate.initialize(resource.getVersions());
+            getEntityManager().detach(resource);
+        }
     }
 }
