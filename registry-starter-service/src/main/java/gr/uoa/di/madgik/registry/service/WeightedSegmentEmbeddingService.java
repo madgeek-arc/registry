@@ -23,13 +23,13 @@ import org.springframework.ai.embedding.EmbeddingModel;
 
 import java.util.List;
 
-public class WeightingEmbeddingService implements EmbeddingService {
+public class WeightedSegmentEmbeddingService implements EmbeddingService {
 
-    private static final Logger logger = LoggerFactory.getLogger(WeightingEmbeddingService.class);
+    private static final Logger logger = LoggerFactory.getLogger(WeightedSegmentEmbeddingService.class);
     private final EmbeddingModel embeddingModel;
     private final String modelName;
 
-    public WeightingEmbeddingService(EmbeddingModel embeddingModel, String modelName) {
+    public WeightedSegmentEmbeddingService(EmbeddingModel embeddingModel, String modelName) {
         this.embeddingModel = embeddingModel;
         this.modelName = modelName;
     }
