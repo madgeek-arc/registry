@@ -33,7 +33,7 @@ import java.util.List;
 import static gr.uoa.di.madgik.registry.service.EmbeddingService.VECTOR_SIZE;
 
 @Service
-class ResourceChunkIndexService implements ResourceListener {
+public class ResourceChunkIndexService implements ResourceListener {
 
     private final ResourceChunkDao resourceChunkDao;
     private final EmbeddingService embeddingService;
@@ -74,7 +74,7 @@ class ResourceChunkIndexService implements ResourceListener {
     }
 
     @Transactional
-    void reindex(Resource resource) {
+    public void reindex(Resource resource) {
         if (resource == null || resource.getId() == null) {
             return;
         }

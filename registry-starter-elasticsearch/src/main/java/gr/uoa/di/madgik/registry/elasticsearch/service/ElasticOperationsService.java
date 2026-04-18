@@ -108,7 +108,8 @@ public class ElasticOperationsService implements IndexOperationsService {
                     "value_ordinal", INTEGER_MAP,
                     "field_chunk_idx", INTEGER_MAP,
                     "content", TEXT_MAP,
-                    "embedding", DENSE_VECTOR_MAP
+                    "embedding", DENSE_VECTOR_MAP,
+                    "embeddingModel", KEYWORD_MAP
             )
     );
 
@@ -391,6 +392,7 @@ public class ElasticOperationsService implements IndexOperationsService {
                 resourceTypeService.getResourceTypeIndexFields(resource.getResourceType().getName()));
         List<ResourceEmbeddingChunk> embeddingChunks = ResourceEmbeddingChunker.chunk(resource, indexFields);
         List<Map<String, Object>> chunks = new ArrayList<>();
+        String embeddingModel = embeddingService.modelName();
         for (ResourceEmbeddingChunk chunk : embeddingChunks) {
             // Keep the chunk payload aligned with the PostgreSQL chunking/indexing pipeline so the
             // experimental ES representation can be compared against the SQL-backed search behavior.
@@ -401,7 +403,8 @@ public class ElasticOperationsService implements IndexOperationsService {
                         "value_ordinal", chunk.valueOrdinal(),
                         "field_chunk_idx", chunk.fieldChunkIdx(),
                         "content", chunk.content(),
-                        "embedding", embedding
+                        "embedding", embedding,
+                        "embeddingModel", embeddingModel
                 ));
             }
         }

@@ -20,10 +20,7 @@ import gr.uoa.di.madgik.registry.dao.ResourceDao;
 import gr.uoa.di.madgik.registry.dao.VersionDao;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
-import gr.uoa.di.madgik.registry.service.IndexOperationsService;
-import gr.uoa.di.madgik.registry.service.ResourceService;
-import gr.uoa.di.madgik.registry.service.ResourceTypeService;
-import gr.uoa.di.madgik.registry.service.ServiceException;
+import gr.uoa.di.madgik.registry.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
@@ -48,26 +45,24 @@ public class RestoreResourceWriterStep implements ItemWriter<Resource>, StepExec
     private ResourceType resourceType;
 
     private final ResourceService resourceService;
-
     private final ResourceDao resourceDao;
-
     private final VersionDao versionDao;
-
     private final IndexOperationsService indexOperationsService;
-
     private final ResourceTypeService resourceTypeService;
+    private final ResourceChunkIndexService resourceChunkIndexService;
 
-    @Autowired
     public RestoreResourceWriterStep(ResourceService resourceService,
                                      ResourceDao resourceDao,
                                      VersionDao versionDao,
                                      IndexOperationsService indexOperationsService,
-                                     ResourceTypeService resourceTypeService) {
+                                     ResourceTypeService resourceTypeService,
+                                     ResourceChunkIndexService resourceChunkIndexService) {
         this.resourceService = resourceService;
         this.resourceDao = resourceDao;
         this.versionDao = versionDao;
         this.indexOperationsService = indexOperationsService;
         this.resourceTypeService = resourceTypeService;
+        this.resourceChunkIndexService = resourceChunkIndexService;
     }
 
     @Override
@@ -99,10 +94,13 @@ public class RestoreResourceWriterStep implements ItemWriter<Resource>, StepExec
                     resource = resourceDao.addResource(resource);
                 }
 
-                resource.getVersions().forEach(v -> versionDao.addVersion(v));
-                logger.debug("Restoring " + resourceType.getName() + " with id " + addedResource.getId());
-                resources.add(addedResource);
+                resource.getVersions().forEach(versionDao::addVersion);
+                logger.debug("Restoring {} with id {}", resourceType.getName(), addedResource.getId());
 
+                // create resource_chunks -- not to be confused with previous chunk ^ of spring batch
+                resourceChunkIndexService.reindex(resource);
+
+                resources.add(addedResource);
             }
             indexOperationsService.addBulk(resources);
         } catch (Exception e) {
