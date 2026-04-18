@@ -16,7 +16,7 @@
 
 package gr.uoa.di.madgik.registry.service;
 
-import gr.uoa.di.madgik.registry.configuration.SqlSearchHighlightProperties;
+import gr.uoa.di.madgik.registry.configuration.SqlSearchProperties;
 import gr.uoa.di.madgik.registry.dao.ResourceChunkDao;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.Highlight;
@@ -25,10 +25,12 @@ import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import gr.uoa.di.madgik.registry.domain.index.SearchCapability;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Primary;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -41,10 +43,13 @@ import org.springframework.util.StringUtils;
 import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -69,13 +74,14 @@ public class DefaultSearchService implements SearchService {
     private final int payloadHighlightContextChars;
     private final int payloadHighlightMaxFragments;
     private final int semanticSnippetMaxChars;
+    private final float semanticMinScore;
 
     public DefaultSearchService(@Qualifier("registryDataSource") DataSource dataSource,
                                 ResourceTypeService resourceTypeService,
                                 SqlFacetService sqlFacetService,
                                 EmbeddingService embeddingService,
                                 ResourceChunkDao resourceChunkDao,
-                                SqlSearchHighlightProperties highlightProperties) {
+                                SqlSearchProperties sqlSearchProperties) {
         this.dataSource = dataSource;
         this.npJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
         this.resourceTypeService = resourceTypeService;
@@ -83,9 +89,10 @@ public class DefaultSearchService implements SearchService {
         this.resourceRowMapper = new ResourceRowMapper();
         this.embeddingService = embeddingService;
         this.resourceChunkDao = resourceChunkDao;
-        this.payloadHighlightContextChars = highlightProperties.getPayloadContextChars();
-        this.payloadHighlightMaxFragments = highlightProperties.getPayloadMaxFragments();
-        this.semanticSnippetMaxChars = highlightProperties.getSemanticMaxChars();
+        this.payloadHighlightContextChars = sqlSearchProperties.getHighlight().getPayloadContextChars();
+        this.payloadHighlightMaxFragments = sqlSearchProperties.getHighlight().getPayloadMaxFragments();
+        this.semanticSnippetMaxChars = sqlSearchProperties.getHighlight().getSemanticMaxChars();
+        this.semanticMinScore = sqlSearchProperties.getSemanticMinScore();
     }
 
     @Override
@@ -203,12 +210,13 @@ public class DefaultSearchService implements SearchService {
     public Paging<HighlightedResult<Resource>> searchWithHighlights(FacetFilter filter) throws ServiceException {
         Paging<Resource> paging = search(filter);
         String keyword = filter.getKeyword();
+        Map<String, List<Highlight>> highlightsById = loadHighlightsByResourceId(paging.getResults(), keyword);
 
         List<HighlightedResult<Resource>> results = paging.getResults().stream()
                 .map(resource -> HighlightedResult.of(
                         StringUtils.hasText(keyword) ? 1.0f : 0.0f,
                         resource,
-                        buildPayloadHighlights(resource, keyword)
+                        highlightsById.getOrDefault(resource.getId(), List.of())
                 ))
                 .toList();
 
@@ -230,8 +238,14 @@ public class DefaultSearchService implements SearchService {
         }
 
         QueryExecutionResult hybrid = executeHybridQuery(filter, browseBy, resourceTypes, embedding);
+        List<Resource> resources = hybrid.rows().stream().map(ScoredRow::resource).toList();
+        Map<String, List<Highlight>> lexicalHighlightsById = loadHighlightsByResourceId(resources, filter.getKeyword());
         List<HighlightedResult<Resource>> results = hybrid.rows().stream()
-                .map(row -> HighlightedResult.of(row.score(), row.resource(), buildHybridHighlights(row, filter.getKeyword())))
+                .map(row -> HighlightedResult.of(
+                        row.score(),
+                        row.resource(),
+                        buildHybridHighlights(row, filter.getKeyword(), lexicalHighlightsById.getOrDefault(row.resource().getId(), List.of()))
+                ))
                 .toList();
 
         return new Paging<>(hybrid.total(), filter.getFrom(), filter.getFrom() + results.size(), results,
@@ -411,6 +425,7 @@ public class DefaultSearchService implements SearchService {
         params.addValue("quantity", filter.getQuantity());
         params.addValue("queryVector", toVectorLiteral(embedding));
         params.addValue("embeddingModel", embeddingService.modelName());
+        params.addValue("semanticMinScore", semanticMinScore);
 
         String filteredQuery = createFilteredResourceScopeQuery(filter, resourceTypes, params);
         String semanticCte = """
@@ -433,7 +448,7 @@ public class DefaultSearchService implements SearchService {
                 best_semantic_hits AS (
                     SELECT id, field_name, content, score
                     FROM semantic_hits
-                    WHERE chunk_rank = 1 AND score > 0
+                    WHERE chunk_rank = 1 AND score >= :semanticMinScore
                 )
                 """.formatted(filteredQuery);
 
@@ -472,6 +487,7 @@ public class DefaultSearchService implements SearchService {
         params.addValue("keywordText", filter.getKeyword().toLowerCase(Locale.ROOT));
         params.addValue("keywordPattern", "%" + filter.getKeyword().toLowerCase(Locale.ROOT) + "%");
         params.addValue("rrfK", HYBRID_RRF_K);
+        params.addValue("semanticMinScore", semanticMinScore);
 
         String filteredQuery = createFilteredResourceScopeQuery(filter, resourceTypes, params);
         String hybridCte = """
@@ -518,7 +534,7 @@ public class DefaultSearchService implements SearchService {
                 best_semantic_hits AS (
                     SELECT id, field_name, content, score
                     FROM semantic_hits
-                    WHERE chunk_rank = 1 AND score > 0
+                    WHERE chunk_rank = 1 AND score >= :semanticMinScore
                 ),
                 semantic_ranked AS (
                     SELECT s.id,
@@ -643,48 +659,181 @@ public class DefaultSearchService implements SearchService {
         return new ScoredRow(resource, rs.getFloat("score"), rs.getString("semantic_field"), rs.getString("semantic_snippet"));
     }
 
-    private List<Highlight> buildPayloadHighlights(Resource resource, String keyword) {
-        if (!StringUtils.hasText(keyword) || !StringUtils.hasText(resource.getPayload())) {
+    private Map<String, List<Highlight>> loadHighlightsByResourceId(List<Resource> resources, String keyword) {
+        if (!StringUtils.hasText(keyword) || resources == null || resources.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, List<Resource>> resourcesByType = resources.stream()
+                .filter(resource -> resource != null && StringUtils.hasText(resource.getId()) && StringUtils.hasText(resource.getResourceTypeName()))
+                .collect(Collectors.groupingBy(Resource::getResourceTypeName, LinkedHashMap::new, Collectors.toList()));
+
+        Map<String, List<Highlight>> highlightsById = new LinkedHashMap<>();
+        for (Map.Entry<String, List<Resource>> entry : resourcesByType.entrySet()) {
+            String resourceTypeName = entry.getKey();
+            List<String> ids = entry.getValue().stream().map(Resource::getId).toList();
+            List<String> fieldNames = getHighlightableFieldNames(resourceTypeName);
+            if (fieldNames.isEmpty()) {
+                continue;
+            }
+
+            String sql = "SELECT id, %s FROM %s_view WHERE id IN (:ids)"
+                    .formatted(String.join(", ", fieldNames), resourceTypeName);
+            MapSqlParameterSource params = new MapSqlParameterSource("ids", ids);
+            List<Map<String, Object>> rows = npJdbcTemplate.queryForList(sql, params);
+            for (Map<String, Object> row : rows) {
+                Object id = row.get("id");
+                if (id == null) {
+                    continue;
+                }
+                highlightsById.put(id.toString(), buildHighlights(row, fieldNames, keyword));
+            }
+        }
+        return highlightsById;
+    }
+
+    private List<String> getHighlightableFieldNames(String resourceTypeName) {
+        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
+        if (resourceType == null || resourceType.getIndexFields() == null) {
+            return List.of();
+        }
+        return resourceType.getIndexFields().stream()
+                .filter(indexField -> "java.lang.String".equals(indexField.getType()))
+                .filter(indexField -> indexField.hasSearchCapability(SearchCapability.KEYWORD))
+                .map(IndexField::getName)
+                .sorted(String::compareToIgnoreCase)
+                .toList();
+    }
+
+    private List<Highlight> buildHighlights(Map<String, Object> row, List<String> fieldNames, String keyword) {
+        if (!StringUtils.hasText(keyword) || row == null || fieldNames == null || fieldNames.isEmpty()) {
             return Collections.emptyList();
         }
 
-        String payload = resource.getPayload();
-        String lowerPayload = payload.toLowerCase(Locale.ROOT);
         String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
         List<Highlight> highlights = new ArrayList<>();
-        int fromIndex = 0;
-
-        while (highlights.size() < payloadHighlightMaxFragments) {
-            int matchIndex = lowerPayload.indexOf(lowerKeyword, fromIndex);
-            if (matchIndex < 0) {
-                break;
+        for (String fieldName : fieldNames) {
+            for (Object value : extractHighlightValues(row.get(fieldName))) {
+                if (highlights.size() >= payloadHighlightMaxFragments) {
+                    return highlights;
+                }
+                Highlight highlight = createFieldHighlight(fieldName, Objects.toString(value, null), keyword, lowerKeyword);
+                if (highlight != null) {
+                    highlights.add(highlight);
+                }
             }
+        }
+        return highlights;
+    }
 
-            int snippetStart = Math.max(0, matchIndex - payloadHighlightContextChars);
-            int snippetEnd = Math.min(payload.length(), matchIndex + keyword.length() + payloadHighlightContextChars);
-            String snippet = payload.substring(snippetStart, snippetEnd);
+    private List<Highlight> buildHybridHighlights(ScoredRow row, String keyword, List<Highlight> lexicalHighlights) {
+        if (!StringUtils.hasText(row.semanticSnippet())) {
+            return new ArrayList<>(lexicalHighlights);
+        }
 
-            int snippetMatchStart = matchIndex - snippetStart;
-            int snippetMatchEnd = snippetMatchStart + keyword.length();
-            String emphasized = snippet.substring(0, snippetMatchStart)
-                    + "<em>" + snippet.substring(snippetMatchStart, snippetMatchEnd) + "</em>"
-                    + snippet.substring(snippetMatchEnd);
+        String fieldName = StringUtils.hasText(row.semanticField()) ? row.semanticField() : "semantic";
+        Highlight semanticHighlight = new Highlight(fieldName, emphasizeKeyword(createSemanticSnippet(row.semanticSnippet()), keyword));
+        List<Highlight> highlights = new ArrayList<>(lexicalHighlights.size() + 1);
+        boolean merged = false;
 
-            highlights.add(new Highlight("payload", emphasized));
-            fromIndex = matchIndex + keyword.length();
+        for (Highlight lexicalHighlight : lexicalHighlights) {
+            if (!merged && isDuplicateHybridHighlight(lexicalHighlight, semanticHighlight)) {
+                highlights.add(preferredHybridHighlight(lexicalHighlight, semanticHighlight));
+                merged = true;
+            } else {
+                highlights.add(lexicalHighlight);
+            }
+        }
+
+        if (!merged) {
+            highlights.add(semanticHighlight);
         }
 
         return highlights;
     }
 
-    private List<Highlight> buildHybridHighlights(ScoredRow row, String keyword) {
-        List<Highlight> highlights = new ArrayList<>(buildPayloadHighlights(row.resource(), keyword));
-        if (StringUtils.hasText(row.semanticSnippet())) {
-            String fieldName = StringUtils.hasText(row.semanticField()) ? row.semanticField() : "semantic";
-            highlights.add(new Highlight(fieldName,
-                    emphasizeKeyword(createSemanticSnippet(row.semanticSnippet()), keyword)));
+    private boolean isDuplicateHybridHighlight(Highlight lexicalHighlight, Highlight semanticHighlight) {
+        if (lexicalHighlight == null
+                || semanticHighlight == null
+                || !Objects.equals(lexicalHighlight.getField(), semanticHighlight.getField())) {
+            return false;
         }
-        return highlights;
+
+        String lexicalValue = normalizeHighlightValue(lexicalHighlight.getValue());
+        String semanticValue = normalizeHighlightValue(semanticHighlight.getValue());
+        if (!StringUtils.hasText(lexicalValue) || !StringUtils.hasText(semanticValue)) {
+            return false;
+        }
+
+        return lexicalValue.contains(semanticValue)
+                || semanticValue.contains(lexicalValue);
+    }
+
+    private Highlight preferredHybridHighlight(Highlight lexicalHighlight, Highlight semanticHighlight) {
+        String lexicalValue = normalizeHighlightValue(lexicalHighlight.getValue());
+        String semanticValue = normalizeHighlightValue(semanticHighlight.getValue());
+        return semanticValue.length() > lexicalValue.length() ? semanticHighlight : lexicalHighlight;
+    }
+
+    private String normalizeHighlightValue(String value) {
+        if (!StringUtils.hasText(value)) {
+            return "";
+        }
+        return value
+                .replace("<em>", "")
+                .replace("</em>", "")
+                .replaceAll("\\s+", " ")
+                .trim()
+                .toLowerCase(Locale.ROOT);
+    }
+
+    private List<Object> extractHighlightValues(Object value) {
+        if (value == null) {
+            return List.of();
+        }
+        if (value instanceof Array sqlArray) {
+            try {
+                return extractHighlightValues(sqlArray.getArray());
+            } catch (SQLException e) {
+                throw new ServiceException("Failed to read SQL array for highlight generation.", e);
+            }
+        }
+        if (value instanceof Object[] arrayValues) {
+            return Arrays.stream(arrayValues)
+                    .filter(Objects::nonNull)
+                    .toList();
+        }
+        if (value instanceof Collection<?> collectionValues) {
+            return collectionValues.stream()
+                    .filter(Objects::nonNull)
+                    .map(element -> (Object) element)
+                    .toList();
+        }
+        return List.of(value);
+    }
+
+    private Highlight createFieldHighlight(String fieldName, String value, String keyword, String lowerKeyword) {
+        if (!StringUtils.hasText(fieldName) || !StringUtils.hasText(value)) {
+            return null;
+        }
+
+        String lowerValue = value.toLowerCase(Locale.ROOT);
+        int matchIndex = lowerValue.indexOf(lowerKeyword);
+        if (matchIndex < 0) {
+            return null;
+        }
+
+        int snippetStart = Math.max(0, matchIndex - payloadHighlightContextChars);
+        int snippetEnd = Math.min(value.length(), matchIndex + keyword.length() + payloadHighlightContextChars);
+        String snippet = value.substring(snippetStart, snippetEnd);
+
+        int snippetMatchStart = matchIndex - snippetStart;
+        int snippetMatchEnd = snippetMatchStart + keyword.length();
+        String emphasized = snippet.substring(0, snippetMatchStart)
+                + "<em>" + snippet.substring(snippetMatchStart, snippetMatchEnd) + "</em>"
+                + snippet.substring(snippetMatchEnd);
+
+        return new Highlight(fieldName, emphasized);
     }
 
     private String createSemanticSnippet(String content) {

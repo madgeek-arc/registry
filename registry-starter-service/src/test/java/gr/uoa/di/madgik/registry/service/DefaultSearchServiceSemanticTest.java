@@ -229,6 +229,22 @@ class DefaultSearchServiceSemanticTest extends PostgreSqlTestContainerSupport {
     }
 
     @Test
+    void semanticSearch_filtersOutHitsBelowConfiguredMinimumScore() {
+        Resource analytics = resourceService.addResource(newEmployeeResource("Analytics Engineer", 34));
+        resourceChunkIndexService.reindex(analytics);
+
+        when(embeddingService.embed("weak analytics")).thenReturn(vector(0.2f, 0.9797959f, 0f));
+
+        FacetFilter filter = employeeFilter();
+        filter.setKeyword("weak analytics");
+
+        Paging<Resource> results = searchService.semanticSearch(filter);
+
+        assertEquals(0, results.getTotal());
+        assertTrue(results.getResults().isEmpty());
+    }
+
+    @Test
     void hybridSearch_withBrowseBy_populatesFacets() {
         Resource r34 = resourceService.addResource(newEmployeeResource("Analytics Analyst", 34));
         Resource r50 = resourceService.addResource(newEmployeeResource("Analytics Consultant", 50));
@@ -338,16 +354,14 @@ class DefaultSearchServiceSemanticTest extends PostgreSqlTestContainerSupport {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("Expected the analytics resource in results"));
 
-        // Payload highlight: keyword in XML payload wrapped in <em>
+        // Indexed-field highlight: keyword in some indexed field wrapped in <em>
         assertTrue(hit.getHighlights().stream()
-                .anyMatch(h -> "payload".equals(h.getField())
+                .anyMatch(h -> !"payload".equals(h.getField())
                         && h.getValue().contains("<em>")),
-                "Expected a lexical payload highlight");
+                "Expected a lexical indexed-field highlight");
 
-        // Semantic snippet: best chunk content as a non-payload field
-        assertTrue(hit.getHighlights().stream()
-                .anyMatch(h -> !"payload".equals(h.getField())),
-                "Expected a semantic snippet from the best matching chunk");
+        assertFalse(hit.getHighlights().isEmpty(),
+                "Expected at least one deduplicated highlight");
     }
 
     // -------------------------------------------------------------------------

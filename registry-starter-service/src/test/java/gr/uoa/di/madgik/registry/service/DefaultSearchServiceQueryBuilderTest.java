@@ -280,7 +280,7 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
     }
 
     @Test
-    void searchWithHighlights_returnsPayloadHighlights() {
+    void searchWithHighlights_returnsIndexedFieldHighlights() {
         FacetFilter filter = employeeFilter();
         filter.setKeyword("Jodeee");
 
@@ -289,7 +289,7 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
         assertEquals(1, result.getTotal());
         assertEquals(1, result.getResults().size());
         assertFalse(result.getResults().getFirst().getHighlights().isEmpty());
-        assertEquals("payload", result.getResults().getFirst().getHighlights().getFirst().getField());
+        assertNotEquals("payload", result.getResults().getFirst().getHighlights().getFirst().getField());
         assertTrue(result.getResults().getFirst().getHighlights().getFirst().getValue().contains("<em>Jodeee</em>"));
     }
 
@@ -338,8 +338,9 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
                 .filter(result -> hybrid.getId().equals(result.getResult().getId()))
                 .findFirst()
                 .orElseThrow();
-        assertTrue(first.getHighlights().stream().anyMatch(highlight -> "payload".equals(highlight.getField())));
-        assertTrue(first.getHighlights().stream().anyMatch(highlight -> !"payload".equals(highlight.getField())));
+        assertTrue(first.getHighlights().stream()
+                .anyMatch(highlight -> !"payload".equals(highlight.getField()) && highlight.getValue().contains("<em>")));
+        assertFalse(first.getHighlights().isEmpty());
     }
 
     @Test

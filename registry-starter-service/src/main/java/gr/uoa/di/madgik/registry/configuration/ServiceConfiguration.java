@@ -26,7 +26,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 @Configuration(proxyBeanMethods = false)
 @EnableAspectJAutoProxy
-@EnableConfigurationProperties(SqlSearchHighlightProperties.class)
+@EnableConfigurationProperties(SqlSearchProperties.class)
 public class ServiceConfiguration {
 
     @Bean
