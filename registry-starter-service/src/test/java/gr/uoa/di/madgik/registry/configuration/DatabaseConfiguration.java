@@ -16,6 +16,7 @@
 
 package gr.uoa.di.madgik.registry.configuration;
 
+import gr.uoa.di.madgik.registry.autoconfigure.RegistryEmbeddingServiceAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -27,7 +28,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         HibernateConfiguration.class,
         BatchConfig.class,
         BackupRestoreConfig.class,
-        ServiceConfiguration.class
+        ServiceConfiguration.class,
+        RegistryEmbeddingServiceAutoConfiguration.class
 })
 @EnableTransactionManagement
 @ComponentScan(basePackages = {
