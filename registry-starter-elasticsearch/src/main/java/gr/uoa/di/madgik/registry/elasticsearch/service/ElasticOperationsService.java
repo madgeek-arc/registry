@@ -85,6 +85,24 @@ public class ElasticOperationsService implements IndexOperationsService {
         FIELD_TYPES_MAP = Collections.unmodifiableMap(classToTypeMap);
     }
 
+    private static final String TEXT_ANALYZER = "custom_english_analyzer";
+    private static final Map<String, Object> INDEX_SETTINGS_MAP = Map.of(
+            "index.mapping.exclude_source_vectors", true, // Already default in ES 9
+            "analysis", Map.of(
+                    "analyzer", Map.of(
+                            TEXT_ANALYZER, Map.of(
+                                    "tokenizer", "standard",
+                                    "filter", List.of(
+                                            "lowercase",
+                                            "keyword_repeat",
+                                            "porter_stem",
+                                            "remove_duplicates"
+                                    )
+                            )
+                    )
+            )
+    );
+
     // The base string field remains keyword-backed even for TEXT-capable fields so exact-match
     // operations keep working on the original value while lexical search uses the .text
     // sub-field when present.
@@ -92,9 +110,19 @@ public class ElasticOperationsService implements IndexOperationsService {
             "type", "keyword",
             "ignore_above", KEYWORD_IGNORE_ABOVE
     );
+    private static final Map<String, Object> TEXT_MAP = Map.of(
+            "type", "text",
+            "analyzer", TEXT_ANALYZER);
+    private static final Map<String, Object> SOURCE_ONLY_STRING_MAP = Map.of(
+            "type", "keyword",
+            "index", false,
+            "doc_values", false
+    );
+
     private static final Map<String, Object> INTEGER_MAP = Map.of("type", "integer");
-    private static final Map<String, Object> DATE_MAP = Map.of("type", "date", "format", "strict_date_optional_time||epoch_millis");
-    private static final Map<String, Object> TEXT_MAP = Map.of("type", "text");
+    private static final Map<String, Object> DATE_MAP = Map.of(
+            "type", "date",
+            "format", "strict_date_optional_time||epoch_millis");
     private static final Map<String, Object> DENSE_VECTOR_MAP = Map.of(
             "type", "dense_vector",
             "dims", VECTOR_SIZE,
@@ -229,11 +257,13 @@ public class ElasticOperationsService implements IndexOperationsService {
             }
 
             String mappingJson = objectMapper.writeValueAsString(createMappingAsMap(resourceType.getIndexFields()));
+            String settingsJson = objectMapper.writeValueAsString(INDEX_SETTINGS_MAP);
             final Map<String, Alias> finalAliases = aliases;
             client.indices().create(c -> c
                     .index(resourceType.getName())
                     .aliases(finalAliases)
-                    .mappings(m -> m.withJson(new StringReader(mappingJson))));
+                    .mappings(m -> m.withJson(new StringReader(mappingJson)))
+                    .settings(s -> s.withJson(new StringReader(settingsJson))));
         } catch (IOException e) {
             throw new ServiceException("Failed to create index " + resourceType.getName(), e);
         }
@@ -301,7 +331,7 @@ public class ElasticOperationsService implements IndexOperationsService {
 
         jsonObjectProperties.put("id", KEYWORD_MAP);
         jsonObjectProperties.put("version", KEYWORD_MAP);
-        jsonObjectProperties.put("payload", TEXT_MAP);
+        jsonObjectProperties.put("payload", SOURCE_ONLY_STRING_MAP);
         jsonObjectProperties.put("searchableArea", TEXT_MAP);
         jsonObjectProperties.put("payloadFormat", KEYWORD_MAP);
         jsonObjectProperties.put("resourceType", KEYWORD_MAP);
@@ -310,12 +340,14 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectProperties.put("created_by", KEYWORD_MAP);
         jsonObjectProperties.put("modified_by", KEYWORD_MAP);
         jsonObjectProperties.put("embedding", DENSE_VECTOR_MAP);
-        // Experimental only: chunk vectors are stored in Elasticsearch for inspection and future work,
+
+        // Experimental : chunks with vectors are stored in Elasticsearch for inspection and future work,
         // but the active ES search path still queries only the resource-level "embedding" field.
         jsonObjectProperties.put("resource_chunks", RESOURCE_CHUNKS_MAP);
+        // exclude resource_chunks from the _source payload
+        jsonObjectGeneral.put("_source", Map.of("excludes", List.of("resource_chunks")));
 
         jsonObjectGeneral.put("properties", jsonObjectProperties);
-        jsonObjectGeneral.put("_source", Map.of("excludes", List.of("embedding", "resource_chunks.embedding")));
 
         return jsonObjectGeneral;
     }

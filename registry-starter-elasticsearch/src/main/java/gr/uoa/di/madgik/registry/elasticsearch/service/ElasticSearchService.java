@@ -544,7 +544,14 @@ public class ElasticSearchService implements SearchService {
 
     private List<String> resolveTextFields(String indexName) {
         List<String> fields = indexFieldsResolver.getTextFields(indexName);
-        return fields.isEmpty() ? List.of("searchableArea") : fields;
+        if (fields.isEmpty()) {
+            return List.of("searchableArea");
+        }
+
+        List<String> explicitFields = fields.stream()
+                .filter(field -> !"searchableArea".equals(field))
+                .toList();
+        return explicitFields.isEmpty() ? List.of("searchableArea") : explicitFields;
     }
 
     // -------------------------------------------------------------------------
@@ -811,14 +818,13 @@ public class ElasticSearchService implements SearchService {
 
         @Override
         public String translate(String propertyName) {
-            switch (propertyName) {
-                case "modificationDate":
-                    return "modification_date";
-                case "creationDate":
-                    return "creation_date";
-                default:
-                    return propertyName;
-            }
+            return switch (propertyName) {
+                case "modificationDate" -> "modification_date";
+                case "creationDate" -> "creation_date";
+                case "createdBy" -> "created_by";
+                case "modifiedBy" -> "modified_by";
+                default -> propertyName;
+            };
         }
     }
 }
