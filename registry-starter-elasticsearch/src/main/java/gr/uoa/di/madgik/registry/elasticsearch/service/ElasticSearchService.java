@@ -515,7 +515,9 @@ public class ElasticSearchService implements SearchService {
             HighlightedResult<Resource> result = new HighlightedResult<>();
             List<Highlight> highlights = new ArrayList<>();
             hit.highlight().forEach((key, fragments) -> {
-                fragments.forEach(frag -> highlights.add(new Highlight(key, frag)));
+                fragments.forEach(frag -> highlights.add(
+                        // remove .text from highligh field name
+                        new Highlight(key.replace(".text", ""), frag)));
             });
             result.setHighlights(highlights);
             result.setResult(resource);
