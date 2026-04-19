@@ -269,9 +269,8 @@ class ElasticSearchServiceRangeQueryTest {
 
         assertEquals(1, bool.get("minimum_should_match").asInt());
         ArrayNode should = bool.withArray("should");
-        assertEquals(2, should.size());
-        assertNotNull(should.get(0).get("multi_match"));
-        assertNotNull(should.get(1).get("knn"));
+        assertEquals(1, should.size());
+        assertNotNull(should.get(0).get("knn"));
         ArrayNode must = must(query);
         for (int i = 0; i < must.size(); i++) {
             assertNull(must.get(i).get("script_score"));
@@ -288,8 +287,7 @@ class ElasticSearchServiceRangeQueryTest {
         ObjectNode query = invokeHybrid(filter);
         ArrayNode should = query.get("bool").withArray("should");
 
-        assertEquals(1, should.size());
-        assertNotNull(should.get(0).get("multi_match"));
+        assertEquals(0, should.size());
     }
 
     @Test
@@ -302,8 +300,7 @@ class ElasticSearchServiceRangeQueryTest {
         ObjectNode query = invokeHybrid(filter);
         ArrayNode should = query.get("bool").withArray("should");
 
-        assertEquals(1, should.size());
-        assertNotNull(should.get(0).get("multi_match"));
+        assertEquals(0, should.size());
     }
 
     @Test
@@ -317,8 +314,7 @@ class ElasticSearchServiceRangeQueryTest {
         ArrayNode should = query.get("bool").withArray("should");
 
         // An Infinity value is not a finite vector — kNN must be skipped.
-        assertEquals(1, should.size());
-        assertNotNull(should.get(0).get("multi_match"));
+        assertEquals(0, should.size());
     }
 
     @Test

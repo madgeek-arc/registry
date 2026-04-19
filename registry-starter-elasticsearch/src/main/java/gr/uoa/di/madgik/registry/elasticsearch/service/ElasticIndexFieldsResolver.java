@@ -67,8 +67,8 @@ public class ElasticIndexFieldsResolver {
             }
             return findTextFields(record.mappings().properties(), "");
         } catch (IOException e) {
-            logger.warn("Reading resourceType '{}' fields from Elastic failed, using 'searchableArea' fallback.", indexName, e);
-            return List.of("searchableArea");
+            logger.warn("Reading resourceType '{}' fields from Elastic failed.", indexName, e);
+            return Collections.emptyList();
         }
     }
 

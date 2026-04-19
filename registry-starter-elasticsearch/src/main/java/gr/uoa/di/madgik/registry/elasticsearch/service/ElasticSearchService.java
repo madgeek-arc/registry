@@ -148,10 +148,17 @@ public class ElasticSearchService implements SearchService {
 
         if (filter.getKeyword() != null && !filter.getKeyword().isEmpty()) {
             Set<String> textFields = new HashSet<>(resolveTextFields(filter.getResourceType()));
-            ObjectNode textQuery = must.addObject().putObject("multi_match");
-            textQuery.put("query", filter.getKeyword());
-            ArrayNode fields = textQuery.putArray("fields");
-            textFields.forEach(fields::add);
+            if (textFields.isEmpty()) {
+                // Without any declared text fields there is nowhere to run lexical matching, so a
+                // keyword-only query must produce zero lexical hits instead of building an invalid
+                // multi_match clause with an empty field list.
+                must.addObject().putObject("match_none");
+            } else {
+                ObjectNode textQuery = must.addObject().putObject("multi_match");
+                textQuery.put("query", filter.getKeyword());
+                ArrayNode fields = textQuery.putArray("fields");
+                textFields.forEach(fields::add);
+            }
         } else {
             must.addObject().putObject("match_all");
         }
@@ -176,18 +183,24 @@ public class ElasticSearchService implements SearchService {
         if (filter.getKeyword() != null && !filter.getKeyword().isEmpty()) {
             Set<String> textFields = new HashSet<>(resolveTextFields(filter.getResourceType()));
             ArrayNode should = bool.putArray("should");
-            ObjectNode textQuery = mapper.createObjectNode();
-            ObjectNode multiMatch = textQuery.putObject("multi_match");
-            multiMatch.put("query", filter.getKeyword());
-            ArrayNode fields = multiMatch.putArray("fields");
-            textFields.forEach(fields::add);
-            should.add(textQuery);
+            if (!textFields.isEmpty()) {
+                ObjectNode textQuery = mapper.createObjectNode();
+                ObjectNode multiMatch = textQuery.putObject("multi_match");
+                multiMatch.put("query", filter.getKeyword());
+                ArrayNode fields = multiMatch.putArray("fields");
+                textFields.forEach(fields::add);
+                should.add(textQuery);
+            }
 
             float[] embedding = embeddingService.embed(filter.getKeyword());
             if (!embeddingIsEmpty(embedding)) {
                 should.add(knnQueryNode(embedding, knnWindow(filter), 2.0f, null));
             }
-            bool.put("minimum_should_match", 1);
+            if (should.isEmpty()) {
+                must.addObject().putObject("match_none");
+            } else {
+                bool.put("minimum_should_match", 1);
+            }
         } else {
             must.addObject().putObject("match_all");
         }
@@ -227,12 +240,14 @@ public class ElasticSearchService implements SearchService {
 
         if (filter.getKeyword() != null && !filter.getKeyword().isEmpty()) {
             Set<String> textFields = new HashSet<>(resolveTextFields(filter.getResourceType()));
-            ObjectNode textQuery = mapper.createObjectNode();
-            ObjectNode multiMatch = textQuery.putObject("multi_match");
-            multiMatch.put("query", filter.getKeyword());
-            ArrayNode fields = multiMatch.putArray("fields");
-            textFields.forEach(fields::add);
-            must.add(textQuery);
+            if (!textFields.isEmpty()) {
+                ObjectNode textQuery = mapper.createObjectNode();
+                ObjectNode multiMatch = textQuery.putObject("multi_match");
+                multiMatch.put("query", filter.getKeyword());
+                ArrayNode fields = multiMatch.putArray("fields");
+                textFields.forEach(fields::add);
+                must.add(textQuery);
+            }
         }
 
         mustNot.addObject().putObject("terms")
@@ -543,15 +558,7 @@ public class ElasticSearchService implements SearchService {
     // -------------------------------------------------------------------------
 
     private List<String> resolveTextFields(String indexName) {
-        List<String> fields = indexFieldsResolver.getTextFields(indexName);
-        if (fields.isEmpty()) {
-            return List.of("searchableArea");
-        }
-
-        List<String> explicitFields = fields.stream()
-                .filter(field -> !"searchableArea".equals(field))
-                .toList();
-        return explicitFields.isEmpty() ? List.of("searchableArea") : explicitFields;
+        return indexFieldsResolver.getTextFields(indexName);
     }
 
     // -------------------------------------------------------------------------

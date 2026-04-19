@@ -160,19 +160,6 @@ public class ElasticOperationsService implements IndexOperationsService {
         this.objectMapper = objectMapper;
     }
 
-    /**
-     * Produces a searchable plain-text representation from the stored payload.
-     */
-    private static String strip(String input, String format) {
-        if ("xml".equals(format)) {
-            return input.replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ");
-        } else if ("json".equals(format)) {
-            return input;
-        } else {
-            throw new ServiceException("Invalid format type, supported are json and xml");
-        }
-    }
-
     @Override
     public void addBulk(List<Resource> resources) {
         if (resources == null || resources.isEmpty()) {
@@ -332,7 +319,6 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectProperties.put("id", KEYWORD_MAP);
         jsonObjectProperties.put("version", KEYWORD_MAP);
         jsonObjectProperties.put("payload", SOURCE_ONLY_STRING_MAP);
-        jsonObjectProperties.put("searchableArea", TEXT_MAP);
         jsonObjectProperties.put("payloadFormat", KEYWORD_MAP);
         jsonObjectProperties.put("resourceType", KEYWORD_MAP);
         jsonObjectProperties.put("creation_date", DATE_MAP);
@@ -355,9 +341,8 @@ public class ElasticOperationsService implements IndexOperationsService {
     /**
      * Converts a registry {@link Resource} into the JSON document stored in Elasticsearch.
      *
-     * <p>Besides raw payload fields, this normalizes temporal values to epoch millis, derives the
-     * plain-text searchable area, and adds an embedding when the resource type marks fields as
-     * embedding contributors.</p>
+     * <p>Besides raw payload fields, this normalizes temporal values to epoch millis and adds an
+     * embedding when the resource type marks fields as embedding contributors.</p>
      */
     private Map<String, Object> createDocumentForInsert(Resource resource) {
 
@@ -367,7 +352,6 @@ public class ElasticOperationsService implements IndexOperationsService {
         jsonObjectField.put("payload", resource.getPayload());
         jsonObjectField.put("payloadFormat", resource.getPayloadFormat());
         jsonObjectField.put("version", resource.getVersion());
-        jsonObjectField.put("searchableArea", strip(resource.getPayload(), resource.getPayloadFormat()));
         jsonObjectField.put("modification_date", resource.getModificationDate().toString());
         jsonObjectField.put("created_by", resource.getCreatedBy());
         jsonObjectField.put("modified_by", resource.getModifiedBy());

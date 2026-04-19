@@ -96,9 +96,9 @@ class ElasticIndexFieldsResolverCacheTest {
     }
 
     @Test
-    void getTextFields_returnsFallbackWhenMappingCallFails() {
+    void getTextFields_returnsEmptyListWhenMappingCallFails() {
         List<String> fields = resolver.getTextFields("provider");
-        assertEquals(List.of("searchableArea"), fields);
+        assertEquals(List.of(), fields);
     }
 
     @Test

@@ -260,17 +260,17 @@ class ElasticSearchServiceIntegrationTest {
     }
 
     @Test
-    void search_prefersExplicitTextFields_overSearchableAreaFallback() throws Exception {
+    void search_usesOnlyExplicitTextFields() throws Exception {
         String index = createIndexWithTitleTextField();
         indexDocumentWithTitle(index, "title-match", "registry handbook", "unrelated payload");
-        indexDocumentWithTitle(index, "fallback-only", "completely different", "registry mention in payload only");
+        indexDocumentWithTitle(index, "payload-only", "completely different", "registry mention in payload only");
 
         FacetFilter filter = filter(index, "registry");
         Paging<Resource> results = searchService.search(filter);
 
         List<String> ids = results.getResults().stream().map(Resource::getId).toList();
         assertTrue(ids.contains("title-match"));
-        assertFalse(ids.contains("fallback-only"));
+        assertFalse(ids.contains("payload-only"));
     }
 
     @Test
@@ -364,9 +364,14 @@ class ElasticSearchServiceIntegrationTest {
                                         "index", false,
                                         "doc_values", false
                                 ),
-                                "searchableArea", Map.of("type", "text"),
                                 "payloadFormat", Map.of("type", "keyword"),
                                 "version", Map.of("type", "keyword"),
+                                "title", Map.of(
+                                        "type", "keyword",
+                                        "fields", Map.of(
+                                                "text", Map.of("type", "text")
+                                        )
+                                ),
                                 "embedding", Map.of(
                                         "type", "dense_vector",
                                         "dims", 3,
@@ -384,8 +389,8 @@ class ElasticSearchServiceIntegrationTest {
     private void indexDocument(String index, String id, String payload, List<Float> embedding) throws Exception {
         Map<String, Object> document = new LinkedHashMap<>();
         document.put("id", id);
+        document.put("title", payload);
         document.put("payload", payload);
-        document.put("searchableArea", payload);
         document.put("payloadFormat", "json");
         document.put("version", "1");
         document.put("embedding", embedding);
@@ -395,8 +400,8 @@ class ElasticSearchServiceIntegrationTest {
     private void indexDocumentWithoutEmbedding(String index, String id, String payload) throws Exception {
         Map<String, Object> document = new LinkedHashMap<>();
         document.put("id", id);
+        document.put("title", payload);
         document.put("payload", payload);
-        document.put("searchableArea", payload);
         document.put("payloadFormat", "json");
         document.put("version", "1");
         client.index(i -> i.index(index).id(id).document(document).refresh(Refresh.True));
@@ -413,8 +418,8 @@ class ElasticSearchServiceIntegrationTest {
 
     /**
      * Creates an index with an extra {@code status} keyword field while leaving lexical search and
-     * highlighting to the real text fields (`searchableArea` here) instead of synthetic text
-     * sub-fields on every keyword field.
+     * highlighting to the declared `title.text` field instead of synthetic text sub-fields on
+     * every keyword field.
      */
     private String createIndexWithStatusField() throws Exception {
         String index = "semantic-" + UUID.randomUUID().toString().replace("-", "");
@@ -422,10 +427,19 @@ class ElasticSearchServiceIntegrationTest {
                 "mappings", Map.of(
                         "properties", Map.of(
                                 "id", Map.of("type", "keyword"),
-                                "payload", Map.of("type", "keyword"),
-                                "searchableArea", Map.of("type", "text"),
+                                "payload", Map.of(
+                                        "type", "keyword",
+                                        "index", false,
+                                        "doc_values", false
+                                ),
                                 "payloadFormat", Map.of("type", "keyword"),
                                 "version", Map.of("type", "keyword"),
+                                "title", Map.of(
+                                        "type", "keyword",
+                                        "fields", Map.of(
+                                                "text", Map.of("type", "text")
+                                        )
+                                ),
                                 "status", Map.of("type", "keyword"),
                                 "embedding", Map.of(
                                         "type", "dense_vector",
@@ -452,7 +466,6 @@ class ElasticSearchServiceIntegrationTest {
                                         "index", false,
                                         "doc_values", false
                                 ),
-                                "searchableArea", Map.of("type", "text"),
                                 "payloadFormat", Map.of("type", "keyword"),
                                 "version", Map.of("type", "keyword"),
                                 "title", Map.of(
@@ -473,8 +486,8 @@ class ElasticSearchServiceIntegrationTest {
                                          List<Float> embedding) throws Exception {
         Map<String, Object> document = new LinkedHashMap<>();
         document.put("id", id);
+        document.put("title", payload);
         document.put("payload", payload);
-        document.put("searchableArea", payload);
         document.put("payloadFormat", "json");
         document.put("version", "1");
         document.put("status", status);
@@ -487,7 +500,6 @@ class ElasticSearchServiceIntegrationTest {
         document.put("id", id);
         document.put("title", title);
         document.put("payload", payload);
-        document.put("searchableArea", payload);
         document.put("payloadFormat", "json");
         document.put("version", "1");
         client.index(i -> i.index(index).id(id).document(document).refresh(Refresh.True));
