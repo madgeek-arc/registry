@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Date;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -38,13 +39,15 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for the Elasticsearch range query JSON structure produced by
- * {@link ElasticSearchService} when {@link FacetFilter#addRangeFilter} is used.
+ * Unit tests for the Elasticsearch query JSON structures produced by
+ * {@link ElasticSearchService}: range filters, hybrid (multi-match + kNN), and
+ * semantic (kNN-only) query nodes.
  *
- * <p>Uses reflection to invoke the private {@code createQueryNode} method so the
+ * <p>Uses reflection to invoke the private {@code createQueryNode},
+ * {@code createHybridQueryNode}, and {@code createSemanticQueryNode} methods so
  * query JSON can be inspected without a running Elasticsearch instance.</p>
  */
-class ElasticSearchServiceRangeQueryTest {
+class ElasticSearchServiceQueryNodeTest {
 
     private ElasticSearchService service;
     private Method createQueryNode;
@@ -66,7 +69,7 @@ class ElasticSearchServiceRangeQueryTest {
                 .getMapping(org.mockito.ArgumentMatchers.any(java.util.function.Function.class));
 
         RegistryElasticsearchProperties elasticsearchProperties = new RegistryElasticsearchProperties();
-        ElasticIndexFieldsResolver indexFieldsResolver = new ElasticIndexFieldsResolver(client);
+        ElasticIndexFieldsResolver indexFieldsResolver = mock(ElasticIndexFieldsResolver.class);
         service = new ElasticSearchService(
                 client,
                 mock(JacksonJsonpMapper.class),
@@ -75,6 +78,9 @@ class ElasticSearchServiceRangeQueryTest {
                 elasticsearchProperties,
                 indexFieldsResolver
         );
+        // mocks method returning text index fields to return at least one field
+        when(indexFieldsResolver.getTextFields("my_index")).thenReturn(List.of("indexField.text"));
+
         // Allow access to private createQueryNode(FacetFilter)
         createQueryNode = ElasticSearchService.class.getDeclaredMethod("createQueryNode", FacetFilter.class);
         createQueryNode.setAccessible(true);
@@ -256,6 +262,10 @@ class ElasticSearchServiceRangeQueryTest {
         assertNotNull(must.get(2).get("range"), "Expected range filter for age");
     }
 
+    // -------------------------------------------------------------------------
+    // Hybrid keyword query — multi-match + kNN combined in a bool/should
+    // -------------------------------------------------------------------------
+
     @Test
     void hybridKeywordQuery_usesMultiMatchAndKnnInsteadOfScriptScore() throws Exception {
         when(embeddingService.embed("registry")).thenReturn(new float[]{0.2f, 0.4f});
@@ -269,8 +279,9 @@ class ElasticSearchServiceRangeQueryTest {
 
         assertEquals(1, bool.get("minimum_should_match").asInt());
         ArrayNode should = bool.withArray("should");
-        assertEquals(1, should.size());
-        assertNotNull(should.get(0).get("knn"));
+        assertEquals(2, should.size());
+        assertNotNull(should.get(0).get("multi_match"));
+        assertNotNull(should.get(1).get("knn"));
         ArrayNode must = must(query);
         for (int i = 0; i < must.size(); i++) {
             assertNull(must.get(i).get("script_score"));
@@ -287,7 +298,8 @@ class ElasticSearchServiceRangeQueryTest {
         ObjectNode query = invokeHybrid(filter);
         ArrayNode should = query.get("bool").withArray("should");
 
-        assertEquals(0, should.size());
+        assertEquals(1, should.size());
+        assertNotNull(should.get(0).get("multi_match"));
     }
 
     @Test
@@ -300,7 +312,8 @@ class ElasticSearchServiceRangeQueryTest {
         ObjectNode query = invokeHybrid(filter);
         ArrayNode should = query.get("bool").withArray("should");
 
-        assertEquals(0, should.size());
+        assertEquals(1, should.size());
+        assertNotNull(should.get(0).get("multi_match"));
     }
 
     @Test
@@ -314,8 +327,13 @@ class ElasticSearchServiceRangeQueryTest {
         ArrayNode should = query.get("bool").withArray("should");
 
         // An Infinity value is not a finite vector — kNN must be skipped.
-        assertEquals(0, should.size());
+        assertEquals(1, should.size());
+        assertNotNull(should.get(0).get("multi_match"));
     }
+
+    // -------------------------------------------------------------------------
+    // Semantic query — kNN only, no text-match clause
+    // -------------------------------------------------------------------------
 
     @Test
     void semanticQuery_containsOnlyKnnAndFilters() throws Exception {
