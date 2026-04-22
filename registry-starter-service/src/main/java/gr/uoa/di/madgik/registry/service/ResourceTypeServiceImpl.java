@@ -75,13 +75,16 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
     private final ResourceTypeDao resourceTypeDao;
     private final SchemaDao schemaDao;
     private final AuditActorProvider auditActorProvider;
+    private final ResourceTypeProjectionRefreshService resourceTypeProjectionRefreshService;
 
 
     public ResourceTypeServiceImpl(ResourceTypeDao resourceTypeDao, SchemaDao schemaDao,
-                                   AuditActorProvider auditActorProvider) {
+                                   AuditActorProvider auditActorProvider,
+                                   ResourceTypeProjectionRefreshService resourceTypeProjectionRefreshService) {
         this.resourceTypeDao = resourceTypeDao;
         this.schemaDao = schemaDao;
         this.auditActorProvider = auditActorProvider;
+        this.resourceTypeProjectionRefreshService = resourceTypeProjectionRefreshService;
     }
 
     private static int isValidUrl(String Url, boolean isFromUrl) {
@@ -276,6 +279,8 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
         } catch (Exception e) {
             throw new ServiceException(e);
         }
+
+        resourceTypeProjectionRefreshService.refresh(existing);
 
         Schema existingSchema = schemaDao.getSchemaByUrl(existing.getName());
         if (existingSchema != null) {

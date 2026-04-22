@@ -138,6 +138,12 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
         return getEntityManager().merge(resource);
     }
 
+    @Override
+    @Transactional
+    public Resource mergeResource(Resource resource) {
+        return getEntityManager().merge(resource);
+    }
+
     @Transactional
     public void deleteResource(Resource resource) {
         delete(resource);
