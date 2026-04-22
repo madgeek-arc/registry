@@ -280,6 +280,11 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
             throw new ServiceException(e);
         }
 
+        if (ResourceTypeChangeDetector.hasSameDefinition(existing, resourceType)) {
+            logger.debug("Skipping refreshing projections for resource type '{}'", resourceType.getName());
+            return existing;
+        }
+
         resourceTypeProjectionRefreshService.refresh(existing);
 
         Schema existingSchema = schemaDao.getSchemaByUrl(existing.getName());
@@ -293,7 +298,6 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
 
         return existing;
     }
-
     private void normalizeResourceType(ResourceType resourceType) throws ServiceException {
         if (resourceType.getSchemaUrl() == null || "not_set".equals(resourceType.getSchemaUrl())) {
             resourceType.setSchemaUrl(null);

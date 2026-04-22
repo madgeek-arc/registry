@@ -20,6 +20,7 @@ import gr.uoa.di.madgik.registry.dao.ResourceDao;
 import gr.uoa.di.madgik.registry.dao.ResourceTypeDao;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.service.ResourceTypeChangeDetector;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -146,6 +147,12 @@ public class ResourceMonitor {
     public ResourceType resourceTypeUpdated(ProceedingJoinPoint pjp, ResourceType resourceType) throws Throwable {
         ResourceType previous = resourceType == null ? null : resourceTypeDao.getResourceType(resourceType.getName());
         ResourceType updated = (ResourceType) pjp.proceed();
+
+        // check whether this condition should apply indide each Listener and not globally
+        if (previous != null && updated != null && ResourceTypeChangeDetector.hasSameDefinition(previous, updated)) {
+            logger.debug("Skipping resource type listeners for noop update '{}'", updated.getName());
+            return updated;
+        }
 
         for (ResourceTypeListener listener : resourceTypeListeners) {
             try {
