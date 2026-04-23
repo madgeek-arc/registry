@@ -258,6 +258,8 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
                             resourceType.getName()));
         }
 
+        boolean skipRefresh = ResourceTypeChangeDetector.hasSameDefinition(existing, resourceType);
+
         existing.setSchema(resourceType.getSchema());
         existing.setSchemaUrl(resourceType.getSchemaUrl());
         existing.setPayloadType(resourceType.getPayloadType());
@@ -280,24 +282,24 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
             throw new ServiceException(e);
         }
 
-        if (ResourceTypeChangeDetector.hasSameDefinition(existing, resourceType)) {
-            logger.debug("Skipping refreshing projections for resource type '{}'", resourceType.getName());
-            return existing;
-        }
+        if (!skipRefresh) {
+            resourceTypeProjectionRefreshService.refresh(existing);
 
-        resourceTypeProjectionRefreshService.refresh(existing);
-
-        Schema existingSchema = schemaDao.getSchemaByUrl(existing.getName());
-        if (existingSchema != null) {
-            schemaDao.deleteSchema(existingSchema);
+            Schema existingSchema = schemaDao.getSchemaByUrl(existing.getName());
+            if (existingSchema != null) {
+                schemaDao.deleteSchema(existingSchema);
+            }
+            Schema resourceTypeSchema = new Schema();
+            resourceTypeSchema.setSchema(existing.getSchema());
+            resourceTypeSchema.setOriginalUrl(existing.getName());
+            schemaDao.addSchema(resourceTypeSchema);
+        } else {
+            logger.debug("Skip refreshing projections for resource type '{}'", resourceType.getName());
         }
-        Schema resourceTypeSchema = new Schema();
-        resourceTypeSchema.setSchema(existing.getSchema());
-        resourceTypeSchema.setOriginalUrl(existing.getName());
-        schemaDao.addSchema(resourceTypeSchema);
 
         return existing;
     }
+
     private void normalizeResourceType(ResourceType resourceType) throws ServiceException {
         if (resourceType.getSchemaUrl() == null || "not_set".equals(resourceType.getSchemaUrl())) {
             resourceType.setSchemaUrl(null);
