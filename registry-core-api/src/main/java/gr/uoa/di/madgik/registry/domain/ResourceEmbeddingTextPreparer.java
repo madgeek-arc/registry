@@ -146,7 +146,8 @@ final class ResourceEmbeddingTextPreparer {
     }
 
     static String semanticText(IndexField indexField, String content) {
-        return resolveLabel(indexField) + ": " + content;
+        String label = resolveLabel(indexField);
+        return label.isBlank() ? content : label + ": " + content;
     }
 
     private static List<String> splitSentences(String text) {
