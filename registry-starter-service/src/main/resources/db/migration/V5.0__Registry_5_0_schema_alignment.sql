@@ -136,15 +136,6 @@ CREATE TABLE IF NOT EXISTS public.stringindexedfield_values (
     "values" text
 );
 
-COMMENT ON COLUMN public.indexfield.search_capabilities IS
-    'Search capabilities for string fields. Defaults to KEYWORD when unset.';
-COMMENT ON COLUMN public.indexfield.embedding_weight IS
-    'The weight this index field will have when creating an embedding vector for the resource.';
-COMMENT ON COLUMN public.indexfield.related_resource_type IS
-    'The name of the ResourceType whose resource IDs appear as values for this field. When set, FacetLabelService will resolve Value.label for facets backed by this field.';
-COMMENT ON COLUMN public.indexfield.related_resource_type_field IS
-    'The IndexField name in the relatedResourceType to use as the display label. Falls back to a field named name in the related type if null.';
-
 -- Bring pre-existing registry tables up to the current schema.
 ALTER TABLE public.resourcetype
     ADD COLUMN IF NOT EXISTS created_by varchar(255),
@@ -161,6 +152,15 @@ ALTER TABLE public.indexfield
     ADD COLUMN IF NOT EXISTS search_capabilities varchar(255),
     ADD COLUMN IF NOT EXISTS related_resource_type varchar(255),
     ADD COLUMN IF NOT EXISTS related_resource_type_field varchar(255);
+
+COMMENT ON COLUMN public.indexfield.search_capabilities IS
+    'Search capabilities for string fields. Defaults to KEYWORD when unset.';
+COMMENT ON COLUMN public.indexfield.embedding_weight IS
+    'The weight this index field will have when creating an embedding vector for the resource.';
+COMMENT ON COLUMN public.indexfield.related_resource_type IS
+    'The name of the ResourceType whose resource IDs appear as values for this field. When set, FacetLabelService will resolve Value.label for facets backed by this field.';
+COMMENT ON COLUMN public.indexfield.related_resource_type_field IS
+    'The IndexField name in the relatedResourceType to use as the display label. Falls back to a field named name in the related type if null.';
 
 -- Normalize legacy naive timestamps to timestamptz for dateindexedfield values.
 DO $$
