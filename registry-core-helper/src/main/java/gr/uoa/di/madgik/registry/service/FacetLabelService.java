@@ -19,6 +19,7 @@ package gr.uoa.di.madgik.registry.service;
 import gr.uoa.di.madgik.registry.domain.Facet;
 import gr.uoa.di.madgik.registry.domain.Value;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import gr.uoa.di.madgik.registry.domain.index.SearchCapability;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -99,7 +100,13 @@ public class FacetLabelService {
         Map<String, List<Facet>> byRelatedType = new LinkedHashMap<>();
         for (Facet facet : facets) {
             IndexField field = fieldMap.get(facet.getField());
-            if (field != null && field.getRelatedResourceType() != null) {
+            if (field == null) {
+                continue;
+            }
+            if (!field.hasSearchCapability(SearchCapability.KEYWORD)) {
+                continue;
+            }
+            if (field.getRelatedResourceType() != null) {
                 byRelatedType
                         .computeIfAbsent(field.getRelatedResourceType(), k -> new ArrayList<>())
                         .add(facet);
