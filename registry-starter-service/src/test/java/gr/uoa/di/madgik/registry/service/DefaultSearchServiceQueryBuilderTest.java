@@ -27,6 +27,8 @@ import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceChunk;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Value;
+import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -294,8 +296,41 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
     }
 
     @Test
+    void searchWithHighlights_boostsResourcesWithMultipleHighlights() {
+        HighlightScoreFixture fixture = createHighlightScoreFixture();
+
+        FacetFilter filter = employeeFilter();
+        filter.setKeyword("Data");
+
+        Paging<HighlightedResult<Resource>> result = searchService.searchWithHighlights(filter);
+
+        assertEquals(2, result.getTotal());
+        assertEquals(fixture.multiHighlight().getId(), result.getResults().getFirst().getResult().getId());
+        assertEquals(2.0f, result.getResults().getFirst().getScore());
+        assertEquals(fixture.singleHighlight().getId(), result.getResults().get(1).getResult().getId());
+        assertEquals(1.0f, result.getResults().get(1).getScore());
+    }
+
+    @Test
+    void searchWithHighlights_preservesExplicitSortOrderWhenScoringHighlights() {
+        HighlightScoreFixture fixture = createHighlightScoreFixture();
+
+        FacetFilter filter = employeeFilter();
+        filter.setKeyword("Data");
+        filter.addOrderBy("age", "asc");
+
+        Paging<HighlightedResult<Resource>> result = searchService.searchWithHighlights(filter);
+
+        assertEquals(2, result.getTotal());
+        assertEquals(fixture.singleHighlight().getId(), result.getResults().getFirst().getResult().getId());
+        assertEquals(1.0f, result.getResults().getFirst().getScore());
+        assertEquals(fixture.multiHighlight().getId(), result.getResults().get(1).getResult().getId());
+        assertEquals(2.0f, result.getResults().get(1).getScore());
+    }
+
+    @Test
     void resourceLifecycle_indexesChunksWithEmbeddingModel() {
-        Resource created = resourceService.addResource(newEmployeeResource("Analytics Architect", 34));
+        Resource created = resourceService.addResource(newEmployeeResource("Analytics Engineer", 34));
         resourceChunkIndexService.reindex(created);
 
         List<ResourceChunk> chunks = resourceChunkDao.findByResourceIdOrderByChunkIdxAsc(created.getId());
@@ -309,7 +344,7 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
 
     @Test
     void semanticSearch_returnsResourcesByChunkSimilarity() {
-        Resource analytics = resourceService.addResource(newEmployeeResource("Analytics Architect", 34));
+        Resource analytics = resourceService.addResource(newEmployeeResource("Analytics Engineer", 34));
         Resource operations = resourceService.addResource(newEmployeeResource("Operations Lead", 41));
         resourceChunkIndexService.reindex(analytics);
         resourceChunkIndexService.reindex(operations);
@@ -324,12 +359,25 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
     }
 
     @Test
+    void semanticSearch_rejectsExplicitSortOrder() {
+        FacetFilter filter = employeeFilter();
+        filter.setKeyword("analytics");
+        filter.addOrderBy("age", "asc");
+
+        UnsupportedSearchParameterException exception = assertThrows(UnsupportedSearchParameterException.class,
+                () -> searchService.semanticSearch(filter));
+
+        assertEquals("Semantic search is relevance-ranked and does not support sort/order parameters.",
+                exception.getMessage());
+    }
+
+    @Test
     void hybridSearchWithHighlights_returnsLexicalAndSemanticHighlights() {
-        Resource hybrid = resourceService.addResource(newEmployeeResource("Architect Analyst", 37));
+        Resource hybrid = resourceService.addResource(newEmployeeResource("Data Analyst", 37));
         resourceChunkIndexService.reindex(hybrid);
 
         FacetFilter filter = employeeFilter();
-        filter.setKeyword("architect");
+        filter.setKeyword("Data");
 
         Paging<HighlightedResult<Resource>> results = searchService.hybridSearchWithHighlights(filter);
 
@@ -341,6 +389,32 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
         assertTrue(first.getHighlights().stream()
                 .anyMatch(highlight -> !"payload".equals(highlight.getField()) && highlight.getValue().contains("<em>")));
         assertFalse(first.getHighlights().isEmpty());
+    }
+
+    @Test
+    void hybridSearchWithHighlights_rejectsExplicitSortOrder() {
+        FacetFilter filter = employeeFilter();
+        filter.setKeyword("Data");
+        filter.addOrderBy("age", "asc");
+
+        UnsupportedSearchParameterException exception = assertThrows(UnsupportedSearchParameterException.class,
+                () -> searchService.hybridSearchWithHighlights(filter));
+
+        assertEquals("Hybrid search is relevance-ranked and does not support sort/order parameters.",
+                exception.getMessage());
+    }
+
+    @Test
+    void hybridSearch_rejectsExplicitSortOrder() {
+        FacetFilter filter = employeeFilter();
+        filter.setKeyword("Data");
+        filter.addOrderBy("age", "asc");
+
+        UnsupportedSearchParameterException exception = assertThrows(UnsupportedSearchParameterException.class,
+                () -> searchService.hybridSearch(filter));
+
+        assertEquals("Hybrid search is relevance-ranked and does not support sort/order parameters.",
+                exception.getMessage());
     }
 
     @Test
@@ -380,6 +454,39 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
         return resource;
     }
 
+    private HighlightScoreFixture createHighlightScoreFixture() {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+        Resource singleHighlight = resourceService.addResource(newEmployeeResource("Data Analyst", 30));
+        ResourceType employee = resourceTypeService.getResourceType("employee");
+        List<IndexField> fields = employee.getIndexFields();
+        fields.add(indexField("alternate_name", employee));
+        employee.setIndexFields(fields);
+        Resource multiHighlight = resourceService.addResource(newEmployeeResource("Data Engineer", 31));
+        jdbcTemplate.update("""
+                INSERT INTO public.stringindexedfield (id, name, resource_id)
+                VALUES (?, ?, ?)
+                """,
+                551230L, "alternate_name", multiHighlight.getId());
+        jdbcTemplate.update("""
+                INSERT INTO public.stringindexedfield_values (stringindexedfield_id, "values")
+                VALUES (?, ?)
+                """,
+                551230L, "Data Engineer");
+        viewService.deleteView("employee");
+        viewService.createView(employee);
+        return new HighlightScoreFixture(singleHighlight, multiHighlight);
+    }
+
+    private IndexField indexField(String name, ResourceType resourceType) {
+        IndexField indexField = new IndexField();
+        indexField.setName(name);
+        indexField.setLabel(name);
+        indexField.setPath("//*[local-name()='author']/text()");
+        indexField.setType("java.lang.String");
+        indexField.setResourceType(resourceType);
+        return indexField;
+    }
+
     private String newEmployeePayload(String author, int age) {
         return """
                 <?xml version="1.0"?>
@@ -396,7 +503,7 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
 
     private float[] embeddingFor(String text) {
         String normalized = text == null ? "" : text.toLowerCase();
-        if (normalized.contains("analytics") || normalized.contains("architect")) {
+        if (normalized.contains("analytics") || normalized.contains("data")) {
             return vector(1f, 0f, 0f);
         }
         if (normalized.contains("operations")) {
@@ -414,5 +521,8 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
         vector[1] = y;
         vector[2] = z;
         return vector;
+    }
+
+    private record HighlightScoreFixture(Resource singleHighlight, Resource multiHighlight) {
     }
 }

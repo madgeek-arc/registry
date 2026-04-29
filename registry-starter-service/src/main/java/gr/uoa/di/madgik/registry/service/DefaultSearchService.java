@@ -27,6 +27,7 @@ import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.domain.index.SearchCapability;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
+import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -48,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -172,6 +174,7 @@ public class DefaultSearchService implements SearchService {
         if (!StringUtils.hasText(filter.getKeyword())) {
             throw new ServiceException("Semantic search requires a non-empty keyword.");
         }
+        rejectRelevanceSort(filter, "Semantic search");
 
         List<String> browseBy = resolveBrowseBy(filter);
         List<ResourceType> resourceTypes = getResourceTypes(filter.getResourceType());
@@ -192,6 +195,7 @@ public class DefaultSearchService implements SearchService {
         if (!StringUtils.hasText(filter.getKeyword())) {
             return search(filter);
         }
+        rejectRelevanceSort(filter, "Hybrid search");
 
         List<String> browseBy = resolveBrowseBy(filter);
         List<ResourceType> resourceTypes = getResourceTypes(filter.getResourceType());
@@ -212,13 +216,19 @@ public class DefaultSearchService implements SearchService {
         String keyword = filter.getKeyword();
         Map<String, List<Highlight>> highlightsById = loadHighlightsByResourceId(paging.getResults(), keyword);
 
-        List<HighlightedResult<Resource>> results = paging.getResults().stream()
-                .map(resource -> HighlightedResult.of(
-                        StringUtils.hasText(keyword) ? 1.0f : 0.0f,
-                        resource,
-                        highlightsById.getOrDefault(resource.getId(), List.of())
-                ))
-                .toList();
+        var resultStream = paging.getResults().stream()
+                .map(resource -> {
+                    List<Highlight> highlights = highlightsById.getOrDefault(resource.getId(), List.of());
+                    return HighlightedResult.of(
+                            lexicalHighlightScore(keyword, highlights),
+                            resource,
+                            highlights
+                    );
+                });
+        if (!hasExplicitOrder(filter)) {
+            resultStream = resultStream.sorted(Comparator.comparing(HighlightedResult<Resource>::getScore).reversed());
+        }
+        List<HighlightedResult<Resource>> results = resultStream.toList();
 
         return new Paging<>(paging, results);
     }
@@ -229,6 +239,7 @@ public class DefaultSearchService implements SearchService {
         if (!StringUtils.hasText(filter.getKeyword())) {
             return searchWithHighlights(filter);
         }
+        rejectRelevanceSort(filter, "Hybrid search");
 
         List<String> browseBy = resolveBrowseBy(filter);
         List<ResourceType> resourceTypes = getResourceTypes(filter.getResourceType());
@@ -724,6 +735,24 @@ public class DefaultSearchService implements SearchService {
             }
         }
         return highlights;
+    }
+
+    private float lexicalHighlightScore(String keyword, List<Highlight> highlights) {
+        if (!StringUtils.hasText(keyword)) {
+            return 0.0f;
+        }
+        return Math.max(1.0f, highlights == null ? 0.0f : highlights.size());
+    }
+
+    private boolean hasExplicitOrder(FacetFilter filter) {
+        return filter != null && filter.getOrderBy() != null && !filter.getOrderBy().isEmpty();
+    }
+
+    private void rejectRelevanceSort(FacetFilter filter, String searchMode) {
+        if (hasExplicitOrder(filter)) {
+            throw new UnsupportedSearchParameterException(
+                    searchMode + " is relevance-ranked and does not support sort/order parameters.");
+        }
     }
 
     private List<Highlight> buildHybridHighlights(ScoredRow row, String keyword, List<Highlight> lexicalHighlights) {
