@@ -26,12 +26,12 @@ import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.domain.index.SearchCapability;
+import gr.uoa.di.madgik.registry.exception.MissingResourceEmbeddingsException;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Primary;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -51,7 +51,6 @@ import java.util.Collections;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -267,18 +266,14 @@ public class DefaultSearchService implements SearchService {
     public List<Resource> recommend(FacetFilter filter, KeyValue idValue) throws ServiceException {
         validateQuantity(filter.getQuantity());
         ResourceType resourceType = requireSingleResourceType(filter.getResourceType());
-        String sourceField = normalizeLookupField(idValue.getField());
 
-        Map<String, Object> sourceRow = getSourceProjection(resourceType, sourceField, idValue.getValue());
+        Map<String, Object> sourceRow = getSourceProjection(resourceType, idValue.getField(), idValue.getValue());
         String sourceId = Objects.toString(sourceRow.get("id"), null);
         if (!StringUtils.hasText(sourceId)) {
             throw new ResourceNotFoundException(idValue.getValue(), resourceType.getName());
         }
         if (!hasSourceChunks(sourceId)) {
-            throw new ResourceNotFoundException(
-                    "There are no recommendations available for this resource",
-                    new UnsupportedOperationException("Embedding chunks are missing for the requested resource")
-            );
+            throw new MissingResourceEmbeddingsException(sourceId);
         }
 
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -897,13 +892,6 @@ public class DefaultSearchService implements SearchService {
             throw new ServiceException("Recommendations require a concrete resource type, not an alias group.");
         }
         return resourceTypes.getFirst();
-    }
-
-    private String normalizeLookupField(String field) {
-        if ("resource_internal_id".equals(field)) {
-            return "id";
-        }
-        return field;
     }
 
     private Map<String, Object> getSourceProjection(ResourceType resourceType, String field, String value) {

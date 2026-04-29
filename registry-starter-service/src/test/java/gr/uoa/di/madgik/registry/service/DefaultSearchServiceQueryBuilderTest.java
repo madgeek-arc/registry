@@ -28,6 +28,7 @@ import gr.uoa.di.madgik.registry.domain.ResourceChunk;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Value;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import gr.uoa.di.madgik.registry.exception.MissingResourceEmbeddingsException;
 import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -432,11 +433,46 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
         FacetFilter filter = employeeFilter();
         List<Resource> recommendations = searchService.recommend(
                 filter,
-                new SearchService.KeyValue("resource_internal_id", DatabaseConfiguration.TEST_RESOURCE_ID)
+                new SearchService.KeyValue("first_name", "Analytics Source")
         );
 
         assertFalse(recommendations.isEmpty());
         assertEquals(similar.getId(), recommendations.getFirst().getId());
+    }
+
+    @Test
+    void recommend_acceptsSinglePrimaryKey() {
+        Resource source = resourceService.addResource(newEmployeeResource("Public Source", 28));
+        Resource similar = resourceService.addResource(newEmployeeResource("Public Peer", 28));
+        resourceChunkIndexService.reindex(source);
+        resourceChunkIndexService.reindex(similar);
+
+        FacetFilter filter = employeeFilter();
+        List<Resource> recommendations = searchService.recommend(
+                filter,
+                new SearchService.KeyValue("first_name", "Public Source")
+        );
+
+        assertFalse(recommendations.isEmpty());
+        assertTrue(recommendations.stream().noneMatch(resource -> source.getId().equals(resource.getId())));
+    }
+
+    @Test
+    void recommend_rejectsResourceWithoutEmbeddingChunks() {
+        Resource source = resourceService.addResource(newEmployeeResource("Unindexed Source", 28));
+        resourceChunkDao.deleteByResourceId(source.getId());
+
+        FacetFilter filter = employeeFilter();
+        MissingResourceEmbeddingsException exception = assertThrows(MissingResourceEmbeddingsException.class,
+                () -> searchService.recommend(
+                        filter,
+                        new SearchService.KeyValue("first_name", "Unindexed Source")
+                ));
+
+        assertEquals(
+                "Resource [id=%s] has no embeddings; embedding-backed operations are unavailable.".formatted(source.getId()),
+                exception.getMessage()
+        );
     }
 
     private FacetFilter employeeFilter() {

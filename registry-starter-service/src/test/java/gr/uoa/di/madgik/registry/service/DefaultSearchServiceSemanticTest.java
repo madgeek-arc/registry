@@ -23,7 +23,7 @@ import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
-import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
+import gr.uoa.di.madgik.registry.exception.MissingResourceEmbeddingsException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -383,7 +383,7 @@ class DefaultSearchServiceSemanticTest extends PostgreSqlTestContainerSupport {
         filter.setKeyword("analytics");
 
         List<Resource> recommendations = searchService.recommend(filter,
-                new SearchService.KeyValue("resource_internal_id", source.getId()));
+                new SearchService.KeyValue("first_name", "Analytics Source"));
 
         List<String> ids = recommendations.stream().map(Resource::getId).toList();
         assertTrue(ids.contains(analyticsPeer.getId()),
@@ -395,7 +395,7 @@ class DefaultSearchServiceSemanticTest extends PostgreSqlTestContainerSupport {
     }
 
     @Test
-    void recommend_noChunksForSource_throwsResourceNotFoundException() {
+    void recommend_noChunksForSource_throwsMissingResourceEmbeddingsException() {
         // Return a bad embedding during addResource so the auto-reindex stores no chunks.
         when(embeddingService.embed(anyString())).thenReturn(new float[0]);
         Resource source = resourceService.addResource(newEmployeeResource("Orphan Source", 40));
@@ -405,11 +405,11 @@ class DefaultSearchServiceSemanticTest extends PostgreSqlTestContainerSupport {
 
         FacetFilter filter = employeeFilter();
 
-        ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class,
+        MissingResourceEmbeddingsException ex = assertThrows(MissingResourceEmbeddingsException.class,
                 () -> searchService.recommend(filter,
-                        new SearchService.KeyValue("resource_internal_id", source.getId())));
-        assertTrue(ex.getMessage().contains("There are no recommendations available"),
-                "Expected 'no recommendations' message, got: " + ex.getMessage());
+                        new SearchService.KeyValue("first_name", "Orphan Source")));
+        assertTrue(ex.getMessage().contains("has no embeddings"),
+                "Expected missing embeddings message, got: " + ex.getMessage());
     }
 
     // -------------------------------------------------------------------------
