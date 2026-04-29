@@ -20,6 +20,7 @@ import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.exception.ResourceException;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
+import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
 import gr.uoa.di.madgik.registry.utils.LoggingUtils;
 import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
@@ -78,7 +79,7 @@ public class GenericResourceManager implements GenericResourceService {
     @Override
     public <T> List<T> recommend(FacetFilter filter, String id) {
         return convertToList(
-                searchService.recommend(filter, new SearchService.KeyValue("resource_internal_id", id)),
+                searchService.recommend(filter, new SearchService.KeyValue(resolveSinglePrimaryKeyField(filter.getResourceType()), id)),
                 filter.getResourceType());
     }
 
@@ -237,7 +238,7 @@ public class GenericResourceManager implements GenericResourceService {
     @Override
     public Resource searchResource(String resourceTypeName, String id, boolean throwOnNull) {
         Resource res = searchService.searchFields(resourceTypeName,
-                new SearchService.KeyValue("resource_internal_id", id));
+                new SearchService.KeyValue(resolveSinglePrimaryKeyField(resourceTypeName), id));
         if (throwOnNull) {
             return Optional.ofNullable(res)
                     .orElseThrow(() -> new ResourceNotFoundException(id, resourceTypeName));
@@ -248,6 +249,27 @@ public class GenericResourceManager implements GenericResourceService {
     @Override
     public Resource searchResource(String resourceTypeName, SearchService.KeyValue... keyValues) {
         return searchService.searchFields(resourceTypeName, keyValues);
+    }
+
+    private String resolveSinglePrimaryKeyField(String resourceTypeName) {
+        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
+        if (resourceType == null) {
+            throw new ResourceNotFoundException(resourceTypeName);
+        }
+
+        List<IndexField> primaryKeyFields = resourceType.getIndexFields().stream()
+                .filter(IndexField::isPrimaryKey)
+                .toList();
+        if (primaryKeyFields.isEmpty()) {
+            throw new ServiceException(
+                    String.format("ResourceType [%s] has no primary key field defined", resourceTypeName));
+        }
+        if (primaryKeyFields.size() > 1) {
+            throw new UnsupportedSearchParameterException(
+                    "ResourceType '%s' has a composite primary key; path lookup by primary key is not supported."
+                            .formatted(resourceTypeName));
+        }
+        return primaryKeyFields.getFirst().getName();
     }
 
     public <T> List<T> convertToList(@NotNull List<Resource> resources, String resourceTypeName) {
