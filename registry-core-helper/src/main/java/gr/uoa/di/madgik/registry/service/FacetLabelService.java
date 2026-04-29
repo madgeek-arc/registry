@@ -127,18 +127,6 @@ public class FacetLabelService {
                 continue;
             }
 
-            // Collect all distinct IDs from every facet that points at this related type.
-            List<String> allIds = relatedFacets.stream()
-                    .flatMap(f -> f.getValues().stream())
-                    .map(Value::getValue)
-                    .filter(Objects::nonNull)
-                    .distinct()
-                    .collect(Collectors.toList());
-
-            if (allIds.isEmpty()) {
-                continue;
-            }
-
             Set<IndexField> relatedFields = resourceTypeService.getResourceTypeIndexFields(relatedType);
 
             // A facet field may declare a different labelField than another facet field that
@@ -159,10 +147,15 @@ public class FacetLabelService {
             for (Map.Entry<String, List<Facet>> lfEntry : byLabelField.entrySet()) {
                 String labelField         = lfEntry.getKey();
                 List<Facet> labelFacets   = lfEntry.getValue();
+                List<String> ids = collectIds(labelFacets);
+
+                if (ids.isEmpty()) {
+                    continue;
+                }
 
                 Map<String, String> idToLabel;
                 try {
-                    idToLabel = searchService.getLabels(relatedType, primaryKeyField, allIds, labelField);
+                    idToLabel = searchService.getLabels(relatedType, primaryKeyField, ids, labelField);
                 } catch (UnsupportedOperationException e) {
                     logger.warn("SearchService '{}' does not implement getLabels(); " +
                             "falling back to proper-case labels for resource type '{}'",
@@ -244,6 +237,15 @@ public class FacetLabelService {
                 }
             });
         }
+    }
+
+    private List<String> collectIds(List<Facet> facets) {
+        return facets.stream()
+                .flatMap(f -> f.getValues().stream())
+                .map(Value::getValue)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     /**

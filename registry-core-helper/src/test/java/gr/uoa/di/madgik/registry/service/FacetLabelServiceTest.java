@@ -80,6 +80,40 @@ class FacetLabelServiceTest {
         assertEquals("Category One", facet.getValues().getFirst().getLabel());
     }
 
+    @Test
+    void enrichFacetLabels_batchesLookupsByRelatedTypeAndLabelField() {
+        SearchService searchService = mock(SearchService.class);
+        ResourceTypeService resourceTypeService = mock(ResourceTypeService.class);
+        FacetLabelService facetLabelService = new FacetLabelService(searchService, resourceTypeService);
+        IndexField categoryByName = indexField("category", SearchCapability.KEYWORD);
+        categoryByName.setRelatedResourceType("category");
+        categoryByName.setRelatedResourceTypeField("name");
+        IndexField categoryByTitle = indexField("categoryTitle", SearchCapability.KEYWORD);
+        categoryByTitle.setRelatedResourceType("category");
+        categoryByTitle.setRelatedResourceTypeField("title");
+        IndexField categoryId = indexField("id", SearchCapability.KEYWORD);
+        categoryId.setPrimaryKey(true);
+        IndexField categoryName = indexField("name", SearchCapability.TEXT);
+        IndexField categoryTitle = indexField("title", SearchCapability.TEXT);
+        Facet nameFacet = new Facet("category", "Category", List.of(new Value("cat-1", 1)));
+        Facet titleFacet = new Facet("categoryTitle", "Category title", List.of(new Value("cat-2", 1)));
+        when(resourceTypeService.getResourceTypeIndexFields("service"))
+                .thenReturn(Set.of(categoryByName, categoryByTitle));
+        when(resourceTypeService.getResourceTypeIndexFields("category"))
+                .thenReturn(Set.of(categoryId, categoryName, categoryTitle));
+        when(searchService.getLabels("category", "id", List.of("cat-1"), "name"))
+                .thenReturn(Map.of("cat-1", "Category One"));
+        when(searchService.getLabels("category", "id", List.of("cat-2"), "title"))
+                .thenReturn(Map.of("cat-2", "Category Two"));
+
+        facetLabelService.enrichFacetLabels(List.of(nameFacet, titleFacet), "service");
+
+        assertEquals("Category One", nameFacet.getValues().getFirst().getLabel());
+        assertEquals("Category Two", titleFacet.getValues().getFirst().getLabel());
+        verify(searchService).getLabels("category", "id", List.of("cat-1"), "name");
+        verify(searchService).getLabels("category", "id", List.of("cat-2"), "title");
+    }
+
     private static IndexField indexField(String name, SearchCapability capability) {
         IndexField indexField = new IndexField();
         indexField.setName(name);
