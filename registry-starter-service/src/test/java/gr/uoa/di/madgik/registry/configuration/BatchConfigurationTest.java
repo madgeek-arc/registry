@@ -16,7 +16,6 @@
 
 package gr.uoa.di.madgik.registry.configuration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.dao.ResourceDao;
 import gr.uoa.di.madgik.registry.dao.ResourceTypeDao;
 import gr.uoa.di.madgik.registry.backup.dump.DumpResourceReader;
@@ -54,6 +53,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -78,6 +79,7 @@ class BatchConfigurationTest extends PostgreSqlTestContainerSupport {
 
     private static final String TEST_RESOURCE_TYPE = "employee_restore";
     private static final String TEST_RESOURCE_ID = "restore-job-resource";
+    private static final String LEGACY_DATE_RESOURCE_ID = "legacy-date-resource";
 
     @MockitoBean
     EmbeddingModel embeddingModel;
@@ -108,7 +110,7 @@ class BatchConfigurationTest extends PostgreSqlTestContainerSupport {
     @Autowired
     private ResourceService resourceService;
 
-    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     @TestConfiguration(proxyBeanMethods = false)
     static class TestBatchOverrides {
@@ -193,6 +195,30 @@ class BatchConfigurationTest extends PostgreSqlTestContainerSupport {
             Assertions.assertEquals(BatchStatus.COMPLETED, execution.getStatus());
             Assertions.assertNotNull(resourceTypeDao.getResourceType(TEST_RESOURCE_TYPE));
             Assertions.assertNotNull(resourceDao.getResource(TEST_RESOURCE_ID));
+        } finally {
+            FileSystemUtils.deleteRecursively(resourceTypeDir.getParent());
+        }
+    }
+
+    @Test
+    void restoreJob_reads_legacy_date_timestamps_as_epoch_millis() throws Exception {
+        Path resourceTypeDir = Files.createTempDirectory("restore-job-legacy-date-test").resolve(TEST_RESOURCE_TYPE);
+        Files.createDirectories(resourceTypeDir);
+        Files.writeString(resourceTypeDir.resolve("schema.json"), objectMapper.writeValueAsString(restoreResourceType()));
+        Files.writeString(resourceTypeDir.resolve(LEGACY_DATE_RESOURCE_ID + ".json"), legacyDateResourceJson());
+
+        try {
+            JobExecution execution = jobLauncher.run(restoreJob, new JobParametersBuilder()
+                    .addString("resourceType", TEST_RESOURCE_TYPE)
+                    .addString("resourceTypeDir", resourceTypeDir.toString())
+                    .addDate("date", new java.util.Date())
+                    .toJobParameters());
+
+            Assertions.assertEquals(BatchStatus.COMPLETED, execution.getStatus());
+            Resource restored = resourceDao.getResource(LEGACY_DATE_RESOURCE_ID);
+            Assertions.assertNotNull(restored);
+            Assertions.assertEquals(Instant.parse("2026-04-02T10:15:30Z"), restored.getCreationDate());
+            Assertions.assertEquals(Instant.parse("2026-04-03T10:15:30Z"), restored.getModificationDate());
         } finally {
             FileSystemUtils.deleteRecursively(resourceTypeDir.getParent());
         }
@@ -335,6 +361,19 @@ class BatchConfigurationTest extends PostgreSqlTestContainerSupport {
         resource.setCreationDate(Instant.parse("2026-04-02T10:15:30Z"));
         resource.setModificationDate(Instant.parse("2026-04-02T10:15:30Z"));
         return resource;
+    }
+
+    private String legacyDateResourceJson() {
+        return """
+                {
+                  "id": "%s",
+                  "version": "restore-version",
+                  "payload": "<?xml version=\\"1.0\\"?><employee><author>Legacy Date Person</author><age>35</age><single>true</single><birthday>645544821000</birthday><salary>2321.500</salary><amka>123456789012345</amka></employee>",
+                  "payloadFormat": "xml",
+                  "creationDate": 1775124930000,
+                  "modificationDate": 1775211330000
+                }
+                """.formatted(LEGACY_DATE_RESOURCE_ID);
     }
 
     private Resource createEmployeeResource(int i) {

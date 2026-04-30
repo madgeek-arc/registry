@@ -16,14 +16,7 @@
 
 package gr.uoa.di.madgik.registry.client;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import gr.uoa.di.madgik.registry.domain.Facet;
-import gr.uoa.di.madgik.registry.domain.FacetFilter;
-import gr.uoa.di.madgik.registry.domain.HighlightedResult;
-import gr.uoa.di.madgik.registry.domain.Paging;
-import gr.uoa.di.madgik.registry.domain.Resource;
-import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.exception.ResourceException;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
@@ -31,25 +24,20 @@ import gr.uoa.di.madgik.registry.service.GenericResourceService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 @Service("genericResourceService")
 public class GenericResourceServiceImpl implements GenericResourceService {
@@ -301,9 +289,9 @@ public class GenericResourceServiceImpl implements GenericResourceService {
 
     private <T> Paging<T> convertPaging(Paging<?> paging, String resourceTypeName) {
         List<T> results = paging.getResults() == null ? List.of() : paging.getResults().stream()
-                .map(item -> convertValue(item, resourceTypeName))
-                .map(item -> (T) item)
-                .toList();
+                                                                    .map(item -> convertValue(item, resourceTypeName))
+                                                                    .map(item -> (T) item)
+                                                                    .toList();
         return new Paging<>(paging.getTotal(), paging.getFrom(), paging.getTo(), results, paging.getFacets());
     }
 
@@ -340,23 +328,23 @@ public class GenericResourceServiceImpl implements GenericResourceService {
         }
         try {
             return (T) objectMapper.readValue(resource.getPayload(), clazz);
-        } catch (IOException e) {
-            throw new ResourceException("Could not deserialize resource payload for " + resourceTypeName, HttpStatus.UNPROCESSABLE_ENTITY);
+        } catch (JacksonException e) {
+            throw new ResourceException("Could not deserialize resource payload for " + resourceTypeName, HttpStatus.UNPROCESSABLE_CONTENT);
         }
     }
 
     private Object parsePayloadAsMap(String payload) {
         try {
             return objectMapper.readValue(payload, Map.class);
-        } catch (IOException e) {
-            throw new ResourceException("Could not deserialize resource payload", HttpStatus.UNPROCESSABLE_ENTITY);
+        } catch (JacksonException e) {
+            throw new ResourceException("Could not deserialize resource payload", HttpStatus.UNPROCESSABLE_CONTENT);
         }
     }
 
     private <T> String resolvePrimaryId(String resourceTypeName, T resource) {
         SearchService.KeyValue[] primaryKeys = extractPrimaryKeys(resourceTypeName, resource);
         if (primaryKeys.length == 0) {
-            throw new ResourceException("No primary key fields found for " + resourceTypeName, HttpStatus.UNPROCESSABLE_ENTITY);
+            throw new ResourceException("No primary key fields found for " + resourceTypeName, HttpStatus.UNPROCESSABLE_CONTENT);
         }
         return primaryKeys[0].getValue();
     }
@@ -375,7 +363,7 @@ public class GenericResourceServiceImpl implements GenericResourceService {
                 .toList();
 
         if (keyValues.isEmpty()) {
-            throw new ResourceException("No primary key values found for " + resourceTypeName, HttpStatus.UNPROCESSABLE_ENTITY);
+            throw new ResourceException("No primary key values found for " + resourceTypeName, HttpStatus.UNPROCESSABLE_CONTENT);
         }
         return keyValues.toArray(SearchService.KeyValue[]::new);
     }

@@ -16,9 +16,10 @@
 
 package gr.uoa.di.madgik.registry.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
@@ -39,7 +40,7 @@ import java.io.StringWriter;
  * Default implementation of {@link ParserService} backed by Jackson (JSON) and JAXB (XML).
  *
  * <h2>JSON support</h2>
- * <p>Deserialization uses {@link com.fasterxml.jackson.databind.ObjectMapper} and works for any
+ * <p>Deserialization uses {@link tools.jackson.databind.ObjectMapper} and works for any
  * class that Jackson can handle — plain POJOs, classes annotated with {@code @JsonProperty}, etc.
  * No additional configuration is required.
  *
@@ -63,7 +64,7 @@ import java.io.StringWriter;
 public class ParserPool implements ParserService {
 
     private final JAXBContext jaxbContext;
-    private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+    private final ObjectMapper mapper = JsonMapper.builder().findAndAddModules().build();
 
     public ParserPool(JAXBContext jaxbContext) {
         this.jaxbContext = jaxbContext;
@@ -143,7 +144,7 @@ public class ParserPool implements ParserService {
     private <T> T deserializeJson(String payload, Class<T> returnType) {
         try {
             return mapper.readValue(payload, returnType);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new ServiceException(
                     "Failed to deserialize JSON payload into " + returnType.getName()
                     + ": " + e.getOriginalMessage(), e);
@@ -164,7 +165,7 @@ public class ParserPool implements ParserService {
     private String serializeJson(Object resource) {
         try {
             return mapper.writeValueAsString(resource);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new ServiceException(
                     "Failed to serialize " + resource.getClass().getName()
                     + " to JSON: " + e.getOriginalMessage(), e);
@@ -177,7 +178,7 @@ public class ParserPool implements ParserService {
             String pointer = path.startsWith("$.") ? "/" + path.substring(2).replace('.', '/') : path;
             JsonNode node = mapper.readTree(payload).at(pointer);
             return node.isMissingNode() || node.isNull() ? null : node.asText();
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new ServiceException("Failed to extract JSON value at path '" + path + "': " + e.getOriginalMessage(), e);
         }
     }

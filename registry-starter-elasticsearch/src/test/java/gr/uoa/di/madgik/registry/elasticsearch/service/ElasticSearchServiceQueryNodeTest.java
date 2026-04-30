@@ -16,17 +16,17 @@
 
 package gr.uoa.di.madgik.registry.elasticsearch.service;
 
-import co.elastic.clients.json.jackson.JacksonJsonpMapper;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import co.elastic.clients.json.JsonpMapper;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.elasticsearch.autoconfigure.RegistryElasticsearchProperties;
-import gr.uoa.di.madgik.registry.elasticsearch.service.ElasticIndexFieldsResolver;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -53,7 +53,7 @@ class ElasticSearchServiceQueryNodeTest {
     private Method createQueryNode;
     private Method createHybridQueryNode;
     private Method createSemanticQueryNode;
-    private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+    private final ObjectMapper mapper = JsonMapper.builder().findAndAddModules().build();
     private EmbeddingService embeddingService;
     private co.elastic.clients.elasticsearch.ElasticsearchClient client;
 
@@ -72,7 +72,7 @@ class ElasticSearchServiceQueryNodeTest {
         ElasticIndexFieldsResolver indexFieldsResolver = mock(ElasticIndexFieldsResolver.class);
         service = new ElasticSearchService(
                 client,
-                mock(JacksonJsonpMapper.class),
+                mock(JsonpMapper.class),
                 embeddingService,
                 mock(ResourceTypeService.class),
                 elasticsearchProperties,

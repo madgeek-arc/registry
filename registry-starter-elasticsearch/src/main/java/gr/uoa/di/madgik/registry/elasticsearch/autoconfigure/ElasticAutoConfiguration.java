@@ -17,12 +17,12 @@
 package gr.uoa.di.madgik.registry.elasticsearch.autoconfigure;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.json.JsonpMapper;
+import co.elastic.clients.json.jackson.Jackson3JsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest5_client.Rest5ClientTransport;
 import co.elastic.clients.transport.rest5_client.low_level.Rest5Client;
 import co.elastic.clients.transport.rest5_client.low_level.Rest5ClientBuilder;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.elasticsearch.SearchIndexConsistencyService;
 import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceListener;
 import gr.uoa.di.madgik.registry.elasticsearch.listeners.ElasticResourceTypeListener;
@@ -31,11 +31,7 @@ import gr.uoa.di.madgik.registry.elasticsearch.service.ElasticOperationsService;
 import gr.uoa.di.madgik.registry.elasticsearch.service.ElasticSearchService;
 import gr.uoa.di.madgik.registry.monitor.ResourceListener;
 import gr.uoa.di.madgik.registry.monitor.ResourceTypeListener;
-import gr.uoa.di.madgik.registry.service.EmbeddingService;
-import gr.uoa.di.madgik.registry.service.IndexOperationsService;
-import gr.uoa.di.madgik.registry.service.ResourceService;
-import gr.uoa.di.madgik.registry.service.ResourceTypeService;
-import gr.uoa.di.madgik.registry.service.SearchService;
+import gr.uoa.di.madgik.registry.service.*;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
@@ -52,6 +48,8 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.retry.annotation.EnableRetry;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URI;
 import java.util.List;
@@ -66,7 +64,7 @@ import java.util.List;
  */
 @AutoConfiguration(afterName = "gr.uoa.di.madgik.registry.autoconfigure.RegistryServiceAutoConfiguration")
 @ConditionalOnProperty(
-        value="registry.elasticsearch.enabled",
+        value = "registry.elasticsearch.enabled",
         havingValue = "true",
         matchIfMissing = true)
 @EnableCaching
@@ -101,13 +99,13 @@ public class ElasticAutoConfiguration {
         return restClientBuilder.build();
     }
 
-    /**
-     * Creates a {@link JacksonJsonpMapper} that wraps the application's {@link ObjectMapper}.
-     */
     @Bean
     @ConditionalOnMissingBean
-    JacksonJsonpMapper jacksonJsonpMapper(ObjectMapper objectMapper) {
-        return new JacksonJsonpMapper(objectMapper);
+    JsonpMapper jsonpMapper(ObjectMapper objectMapper) {
+        JsonMapper jsonMapper = objectMapper instanceof JsonMapper mapper
+                ? mapper
+                : JsonMapper.builder().findAndAddModules().build();
+        return new Jackson3JsonpMapper(jsonMapper);
     }
 
     /**
@@ -115,7 +113,7 @@ public class ElasticAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    ElasticsearchTransport elasticsearchTransport(Rest5Client restClient, JacksonJsonpMapper jsonpMapper) {
+    ElasticsearchTransport elasticsearchTransport(Rest5Client restClient, JsonpMapper jsonpMapper) {
         return new Rest5ClientTransport(restClient, jsonpMapper);
     }
 
@@ -174,7 +172,7 @@ public class ElasticAutoConfiguration {
     @Bean
     @Primary
     @Order(Ordered.HIGHEST_PRECEDENCE)
-    SearchService elasticSearchService(ElasticsearchClient client, JacksonJsonpMapper jsonpMapper,
+    SearchService elasticSearchService(ElasticsearchClient client, JsonpMapper jsonpMapper,
                                        EmbeddingService embeddingService,
                                        ResourceTypeService resourceTypeService,
                                        RegistryElasticsearchProperties elasticsearchProperties,

@@ -33,9 +33,6 @@
         <elasticsearch.version>9.3.2</elasticsearch.version>
         <testcontainers.version>2.0.3</testcontainers.version>
         <spring-retry.version>2.0.12</spring-retry.version>
-        <!-- Keep Jackson 2 because elasticsearch-java still depends on com.fasterxml.jackson APIs. -->
-        <jackson2.annotations.version>2.21</jackson2.annotations.version>
-        <jackson2.version>2.21.2</jackson2.version>
         <saxon-he.version>11.4</saxon-he.version>
         <!-- Preserve test JVM args from other plugins/builds and append the Mockito agent in surefire. -->
         <argLine></argLine>
@@ -154,31 +151,6 @@
                 <artifactId>everit-json-schema</artifactId>
                 <version>1.14.6</version>
             </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-                <version>${jackson2.annotations.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson2.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson2.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.dataformat</groupId>
-                <artifactId>jackson-dataformat-xml</artifactId>
-                <version>${jackson2.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.datatype</groupId>
-                <artifactId>jackson-datatype-jsr310</artifactId>
-                <version>${jackson2.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>org.hibernate.orm</groupId>
@@ -235,10 +207,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>

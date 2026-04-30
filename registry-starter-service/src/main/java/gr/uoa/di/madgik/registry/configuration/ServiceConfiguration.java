@@ -16,13 +16,15 @@
 
 package gr.uoa.di.madgik.registry.configuration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.service.AuditActorProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 @Configuration(proxyBeanMethods = false)
 @EnableAspectJAutoProxy
@@ -32,7 +34,10 @@ public class ServiceConfiguration {
     @Bean
     @ConditionalOnMissingBean(ObjectMapper.class)
     ObjectMapper objectMapper() {
-        return new ObjectMapper().findAndRegisterModules();
+        return JsonMapper.builder()
+                .findAndAddModules()
+                .disable(DateTimeFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS)
+                .build();
     }
 
     @Bean

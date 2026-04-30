@@ -19,15 +19,14 @@ package gr.uoa.di.madgik.registry.configuration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.jdbc.Sql;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @Sql(scripts = "/data.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
-@Sql(scripts = "/resource_chunk.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 @Sql(scripts = "/cleanup.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_CLASS)
 public abstract class PostgreSqlTestContainerSupport {
 
-    private static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>("pgvector/pgvector:pg16")
+    private static final PostgreSQLContainer POSTGRES =
+            new PostgreSQLContainer("pgvector/pgvector:pg16")
                     .withDatabaseName("registry")
                     .withUsername("test")
                     .withPassword("test")

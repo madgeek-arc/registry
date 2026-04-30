@@ -16,7 +16,7 @@
 
 package gr.uoa.di.madgik.registry;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import jakarta.annotation.PostConstruct;

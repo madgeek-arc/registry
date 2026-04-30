@@ -16,7 +16,10 @@
 
 package gr.uoa.di.madgik.registry.elasticsearch.autoconfigure;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import co.elastic.clients.json.JsonpMapper;
+import co.elastic.clients.json.jackson.Jackson3JsonpMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import gr.uoa.di.madgik.registry.elasticsearch.SearchIndexConsistencyService;
 import gr.uoa.di.madgik.registry.monitor.ResourceListener;
 import gr.uoa.di.madgik.registry.monitor.ResourceTypeListener;
@@ -51,7 +54,7 @@ class ElasticAutoConfigurationTest {
                     "registry.elasticsearch.uris=http://localhost:9200",
                     "registry.elasticsearch.username=test",
                     "registry.elasticsearch.password=secret")
-            .withBean(ObjectMapper.class, ObjectMapper::new)
+            .withBean(ObjectMapper.class, () -> JsonMapper.builder().findAndAddModules().build())
             .withBean(ResourceTypeService.class, () -> {
                 ResourceTypeService service = mock(ResourceTypeService.class);
                 when(service.getAllResourceType()).thenReturn(List.of());
@@ -75,6 +78,8 @@ class ElasticAutoConfigurationTest {
             assertThat(context).hasSingleBean(ResourceListener.class);
             assertThat(context).hasSingleBean(ResourceTypeListener.class);
             assertThat(context).hasSingleBean(CacheManager.class);
+            assertThat(context).hasSingleBean(JsonpMapper.class);
+            assertThat(context.getBean(JsonpMapper.class)).isInstanceOf(Jackson3JsonpMapper.class);
             assertThat(context).hasNotFailed();
 
             RegistryElasticsearchProperties properties = context.getBean(RegistryElasticsearchProperties.class);

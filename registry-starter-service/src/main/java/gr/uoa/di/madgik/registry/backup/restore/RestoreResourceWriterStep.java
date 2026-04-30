@@ -30,7 +30,6 @@ import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.infrastructure.item.Chunk;
 import org.springframework.batch.infrastructure.item.ExecutionContext;
 import org.springframework.batch.infrastructure.item.ItemWriter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -84,7 +83,7 @@ public class RestoreResourceWriterStep implements ItemWriter<Resource>, StepExec
     public void write(Chunk<? extends Resource> chunk) throws Exception {
         try {
             List<Resource> resources = new ArrayList<>();
-            logger.debug("Adding resources - " + chunk.size());
+            logger.debug("Adding resources - {}", chunk.size());
             for (Resource resource : chunk) {
                 Resource addedResource = resource;
                 if (resource.getId() == null) {

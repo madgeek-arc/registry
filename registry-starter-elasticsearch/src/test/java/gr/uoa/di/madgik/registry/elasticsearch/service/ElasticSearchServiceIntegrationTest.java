@@ -18,18 +18,16 @@ package gr.uoa.di.madgik.registry.elasticsearch.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.Refresh;
-import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.json.jackson.Jackson3JsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest5_client.Rest5ClientTransport;
 import co.elastic.clients.transport.rest5_client.low_level.Rest5Client;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.elasticsearch.autoconfigure.RegistryElasticsearchProperties;
-import gr.uoa.di.madgik.registry.elasticsearch.service.ElasticIndexFieldsResolver;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
@@ -43,6 +41,8 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.StringReader;
 import java.net.URI;
@@ -70,6 +70,7 @@ class ElasticSearchServiceIntegrationTest {
             DockerImageName.parse("docker.elastic.co/elasticsearch/elasticsearch:9.3.2"))
             .withEnv("discovery.type", "single-node")
             .withEnv("xpack.security.enabled", "false")
+            .withEnv("cluster.routing.allocation.disk.threshold_enabled", "false")
             .withEnv("ES_JAVA_OPTS", "-Xms256m -Xmx256m")
             .withExposedPorts(9200)
             .waitingFor(org.testcontainers.containers.wait.strategy.Wait.forHttp("/")
@@ -77,7 +78,7 @@ class ElasticSearchServiceIntegrationTest {
                     .forStatusCode(200)
                     .withStartupTimeout(Duration.ofMinutes(2)));
 
-    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+    private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
     private ElasticsearchClient client;
     private Rest5Client restClient;
     private ElasticsearchTransport transport;
@@ -91,7 +92,7 @@ class ElasticSearchServiceIntegrationTest {
                 ELASTICSEARCH.getMappedPort(9200)
         ));
         restClient = Rest5Client.builder(uri).build();
-        transport = new Rest5ClientTransport(restClient, new JacksonJsonpMapper(objectMapper));
+        transport = new Rest5ClientTransport(restClient, new Jackson3JsonpMapper((JsonMapper) objectMapper));
         client = new ElasticsearchClient(transport);
 
         embeddingService = mock(EmbeddingService.class);
@@ -114,7 +115,7 @@ class ElasticSearchServiceIntegrationTest {
 
         searchService = new ElasticSearchService(
                 client,
-                new JacksonJsonpMapper(objectMapper),
+                new Jackson3JsonpMapper((JsonMapper) objectMapper),
                 embeddingService,
                 resourceTypeService,
                 elasticsearchProperties,
@@ -356,6 +357,9 @@ class ElasticSearchServiceIntegrationTest {
     private String createIndex() throws Exception {
         String index = "semantic-" + UUID.randomUUID().toString().replace("-", "");
         String mapping = objectMapper.writeValueAsString(Map.of(
+                "settings", Map.of(
+                        "number_of_replicas", 0
+                ),
                 "mappings", Map.of(
                         "properties", Map.of(
                                 "id", Map.of("type", "keyword"),
@@ -424,6 +428,9 @@ class ElasticSearchServiceIntegrationTest {
     private String createIndexWithStatusField() throws Exception {
         String index = "semantic-" + UUID.randomUUID().toString().replace("-", "");
         String mapping = objectMapper.writeValueAsString(Map.of(
+                "settings", Map.of(
+                        "number_of_replicas", 0
+                ),
                 "mappings", Map.of(
                         "properties", Map.of(
                                 "id", Map.of("type", "keyword"),
@@ -458,6 +465,9 @@ class ElasticSearchServiceIntegrationTest {
     private String createIndexWithTitleTextField() throws Exception {
         String index = "semantic-" + UUID.randomUUID().toString().replace("-", "");
         String mapping = objectMapper.writeValueAsString(Map.of(
+                "settings", Map.of(
+                        "number_of_replicas", 0
+                ),
                 "mappings", Map.of(
                         "properties", Map.of(
                                 "id", Map.of("type", "keyword"),

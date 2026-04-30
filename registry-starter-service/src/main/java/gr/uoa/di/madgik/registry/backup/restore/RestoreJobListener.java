@@ -26,7 +26,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 public class RestoreJobListener implements JobExecutionListener {
 
@@ -41,13 +40,13 @@ public class RestoreJobListener implements JobExecutionListener {
     @Override
     public void beforeJob(JobExecution jobExecution) {
         String name = jobExecution.getJobParameters().getString("resourceType");
-        logger.debug("Job started " + name);
+        logger.debug("Job started {}", name);
     }
 
     @Override
-    synchronized public void afterJob(JobExecution jobExecution) {
+    public synchronized void afterJob(JobExecution jobExecution) {
         String name = jobExecution.getJobParameters().getString("resourceType");
-        logger.debug("Job finished " + name);
+        logger.debug("Job finished {}", name);
         notify();
     }
 
@@ -59,11 +58,11 @@ public class RestoreJobListener implements JobExecutionListener {
         return registeredJobs.values();
     }
 
-    synchronized public List<BatchStatus> waitResults() throws InterruptedException {
+    public synchronized List<BatchStatus> waitResults() throws InterruptedException {
         while (registeredJobs.values().stream().anyMatch(JobExecution::isRunning)) {
             logger.info("Awaiting");
             wait();
         }
-        return registeredJobs.values().stream().map(JobExecution::getStatus).collect(Collectors.toList());
+        return registeredJobs.values().stream().map(JobExecution::getStatus).toList();
     }
 }

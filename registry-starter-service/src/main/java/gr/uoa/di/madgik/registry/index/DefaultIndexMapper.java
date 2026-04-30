@@ -16,7 +16,6 @@
 
 package gr.uoa.di.madgik.registry.index;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.domain.index.IndexedField;
@@ -26,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -41,17 +41,18 @@ public class DefaultIndexMapper implements IndexMapper {
     private final XMLFieldParser xmlFieldParser;
     private final JSONFieldParser jsonFieldParser;
     private List<IndexField> indexFields;
+    private final ObjectMapper mapper;
 
     public DefaultIndexMapper(IndexedFieldFactory indexedFieldFactory, XMLFieldParser xmlFieldParser,
-                              JSONFieldParser jsonFieldParser) {
+                              JSONFieldParser jsonFieldParser, ObjectMapper mapper) {
         this.indexedFieldFactory = indexedFieldFactory;
         this.xmlFieldParser = xmlFieldParser;
         this.jsonFieldParser = jsonFieldParser;
+        this.mapper = mapper;
     }
 
     public List<IndexedField> getValues(String payload, ResourceType resourceType) throws ServiceException {
         List<IndexedField> res = new ArrayList<>();
-        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
         for (IndexField indexField : resourceType.getIndexFields()) {
             try {
                 String fieldName = indexField.getName();

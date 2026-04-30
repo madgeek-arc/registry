@@ -16,7 +16,8 @@
 
 package gr.uoa.di.madgik.registry.client;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
@@ -28,8 +29,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import tools.jackson.databind.json.JsonMapper;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -38,6 +39,7 @@ import java.util.function.Consumer;
 public class ResourceServiceImpl implements ResourceService {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceServiceImpl.class);
+    private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
 
     @Value("${registry.base}")
     private String registryHost;
@@ -47,11 +49,10 @@ public class ResourceServiceImpl implements ResourceService {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
         if (response.getStatusCode().is2xxSuccessful()) {
-            ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
             try {
                 Paging<Resource> paging = objectMapper.readValue(response.getBody(), Paging.class);
                 return paging.getResults();
-            } catch (IOException e) {
+            } catch (JacksonException e) {
                 logger.debug("Failed to deserialize response to Resource object", e);
                 return new ArrayList<>();
             }
@@ -65,10 +66,9 @@ public class ResourceServiceImpl implements ResourceService {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> response = restTemplate.getForEntity(registryHost + "/resources/whatever/" + id, String.class);
         if (response.getStatusCode().is2xxSuccessful()) {
-            ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
             try {
                 return objectMapper.readValue(response.getBody(), Resource.class);
-            } catch (IOException e) {
+            } catch (JacksonException e) {
                 logger.debug("Failed to deserialize response to Resource object", e);
                 return null;
             }

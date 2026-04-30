@@ -16,11 +16,12 @@
 
 package gr.uoa.di.madgik.registry.domain;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Instant;
 import java.util.Date;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -89,8 +90,8 @@ class RangeFilterTest {
     void facetFilter_addRangeFilter_multipleFields() {
         FacetFilter filter = new FacetFilter();
 
-        filter.addRangeFilter("publishDate", null, new Date(), true);
-        filter.addRangeFilter("expiryDate", new Date(), null, true);
+        filter.addRangeFilter("publishDate", null, Instant.now(), true);
+        filter.addRangeFilter("expiryDate", Instant.now(), null, true);
 
         assertEquals(2, filter.getRangeFilters().size());
         assertTrue(filter.getRangeFilters().containsKey("publishDate"));
@@ -123,8 +124,8 @@ class RangeFilterTest {
     // -------------------------------------------------------------------------
 
     @Test
-    void jacksonRoundTrip_rangeFilterSurvivesSerializeDeserialize() throws Exception {
-        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+    void jacksonRoundTrip_rangeFilterSurvivesSerializeDeserialize() {
+        ObjectMapper mapper = JsonMapper.builder().build();
 
         FacetFilter original = new FacetFilter();
         original.addRangeFilter("publishDate", 1000L, 5000L, true);
@@ -139,8 +140,8 @@ class RangeFilterTest {
     }
 
     @Test
-    void jacksonRoundTrip_nullBoundsSurvive() throws Exception {
-        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+    void jacksonRoundTrip_nullBoundsSurvive() {
+        ObjectMapper mapper = JsonMapper.builder().build();
 
         FacetFilter original = new FacetFilter();
         original.addRangeFilter("expiryDate", null, null, true);
@@ -159,7 +160,7 @@ class RangeFilterTest {
     void facetFilter_addFilter_doesNotAffectRangeFilters() {
         FacetFilter filter = new FacetFilter();
         filter.addFilter("status", "APPROVED");
-        filter.addRangeFilter("publishDate", null, new Date(), true);
+        filter.addRangeFilter("publishDate", null, Instant.now(), true);
 
         assertEquals(1, filter.getFilter().size());
         assertEquals(1, filter.getRangeFilters().size());

@@ -16,12 +16,14 @@
 
 package gr.uoa.di.madgik.registry.autoconfigure;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.RestTemplate;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 @AutoConfiguration(afterName = "org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration")
 @Import(RegistryClientComponentsConfiguration.class)
@@ -36,6 +38,9 @@ public class RegistryClientAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     ObjectMapper objectMapper() {
-        return new ObjectMapper().findAndRegisterModules();
+        return JsonMapper.builder()
+                .findAndAddModules()
+                .disable(DateTimeFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS)
+                .build();
     }
 }

@@ -31,14 +31,8 @@ import co.elastic.clients.elasticsearch.core.search.HighlighterOrder;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.TotalHits;
 import co.elastic.clients.json.JsonData;
-import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.json.JsonpMapper;
 import co.elastic.clients.util.NamedValue;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.FacetUtils;
 import gr.uoa.di.madgik.registry.elasticsearch.autoconfigure.RegistryElasticsearchProperties;
@@ -53,6 +47,12 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.util.StringUtils;
 import org.xbib.cql.CQLParser;
 import org.xbib.cql.elasticsearch.ElasticsearchQueryGenerator;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.PropertyNamingStrategies;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -74,7 +74,7 @@ public class ElasticSearchService implements SearchService {
     private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "created_by", "modified_by", "payloadFormat", "version"};
 
     private final ElasticsearchClient client;
-    private final JacksonJsonpMapper jsonpMapper;
+    private final JsonpMapper jsonpMapper;
     private final EmbeddingService embeddingService;
     private final ResourceTypeService resourceTypeService;
     private final ElasticIndexFieldsResolver indexFieldsResolver;
@@ -89,7 +89,7 @@ public class ElasticSearchService implements SearchService {
      * Creates a search service backed by the typed Elasticsearch Java client.
      */
     public ElasticSearchService(ElasticsearchClient client,
-                                JacksonJsonpMapper jsonpMapper,
+                                JsonpMapper jsonpMapper,
                                 EmbeddingService embeddingService,
                                 ResourceTypeService resourceTypeService,
                                 RegistryElasticsearchProperties elasticsearchProperties,
@@ -104,8 +104,10 @@ public class ElasticSearchService implements SearchService {
         this.topHitsSize = elasticsearchProperties.getAggregation().getTopHitsSize();
         this.bucketSize = elasticsearchProperties.getAggregation().getBucketSize();
         this.maxQuantity = elasticsearchProperties.getIndex().getMaxResultWindow();
-        mapper = new ObjectMapper().findAndRegisterModules();
-        mapper.setPropertyNamingStrategy(new ResourcePropertyName());
+        mapper = JsonMapper.builder()
+                .findAndAddModules()
+                .propertyNamingStrategy(new ResourcePropertyName())
+                .build();
     }
 
     // -------------------------------------------------------------------------
@@ -119,7 +121,7 @@ public class ElasticSearchService implements SearchService {
         return Query.of(q -> {
             try {
                 return q.withJson(new StringReader(mapper.writeValueAsString(node)));
-            } catch (JsonProcessingException e) {
+            } catch (RuntimeException e) {
                 throw new ServiceException("Failed to build query", e);
             }
         });
@@ -275,7 +277,7 @@ public class ElasticSearchService implements SearchService {
                     match.putObject("match").set(filterSet.getKey(), mapper.valueToTree(value));
                     should.add(match);
                 }
-                internal.with("bool").put("minimum_should_match", 1);
+                internal.withObject("bool").put("minimum_should_match", 1);
                 must.add(internal);
             } else {
                 ObjectNode term = mapper.createObjectNode();
@@ -467,7 +469,7 @@ public class ElasticSearchService implements SearchService {
             Resource resource = mapper.treeToValue(hit.source(), Resource.class);
             resource.setResourceTypeName(hit.index());
             return resource;
-        } catch (IOException e) {
+        } catch (RuntimeException e) {
             throw new ServiceException(e.getMessage());
         }
     }
@@ -481,7 +483,7 @@ public class ElasticSearchService implements SearchService {
             Resource resource = mapper.readValue(writer.toString(), Resource.class);
             resource.setResourceTypeName(hit.index());
             return resource;
-        } catch (IOException e) {
+        } catch (RuntimeException e) {
             throw new ServiceException("Failed to deserialize resource", e);
         }
     }

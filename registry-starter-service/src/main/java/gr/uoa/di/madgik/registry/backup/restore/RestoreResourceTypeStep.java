@@ -16,26 +16,27 @@
 
 package gr.uoa.di.madgik.registry.backup.restore;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
-import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.listener.StepExecutionListener;
+import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.StepContribution;
 import org.springframework.batch.core.step.StepExecution;
-import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Optional;
 
 @Component
@@ -44,9 +45,9 @@ public class RestoreResourceTypeStep implements Tasklet, StepExecutionListener {
 
     private static final Logger logger = LoggerFactory.getLogger(RestoreResourceTypeStep.class);
 
-    private static final String schemaName = "schema.json";
+    private static final String SCHEMA_NAME = "schema.json";
 
-    private ResourceTypeService resourceTypeService;
+    private final ResourceTypeService resourceTypeService;
 
     private File resourceTypeDirFile;
 
@@ -54,27 +55,32 @@ public class RestoreResourceTypeStep implements Tasklet, StepExecutionListener {
 
     private File schemaFile;
 
-    private Boolean resourceTypeExists;
+    private final ObjectMapper mapper;
 
     RestoreResourceTypeStep(ResourceTypeService resourceTypeService) {
         this.resourceTypeService = resourceTypeService;
-        resourceTypeExists = false;
+        this.mapper = JsonMapper.builder()
+                .disable(DateTimeFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS)
+                .build();
     }
 
-    private static ResourceType readResourceType(File file) throws IOException {
-        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
-        return mapper.readValue(FileUtils
-                        .readFileToString(file)
-                        .replaceAll("^\t$", "")
-                        .replaceAll("^\n$", "")
-                , ResourceType.class);
+    private ResourceType readResourceType(File file) {
+        JsonNode node = mapper.readTree(file);
+        ResourceType resourceType = mapper.treeToValue(node, ResourceType.class);
+
+        // legacy - move aliasGroup value to aliases
+        if (!node.path("aliasGroup").isMissingNode()) {
+            resourceType.getAliases().add(node.path("aliasGroup").stringValue());
+        }
+
+        return resourceType;
     }
 
     @Override
     public void beforeStep(StepExecution stepExecution) {
         String resourceTypeDir = stepExecution.getJobExecution().getJobParameters().getString("resourceTypeDir");
         resourceTypeDirFile = new File(resourceTypeDir);
-        schemaFile = new File(resourceTypeDir, schemaName);
+        schemaFile = new File(resourceTypeDir, SCHEMA_NAME);
         existingResourceType = Optional.ofNullable(resourceTypeService.getResourceType(resourceTypeDirFile.getName()));
 
     }

@@ -16,10 +16,6 @@
 
 package gr.uoa.di.madgik.registry.backup.restore;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import gr.uoa.di.madgik.registry.dao.ResourceDao;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
@@ -41,9 +37,14 @@ import org.springframework.batch.infrastructure.item.ItemReader;
 import org.springframework.batch.infrastructure.item.UnexpectedInputException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -74,9 +75,9 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
         this.resourceDao = resourceDao;
         this.indexMapperFactory = indexMapperFactory;
         this.resourceTypeService = resourceTypeService;
-        this.mapper = new ObjectMapper().findAndRegisterModules();
-        this.mapper.configure(MapperFeature.USE_ANNOTATIONS, true);
-        this.mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+        this.mapper = JsonMapper.builder()
+                .disable(DateTimeFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS)
+                .build();
     }
 
     @Override
@@ -109,7 +110,7 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
         File file = resources.poll();
         if (file == null)
             return null;
-        logger.debug("Reading " + file.getName());
+        logger.debug("Reading {}", file.getName());
         String switchEnc = String.format("%s->%s", FilenameUtils.getExtension(file.getName()), resourceType.getPayloadType());
         Resource resource = new Resource();
         switch (switchEnc.toLowerCase()) {
@@ -128,7 +129,7 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
                     break;
                 }
             case "xml->xml":
-                resource.setPayload(FileUtils.readFileToString(file));
+                resource.setPayload(FileUtils.readFileToString(file, Charset.defaultCharset()));
                 break;
             case "xml->json":
             default:
@@ -136,7 +137,7 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
 
         }
         if (resourceDao.getResource(resource.getId()) != null) {
-            logger.debug("Skipping resource " + resource.getId() + " already exists");
+            logger.debug("Skipping resource {} already exists", resource.getId());
             throw new ServiceException("Existing resource");
         }
         final Resource lambdaResource = resource;
@@ -155,7 +156,7 @@ public class RestoreResourceReaderStep implements ItemReader<Resource>, StepExec
         String id = FilenameUtils.removeExtension(resourceDir.getName());
         File version = new File(FilenameUtils.removeExtension(resourceDir.getAbsolutePath()) + "-version");
         if (version.exists() && version.isDirectory()) {
-            logger.debug(id + " " + version);
+            logger.debug("{} {}", id, version);
             Optional<File[]> files = Optional.ofNullable(version.listFiles());
             for (File f : files.orElse(new File[]{})) {
                 Version v = mapper.readValue(f, Version.class);
