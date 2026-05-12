@@ -61,13 +61,16 @@ public class VersionDaoImpl extends AbstractDao<Version> implements VersionDao {
                 .orderBy(getCriteriaBuilder().desc(root.get("creationDate")));
 
         List<Version> versions = getEntityManager().createQuery(criteriaQuery).getResultList();
-        return versions.getFirst();
+        return versions.isEmpty() ? null : versions.getFirst();
 
     }
 
     @Override
     public List<Version> getVersionsByResource(Resource resource) {
-        return getEntityManager().createNativeQuery("SELECT * from resourceversion WHERE reference_id='" + resource.getId() + "' or parent_id='" + resource.getId() + "'", Version.class).getResultList();
+        return getEntityManager().createNativeQuery(
+                        "SELECT * FROM resourceversion WHERE reference_id=:id OR parent_id=:id", Version.class)
+                .setParameter("id", resource.getId())
+                .getResultList();
     }
 
     @Override
@@ -83,7 +86,13 @@ public class VersionDaoImpl extends AbstractDao<Version> implements VersionDao {
 
     @Override
     public List<Version> getOrphans() {
-        List<Version> versions = getEntityManager().createNativeQuery("SELECT * from resourceversion INNER JOIN (SELECT max(creation_date) as maxd, parent_id as zulu FROM resourceversion WHERE reference_id IS NULL GROUP BY parent_id) as tablzor ON maxd=creation_date AND parent_id=zulu", Version.class).getResultList();
+        List<Version> versions = getEntityManager().createNativeQuery(
+                "SELECT * from resourceversion " +
+                        "INNER JOIN (SELECT max(creation_date) as maxd, parent_id as zulu " +
+                        "FROM resourceversion " +
+                        "WHERE reference_id IS NULL GROUP BY parent_id) as tablzor " +
+                        "ON maxd=creation_date AND parent_id=zulu",
+                Version.class).getResultList();
         return versions;
     }
 
@@ -102,7 +111,12 @@ public class VersionDaoImpl extends AbstractDao<Version> implements VersionDao {
     @Override
     @Transactional
     public void updateParent(Resource resource, ResourceType oldResourceType, ResourceType newResourceType) {
-        Query query = getEntityManager().createNativeQuery("UPDATE resourceversion SET parent_id='" + resource.getId() + "', reference_id='" + resource.getId() + "',fk_name_version='" + newResourceType.getName() + "', resourcetype_name='" + newResourceType.getName() + "' WHERE parent_id='" + resource.getId() + "' OR reference_id='" + resource.getId() + "'");
+        Query query = getEntityManager().createNativeQuery(
+                "UPDATE resourceversion " +
+                        "SET parent_id=:id, reference_id=:id, fk_name_version=:newType, resourcetype_name=:newType " +
+                        "WHERE parent_id=:id OR reference_id=:id");
+        query.setParameter("id", resource.getId());
+        query.setParameter("newType", newResourceType.getName());
         getEntityManager().joinTransaction();
         query.executeUpdate();
     }

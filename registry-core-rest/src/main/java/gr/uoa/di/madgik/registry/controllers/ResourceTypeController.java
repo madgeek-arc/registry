@@ -71,7 +71,7 @@ public class ResourceTypeController {
     }
 
     @GetMapping(value = "/resourceType/", params = {"from", "to"}, headers = "Accept=application/json")
-    public ResponseEntity<Paging> getResourceTypes(@RequestParam(value = "from") int from, @RequestParam(value = "from") int to) {
+    public ResponseEntity<Paging> getResourceTypes(@RequestParam(value = "from") int from, @RequestParam(value = "to") int to) {
         List<ResourceType> results = resourceTypeService.getAllResourceType(from, to);
         int total = resourceTypeService.getAllResourceType().size();
         Paging paging = new Paging<>(total, from, to, results, null);

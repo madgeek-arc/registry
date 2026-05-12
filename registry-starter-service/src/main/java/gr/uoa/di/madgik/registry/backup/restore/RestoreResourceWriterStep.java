@@ -81,29 +81,25 @@ public class RestoreResourceWriterStep implements ItemWriter<Resource>, StepExec
 
     @Override
     public void write(Chunk<? extends Resource> chunk) throws Exception {
-        try {
-            List<Resource> resources = new ArrayList<>();
-            logger.debug("Adding resources - {}", chunk.size());
-            for (Resource resource : chunk) {
-                Resource addedResource = resource;
-                if (resource.getId() == null) {
-                    addedResource = resourceService.addResource(resource);
-                } else {
-                    // we are using the DAO service in order to keep the previous ID of the resource
-                    resource = resourceDao.addResource(resource);
-                }
-
-                resource.getVersions().forEach(versionDao::addVersion);
-                logger.debug("Restoring {} with id {}", resourceType.getName(), addedResource.getId());
-
-                // create resource_chunks -- not to be confused with previous chunk ^ of spring batch
-                resourceChunkIndexService.reindex(resource);
-
-                resources.add(addedResource);
+        List<Resource> resources = new ArrayList<>();
+        logger.debug("Adding resources - {}", chunk.size());
+        for (Resource resource : chunk) {
+            Resource addedResource = resource;
+            if (resource.getId() == null) {
+                addedResource = resourceService.addResource(resource);
+            } else {
+                // we are using the DAO service in order to keep the previous ID of the resource
+                resource = resourceDao.addResource(resource);
             }
-            indexOperationsService.addBulk(resources);
-        } catch (Exception e) {
-            logger.info(e.getMessage(), e);
+
+            resource.getVersions().forEach(versionDao::addVersion);
+            logger.debug("Restoring {} with id {}", resourceType.getName(), addedResource.getId());
+
+            // create resource_chunks -- not to be confused with previous chunk ^ of spring batch
+            resourceChunkIndexService.reindex(resource);
+
+            resources.add(addedResource);
         }
+        indexOperationsService.addBulk(resources);
     }
 }

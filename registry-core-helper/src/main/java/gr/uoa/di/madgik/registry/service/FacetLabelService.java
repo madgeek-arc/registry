@@ -161,7 +161,7 @@ public class FacetLabelService {
                             "falling back to proper-case labels for resource type '{}'",
                             searchService.getClass().getSimpleName(), relatedType);
                     applyFallbackLabels(labelFacets);
-                    return;
+                    continue;
                 } catch (Exception e) {
                     logger.warn("Failed to fetch labels for resource type '{}', labelField '{}': {}",
                             relatedType, labelField, e.getMessage());

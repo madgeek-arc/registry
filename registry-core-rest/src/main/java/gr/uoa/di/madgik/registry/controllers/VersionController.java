@@ -24,7 +24,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 public class VersionController {
@@ -52,7 +51,6 @@ public class VersionController {
     public ResponseEntity<List<Version>> getVersionsByResource(@PathVariable("resourceType") String resourceType,
                                                                @PathVariable("resource") String resource) {
         List<Version> versions = versionService.getVersionsByResource(resource);
-        versions.stream().filter(v -> v.getVersion() == "1").collect(Collectors.toList());
 
         if (versions == null || versions.isEmpty()) {
             throw new ResourceNotFoundException("Version not found");

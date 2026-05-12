@@ -21,6 +21,7 @@ import gr.uoa.di.madgik.registry.domain.Resource;
 import jakarta.persistence.*;
 
 import java.io.Serializable;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -84,9 +85,9 @@ public abstract class IndexedField<T> implements Serializable {
 
         IndexedField<?> that = (IndexedField<?>) o;
 
-        if (resource != null ? !resource.equals(that.resource) : that.resource != null) return false;
-        if (name != null ? !name.equals(that.name) : that.name != null) return false;
-        return getValues() != null ? getValues().equals(this.getValues()) : that.getValues() == null;
+        if (!Objects.equals(resource, that.resource)) return false;
+        if (!Objects.equals(name, that.name)) return false;
+        return getValues() != null ? getValues().equals(that.getValues()) : that.getValues() == null;
 
     }
 

@@ -43,11 +43,11 @@ public class HighlightedResult<T> {
         return hr;
     }
 
-    public float getScore() {
+    public Float getScore() {
         return score;
     }
 
-    public void setScore(float score) {
+    public void setScore(Float score) {
         this.score = score;
     }
 

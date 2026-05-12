@@ -259,7 +259,7 @@ public class ElasticOperationsService implements IndexOperationsService {
     @Override
     @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void updateIndex(ResourceType previous, ResourceType updated) {
-        deleteIndex(updated.getName());
+        deleteIndex(previous.getName());
         createIndex(updated);
         addBulk(resourceService.getResource(updated));
     }

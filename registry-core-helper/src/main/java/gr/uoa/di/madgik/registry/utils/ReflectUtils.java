@@ -30,7 +30,7 @@ public class ReflectUtils {
 
     public static void setId(@NotNull Class<?> clazz, @NotNull Object resource, @NotNull String id) {
         try {
-            Method setId = clazz.getDeclaredMethod("setId");
+            Method setId = clazz.getDeclaredMethod("setId", String.class);
             setId.invoke(resource, id);
         } catch (IllegalAccessException e) {
             logger.error(e.getMessage(), e);
@@ -51,7 +51,7 @@ public class ReflectUtils {
             logger.error(e.getMessage(), e);
         } catch (NoSuchMethodException e) {
             logger.warn("Could not find 'getId' method in class [{}]", clazz.getName());
-            getIdField(clazz, resource);
+            id = getIdField(clazz, resource);
         }
         return id;
     }

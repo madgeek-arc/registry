@@ -19,7 +19,7 @@ package gr.uoa.di.madgik.registry.domain;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 
 import java.net.URLDecoder;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -80,7 +80,7 @@ public class FacetFilter {
     }
 
     public static String urlDecode(String value) {
-        return value != null ? URLDecoder.decode(value, Charset.defaultCharset()) : null;
+        return value != null ? URLDecoder.decode(value, StandardCharsets.UTF_8) : null;
     }
 
     // Gets all given filters

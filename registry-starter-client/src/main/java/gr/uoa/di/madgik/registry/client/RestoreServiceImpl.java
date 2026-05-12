@@ -21,10 +21,8 @@ import gr.uoa.di.madgik.registry.service.RestoreService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -38,23 +36,31 @@ public class RestoreServiceImpl implements RestoreService {
 
     private static final Logger logger = LoggerFactory.getLogger(RestoreServiceImpl.class);
 
-    @Value("${registry.base}")
-    private String registryHost;
+    private final RestTemplate restTemplate;
+    private final String registryHost;
+
+    public RestoreServiceImpl(RestTemplate restTemplate,
+                              @Value("${registry.base}") String registryHost) {
+        this.restTemplate = restTemplate;
+        this.registryHost = registryHost;
+    }
 
     public Map<String, BatchResult> restoreDataFromZip(MultipartFile file) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-        MultiValueMap<String, Object> body = new LinkedMultiValueMap<String, Object>();
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("datafile", file);
 
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-        RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<String> response = restTemplate.postForEntity(registryHost + "/restore", requestEntity, String.class);
-
-        logger.info(response.getBody());
-
-        return null;
+        ResponseEntity<Map<String, BatchResult>> response = restTemplate.exchange(
+                registryHost + "/restore",
+                HttpMethod.POST,
+                requestEntity,
+                new ParameterizedTypeReference<>() {}
+        );
+        logger.info("Restore completed, response status: {}", response.getStatusCode());
+        return response.getBody();
     }
 }

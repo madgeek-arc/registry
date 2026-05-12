@@ -146,7 +146,7 @@ public class ResourceMonitor {
     @Around("execution (* gr.uoa.di.madgik.registry.service.ResourceTypeService.updateResourceType(gr.uoa.di.madgik.registry.domain.ResourceType)) && args(resourceType)")
     public ResourceType resourceTypeUpdated(ProceedingJoinPoint pjp, ResourceType resourceType) throws Throwable {
         ResourceType previous = resourceType == null ? null : resourceTypeDao.getResourceType(resourceType.getName());
-        boolean skipListeners = ResourceTypeChangeDetector.hasSameDefinition(previous, resourceType);
+        boolean skipListeners = previous != null && ResourceTypeChangeDetector.hasSameDefinition(previous, resourceType);
         ResourceType updated = (ResourceType) pjp.proceed();
 
         // check whether this condition should apply indide each Listener and not globally

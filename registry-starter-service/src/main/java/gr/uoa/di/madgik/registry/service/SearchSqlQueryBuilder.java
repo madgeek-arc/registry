@@ -402,7 +402,7 @@ final class SearchSqlQueryBuilder {
             String type = resourceType.getIndexFields().stream()
                     .filter(i -> i.getName().equals(fieldName))
                     .findFirst()
-                    .get()
+                    .orElseThrow(() -> new ServiceException("Unknown filter field: " + fieldName))
                     .getType();
             switch (type) {
                 case "java.lang.Boolean" -> valuesList = valuesList.stream()

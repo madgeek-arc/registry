@@ -161,9 +161,6 @@ public class GenericResourceServiceImpl implements GenericResourceService {
 
     @Override
     public <T> T update(String resourceTypeName, T resource, boolean validate) {
-        if (!validate) {
-            return exchangeBody(resourceTypeName, resolvePrimaryId(resourceTypeName, resource), resource, HttpMethod.PUT);
-        }
         return exchangeBody(resourceTypeName, resolvePrimaryId(resourceTypeName, resource), resource, HttpMethod.PUT);
     }
 
