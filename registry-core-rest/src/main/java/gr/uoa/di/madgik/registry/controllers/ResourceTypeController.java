@@ -61,9 +61,10 @@ public class ResourceTypeController {
 
     @GetMapping(value = "/resourceType/", params = {"from"}, headers = "Accept=application/json")
     public ResponseEntity<Paging> getResourceTypes(@RequestParam(value = "from") int from) {
-        List<ResourceType> results = resourceTypeService.getAllResourceType(from, 0);
-        Paging paging = new Paging<>(results.size(), 0, results.size() - 1, results, null);
-        if (results.size() == 0) {
+        List<ResourceType> all = resourceTypeService.getAllResourceType();
+        List<ResourceType> results = from < all.size() ? all.subList(from, all.size()) : List.of();
+        Paging paging = new Paging<>(all.size(), from, from + results.size(), results, null);
+        if (all.isEmpty()) {
             throw new ResourceNotFoundException();
         } else {
             return new ResponseEntity<>(paging, HttpStatus.OK);
