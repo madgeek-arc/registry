@@ -170,7 +170,7 @@ public abstract class ResourceSyncDocument {
             // - from
             String modified = mdElement.getAttributeValue("from");
             if (modified != null && !"".equals(modified)) {
-                Date lastMod = ResourceSync.DATE_FORMAT.parse(modified);
+                Date lastMod = ResourceSync.parseDate(modified);
                 this.setFrom(lastMod);
             }
 
@@ -179,7 +179,7 @@ public abstract class ResourceSyncDocument {
 
 
             if (until != null && !"".equals(until)) {
-                Date ud = ResourceSync.DATE_FORMAT.parse(until);
+                Date ud = ResourceSync.parseDate(until);
                 this.setUntil(ud);
             }
         }
@@ -209,10 +209,10 @@ public abstract class ResourceSyncDocument {
         Element md = new Element("md", ResourceSync.NS_RS);
         md.setAttribute("capability", this.capability);
         if (this.from != null) {
-            md.setAttribute("from", ResourceSync.DATE_FORMAT.format(this.from));
+            md.setAttribute("from", ResourceSync.formatDate(this.from));
         }
         if (this.until != null) {
-            md.setAttribute("until", ResourceSync.DATE_FORMAT.format(this.until));
+            md.setAttribute("until", ResourceSync.formatDate(this.until));
         }
         root.addContent(md);
 

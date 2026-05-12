@@ -37,7 +37,7 @@ public class ChangeListArchive extends SitemapIndex {
         if (until != null) {
             this.setUntil(until);
         } else {
-            this.setFrom(new Date());
+            this.setUntil(new Date());
         }
 
         if (capabilityList != null) {

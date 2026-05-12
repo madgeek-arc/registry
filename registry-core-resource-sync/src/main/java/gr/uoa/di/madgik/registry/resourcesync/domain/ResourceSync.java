@@ -8,7 +8,12 @@ package gr.uoa.di.madgik.registry.resourcesync.domain;
 
 import org.jdom2.Namespace;
 
-import java.text.SimpleDateFormat;
+import java.text.ParseException;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Date;
 
 /**
  * @author Richard Jones
@@ -19,8 +24,21 @@ public class ResourceSync {
     public static Namespace NS_RS = Namespace.getNamespace("rs", "http://www.openarchives.org/rs/terms/");
     public static Namespace NS_ATOM = Namespace.getNamespace("atom", "http://www.w3.org/2005/Atom");
 
-    // date format
-    public static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    // date format — thread-safe DateTimeFormatter replacing the old non-thread-safe SimpleDateFormat
+    public static final DateTimeFormatter DATE_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'").withZone(ZoneOffset.UTC);
+
+    public static Date parseDate(String text) throws ParseException {
+        try {
+            return Date.from(Instant.from(DATE_FORMAT.parse(text)));
+        } catch (DateTimeParseException e) {
+            throw new ParseException(e.getMessage(), e.getErrorIndex());
+        }
+    }
+
+    public static String formatDate(Date date) {
+        return DATE_FORMAT.format(date.toInstant());
+    }
 
     // rel values
     public static String REL_DESCRIBED_BY = "describedby";

@@ -154,7 +154,7 @@ public abstract class ResourceSyncEntry {
         // lastmod
         Element lmEl = element.getChild("lastmod", ResourceSync.NS_SITEMAP);
         if (lmEl != null) {
-            Date lm = ResourceSync.DATE_FORMAT.parse(lmEl.getText().trim());
+            Date lm = ResourceSync.parseDate(lmEl.getText().trim());
             this.setLastModified(lm);
         }
 
@@ -231,7 +231,7 @@ public abstract class ResourceSyncEntry {
 
                 // length
                 String lnLength = ln.getAttributeValue("length");
-                if (lnLength != null && !"".equals(length)) {
+                if (lnLength != null && !"".equals(lnLength)) {
                     long lnl = Long.parseLong(lnLength);
                     link.setLength(lnl);
                 }
@@ -239,7 +239,7 @@ public abstract class ResourceSyncEntry {
                 // modified
                 String modified = ln.getAttributeValue("modified");
                 if (modified != null && !"".equals(modified)) {
-                    Date modDate = ResourceSync.DATE_FORMAT.parse(modified);
+                    Date modDate = ResourceSync.parseDate(modified);
                     link.setModified(modDate);
                 }
 
@@ -281,7 +281,7 @@ public abstract class ResourceSyncEntry {
 
         if (this.lastModified != null) {
             Element lm = new Element("lastmod", ResourceSync.NS_SITEMAP);
-            lm.setText(ResourceSync.DATE_FORMAT.format(this.lastModified));
+            lm.setText(ResourceSync.formatDate(this.lastModified));
             root.addContent(lm);
         }
 
@@ -345,7 +345,7 @@ public abstract class ResourceSyncEntry {
                 trip = true;
             }
             if (ln.getModified() != null) {
-                link.setAttribute("modified", ResourceSync.DATE_FORMAT.format(ln.getModified()));
+                link.setAttribute("modified", ResourceSync.formatDate(ln.getModified()));
                 trip = true;
             }
             if (ln.getPath() != null) {
