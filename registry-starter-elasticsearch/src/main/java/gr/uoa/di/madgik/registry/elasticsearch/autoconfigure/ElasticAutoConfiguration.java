@@ -87,7 +87,7 @@ public class ElasticAutoConfiguration {
     Rest5Client restClient(RegistryElasticsearchProperties properties) {
         URI uri = firstUri(properties.getUris());
         BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        if (properties.getUsername() != null) {
+        if (properties.getUsername() != null && properties.getPassword() != null) {
             credentialsProvider.setCredentials(
                     new AuthScope(uri.getHost(), port(uri)),
                     new UsernamePasswordCredentials(properties.getUsername(), properties.getPassword().toCharArray()));
