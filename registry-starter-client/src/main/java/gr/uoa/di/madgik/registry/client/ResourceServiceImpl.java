@@ -29,7 +29,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,14 +38,20 @@ import java.util.function.Consumer;
 public class ResourceServiceImpl implements ResourceService {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceServiceImpl.class);
-    private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
+
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
 
     @Value("${registry.base}")
     private String registryHost;
 
+    public ResourceServiceImpl(RestTemplate restTemplate, ObjectMapper objectMapper) {
+        this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
+    }
+
     @SuppressWarnings("unchecked")
     private List<Resource> getListResources(String url) {
-        RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
         if (response.getStatusCode().is2xxSuccessful()) {
             try {
@@ -109,11 +114,8 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public Resource addResource(Resource resource) throws ServiceException {
-        RestTemplate restTemplate = new RestTemplate();
-
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
-
 
         HttpEntity<Resource> request = new HttpEntity<>(resource, headers);
         ResponseEntity<Resource> response = restTemplate
@@ -127,11 +129,8 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public Resource updateResource(Resource resource) throws ServiceException {
-        RestTemplate restTemplate = new RestTemplate();
-
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
-
 
         HttpEntity<Resource> request = new HttpEntity<>(resource, headers);
 
@@ -146,11 +145,8 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public Resource changeResourceType(Resource resource, ResourceType resourceType) {
-        RestTemplate restTemplate = new RestTemplate();
-
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
-
 
         HttpEntity<Resource> request = new HttpEntity<>(resource, headers);
 
@@ -165,7 +161,6 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public void deleteResource(String id) {
-        RestTemplate restTemplate = new RestTemplate();
         restTemplate.delete(registryHost + "/resources/" + id);
     }
 

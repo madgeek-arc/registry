@@ -35,14 +35,17 @@ public class IndexFieldServiceImpl implements IndexFieldService {
 
     private static final Logger logger = LoggerFactory.getLogger(IndexFieldServiceImpl.class);
 
+    private final RestTemplate restTemplate;
+
     @Value("${registry.base}")
     private String registryHost;
 
+    public IndexFieldServiceImpl(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
     @Override
     public List<IndexField> getIndexFields(String resourceTypeName) {
-        RestTemplate restTemplate = new RestTemplate();
-
-
         ResponseEntity<List<IndexField>> response = restTemplate.exchange(
                 registryHost + "/resourceType/index/" + resourceTypeName,
                 HttpMethod.GET,

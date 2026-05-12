@@ -35,13 +35,17 @@ public class IndexedFieldServiceImpl implements IndexedFieldService {
 
     private static final Logger logger = LoggerFactory.getLogger(IndexedFieldServiceImpl.class);
 
+    private final RestTemplate restTemplate;
+
     @Value("${registry.base}")
     private String registryHost;
 
+    public IndexedFieldServiceImpl(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
     @Override
     public List<IndexedField> getIndexedFields(String resourceId) {
-        RestTemplate restTemplate = new RestTemplate();
-
         ResponseEntity<List<IndexedField>> response = restTemplate.exchange(
                 registryHost + "/resources/indexed/" + resourceId,
                 HttpMethod.GET,

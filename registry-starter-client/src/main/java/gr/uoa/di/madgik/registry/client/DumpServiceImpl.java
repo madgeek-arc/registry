@@ -34,12 +34,17 @@ public class DumpServiceImpl implements DumpService {
 
     private static final Logger logger = LoggerFactory.getLogger(DumpServiceImpl.class);
 
+    private final RestTemplate restTemplate;
+
     @Value("${registry.base}")
     private String registryHost;
 
+    public DumpServiceImpl(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
     @Override
     public File dump(boolean isRaw, boolean schemaless, String[] resourceTypes, boolean wantVersion) {
-        RestTemplate restTemplate = new RestTemplate();
         String resourceTypesParam = (resourceTypes == null || resourceTypes.length == 0)
                 ? ""
                 : "&resourceTypes=" + String.join(",", resourceTypes);

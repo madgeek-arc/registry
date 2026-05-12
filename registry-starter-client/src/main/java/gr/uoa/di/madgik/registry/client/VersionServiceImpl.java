@@ -35,11 +35,16 @@ public class VersionServiceImpl implements VersionService {
 
     private static final Logger logger = LoggerFactory.getLogger(VersionServiceImpl.class);
 
+    private final RestTemplate restTemplate;
+
     @Value("${registry.base}")
     private String registryHost;
 
+    public VersionServiceImpl(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
     private List<Version> getListVersions(String url) {
-        RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<List<Version>> response = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
@@ -53,22 +58,14 @@ public class VersionServiceImpl implements VersionService {
         }
     }
 
-
     @Override
     public Version getVersion(String resource_id, String version) {
-        RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<Version> response = restTemplate.
-                getForEntity(registryHost + "/version/whatever/" + resource_id + "/" + version, Version.class);
-        if (response.getStatusCode().is2xxSuccessful()) {
-            return response.getBody();
-        } else {
-            return null;
-        }
+        throw new UnsupportedOperationException("getVersion requires a resource type — not available via type-agnostic client endpoint");
     }
 
     @Override
     public List<Version> getVersionsByResource(String resource_id) {
-        return getListVersions(registryHost + "/version/whatever/" + resource_id);
+        throw new UnsupportedOperationException("getVersionsByResource requires a resource type — not available via type-agnostic client endpoint");
     }
 
     @Override
