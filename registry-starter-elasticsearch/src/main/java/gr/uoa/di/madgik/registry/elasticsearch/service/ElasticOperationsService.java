@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -251,6 +252,8 @@ public class ElasticOperationsService implements IndexOperationsService {
                     .aliases(finalAliases)
                     .mappings(m -> m.withJson(new StringReader(mappingJson)))
                     .settings(s -> s.withJson(new StringReader(settingsJson))));
+        } catch (JacksonException e) {
+            throw new ServiceException("Failed to serialize mapping for index " + resourceType.getName(), e);
         } catch (IOException e) {
             throw new ServiceException("Failed to create index " + resourceType.getName(), e);
         }
