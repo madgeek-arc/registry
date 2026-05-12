@@ -148,8 +148,14 @@ public class RestoreServiceImpl implements RestoreService {
             ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFilePath));
             ZipEntry entry = zipIn.getNextEntry();
             // iterates over entries in the zip file
+            String canonicalDest = destDir.getCanonicalPath() + File.separator;
             while (entry != null) {
                 String filePath = destDirectory + File.separator + entry.getName();
+                // Zip Slip protection
+                if (!new File(filePath).getCanonicalPath().startsWith(canonicalDest)) {
+                    throw new IOException("Zip Slip attack detected for entry: " + entry.getName());
+                }
+
                 boolean isDir = false;
 
                 String[] splitInto = entry.getName().split("/");
