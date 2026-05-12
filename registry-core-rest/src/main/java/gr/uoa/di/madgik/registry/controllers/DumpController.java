@@ -21,15 +21,18 @@ import gr.uoa.di.madgik.registry.service.ServiceException;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 
 @RestController
 public class DumpController {
+
+    private static final Logger logger = LoggerFactory.getLogger(DumpController.class);
 
     private final DumpService dumpService;
 
@@ -89,11 +92,11 @@ public class DumpController {
             // set to binary type if MIME mapping not found
             mimeType = "application/octet-stream";
         }
-        System.out.println("MIME type: " + mimeType);
+        logger.debug("MIME type: {}", mimeType);
 
         // set content attributes for the response
         response.setContentType(mimeType);
-        response.setContentLength((int) downloadFile.length());
+        response.setContentLengthLong(downloadFile.length());
 
         // set headers for the response
         String headerKey = "Content-Disposition";
@@ -104,19 +107,15 @@ public class DumpController {
                 strDate);
         response.setHeader(headerKey, headerValue);
 
-        FileInputStream inputStream;
         // get output stream of the response
-        OutputStream outStream;
-        try {
-            inputStream = new FileInputStream(downloadFile);
-            outStream = response.getOutputStream();
+        try (FileInputStream inputStream = new FileInputStream(downloadFile)) {
+            OutputStream outStream = response.getOutputStream();
             byte[] buffer = new byte[4096];
-            int bytesRead = -1;
+            int bytesRead;
 
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 outStream.write(buffer, 0, bytesRead);
             }
-            inputStream.close();
             outStream.close();
         } catch (IOException e) {
             throw new ServiceException(e.getMessage(), e);
