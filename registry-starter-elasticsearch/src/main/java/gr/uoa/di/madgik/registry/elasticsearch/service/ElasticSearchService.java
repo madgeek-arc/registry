@@ -353,7 +353,9 @@ public class ElasticSearchService implements SearchService {
         if (orderBy == null) return List.of();
         return orderBy.entrySet().stream()
                 .map(e -> {
-                    Map<?, ?> op = (Map<?, ?>) e.getValue();
+                    if (!(e.getValue() instanceof Map<?, ?> op)) {
+                        throw new ServiceException("Sort value for field '" + e.getKey() + "' must be a map, got: " + e.getValue());
+                    }
                     SortOrder order = "asc".equalsIgnoreCase(op.get("order").toString())
                             ? SortOrder.Asc : SortOrder.Desc;
                     return SortOptions.of(so -> so.field(f -> f.field(e.getKey()).order(order)));
@@ -554,7 +556,8 @@ public class ElasticSearchService implements SearchService {
 
     private int extractTotal(SearchResponse<?> response) {
         TotalHits total = response.hits().total();
-        return total != null ? (int) total.value() : 0;
+        if (total == null) return 0;
+        return total.value() > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) total.value();
     }
 
     // -------------------------------------------------------------------------
