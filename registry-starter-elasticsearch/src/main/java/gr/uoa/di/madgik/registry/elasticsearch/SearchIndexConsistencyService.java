@@ -28,9 +28,10 @@ import gr.uoa.di.madgik.registry.service.ResourceService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeProjectionService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.core.task.VirtualThreadTaskExecutor;
 
@@ -66,9 +67,9 @@ public class SearchIndexConsistencyService {
         this.indexOperationsService = indexOperationsService;
     }
 
-    @PostConstruct
-    private void reindexOnInit() {
-        taskExecutor.execute(() -> ensureDatabaseIndexConsistency());
+    @EventListener(ApplicationReadyEvent.class)
+    public void reindexOnInit() {
+        taskExecutor.execute(this::ensureDatabaseIndexConsistency);
     }
 
     public void ensureDatabaseIndexConsistency() {
