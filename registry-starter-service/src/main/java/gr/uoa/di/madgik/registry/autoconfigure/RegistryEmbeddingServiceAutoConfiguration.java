@@ -45,9 +45,9 @@ public class RegistryEmbeddingServiceAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean({EmbeddingService.class, EmbeddingModel.class})
+    @ConditionalOnMissingBean(EmbeddingService.class)
     EmbeddingService noopEmbeddingService() {
-        logger.warn("EmbeddingService.class and EmbeddingModel.class are not found. Using noopEmbeddingService()");
+        logger.warn("No EmbeddingService found. Using noopEmbeddingService()");
         return new EmbeddingService() {
             @Override
             public float[] embed(String text) {
