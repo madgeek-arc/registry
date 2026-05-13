@@ -40,9 +40,9 @@ public class ElasticResourceListener implements ResourceListener {
     }
 
     @Override
-    public void resourceChangedType(Resource resource, ResourceType previousResourceType, ResourceType resourceType) {
-        indexOperationsService.delete(resource.getId(), previousResourceType.getName());
-        indexOperationsService.add(resource);
+    public void resourceChangedType(Resource previousResource, Resource newResource, ResourceType previousResourceType, ResourceType resourceType) {
+        indexOperationsService.delete(previousResource.getId(), previousResourceType.getName());
+        indexOperationsService.add(newResource);
     }
 
     @Override

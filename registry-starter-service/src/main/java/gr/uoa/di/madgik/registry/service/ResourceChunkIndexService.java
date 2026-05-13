@@ -61,8 +61,8 @@ public class ResourceChunkIndexService implements ResourceListener {
 
     @Override
     @Transactional
-    public void resourceChangedType(Resource resource, ResourceType previousResourceType, ResourceType resourceType) {
-        reindex(resource);
+    public void resourceChangedType(Resource previousResource, Resource newResource, ResourceType previousResourceType, ResourceType resourceType) {
+        reindex(newResource);
     }
 
     @Override

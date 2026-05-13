@@ -95,12 +95,13 @@ public class ResourceMonitor {
     public Resource changeResourceType(ProceedingJoinPoint pjp, Resource resource, ResourceType resourceType) throws Throwable {
 
         ResourceType previousResourceType = resource.getResourceType();
+        Resource previousResource = resourceDao.getResource(resource.getId());
 
         pjp.proceed();
 
         for (ResourceListener listener : resourceListeners) {
             try {
-                listener.resourceChangedType(resource, previousResourceType, resourceType);
+                listener.resourceChangedType(previousResource, resource, previousResourceType, resourceType);
                 logger.debug("Notified listener : {} for update", listener.getClass().getSimpleName());
             } catch (Exception e) {
                 logger.error("Error notifying listener", e);

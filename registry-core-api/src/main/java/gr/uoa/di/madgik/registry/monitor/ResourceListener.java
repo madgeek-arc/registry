@@ -28,7 +28,7 @@ public interface ResourceListener {
 
     void resourceUpdated(Resource previousResource, Resource newResource);
 
-    void resourceChangedType(Resource resource, ResourceType previousResourceType, ResourceType resourceType);
+    void resourceChangedType(Resource previousResource, Resource newResource, ResourceType previousResourceType, ResourceType resourceType);
 
     void resourceDeleted(Resource resource);
 }

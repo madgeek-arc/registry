@@ -60,14 +60,14 @@ public class JmsResourceListener implements ResourceListener, ResourceTypeListen
     }
 
     @Override
-    public void resourceChangedType(Resource resource, ResourceType previousResourceType, ResourceType resourceType) {
+    public void resourceChangedType(Resource previousResource, Resource newResource, ResourceType previousResourceType, ResourceType resourceType) {
         String destination = String.format("%s.%s.delete", jmsProperties.getPrefix(), previousResourceType.getName());
-        BaseResourceJms jmsResource = new ResourceJmsDeleted(resource); // FIXME: needs to get previous resource
+        BaseResourceJms jmsResource = new ResourceJmsDeleted(previousResource);
         jmsTopicTemplate.convertAndSend(destination, jmsResource);
         logger.debug("Deleted resource at: {}", destination);
 
         destination = String.format("%s.%s.create", jmsProperties.getPrefix(), resourceType.getName());
-        jmsResource = new ResourceJmsCreated(resource);
+        jmsResource = new ResourceJmsCreated(newResource);
         jmsTopicTemplate.convertAndSend(destination, jmsResource);
         logger.debug("Added new resource at: {}", destination);
     }

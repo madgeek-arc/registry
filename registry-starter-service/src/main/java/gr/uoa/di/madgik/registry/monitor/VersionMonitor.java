@@ -50,8 +50,8 @@ public class VersionMonitor implements ResourceListener {
     }
 
     @Override
-    public void resourceChangedType(Resource resource, ResourceType previousResourceType, ResourceType resourceType) {
-        versionDao.updateParent(resource, previousResourceType, resource.getResourceType());
+    public void resourceChangedType(Resource previousResource, Resource newResource, ResourceType previousResourceType, ResourceType resourceType) {
+        versionDao.updateParent(newResource, previousResourceType, newResource.getResourceType());
     }
 
     @Override
