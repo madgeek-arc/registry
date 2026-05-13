@@ -16,11 +16,9 @@ public class ResourceSyncDescriptionIndex extends SitemapIndex {
     }
 
     public void addSourceDescription(Sitemap sourceDesc) {
-        if (!ResourceSync.CAPABILITY_RESOURCESYNC.equals(sourceDesc.getCapability()))
-//        {
-//            throw new SpecComplianceException("URL added to ResourceSyncDescription is not a Capability List");
-//        }
+        if (ResourceSync.CAPABILITY_RESOURCESYNC.equals(sourceDesc.getCapability())) {
             this.addSitemap(sourceDesc);
+        }
     }
 
     public Sitemap addSourceDescription(String loc) {
@@ -33,7 +31,7 @@ public class ResourceSyncDescriptionIndex extends SitemapIndex {
         if (describedby != null) {
             sourceDesc.addLn(ResourceSync.REL_DESCRIBED_BY, describedby);
         }
-//        sourceDesc.setCapability(ResourceSync.CAPABILITY_RESOURCESYNC);
+        sourceDesc.setCapability(ResourceSync.CAPABILITY_RESOURCESYNC);
         this.addSourceDescription(sourceDesc);
         return sourceDesc;
     }
