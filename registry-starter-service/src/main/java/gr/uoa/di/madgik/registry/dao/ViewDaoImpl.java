@@ -29,6 +29,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.regex.Pattern;
 
 
 @Repository("viewsDao")
@@ -37,9 +38,17 @@ import java.util.*;
 public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
 
     private static final Logger logger = LoggerFactory.getLogger(ViewDaoImpl.class);
+    private static final Pattern SAFE_IDENTIFIER = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
+
+    private static void requireSafeIdentifier(String name) {
+        if (name == null || !SAFE_IDENTIFIER.matcher(name).matches()) {
+            throw new ServiceException("Invalid SQL identifier: " + name);
+        }
+    }
 
     @Override
     public void createView(ResourceType resourceType) {
+        requireSafeIdentifier(resourceType.getName());
         if (resourceType.getIndexFields() != null) {
             // create datatype maps
             Map<String, String> dataTypeMap = new LinkedHashMap<String, String>();
@@ -59,6 +68,7 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
             Map<String, List<String>> multiVal_indexMap = new LinkedHashMap<String, List<String>>();
 
             for (IndexField indexField : indexFields) {
+                requireSafeIdentifier(indexField.getName());
                 String indexFieldString = "";
 
                 switch (indexField.getType()) {
@@ -205,6 +215,7 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
 
     @Override
     public void deleteView(String resourceType) {
+        requireSafeIdentifier(resourceType);
         logger.info("Deleting view ");
         getEntityManager().joinTransaction();
         getEntityManager().createNativeQuery("DROP VIEW IF EXISTS " + resourceType + "_view").executeUpdate();
