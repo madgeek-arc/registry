@@ -79,30 +79,6 @@ public class JmsAutoConfiguration {
             return converter;
         }
 
-//        @Bean
-//        @ConditionalOnBean(value = ActiveMQConnectionFactory.class, name = "jacksonJmsMessageConverter")
-//        public DefaultJmsListenerContainerFactory jmsQueueListenerContainerFactory(ActiveMQConnectionFactory connectionFactory,
-//                                                                                   MappingJackson2MessageConverter jacksonJmsMessageConverter) {
-//            DefaultJmsListenerContainerFactory factory
-//                    = new DefaultJmsListenerContainerFactory();
-//            factory.setConnectionFactory(connectionFactory);
-//            factory.setPubSubDomain(false); // false is for queue
-//            factory.setMessageConverter(jacksonJmsMessageConverter);
-//            return factory;
-//        }
-//
-//        @Bean
-//        @ConditionalOnBean(name = "jacksonJmsMessageConverter")
-//        public DefaultJmsListenerContainerFactory jmsTopicListenerContainerFactory(ActiveMQConnectionFactory connectionFactory,
-//                                                                                   MappingJackson2MessageConverter jacksonJmsMessageConverter) {
-//            DefaultJmsListenerContainerFactory factory
-//                    = new DefaultJmsListenerContainerFactory();
-//            factory.setConnectionFactory(connectionFactory);
-//            factory.setPubSubDomain(true); // true is for topic
-//            factory.setMessageConverter(jacksonJmsMessageConverter);
-//            return factory;
-//        }
-
         @Bean
         @ConditionalOnBean(value = {ActiveMQConnectionFactory.class, JacksonJsonMessageConverter.class})
         public JmsTemplate jmsQueueTemplate(ActiveMQConnectionFactory connectionFactory,
