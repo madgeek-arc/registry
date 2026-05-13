@@ -31,6 +31,7 @@ import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
@@ -64,6 +65,7 @@ public class DefaultSearchService implements SearchService {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultSearchService.class);
     private static final int HYBRID_RRF_K = 60;
+    private static final Pattern SAFE_IDENTIFIER = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
 
     private final NamedParameterJdbcTemplate npJdbcTemplate;
     private final DataSource dataSource;
@@ -402,6 +404,9 @@ public class DefaultSearchService implements SearchService {
             throw new ServiceException(
                     String.format("Unknown labelField '%s' for resource type '%s'", labelField, resourceTypeName));
         }
+        requireSafeIdentifier(idField);
+        requireSafeIdentifier(labelField);
+        requireSafeIdentifier(resourceTypeName);
 
         String sql = String.format(
                 "SELECT %s, %s FROM %s_view WHERE %s IN (:ids)",
@@ -892,6 +897,12 @@ public class DefaultSearchService implements SearchService {
             throw new ServiceException("Recommendations require a concrete resource type, not an alias group.");
         }
         return resourceTypes.getFirst();
+    }
+
+    private static void requireSafeIdentifier(String name) {
+        if (name == null || !SAFE_IDENTIFIER.matcher(name).matches()) {
+            throw new ServiceException("Invalid SQL identifier: " + name);
+        }
     }
 
     private Map<String, Object> getSourceProjection(ResourceType resourceType, String field, String value) {
