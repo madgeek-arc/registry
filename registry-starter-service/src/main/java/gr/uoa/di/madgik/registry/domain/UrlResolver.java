@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 public class UrlResolver {
@@ -28,11 +29,9 @@ public class UrlResolver {
     private static final Logger logger = LoggerFactory.getLogger(UrlResolver.class);
 
     public static String getText(String url) throws Exception {
-        String out = new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
-        if (out == null || out.isEmpty()) {
-            return null;
-        } else {
-            return out;
+        try (Scanner scanner = new Scanner(new URL(url).openStream(), StandardCharsets.UTF_8)) {
+            String out = scanner.useDelimiter("\\A").hasNext() ? scanner.next() : null;
+            return (out == null || out.isEmpty()) ? null : out;
         }
     }
 }
