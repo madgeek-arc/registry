@@ -75,14 +75,19 @@ public class SearchIndexConsistencyService {
         logger.info("Checking for index inconsistencies");
         resourceTypeService.getAllResourceType()
                 .forEach(resourceType -> {
-                    reindex(resourceType.getName());
-                    checkDatabaseConsistency(resourceType.getName());
+                    String name = resourceType.getName();
+                    Set<String> indexIds = fetchResourceIdsFromIndex(name);
+                    Set<String> dbIds = fetchResourceIdsFromDatabase(name);
+                    reindex(name, indexIds, dbIds);
+                    checkDatabaseConsistency(name, indexIds, dbIds);
                 });
     }
 
     public void reindex() {
-        resourceTypeService.getAllResourceType()
-                .forEach(resourceType -> reindex(resourceType.getName()));
+        resourceTypeService.getAllResourceType().forEach(resourceType -> {
+            String name = resourceType.getName();
+            reindex(name, fetchResourceIdsFromIndex(name), fetchResourceIdsFromDatabase(name));
+        });
     }
 
     private Set<String> fetchResourceIdsFromDatabase(String resourceType) {
@@ -177,10 +182,7 @@ public class SearchIndexConsistencyService {
         return false;
     }
 
-    private void reindex(String resourceType) {
-        Set<String> indexResources = fetchResourceIdsFromIndex(resourceType);
-        Set<String> databaseResources = fetchResourceIdsFromDatabase(resourceType);
-
+    private void reindex(String resourceType, Set<String> indexResources, Set<String> databaseResources) {
         List<String> missingIndexIds = new ArrayList<>(databaseResources);
         missingIndexIds.removeAll(indexResources);
         if (!missingIndexIds.isEmpty()) {
@@ -191,10 +193,7 @@ public class SearchIndexConsistencyService {
         }
     }
 
-    private void checkDatabaseConsistency(String resourceType) {
-        Set<String> indexResources = fetchResourceIdsFromIndex(resourceType);
-        Set<String> databaseResources = fetchResourceIdsFromDatabase(resourceType);
-
+    private void checkDatabaseConsistency(String resourceType, Set<String> indexResources, Set<String> databaseResources) {
         List<String> missingDBIds = new ArrayList<>(indexResources);
         missingDBIds.removeAll(databaseResources);
         if (!missingDBIds.isEmpty()) {
