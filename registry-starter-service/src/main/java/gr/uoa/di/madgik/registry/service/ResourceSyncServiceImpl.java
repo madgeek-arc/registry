@@ -125,7 +125,7 @@ public class ResourceSyncServiceImpl implements ResourceSyncService {
     @PostConstruct
     public void onConstruct() {
         host = (host.substring(host.length() - 1).equals("/") ? host.substring(0, host.length() - 1) : host);
-        System.out.println(host);
+        logger.debug("Registry host: {}", host);
     }
 }
 
