@@ -57,16 +57,17 @@ public class WeightedSegmentEmbeddingService implements EmbeddingService {
         for (Segment segment : segments) {
             if (segment.getWeight() > 0 && !segment.getValues().isEmpty()) {
                 weightSum += segment.getWeight();
-                float[] pooledVector = new float[VECTOR_SIZE];
+                float[] segmentMean = new float[VECTOR_SIZE];
                 for (String text : segment.getValues()) {
                     String embeddingText = "[%s]: %s".formatted(segment.getLabel(), text);
                     float[] embedding = embeddingModel.embed(embeddingText);
-                    for (int i = 0; i < VECTOR_SIZE; i++) { // adds weighted embedding to pool
-                        pooledVector[i] += (embedding[i] * segment.getWeight());
+                    for (int i = 0; i < VECTOR_SIZE; i++) {
+                        segmentMean[i] += embedding[i];
                     }
                 }
-                for (int i = 0; i < VECTOR_SIZE; i++) { // creates mean(pooledVector) and adds it to result
-                    result[i] += (pooledVector[i] / segment.getValues().size());
+                // mean embedding for this segment, then scale by weight
+                for (int i = 0; i < VECTOR_SIZE; i++) {
+                    result[i] += (segmentMean[i] / segment.getValues().size()) * segment.getWeight();
                 }
             }
         }
