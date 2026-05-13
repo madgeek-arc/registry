@@ -22,6 +22,7 @@ import java.util.List;
 
 public interface EmbeddingService {
 
+    /** Must match the output dimension of the configured embedding model. */
     public static int VECTOR_SIZE = 384;
 
     /**

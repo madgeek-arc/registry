@@ -19,6 +19,8 @@ package gr.uoa.di.madgik.registry.domain;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.domain.index.IndexedField;
 import gr.uoa.di.madgik.registry.domain.index.SearchCapability;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.BreakIterator;
 import java.time.Instant;
@@ -36,6 +38,7 @@ import java.util.function.Predicate;
 
 final class ResourceEmbeddingTextPreparer {
 
+    private static final Logger logger = LoggerFactory.getLogger(ResourceEmbeddingTextPreparer.class);
     private static final int MAX_CHUNK_TOKENS = 120;
     private static final int WINDOW_OVERLAP_TOKENS = 20;
 
@@ -57,7 +60,14 @@ final class ResourceEmbeddingTextPreparer {
 
         List<PreparedField> preparedFields = new ArrayList<>();
         for (IndexField indexField : indexFields) {
-            if (!"java.lang.String".equals(indexField.getType()) || !fieldFilter.test(indexField)) {
+            if (!"java.lang.String".equals(indexField.getType())) {
+                if (fieldFilter.test(indexField)) {
+                    logger.warn("IndexField '{}' has embeddingWeight > 0 but type '{}' cannot be embedded; skipping.",
+                            indexField.getName(), indexField.getType());
+                }
+                continue;
+            }
+            if (!fieldFilter.test(indexField)) {
                 continue;
             }
 
@@ -88,6 +98,14 @@ final class ResourceEmbeddingTextPreparer {
         return preparedFields;
     }
 
+    /**
+     * Splits a single field value into embeddable chunks.
+     * Strategy: for TEXT-capable, single-valued, non-PK String fields, the value is first split into
+     * sentences; each sentence is then independently split into overlapping token windows
+     * ({@value MAX_CHUNK_TOKENS} tokens, {@value WINDOW_OVERLAP_TOKENS}-token overlap).
+     * Cross-sentence overlap is intentionally not applied — sentence boundaries are treated as
+     * natural semantic breaks.
+     */
     static List<String> splitValue(IndexField indexField, String value) {
         String normalized = value.replaceAll("\\s+", " ").trim();
         if (normalized.isBlank()) {
