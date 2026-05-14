@@ -119,7 +119,7 @@
                 <version>${spring-retry.version}</version>
             </dependency>
 
-            <dependency> <!-- Addresses issues of version 6.1.8 shipped by spring-boot 3.5.10, 4.0.5 -->
+            <dependency> <!-- Addresses issues of version shipped by spring-boot 4.0.6 -->
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-bom</artifactId>
                 <version>6.2.5</version>

@@ -88,7 +88,6 @@ public class ElasticOperationsService implements IndexOperationsService {
 
     private static final String TEXT_ANALYZER = "custom_english_analyzer";
     private static final Map<String, Object> INDEX_SETTINGS_MAP = Map.of(
-            "index.mapping.exclude_source_vectors", true, // Already default in ES 9
             "analysis", Map.of(
                     "analyzer", Map.of(
                             TEXT_ANALYZER, Map.of(
