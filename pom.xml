@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.5</version>
+        <version>4.0.6</version>
     </parent>
 
     <groupId>gr.uoa.di.madgik</groupId>
@@ -102,7 +102,7 @@
             <dependency>
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-bom</artifactId>
-                <version>1.1.4</version>
+                <version>1.1.6</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -122,7 +122,7 @@
             <dependency> <!-- Addresses issues of version 6.1.8 shipped by spring-boot 3.5.10, 4.0.5 -->
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-bom</artifactId>
-                <version>6.2.3</version>
+                <version>6.2.5</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
