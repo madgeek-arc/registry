@@ -39,8 +39,8 @@ public class IndexedFieldDaoImpl extends AbstractDao<IndexedField> implements In
     @Override
     @Transactional
     public void deleteAllIndexedFields(Resource resource) {
-        resource.getIndexedFields().forEach(iF -> getEntityManager().remove(
-                getEntityManager().contains(iF) ? iF : getEntityManager().merge(iF)));
+        Resource managedResource = getEntityManager().contains(resource) ? resource : getEntityManager().merge(resource);
+        managedResource.getIndexedFields().clear();
         getEntityManager().flush();
     }
 
