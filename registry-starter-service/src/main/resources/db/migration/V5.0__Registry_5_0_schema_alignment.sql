@@ -268,9 +268,11 @@ ALTER TABLE public.resourcetype
     ALTER COLUMN created_by SET NOT NULL,
     ALTER COLUMN modified_by SET NOT NULL;
 
--- Add embedding weight column
+-- Backfill embedding weights only for string fields; non-string fields are not embedded.
 UPDATE public.indexfield
-SET embedding_weight = COALESCE(embedding_weight, 0.0);
+SET embedding_weight = 1.0
+WHERE type = 'java.lang.String'
+  AND embedding_weight IS NULL;
 
 -- Add the search capabilities column and backfill string fields as KEYWORD,TEXT.
 UPDATE public.indexfield
