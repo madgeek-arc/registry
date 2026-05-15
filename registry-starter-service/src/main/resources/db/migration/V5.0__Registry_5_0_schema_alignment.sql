@@ -162,6 +162,75 @@ COMMENT ON COLUMN public.indexfield.related_resource_type IS
 COMMENT ON COLUMN public.indexfield.related_resource_type_field IS
     'The IndexField name in the relatedResourceType to use as the display label. Falls back to a field named name in the related type if null.';
 
+-- Normalize legacy naive audit/version timestamps to timestamptz using UTC.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'resource'
+          AND column_name = 'creation_date'
+          AND data_type = 'timestamp without time zone'
+    ) THEN
+        ALTER TABLE public.resource
+            ALTER COLUMN creation_date TYPE timestamptz
+            USING creation_date AT TIME ZONE 'UTC';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'resource'
+          AND column_name = 'modification_date'
+          AND data_type = 'timestamp without time zone'
+    ) THEN
+        ALTER TABLE public.resource
+            ALTER COLUMN modification_date TYPE timestamptz
+            USING modification_date AT TIME ZONE 'UTC';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'resourcetype'
+          AND column_name = 'creation_date'
+          AND data_type = 'timestamp without time zone'
+    ) THEN
+        ALTER TABLE public.resourcetype
+            ALTER COLUMN creation_date TYPE timestamptz
+            USING creation_date AT TIME ZONE 'UTC';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'resourcetype'
+          AND column_name = 'modification_date'
+          AND data_type = 'timestamp without time zone'
+    ) THEN
+        ALTER TABLE public.resourcetype
+            ALTER COLUMN modification_date TYPE timestamptz
+            USING modification_date AT TIME ZONE 'UTC';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'resourceversion'
+          AND column_name = 'creation_date'
+          AND data_type = 'timestamp without time zone'
+    ) THEN
+        ALTER TABLE public.resourceversion
+            ALTER COLUMN creation_date TYPE timestamptz
+            USING creation_date AT TIME ZONE 'UTC';
+    END IF;
+END $$;
+
 -- Normalize legacy naive timestamps to timestamptz for dateindexedfield values.
 DO $$
 BEGIN
