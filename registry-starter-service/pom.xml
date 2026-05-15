@@ -89,7 +89,7 @@
         <!-- Spring AI -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-transformers</artifactId>
+            <artifactId>spring-ai-starter-model-transformers</artifactId>
             <scope>compile</scope>
         </dependency>
 

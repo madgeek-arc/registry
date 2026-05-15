@@ -22,6 +22,7 @@ import gr.uoa.di.madgik.registry.service.WeightedSegmentEmbeddingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -30,7 +31,8 @@ import org.springframework.core.env.Environment;
 
 import java.util.List;
 
-@AutoConfiguration(afterName = {
+@AutoConfiguration
+@AutoConfigureAfter(name = {
         "org.springframework.ai.model.transformers.autoconfigure.TransformersEmbeddingModelAutoConfiguration"
 })
 public class RegistryEmbeddingServiceAutoConfiguration {
@@ -45,7 +47,7 @@ public class RegistryEmbeddingServiceAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean(EmbeddingService.class)
+    @ConditionalOnMissingBean(value = {EmbeddingService.class, EmbeddingModel.class})
     EmbeddingService noopEmbeddingService() {
         logger.warn("No EmbeddingService found. Using noopEmbeddingService()");
         return new EmbeddingService() {
