@@ -207,7 +207,7 @@ public class SearchIndexConsistencyService {
     private void reindexByIds(List<String> ids) {
         logger.info("Reindexing {} missing resource{}.", ids.size(), ids.size() == 1 ? "" : "s");
         for (String missingId : ids) {
-            Resource resource = resourceService.getResource(missingId);
+            Resource resource = resourceService.getResourceForIndexing(missingId);
             logger.trace("Adding resource with id '{}' to index '{}'", resource.getId(), resource.getResourceTypeName());
             indexOperationsService.add(resource);
         }

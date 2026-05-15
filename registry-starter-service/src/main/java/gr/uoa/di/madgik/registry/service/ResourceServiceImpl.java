@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -68,6 +69,14 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     public Resource getResource(String id) {
         return resourceDao.getResource(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Resource getResourceForIndexing(String id) {
+        Resource resource = resourceDao.getResource(id);
+        initializeIndexedFieldValues(resource);
+        return resource;
     }
 
     @Override
@@ -251,6 +260,19 @@ public class ResourceServiceImpl implements ResourceService {
             throw new ServiceException("Error extracting fields", e);
         }
 
+    }
+
+    private void initializeIndexedFieldValues(Resource resource) {
+        if (resource == null || resource.getIndexedFields() == null) {
+            return;
+        }
+        resource.getIndexedFields().size();
+        for (IndexedField<?> indexedField : resource.getIndexedFields()) {
+            Set<?> values = indexedField.getValues();
+            if (values != null) {
+                values.size();
+            }
+        }
     }
 
     private String currentActor() {

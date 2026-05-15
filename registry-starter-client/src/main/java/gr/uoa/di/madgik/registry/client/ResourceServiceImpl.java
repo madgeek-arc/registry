@@ -83,6 +83,11 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    public Resource getResourceForIndexing(String id) {
+        return getResource(id);
+    }
+
+    @Override
     public List<Resource> getResource(ResourceType resourceType) {
         return getListResources(registryHost + "/resources/" + resourceType.getName());
     }
