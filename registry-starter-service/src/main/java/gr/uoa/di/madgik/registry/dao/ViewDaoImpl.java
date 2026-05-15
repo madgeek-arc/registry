@@ -121,7 +121,7 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
             }
 
             String queryString = "";
-            queryString = queryString.concat("CREATE OR REPLACE VIEW " + resourceType.getName() + "_view AS (");
+            queryString = queryString.concat("CREATE VIEW " + resourceType.getName() + "_view AS (");
             queryString = queryString.concat("SELECT * FROM (select id, creation_date, modification_date from resource where fk_name='" + resourceType.getName() + "') r");
 
             // setup query for single-valued indices
@@ -202,10 +202,11 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
             }
             queryString = queryString.concat(")");
 
-            Query query = getEntityManager().createNativeQuery(queryString);
             try {
                 logger.info(queryString);
                 getEntityManager().joinTransaction();
+                getEntityManager().createNativeQuery("DROP VIEW IF EXISTS " + resourceType.getName() + "_view").executeUpdate();
+                Query query = getEntityManager().createNativeQuery(queryString);
                 query.executeUpdate();
             } catch (Exception e) {
                 logger.info("View was not created", e);
