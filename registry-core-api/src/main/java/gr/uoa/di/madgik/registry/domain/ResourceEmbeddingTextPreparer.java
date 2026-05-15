@@ -61,7 +61,7 @@ final class ResourceEmbeddingTextPreparer {
         List<PreparedField> preparedFields = new ArrayList<>();
         for (IndexField indexField : indexFields) {
             if (!"java.lang.String".equals(indexField.getType())) {
-                if (fieldFilter.test(indexField)) {
+                if (indexField.getEmbeddingWeight() > 0) {
                     logger.warn("IndexField '{}' has embeddingWeight > 0 but type '{}' cannot be embedded; skipping.",
                             indexField.getName(), indexField.getType());
                 }
