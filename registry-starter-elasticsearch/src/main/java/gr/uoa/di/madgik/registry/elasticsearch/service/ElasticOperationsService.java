@@ -201,12 +201,11 @@ public class ElasticOperationsService implements IndexOperationsService {
     public void update(Resource previousResource, Resource newResource) {
         try {
             Map<String, Object> newDoc = createDocumentForInsert(newResource);
-            client.update(u -> u
+            client.index(i -> i
                     .index(newResource.getResourceType().getName())
                     .id(previousResource.getId())
-                    .doc(newDoc)
-                    .refresh(Refresh.True),
-                    Map.class);
+                    .document(newDoc)
+                    .refresh(Refresh.True));
         } catch (IOException e) {
             throw new ServiceException("Failed to update resource " + previousResource.getId(), e);
         }
