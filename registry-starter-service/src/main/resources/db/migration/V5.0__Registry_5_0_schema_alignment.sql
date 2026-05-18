@@ -1,4 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS tablefunc;
 
 -- Core registry tables.
 CREATE TABLE IF NOT EXISTS public.resourcetype (
@@ -162,6 +163,28 @@ COMMENT ON COLUMN public.indexfield.related_resource_type IS
 COMMENT ON COLUMN public.indexfield.related_resource_type_field IS
     'The IndexField name in the relatedResourceType to use as the display label. Falls back to a field named name in the related type if null.';
 
+-- Existing resource-type views depend on timestamp columns that are normalized below.
+-- PostgreSQL cannot alter a column type while a view references it, so drop the
+-- generated views first and recreate them from current indexfield metadata later.
+CREATE TEMP TABLE registry_v5_resource_views_to_recreate ON COMMIT DROP AS
+SELECT rt.name
+FROM public.resourcetype rt
+JOIN information_schema.views v
+  ON v.table_schema = 'public'
+ AND v.table_name = rt.name || '_view';
+
+DO $$
+DECLARE
+    view_name text;
+BEGIN
+    FOR view_name IN
+        SELECT name || '_view'
+        FROM registry_v5_resource_views_to_recreate
+    LOOP
+        EXECUTE format('DROP VIEW IF EXISTS public.%I', view_name);
+    END LOOP;
+END $$;
+
 -- Normalize legacy naive audit/version timestamps to timestamptz using UTC.
 DO $$
 BEGIN
@@ -246,6 +269,120 @@ BEGIN
             ALTER COLUMN values TYPE timestamptz
             USING values AT TIME ZONE 'UTC';
     END IF;
+END $$;
+
+-- Recreate generated resource-type views after timestamp column types are stable.
+DO $$
+DECLARE
+    resource_type record;
+    field_group record;
+    view_sql text;
+    source_sql text;
+    output_columns text;
+BEGIN
+    FOR resource_type IN
+        SELECT name
+        FROM registry_v5_resource_views_to_recreate
+        ORDER BY name
+    LOOP
+        view_sql := format(
+            'CREATE VIEW public.%I AS (SELECT * FROM (select id, creation_date, modification_date from resource where fk_name=%L) r',
+            resource_type.name || '_view',
+            resource_type.name
+        );
+
+        FOR field_group IN
+            SELECT field_table,
+                   value_type,
+                   multivalued,
+                   string_agg(quote_literal(name), ', ' ORDER BY lower(name)) AS field_names,
+                   min(lower(name)) AS first_field_name
+            FROM (
+                SELECT name,
+                       COALESCE(multivalued, false) AS multivalued,
+                       CASE type
+                           WHEN 'java.lang.Float' THEN 'floatindexedfield'
+                           WHEN 'java.lang.Integer' THEN 'integerindexedfield'
+                           WHEN 'java.lang.String' THEN 'stringindexedfield'
+                           WHEN 'java.lang.Boolean' THEN 'booleanindexedfield'
+                           WHEN 'java.lang.Long' THEN 'longindexedfield'
+                           WHEN 'java.util.Date' THEN 'dateindexedfield'
+                           WHEN 'java.time.Instant' THEN 'dateindexedfield'
+                       END AS field_table,
+                       CASE type
+                           WHEN 'java.lang.Float' THEN 'float'
+                           WHEN 'java.lang.Integer' THEN 'bigint'
+                           WHEN 'java.lang.String' THEN 'text'
+                           WHEN 'java.lang.Boolean' THEN 'bool'
+                           WHEN 'java.lang.Long' THEN 'bigint'
+                           WHEN 'java.util.Date' THEN 'timestamp with time zone'
+                           WHEN 'java.time.Instant' THEN 'timestamp with time zone'
+                       END AS value_type
+                FROM public.indexfield
+                WHERE resourcetype_name = resource_type.name
+            ) typed_fields
+            WHERE field_table IS NOT NULL
+            GROUP BY field_table, value_type, multivalued
+            ORDER BY multivalued, first_field_name
+        LOOP
+            SELECT string_agg(format('%s %s%s', name, field_group.value_type,
+                                     CASE WHEN field_group.multivalued THEN '[]' ELSE '' END), ', ' ORDER BY lower(name))
+            INTO output_columns
+            FROM public.indexfield
+            WHERE resourcetype_name = resource_type.name
+              AND COALESCE(multivalued, false) IS NOT DISTINCT FROM field_group.multivalued
+              AND CASE type
+                      WHEN 'java.lang.Float' THEN 'floatindexedfield'
+                      WHEN 'java.lang.Integer' THEN 'integerindexedfield'
+                      WHEN 'java.lang.String' THEN 'stringindexedfield'
+                      WHEN 'java.lang.Boolean' THEN 'booleanindexedfield'
+                      WHEN 'java.lang.Long' THEN 'longindexedfield'
+                      WHEN 'java.util.Date' THEN 'dateindexedfield'
+                      WHEN 'java.time.Instant' THEN 'dateindexedfield'
+                  END = field_group.field_table;
+
+            IF field_group.multivalued THEN
+                source_sql := format(
+                    'SELECT i.resource_id, i.name, array_remove(array_agg(v.values), NULL) FROM (' ||
+                    'SELECT %1$I.id, %1$I.name, %1$I.resource_id FROM resource r, %1$I ' ||
+                    'WHERE r.fk_name = %2$L AND r.id = %1$I.resource_id AND %1$I.name IN(%3$s) ORDER BY %1$I.name) i ' ||
+                    'LEFT JOIN (SELECT %1$I.id, %1$I_values.values FROM %1$I, %1$I_values ' ||
+                    'WHERE %1$I.id = %1$I_values.%1$I_id) v ON i.id = v.id ' ||
+                    'GROUP BY i.resource_id, i.name ORDER BY i.resource_id, i.name',
+                    field_group.field_table,
+                    resource_type.name,
+                    field_group.field_names
+                );
+                view_sql := view_sql || format(
+                    ' INNER JOIN (SELECT * FROM crosstab(%L) AS output_tbl(id varchar(255), %s)) m_%I USING(id)',
+                    source_sql,
+                    output_columns,
+                    field_group.field_table
+                );
+            ELSE
+                source_sql := format(
+                    'SELECT i.resource_id, i.name, v.values FROM (' ||
+                    'SELECT %1$I.id, %1$I.name, %1$I.resource_id FROM resource r, %1$I ' ||
+                    'WHERE r.fk_name = %2$L AND r.id = %1$I.resource_id AND %1$I.name IN(%3$s) ORDER BY %1$I.name) i ' ||
+                    'LEFT JOIN (SELECT %1$I.id, %1$I_values.values FROM %1$I, %1$I_values ' ||
+                    'WHERE %1$I.id = %1$I_values.%1$I_id) v ON i.id = v.id ' ||
+                    'ORDER BY i.resource_id, i.name',
+                    field_group.field_table,
+                    resource_type.name,
+                    field_group.field_names
+                );
+                view_sql := view_sql || format(
+                    ' INNER JOIN (SELECT * FROM crosstab(%L) AS output_tbl(id varchar(255), %s)) s_%I USING(id)',
+                    source_sql,
+                    output_columns,
+                    field_group.field_table
+                );
+            END IF;
+        END LOOP;
+
+        view_sql := view_sql || ')';
+        EXECUTE view_sql;
+    END LOOP;
 END $$;
 
 -- Add actor audit columns to existing resource rows and backfill legacy values.

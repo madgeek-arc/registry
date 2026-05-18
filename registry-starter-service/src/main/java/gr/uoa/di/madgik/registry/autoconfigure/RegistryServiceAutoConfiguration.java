@@ -16,13 +16,13 @@
 
 package gr.uoa.di.madgik.registry.autoconfigure;
 
-import gr.uoa.di.madgik.registry.ResourceTypeInit;
 import gr.uoa.di.madgik.registry.controllers.GenericController;
 import gr.uoa.di.madgik.registry.configuration.BackupRestoreConfig;
 import gr.uoa.di.madgik.registry.configuration.BatchConfig;
 import gr.uoa.di.madgik.registry.configuration.HibernateConfiguration;
 import gr.uoa.di.madgik.registry.configuration.ServiceConfiguration;
 import gr.uoa.di.madgik.registry.service.GenericResourceService;
+import gr.uoa.di.madgik.registry.startup.ResourceTypeInit;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

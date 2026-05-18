@@ -14,15 +14,18 @@
  * limitations under the License.
  */
 
-package gr.uoa.di.madgik.registry;
+package gr.uoa.di.madgik.registry.startup;
 
 import tools.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Component;
@@ -31,7 +34,8 @@ import java.io.IOException;
 import java.time.Instant;
 
 @Component
-public class ResourceTypeInit {
+@Order(Ordered.HIGHEST_PRECEDENCE)
+public class ResourceTypeInit implements ApplicationRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceTypeInit.class);
 
@@ -48,8 +52,8 @@ public class ResourceTypeInit {
         this.mapper = objectMapper;
     }
 
-    @PostConstruct
-    void addResourceTypes() {
+    @Override
+    public void run(ApplicationArguments args) {
         String pattern = getLocationPattern();
         Resource[] resources = loadResources(pattern);
         if (resources == null || resources.length == 0) {

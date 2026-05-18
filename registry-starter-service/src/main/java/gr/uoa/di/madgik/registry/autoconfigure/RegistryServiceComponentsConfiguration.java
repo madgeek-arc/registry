@@ -40,6 +40,7 @@ import org.springframework.context.annotation.FilterType;
         "gr.uoa.di.madgik.registry.dao",           // @Repository impls
         "gr.uoa.di.madgik.registry.index",         // @Component index/mapper/factory beans
         "gr.uoa.di.madgik.registry.monitor",       // @Component @Aspect monitors and listeners
+        "gr.uoa.di.madgik.registry.startup",       // startup repair/bootstrap tasks
         "gr.uoa.di.madgik.registry.validation",    // @Service ResourceSchemaValidator
         "gr.uoa.di.madgik.registry.backup",        // @Service + @StepScope batch components (recursive — covers .dump and .restore)
         "gr.uoa.di.madgik.registry.controllers",   // @RestController controllers (from registry-core-rest jar)
