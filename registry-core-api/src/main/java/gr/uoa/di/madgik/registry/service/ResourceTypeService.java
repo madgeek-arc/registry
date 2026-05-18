@@ -20,6 +20,8 @@ import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Schema;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,8 +51,20 @@ public interface ResourceTypeService {
     default Map<String, String> getIndexFieldLabels(String name) {
         return getResourceTypeIndexFields(name).stream()
                 .filter(f -> f.getLabel() != null)
-                .collect(Collectors.toMap(IndexField::getName, IndexField::getLabel));
+                .sorted(Comparator
+                        .comparing((IndexField f) -> resourceTypeName(f), Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(IndexField::getName, Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.toMap(
+                        IndexField::getName,
+                        IndexField::getLabel,
+                        (existing, duplicate) -> existing,
+                        LinkedHashMap::new
+                ));
     }
 
     void deleteResourceType(String name);
+
+    private static String resourceTypeName(IndexField indexField) {
+        return indexField.getResourceType() == null ? null : indexField.getResourceType().getName();
+    }
 }
