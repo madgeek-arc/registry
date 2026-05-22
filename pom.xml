@@ -34,6 +34,7 @@
         <testcontainers.version>2.0.3</testcontainers.version>
         <spring-retry.version>2.0.12</spring-retry.version>
         <saxon-he.version>11.4</saxon-he.version>
+        <tomcat.version>11.0.22</tomcat.version> <!-- CVE-2026-41293, CVE-2026-43512, CVE-2026-43515 -->
         <!-- Preserve test JVM args from other plugins/builds and append the Mockito agent in surefire. -->
         <argLine></argLine>
     </properties>
