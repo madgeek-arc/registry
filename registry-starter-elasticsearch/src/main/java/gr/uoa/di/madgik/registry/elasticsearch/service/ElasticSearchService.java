@@ -376,8 +376,7 @@ public class ElasticSearchService implements SearchService {
 
     private Paging<Resource> buildSearch(FacetFilter filter, ObjectNode queryNode) {
         filter.setBrowseBy(resolveBrowseBy(filter));
-        int quantity = filter.getQuantity();
-        validateQuantity(quantity);
+        int quantity = normalizeQuantity(filter.getQuantity());
 
         try {
             SearchResponse<ObjectNode> response = client.search(s -> s
@@ -399,8 +398,7 @@ public class ElasticSearchService implements SearchService {
 
     private Paging<HighlightedResult<Resource>> buildSearchWithHighlights(FacetFilter filter, ObjectNode queryNode) {
         filter.setBrowseBy(resolveBrowseBy(filter));
-        int quantity = filter.getQuantity();
-        validateQuantity(quantity);
+        int quantity = normalizeQuantity(filter.getQuantity());
 
         try {
             List<NamedValue<HighlightField>> highlightFields = resolveTextFields(filter.getResourceType()).stream()
@@ -580,12 +578,14 @@ public class ElasticSearchService implements SearchService {
         return SearchService.resolveBrowseBy(resourceTypes, filter.getBrowseBy());
     }
 
-    private void validateQuantity(int quantity) {
+    private int normalizeQuantity(int quantity) {
         if (quantity > maxQuantity) {
-            throw new IllegalArgumentException(String.format("Quantity should be up to %s.", maxQuantity));
+            logger.warn("Quantity should be up to {}.", maxQuantity);
+            return maxQuantity;
         } else if (quantity < 0) {
             throw new IllegalArgumentException("Quantity cannot be negative.");
         }
+        return quantity;
     }
 
     private boolean embeddingIsEmpty(float[] embedding) {
@@ -658,7 +658,7 @@ public class ElasticSearchService implements SearchService {
                                      int from,
                                      String sortByField,
                                      String sortOrder) {
-        validateQuantity(quantity);
+        int size = normalizeQuantity(quantity);
         CQLParser parser = new CQLParser(query);
         parser.parse();
         ElasticsearchQueryGenerator generator;
@@ -677,7 +677,7 @@ public class ElasticSearchService implements SearchService {
                             .query(q -> q.withJson(new StringReader(cqlQueryJson)))
                             .source(src -> src.filter(f -> f.includes(List.of(INCLUDES))))
                             .from(from)
-                            .size(quantity)
+                            .size(size)
                             .trackTotalHits(t -> t.enabled(true))
                             .sort(sortByField.isEmpty() ? List.of() : List.of(
                                     SortOptions.of(so -> so.field(f -> f.field(sortByField)
@@ -711,8 +711,7 @@ public class ElasticSearchService implements SearchService {
 
     @Override
     public List<Resource> recommend(FacetFilter filter, KeyValue resourceIdAndValue) {
-        int quantity = filter.getQuantity();
-        validateQuantity(quantity);
+        int quantity = normalizeQuantity(filter.getQuantity());
 
         float[] embedding = getEmbeddingForResource(filter.getResourceType(), resourceIdAndValue);
         if (embeddingIsEmpty(embedding)) {
