@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS public.indexfield (
     defaultvalue varchar(255),
     multivalued boolean,
     primarykey boolean,
-    search_capabilities varchar(255),
-    embedding_weight real DEFAULT 0.0 CHECK (embedding_weight >= 0),
+    search_capabilities varchar(255) DEFAULT 'KEYWORD,TEXT',
+    embedding_weight real CHECK (embedding_weight >= 0),
     related_resource_type varchar(255),
     related_resource_type_field varchar(255),
     PRIMARY KEY (name, resourcetype_name)
@@ -149,15 +149,19 @@ ALTER TABLE public.resource
     ADD COLUMN IF NOT EXISTS modified_by varchar(255);
 
 ALTER TABLE public.indexfield
-    ADD COLUMN IF NOT EXISTS embedding_weight real DEFAULT 0.0,
-    ADD COLUMN IF NOT EXISTS search_capabilities varchar(255),
+    ADD COLUMN IF NOT EXISTS embedding_weight real,
+    ADD COLUMN IF NOT EXISTS search_capabilities varchar(255) DEFAULT 'KEYWORD,TEXT',
     ADD COLUMN IF NOT EXISTS related_resource_type varchar(255),
     ADD COLUMN IF NOT EXISTS related_resource_type_field varchar(255);
 
+ALTER TABLE public.indexfield
+    ALTER COLUMN embedding_weight DROP DEFAULT,
+    ALTER COLUMN search_capabilities SET DEFAULT 'KEYWORD,TEXT';
+
 COMMENT ON COLUMN public.indexfield.search_capabilities IS
-    'Search capabilities for string fields. Defaults to KEYWORD when unset.';
+    'Search capabilities for string fields. Defaults to KEYWORD,TEXT when unset.';
 COMMENT ON COLUMN public.indexfield.embedding_weight IS
-    'The weight this index field will have when creating an embedding vector for the resource.';
+    'The weight this index field will have when creating an embedding vector for the resource. Null string-field weights are treated as neutral weight 1.0.';
 COMMENT ON COLUMN public.indexfield.related_resource_type IS
     'The name of the ResourceType whose resource IDs appear as values for this field. When set, FacetLabelService will resolve Value.label for facets backed by this field.';
 COMMENT ON COLUMN public.indexfield.related_resource_type_field IS

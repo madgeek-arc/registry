@@ -72,6 +72,42 @@ class ResourceEmbeddingSegmenterTest {
     }
 
     @Test
+    void nullEmbeddingWeight_isTreatedAsNeutralWeightForLegacyFields() {
+        Resource resource = new Resource();
+        resource.setIndexedFields(List.of(mockIndexedField("description", Set.<Object>of("Legacy text"))));
+
+        IndexField field = new IndexField();
+        field.setName("description");
+        field.setLabel("Description");
+        field.setType("java.lang.String");
+        field.setEmbeddingWeight(null);
+        field.setSearchCapabilities(EnumSet.of(SearchCapability.TEXT));
+
+        List<Segment> segments = ResourceEmbeddingSegmenter.segment(resource, List.of(field));
+
+        assertEquals(1, segments.size());
+        assertEquals(1.0f, segments.get(0).getWeight());
+        assertEquals(List.of("Legacy text"), segments.get(0).getValues());
+    }
+
+    @Test
+    void nullEmbeddingWeight_onNonStringFieldsDoesNotWarnOrEmbed() {
+        Resource resource = new Resource();
+        resource.setIndexedFields(List.of(mockIndexedField("year", Set.<Object>of(2024))));
+
+        IndexField field = new IndexField();
+        field.setName("year");
+        field.setLabel("Year");
+        field.setType("java.lang.Integer");
+        field.setEmbeddingWeight(null);
+
+        List<Segment> segments = ResourceEmbeddingSegmenter.segment(resource, List.of(field));
+
+        assertEquals(List.of(), segments);
+        assertEquals(0.0f, field.getEmbeddingWeight());
+    }
+
+    @Test
     void nonStringFields_areExcludedFromSemanticSegments() {
         Resource resource = new Resource();
         resource.setIndexedFields(List.of(mockIndexedField("year", Set.<Object>of(2024))));

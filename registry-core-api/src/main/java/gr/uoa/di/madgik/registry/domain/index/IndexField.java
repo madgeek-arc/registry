@@ -33,6 +33,8 @@ import java.util.Set;
 @Entity
 public class IndexField implements Serializable {
 
+    private static final float DEFAULT_NULL_EMBEDDING_WEIGHT = 1.0f;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @Id
     @JsonBackReference(value = "resourcetype-indexfields")
@@ -68,7 +70,7 @@ public class IndexField implements Serializable {
     @Comment("The weight this index field will have when creating an embedding vector for the resource.")
     @Column(name = "embedding_weight", columnDefinition = "real")
     @Check(constraints = "embedding_weight >= 0")
-    private Float embeddingWeight = 0.0f;
+    private Float embeddingWeight;
 
     @Comment("The name of the ResourceType whose resource IDs appear as values for this field. " +
             "When set, FacetLabelService will resolve Value.label for facets backed by this field.")
@@ -149,7 +151,7 @@ public class IndexField implements Serializable {
 
     public Set<SearchCapability> getSearchCapabilities() {
         if (searchCapabilities == null || searchCapabilities.isEmpty()) {
-            return EnumSet.of(SearchCapability.KEYWORD);
+            return EnumSet.of(SearchCapability.KEYWORD, SearchCapability.TEXT);
         }
         return EnumSet.copyOf(searchCapabilities);
     }
@@ -168,12 +170,12 @@ public class IndexField implements Serializable {
 
     public float getEmbeddingWeight() {
         if (embeddingWeight == null) {
-            return 0.0f;
+            return "java.lang.String".equals(type) ? DEFAULT_NULL_EMBEDDING_WEIGHT : 0.0f;
         }
         return embeddingWeight;
     }
 
-    public void setEmbeddingWeight(float embeddingWeight) {
+    public void setEmbeddingWeight(Float embeddingWeight) {
         this.embeddingWeight = embeddingWeight;
     }
 
