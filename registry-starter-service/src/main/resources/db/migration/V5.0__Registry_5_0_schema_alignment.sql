@@ -137,6 +137,27 @@ CREATE TABLE IF NOT EXISTS public.stringindexedfield_values (
     "values" text
 );
 
+CREATE SEQUENCE IF NOT EXISTS public.indexedfield_seq START WITH 1 INCREMENT BY 50;
+
+DO $$
+DECLARE
+    max_indexed_field_id integer;
+BEGIN
+    SELECT GREATEST(
+        COALESCE((SELECT max(id) FROM public.booleanindexedfield), 0),
+        COALESCE((SELECT max(id) FROM public.dateindexedfield), 0),
+        COALESCE((SELECT max(id) FROM public.floatindexedfield), 0),
+        COALESCE((SELECT max(id) FROM public.integerindexedfield), 0),
+        COALESCE((SELECT max(id) FROM public.longindexedfield), 0),
+        COALESCE((SELECT max(id) FROM public.stringindexedfield), 0)
+    )
+    INTO max_indexed_field_id;
+
+    IF max_indexed_field_id > 0 THEN
+        PERFORM setval('public.indexedfield_seq', max_indexed_field_id, true);
+    END IF;
+END $$;
+
 -- Bring pre-existing registry tables up to the current schema.
 ALTER TABLE public.resourcetype
     ADD COLUMN IF NOT EXISTS created_by varchar(255),
