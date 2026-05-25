@@ -563,7 +563,12 @@ public class ElasticSearchService implements SearchService {
     // -------------------------------------------------------------------------
 
     private List<String> resolveTextFields(String indexName) {
-        return indexFieldsResolver.getTextFields(indexName);
+        try {
+            return indexFieldsResolver.getTextFields(indexName);
+        } catch (IOException e) {
+            logger.warn("Reading resourceType '{}' fields from Elastic failed.", indexName, e);
+            return Collections.emptyList();
+        }
     }
 
     // -------------------------------------------------------------------------

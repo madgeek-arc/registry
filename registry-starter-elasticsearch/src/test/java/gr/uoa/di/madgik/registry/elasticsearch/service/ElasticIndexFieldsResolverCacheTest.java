@@ -18,6 +18,7 @@ package gr.uoa.di.madgik.registry.elasticsearch.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.indices.ElasticsearchIndicesClient;
+import co.elastic.clients.elasticsearch.indices.GetMappingResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -84,30 +86,53 @@ class ElasticIndexFieldsResolverCacheTest {
     @Autowired
     CacheManager cacheManager;
 
+    /** Successful empty-mapping response: index exists but has no text fields. */
+    private static final GetMappingResponse EMPTY_MAPPING = GetMappingResponse.of(fn -> fn);
+
     @BeforeEach
     void setUp() throws IOException {
         // Reset mock invocation counts and re-stub before each test.
         reset(TestConfig.INDICES_CLIENT);
-        doThrow(new IOException("mapping unavailable"))
-                .when(TestConfig.INDICES_CLIENT)
-                .getMapping(any(Function.class));
+        when(TestConfig.INDICES_CLIENT.getMapping(any(Function.class))).thenReturn(EMPTY_MAPPING);
         // Clear the cache so each test starts cold.
         cacheManager.getCache(ElasticIndexFieldsResolver.CACHE_NAME).clear();
     }
 
     @Test
-    void getTextFields_returnsEmptyListWhenMappingCallFails() {
+    void getTextFields_returnsEmptyListWhenIndexHasNoTextFields() throws IOException {
         List<String> fields = resolver.getTextFields("provider");
         assertEquals(List.of(), fields);
     }
 
     @Test
-    void getTextFields_secondCallReturnsCachedResultWithoutHittingElasticsearch() throws IOException {
+    void getTextFields_throwsWhenMappingCallFails() throws IOException {
+        doThrow(new IOException("mapping unavailable"))
+                .when(TestConfig.INDICES_CLIENT)
+                .getMapping(any(Function.class));
+
+        assertThrows(IOException.class, () -> resolver.getTextFields("provider"));
+    }
+
+    @Test
+    void getTextFields_successfulResultIsCached() throws IOException {
         resolver.getTextFields("provider");
         resolver.getTextFields("provider");
 
         // getMapping must have been called exactly once — the second call hits the cache.
         verify(TestConfig.INDICES_CLIENT, times(1)).getMapping(any(Function.class));
+    }
+
+    @Test
+    void getTextFields_failedResultIsNotCached() throws IOException {
+        doThrow(new IOException("mapping unavailable"))
+                .when(TestConfig.INDICES_CLIENT)
+                .getMapping(any(Function.class));
+
+        assertThrows(IOException.class, () -> resolver.getTextFields("provider"));
+        assertThrows(IOException.class, () -> resolver.getTextFields("provider"));
+
+        // Failed calls must not be cached — each call goes back to Elasticsearch.
+        verify(TestConfig.INDICES_CLIENT, times(2)).getMapping(any(Function.class));
     }
 
     @Test

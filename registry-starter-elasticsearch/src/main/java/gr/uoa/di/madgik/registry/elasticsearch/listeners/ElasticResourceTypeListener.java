@@ -38,6 +38,7 @@ public class ElasticResourceTypeListener implements ResourceTypeListener {
     @Override
     public void resourceTypeAdded(ResourceType resourceType) {
         indexOperationsService.createIndex(resourceType);
+        indexFieldsResolver.evict(resourceType.getName());
     }
 
     @Override

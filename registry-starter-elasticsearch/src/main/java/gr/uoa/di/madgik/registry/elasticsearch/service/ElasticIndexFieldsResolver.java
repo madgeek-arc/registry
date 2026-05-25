@@ -20,8 +20,6 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.mapping.Property;
 import co.elastic.clients.elasticsearch.indices.GetMappingResponse;
 import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 
@@ -42,8 +40,6 @@ public class ElasticIndexFieldsResolver {
 
     public static final String CACHE_NAME = "esTextFields";
 
-    private static final Logger logger = LoggerFactory.getLogger(ElasticIndexFieldsResolver.class);
-
     private final ElasticsearchClient client;
 
     public ElasticIndexFieldsResolver(ElasticsearchClient client) {
@@ -58,18 +54,13 @@ public class ElasticIndexFieldsResolver {
      * @return list of dotted field paths whose mapping type is {@code text}, never {@code null}
      */
     @Cacheable(value = CACHE_NAME, key = "#indexName")
-    public List<String> getTextFields(String indexName) {
-        try {
-            GetMappingResponse mappingResponse = client.indices().getMapping(r -> r.index(indexName));
-            IndexMappingRecord record = mappingResponse.mappings().values().stream().findFirst().orElse(null);
-            if (record == null) {
-                return Collections.emptyList();
-            }
-            return findTextFields(record.mappings().properties(), "");
-        } catch (IOException e) {
-            logger.warn("Reading resourceType '{}' fields from Elastic failed.", indexName, e);
+    public List<String> getTextFields(String indexName) throws IOException {
+        GetMappingResponse mappingResponse = client.indices().getMapping(r -> r.index(indexName));
+        IndexMappingRecord record = mappingResponse.mappings().values().stream().findFirst().orElse(null);
+        if (record == null) {
             return Collections.emptyList();
         }
+        return findTextFields(record.mappings().properties(), "");
     }
 
     /**
