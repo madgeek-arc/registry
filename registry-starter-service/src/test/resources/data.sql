@@ -25,10 +25,14 @@ VALUES ('employee', '2018-12-03 13:03:59.871', 'legacy', 'gr.uoa.di.madgik.regis
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-</xs:schema>', 'not_set');
+</xs:schema>', 'not_set')
+ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO public.resourcetype_aliases (resourcetype_name, aliases)
-VALUES ('employee', 'resourceTypes');
+SELECT 'employee', 'resourceTypes'
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.resourcetype_aliases WHERE resourcetype_name = 'employee' AND aliases = 'resourceTypes'
+);
 
 
 --
@@ -37,7 +41,8 @@ VALUES ('employee', 'resourceTypes');
 
 INSERT INTO public.resource (id, creation_date, modification_date, created_by, modified_by, payload, payloadformat, version, fk_name)
 VALUES ('e98db949-f3e3-4d30-9894-7dd2e291fbef', '2018-09-19 15:59:22.122', '2018-09-19 15:59:22.122', 'legacy', 'legacy', '<?xml version="1.0"?> <employee> <author>Jodeee</author> <age>28</age> <single>false</single> <birthday>645544821000</birthday> <salary>1292.123</salary> <amka>051417010293821</amka></employee>
-', 'xml', '12032018130400', 'employee');
+', 'xml', '12032018130400', 'employee')
+ON CONFLICT (id) DO NOTHING;
 
 
 --
@@ -45,7 +50,8 @@ VALUES ('e98db949-f3e3-4d30-9894-7dd2e291fbef', '2018-09-19 15:59:22.122', '2018
 --
 
 INSERT INTO public.booleanindexedfield (id, name, resource_id)
-VALUES (123123, 'single', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+VALUES (123123, 'single', 'e98db949-f3e3-4d30-9894-7dd2e291fbef')
+ON CONFLICT (id) DO NOTHING;
 
 
 --
@@ -53,7 +59,10 @@ VALUES (123123, 'single', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 --
 
 INSERT INTO public.booleanindexedfield_values (booleanindexedfield_id, "values")
-VALUES (123123, false);
+SELECT 123123, false
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.booleanindexedfield_values WHERE booleanindexedfield_id = 123123
+);
 
 
 --
@@ -61,7 +70,8 @@ VALUES (123123, false);
 --
 
 INSERT INTO public.dateindexedfield (id, name, resource_id)
-VALUES (123124, 'birthday', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+VALUES (123124, 'birthday', 'e98db949-f3e3-4d30-9894-7dd2e291fbef')
+ON CONFLICT (id) DO NOTHING;
 
 
 --
@@ -69,7 +79,10 @@ VALUES (123124, 'birthday', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 --
 
 INSERT INTO public.dateindexedfield_values (dateindexedfield_id, "values")
-VALUES (123124, '1990-06-16 17:00:21');
+SELECT 123124, '1990-06-16 17:00:21'
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.dateindexedfield_values WHERE dateindexedfield_id = 123124
+);
 
 
 --
@@ -77,7 +90,8 @@ VALUES (123124, '1990-06-16 17:00:21');
 --
 
 INSERT INTO public.floatindexedfield (id, name, resource_id)
-VALUES (123125, 'salary', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+VALUES (123125, 'salary', 'e98db949-f3e3-4d30-9894-7dd2e291fbef')
+ON CONFLICT (id) DO NOTHING;
 
 
 --
@@ -85,14 +99,18 @@ VALUES (123125, 'salary', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 --
 
 INSERT INTO public.floatindexedfield_values (floatindexedfield_id, "values")
-VALUES (123125, 1292.12300000000005);
+SELECT 123125, 1292.12300000000005
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.floatindexedfield_values WHERE floatindexedfield_id = 123125
+);
 
 --
 -- Data for Name: integerindexedfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
 --
 
 INSERT INTO public.integerindexedfield (id, name, resource_id)
-VALUES (123126, 'age', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+VALUES (123126, 'age', 'e98db949-f3e3-4d30-9894-7dd2e291fbef')
+ON CONFLICT (id) DO NOTHING;
 
 
 --
@@ -100,7 +118,10 @@ VALUES (123126, 'age', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 --
 
 INSERT INTO public.integerindexedfield_values (integerindexedfield_id, "values")
-VALUES (123126, 28);
+SELECT 123126, 28
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.integerindexedfield_values WHERE integerindexedfield_id = 123126
+);
 
 
 --
@@ -108,7 +129,8 @@ VALUES (123126, 28);
 --
 
 INSERT INTO public.longindexedfield (id, name, resource_id)
-VALUES (123127, 'amka', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+VALUES (123127, 'amka', 'e98db949-f3e3-4d30-9894-7dd2e291fbef')
+ON CONFLICT (id) DO NOTHING;
 
 
 --
@@ -116,7 +138,10 @@ VALUES (123127, 'amka', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 --
 
 INSERT INTO public.longindexedfield_values (longindexedfield_id, "values")
-VALUES (123127, 51417010293821);
+SELECT 123127, 51417010293821
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.longindexedfield_values WHERE longindexedfield_id = 123127
+);
 
 
 --
@@ -124,7 +149,8 @@ VALUES (123127, 51417010293821);
 --
 
 INSERT INTO public.stringindexedfield (id, name, resource_id)
-VALUES (123128, 'first_name', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
+VALUES (123128, 'first_name', 'e98db949-f3e3-4d30-9894-7dd2e291fbef')
+ON CONFLICT (id) DO NOTHING;
 
 
 --
@@ -132,7 +158,10 @@ VALUES (123128, 'first_name', 'e98db949-f3e3-4d30-9894-7dd2e291fbef');
 --
 
 INSERT INTO public.stringindexedfield_values (stringindexedfield_id, "values")
-VALUES (123128, 'Jodeee');
+SELECT 123128, 'Jodeee'
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.stringindexedfield_values WHERE stringindexedfield_id = 123128
+);
 
 --
 -- Data for Name: indexfield; Type: TABLE DATA; Schema: public; Owner: vrasidas
@@ -146,7 +175,8 @@ VALUES
 ('single', NULL, 'single', false, '//*[local-name()=''single'']/text()', false, 'java.lang.Boolean', 'employee'),
 ('birthday', NULL, 'birthday', false, '//*[local-name()=''birthday'']/text()', false, 'java.time.Instant','employee'),
 ('salary', NULL, 'salary', false, '//*[local-name()=''salary'']/text()', false, 'java.lang.Float', 'employee'),
-('amka', NULL, 'amka', false, '//*[local-name()=''amka'']/text()', false, 'java.lang.Long', 'employee');
+('amka', NULL, 'amka', false, '//*[local-name()=''amka'']/text()', false, 'java.lang.Long', 'employee')
+ON CONFLICT (name, resourcetype_name) DO NOTHING;
 
 
 --
@@ -174,7 +204,8 @@ VALUES ('cccbd2ae2abfd0bb0d1c6c2216116ed1', 'employee', '
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-</xs:schema>');
+</xs:schema>')
+ON CONFLICT (id) DO NOTHING;
 
 
 --
