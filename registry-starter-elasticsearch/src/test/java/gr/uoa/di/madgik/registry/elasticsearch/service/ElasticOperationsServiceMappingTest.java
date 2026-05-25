@@ -117,6 +117,35 @@ class ElasticOperationsServiceMappingTest {
     }
 
     @Test
+    void stringFieldsWithoutSearchCapabilities_defaultToKeywordOnly() throws Exception {
+        ElasticOperationsService service = new ElasticOperationsService(
+                mock(ResourceTypeService.class),
+                mock(ResourceService.class),
+                mock(co.elastic.clients.elasticsearch.ElasticsearchClient.class),
+                mock(EmbeddingService.class),
+                new ObjectMapper()
+        );
+
+        IndexField defaultField = new IndexField();
+        defaultField.setName("status");
+        defaultField.setType("java.lang.String");
+
+        Method createMappingAsMap = ElasticOperationsService.class
+                .getDeclaredMethod("createMappingAsMap", List.class);
+        createMappingAsMap.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> mapping = (Map<String, Object>) createMappingAsMap.invoke(service, List.of(defaultField));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> properties = (Map<String, Object>) mapping.get("properties");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> status = (Map<String, Object>) properties.get("status");
+
+        assertEquals("keyword", status.get("type"));
+        assertFalse(status.containsKey("fields"));
+    }
+
+    @Test
     void textCapableStringFields_keepKeywordBase_andExposeTextSubfield() throws Exception {
         ElasticOperationsService service = new ElasticOperationsService(
                 mock(ResourceTypeService.class),

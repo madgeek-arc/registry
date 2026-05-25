@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.indexfield (
     defaultvalue varchar(255),
     multivalued boolean,
     primarykey boolean,
-    search_capabilities varchar(255) DEFAULT 'KEYWORD,TEXT',
+    search_capabilities varchar(255) DEFAULT 'KEYWORD',
     embedding_weight real CHECK (embedding_weight >= 0),
     related_resource_type varchar(255),
     related_resource_type_field varchar(255),
@@ -171,16 +171,16 @@ ALTER TABLE public.resource
 
 ALTER TABLE public.indexfield
     ADD COLUMN IF NOT EXISTS embedding_weight real,
-    ADD COLUMN IF NOT EXISTS search_capabilities varchar(255) DEFAULT 'KEYWORD,TEXT',
+    ADD COLUMN IF NOT EXISTS search_capabilities varchar(255) DEFAULT 'KEYWORD',
     ADD COLUMN IF NOT EXISTS related_resource_type varchar(255),
     ADD COLUMN IF NOT EXISTS related_resource_type_field varchar(255);
 
 ALTER TABLE public.indexfield
     ALTER COLUMN embedding_weight DROP DEFAULT,
-    ALTER COLUMN search_capabilities SET DEFAULT 'KEYWORD,TEXT';
+    ALTER COLUMN search_capabilities SET DEFAULT 'KEYWORD';
 
 COMMENT ON COLUMN public.indexfield.search_capabilities IS
-    'Search capabilities for string fields. Defaults to KEYWORD,TEXT when unset.';
+    'Search capabilities for string fields. New omitted values default to KEYWORD; legacy string rows are backfilled to KEYWORD,TEXT.';
 COMMENT ON COLUMN public.indexfield.embedding_weight IS
     'The weight this index field will have when creating an embedding vector for the resource. Null string-field weights are treated as neutral weight 1.0.';
 COMMENT ON COLUMN public.indexfield.related_resource_type IS

@@ -151,7 +151,7 @@ public class IndexField implements Serializable {
 
     public Set<SearchCapability> getSearchCapabilities() {
         if (searchCapabilities == null || searchCapabilities.isEmpty()) {
-            return EnumSet.of(SearchCapability.KEYWORD, SearchCapability.TEXT);
+            return EnumSet.of(SearchCapability.KEYWORD);
         }
         return EnumSet.copyOf(searchCapabilities);
     }
