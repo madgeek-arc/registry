@@ -585,7 +585,7 @@ public class ElasticSearchService implements SearchService {
 
     private int normalizeQuantity(int quantity) {
         if (quantity > maxQuantity) {
-            logger.warn("Quantity should be up to {}.", maxQuantity);
+            logger.debug("Quantity too large, using {}.", maxQuantity);
             return maxQuantity;
         } else if (quantity < 0) {
             throw new IllegalArgumentException("Quantity cannot be negative.");
