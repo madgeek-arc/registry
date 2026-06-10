@@ -36,7 +36,7 @@ public class ServiceConfiguration {
     ObjectMapper objectMapper() {
         return JsonMapper.builder()
                 .findAndAddModules()
-                .disable(DateTimeFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS)
+                .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
                 .build();
     }
 

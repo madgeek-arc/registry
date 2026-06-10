@@ -19,7 +19,6 @@ package gr.uoa.di.madgik.registry.service;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
@@ -64,10 +63,11 @@ import java.io.StringWriter;
 public class ParserPool implements ParserService {
 
     private final JAXBContext jaxbContext;
-    private final ObjectMapper mapper = JsonMapper.builder().findAndAddModules().build();
+    private final ObjectMapper mapper;
 
-    public ParserPool(JAXBContext jaxbContext) {
+    public ParserPool(JAXBContext jaxbContext, ObjectMapper mapper) {
         this.jaxbContext = jaxbContext;
+        this.mapper = mapper;
     }
 
     /**
