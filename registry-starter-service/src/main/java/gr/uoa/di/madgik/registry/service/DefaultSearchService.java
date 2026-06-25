@@ -24,6 +24,7 @@ import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.domain.ScoredResult;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.domain.index.SearchCapability;
 import gr.uoa.di.madgik.registry.exception.MissingResourceEmbeddingsException;
@@ -265,7 +266,7 @@ public class DefaultSearchService implements SearchService {
     }
 
     @Override
-    public List<Resource> recommend(FacetFilter filter, KeyValue idValue) throws ServiceException {
+    public List<ScoredResult<Resource>> recommend(FacetFilter filter, KeyValue idValue) throws ServiceException {
         validateQuantity(filter.getQuantity());
         ResourceType resourceType = requireSingleResourceType(filter.getResourceType());
 
@@ -312,7 +313,7 @@ public class DefaultSearchService implements SearchService {
                     FROM candidate_chunk_scores
                     GROUP BY resource_id
                 )
-                SELECT r.*
+                SELECT r.*, scored.score
                 FROM candidate_scores scored
                 JOIN resource r ON r.id = scored.resource_id
                 WHERE scored.score > 0
@@ -320,7 +321,11 @@ public class DefaultSearchService implements SearchService {
                 OFFSET :from LIMIT :quantity
                 """.formatted(filteredQuery);
 
-        return npJdbcTemplate.query(recommendationQuery, params, resourceRowMapper);
+        return npJdbcTemplate.query(recommendationQuery, params, (rs, rowNum) -> {
+            Resource resource = resourceRowMapper.mapRow(rs, rowNum);
+            float score = rs.getFloat("score");
+            return ScoredResult.of(score, resource);
+        });
     }
 
     private List<String> resolveBrowseBy(FacetFilter filter) {

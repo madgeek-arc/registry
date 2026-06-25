@@ -248,15 +248,21 @@ public class ElasticSearchService implements SearchService {
                 multiMatch.put("query", filter.getKeyword());
                 ArrayNode fields = multiMatch.putArray("fields");
                 textFields.forEach(fields::add);
-                must.add(textQuery);
+                withArray(bool, "filter").add(textQuery);
             }
         }
 
         mustNot.addObject().putObject("terms")
                 .set(resourceIdAndValue.getField(), mapper.createArrayNode().add(resourceIdAndValue.getValue()));
 
-        applyFilters(filter.getFilter(), bool);
-        applyRangeFilters(filter.getRangeFilters(), bool);
+        ObjectNode constraintsBool = mapper.createObjectNode();
+        applyFilters(filter.getFilter(), constraintsBool);
+        applyRangeFilters(filter.getRangeFilters(), constraintsBool);
+        JsonNode constraintsMust = constraintsBool.get("must");
+        if (constraintsMust != null) {
+            ArrayNode filterArr = withArray(bool, "filter");
+            constraintsMust.forEach(filterArr::add);
+        }
         return mapper.createObjectNode().set("bool", bool);
     }
 
@@ -715,7 +721,7 @@ public class ElasticSearchService implements SearchService {
     }
 
     @Override
-    public List<Resource> recommend(FacetFilter filter, KeyValue resourceIdAndValue) {
+    public List<ScoredResult<Resource>> recommend(FacetFilter filter, KeyValue resourceIdAndValue) {
         int quantity = normalizeQuantity(filter.getQuantity());
 
         float[] embedding = getEmbeddingForResource(filter.getResourceType(), resourceIdAndValue);
@@ -738,7 +744,9 @@ public class ElasticSearchService implements SearchService {
                             .size(quantity)
                             .trackTotalHits(t -> t.enabled(true)),
                     ObjectNode.class);
-            return response.hits().hits().stream().map(this::toResource).collect(Collectors.toList());
+            return response.hits().hits().stream()
+                    .map(hit -> ScoredResult.of(hit.score() != null ? hit.score().floatValue() : 0.0f, toResource(hit)))
+                    .collect(Collectors.toList());
         } catch (IOException e) {
             throw new ServiceException("Recommend search failed", e);
         }

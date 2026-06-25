@@ -24,6 +24,7 @@ import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.ScoredResult;
 import gr.uoa.di.madgik.registry.domain.ResourceChunk;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Value;
@@ -431,13 +432,13 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
         resourceChunkIndexService.reindex(operations);
 
         FacetFilter filter = employeeFilter();
-        List<Resource> recommendations = searchService.recommend(
+        List<ScoredResult<Resource>> recommendations = searchService.recommend(
                 filter,
                 new SearchService.KeyValue("first_name", "Analytics Source")
         );
 
         assertFalse(recommendations.isEmpty());
-        assertEquals(similar.getId(), recommendations.getFirst().getId());
+        assertEquals(similar.getId(), recommendations.getFirst().getResult().getId());
     }
 
     @Test
@@ -448,13 +449,13 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
         resourceChunkIndexService.reindex(similar);
 
         FacetFilter filter = employeeFilter();
-        List<Resource> recommendations = searchService.recommend(
+        List<ScoredResult<Resource>> recommendations = searchService.recommend(
                 filter,
                 new SearchService.KeyValue("first_name", "Public Source")
         );
 
         assertFalse(recommendations.isEmpty());
-        assertTrue(recommendations.stream().noneMatch(resource -> source.getId().equals(resource.getId())));
+        assertTrue(recommendations.stream().noneMatch(sr -> source.getId().equals(sr.getResult().getId())));
     }
 
     @Test

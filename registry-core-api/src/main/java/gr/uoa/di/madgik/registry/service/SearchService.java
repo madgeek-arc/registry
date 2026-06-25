@@ -17,6 +17,7 @@
 package gr.uoa.di.madgik.registry.service;
 
 import gr.uoa.di.madgik.registry.domain.*;
+import gr.uoa.di.madgik.registry.domain.ScoredResult;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -52,7 +53,7 @@ public interface SearchService {
      * @throws ServiceException if the reference resource cannot be retrieved or the recommendation query fails
      */
     @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
-    List<Resource> recommend(FacetFilter filter, KeyValue resourceIdAndValue) throws ServiceException;
+    List<ScoredResult<Resource>> recommend(FacetFilter filter, KeyValue resourceIdAndValue) throws ServiceException;
 
     @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException;

@@ -20,6 +20,7 @@ import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.ScoredResult;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.slf4j.Logger;
@@ -167,7 +168,7 @@ public class ClientSearchService implements SearchService {
     }
 
     @Override
-    public List<Resource> recommend(FacetFilter filter, KeyValue idValue) throws ServiceException {
+    public List<ScoredResult<Resource>> recommend(FacetFilter filter, KeyValue idValue) throws ServiceException {
         throw new UnsupportedOperationException("Not implemented");
     }
 

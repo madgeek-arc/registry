@@ -27,6 +27,7 @@ import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.domain.ScoredResult;
 import gr.uoa.di.madgik.registry.elasticsearch.autoconfigure.RegistryElasticsearchProperties;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
@@ -179,8 +180,8 @@ class ElasticSearchServiceIntegrationTest {
         indexDocumentWithoutEmbedding(index, "missing", "missing embedding");
 
         FacetFilter filter = filter(index, null);
-        List<Resource> results = searchService.recommend(filter, new SearchService.KeyValue("id", "source"));
-        List<String> ids = results.stream().map(Resource::getId).toList();
+        List<ScoredResult<Resource>> results = searchService.recommend(filter, new SearchService.KeyValue("id", "source"));
+        List<String> ids = results.stream().map(sr -> sr.getResult().getId()).toList();
 
         assertEquals("neighbor", ids.getFirst());
         assertFalse(ids.contains("source"));

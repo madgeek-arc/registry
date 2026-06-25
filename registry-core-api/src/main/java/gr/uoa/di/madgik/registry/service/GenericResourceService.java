@@ -21,6 +21,7 @@ import gr.uoa.di.madgik.registry.domain.Facet;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.ScoredResult;
 
 import java.util.List;
 import java.util.Map;
@@ -166,9 +167,9 @@ public interface GenericResourceService {
      * @param filter the additional filter and pagination criteria to apply
      * @param id     the identifier of the reference resource used as the similarity anchor
      * @param <T>    the expected domain type of each result
-     * @return an ordered list of similar resources (most similar first)
+     * @return an ordered list of scored, similar resources (most similar first)
      */
-    <T> List<T> recommend(FacetFilter filter, String id);
+    <T> List<ScoredResult<T>> recommend(FacetFilter filter, String id);
 
     /**
      * Persists a new resource with validation enabled.

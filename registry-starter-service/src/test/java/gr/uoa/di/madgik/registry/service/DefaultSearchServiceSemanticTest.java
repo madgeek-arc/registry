@@ -23,6 +23,7 @@ import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.ScoredResult;
 import gr.uoa.di.madgik.registry.exception.MissingResourceEmbeddingsException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -382,10 +383,10 @@ class DefaultSearchServiceSemanticTest extends PostgreSqlTestContainerSupport {
         FacetFilter filter = employeeFilter();
         filter.setKeyword("analytics");
 
-        List<Resource> recommendations = searchService.recommend(filter,
+        List<ScoredResult<Resource>> recommendations = searchService.recommend(filter,
                 new SearchService.KeyValue("first_name", "Analytics Source"));
 
-        List<String> ids = recommendations.stream().map(Resource::getId).toList();
+        List<String> ids = recommendations.stream().map(sr -> sr.getResult().getId()).toList();
         assertTrue(ids.contains(analyticsPeer.getId()),
                 "Analytics peer must be recommended");
         assertFalse(ids.contains(operationsPeer.getId()),

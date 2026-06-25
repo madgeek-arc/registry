@@ -129,16 +129,8 @@ public class GenericResourceServiceImpl implements GenericResourceService {
     }
 
     @Override
-    public <T> List<T> recommend(FacetFilter filter, String id) {
-        ResponseEntity<List> response = restTemplate.getForEntity(
-                buildRecommendationsUri(filter, id),
-                List.class
-        );
-        List<?> body = response.getBody() == null ? List.of() : response.getBody();
-        return body.stream()
-                .map(item -> convertValue(item, filter.getResourceType()))
-                .map(item -> (T) item)
-                .toList();
+    public <T> List<ScoredResult<T>> recommend(FacetFilter filter, String id) {
+        throw new UnsupportedOperationException("Not implemented by registry-starter-client");
     }
 
     @Override

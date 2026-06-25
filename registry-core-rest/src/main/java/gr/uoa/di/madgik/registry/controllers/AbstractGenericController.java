@@ -20,6 +20,7 @@ import gr.uoa.di.madgik.registry.annotation.BrowseParameters;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
+import gr.uoa.di.madgik.registry.domain.ScoredResult;
 import gr.uoa.di.madgik.registry.service.GenericResourceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -323,12 +324,12 @@ public abstract class AbstractGenericController<T> {
     )
     @BrowseParameters
     @GetMapping(path = "/{id}/recommendations", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<T>> recommend(
+    public ResponseEntity<List<ScoredResult<T>>> recommend(
             @PathVariable("id") String id,
             @Parameter(hidden = true) @RequestParam MultiValueMap<String, Object> params) {
         FacetFilter filter = FacetFilter.from(params);
         filter.setResourceType(getResourceTypeName());
-        List<T> results = genericResourceService.recommend(filter, id);
+        List<ScoredResult<T>> results = genericResourceService.recommend(filter, id);
         return ResponseEntity.ok(results);
     }
 }
