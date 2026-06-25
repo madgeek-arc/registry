@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.6</version>
+        <version>4.0.7</version>
     </parent>
 
     <groupId>gr.uoa.di.madgik</groupId>
@@ -23,7 +23,7 @@
 
     <properties>
         <java.version>25</java.version>
-        <owasp-dependency-check-plugin.version>12.2.0</owasp-dependency-check-plugin.version>
+        <owasp-dependency-check-plugin.version>12.2.2</owasp-dependency-check-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>${project.parent.version}</spring-boot.version>
         <springdoc.version>3.0.0</springdoc.version>
@@ -341,8 +341,7 @@
                 <configuration>
                     <failBuildOnCVSS>7.6</failBuildOnCVSS>
                     <formats>
-                        <format>JSON</format>
-                        <format>HTML</format>
+                        <format>ALL</format>
                     </formats>
                     <prettyPrint>true</prettyPrint>
                     <suppressionFiles>
