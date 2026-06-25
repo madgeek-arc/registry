@@ -48,10 +48,10 @@ public interface SearchService {
      * further constrained by the provided {@code filter}.
      *
      * <p>Each result is wrapped in a {@link ScoredResult} whose {@code score} is the cosine
-     * similarity between the reference resource and the candidate, normalised to {@code (0, 1]}.
-     * Results are ordered by descending score. Scores are not comparable across backends: the
-     * PostgreSQL path averages chunk-level similarities while Elasticsearch scores a single
-     * resource-level embedding.
+     * similarity between the reference resource and the candidate, normalised to {@code (0, 1]}
+     * using {@code (1 + cosine) / 2}. Results are ordered by descending score. Scores are not
+     * directly comparable across backends: the PostgreSQL path averages chunk-level similarities
+     * while Elasticsearch scores a single resource-level embedding, but both use the same scale.
      *
      * @param filter             the additional filter criteria to apply
      * @param resourceIdAndValue the (field, value) pair used to resolve the reference resource for similarity matching

@@ -163,8 +163,8 @@ public interface GenericResourceService {
      *
      * <p>Similarity is computed using vector embeddings. Each result is wrapped in a
      * {@link gr.uoa.di.madgik.registry.domain.ScoredResult} whose {@code score} is the cosine
-     * similarity between the reference resource and the candidate, normalised to {@code (0, 1]}.
-     * Results are ordered by descending score.
+     * similarity between the reference resource and the candidate, normalised to {@code (0, 1]}
+     * using {@code (1 + cosine) / 2}. Results are ordered by descending score.
      *
      * @param filter the additional filter and pagination criteria to apply
      * @param id     the identifier of the reference resource used as the similarity anchor

@@ -299,7 +299,8 @@ public class DefaultSearchService implements SearchService {
                 candidate_chunk_scores AS (
                     SELECT rc.resource_id,
                            rc.chunk_idx,
-                           MAX((1 - (rc.embedding <=> sc.embedding))::real) AS best_similarity
+                           -- (1 + cosine) / 2 maps [-1, 1] → (0, 1], matching Elasticsearch's kNN score formula.
+                           MAX((1 + (1 - (rc.embedding <=> sc.embedding))::real) / 2) AS best_similarity
                     FROM resource_chunk rc
                     JOIN filtered f ON f.id = rc.resource_id
                     JOIN source_chunks sc ON sc.embedding_model = rc.embedding_model
@@ -316,7 +317,7 @@ public class DefaultSearchService implements SearchService {
                 SELECT r.*, scored.score
                 FROM candidate_scores scored
                 JOIN resource r ON r.id = scored.resource_id
-                WHERE scored.score > 0
+                WHERE scored.score > 0.5
                 ORDER BY scored.score DESC, r.modification_date DESC, r.id
                 OFFSET :from LIMIT :quantity
                 """.formatted(filteredQuery);
