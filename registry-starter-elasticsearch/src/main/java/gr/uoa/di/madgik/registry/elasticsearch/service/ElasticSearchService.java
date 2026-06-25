@@ -128,6 +128,10 @@ public class ElasticSearchService implements SearchService {
     }
 
     private ObjectNode knnQueryNode(float[] queryVector, int k, float boost, Float similarity) {
+        return knnQueryNode(queryVector, k, boost, similarity, null);
+    }
+
+    private ObjectNode knnQueryNode(float[] queryVector, int k, float boost, Float similarity, ObjectNode preFilter) {
         ObjectNode query = mapper.createObjectNode();
         ObjectNode knn = query.putObject("knn");
         knn.put("field", "embedding");
@@ -140,6 +144,10 @@ public class ElasticSearchService implements SearchService {
         knn.put("boost", boost);
         if (similarity != null) {
             knn.put("similarity", similarity);
+        }
+        if (preFilter != null) {
+            // Applied before ANN — ensures k results come from the constrained set.
+            knn.set("filter", mapper.createObjectNode().set("bool", preFilter));
         }
         return query;
     }
@@ -234,13 +242,19 @@ public class ElasticSearchService implements SearchService {
     }
 
     private ObjectNode createRecommendationQueryNode(FacetFilter filter, KeyValue resourceIdAndValue, float[] embedding) {
-        ObjectNode bool = mapper.createObjectNode();
-        ArrayNode must = bool.putArray("must");
-        ArrayNode mustNot = bool.putArray("must_not");
+        // All constraints go into the kNN pre-filter so ANN runs only over matching documents.
+        // This keeps the cosine score bounded in (0, 1] (constraints don't add BM25 score) and
+        // ensures the requested quantity is honoured (k candidates are drawn from the filtered set).
+        ObjectNode knnPreFilter = mapper.createObjectNode();
 
-        must.add(knnQueryNode(embedding, knnWindow(filter), 1.0f, 0.0f));
+        knnPreFilter.putArray("must_not")
+                .addObject().putObject("terms")
+                .set(resourceIdAndValue.getField(), mapper.createArrayNode().add(resourceIdAndValue.getValue()));
 
-        if (filter.getKeyword() != null && !filter.getKeyword().isEmpty()) {
+        applyFilters(filter.getFilter(), knnPreFilter);
+        applyRangeFilters(filter.getRangeFilters(), knnPreFilter);
+
+        if (StringUtils.hasText(filter.getKeyword())) {
             Set<String> textFields = new HashSet<>(resolveTextFields(filter.getResourceType()));
             if (!textFields.isEmpty()) {
                 ObjectNode textQuery = mapper.createObjectNode();
@@ -248,21 +262,12 @@ public class ElasticSearchService implements SearchService {
                 multiMatch.put("query", filter.getKeyword());
                 ArrayNode fields = multiMatch.putArray("fields");
                 textFields.forEach(fields::add);
-                withArray(bool, "filter").add(textQuery);
+                withArray(knnPreFilter, "filter").add(textQuery);
             }
         }
 
-        mustNot.addObject().putObject("terms")
-                .set(resourceIdAndValue.getField(), mapper.createArrayNode().add(resourceIdAndValue.getValue()));
-
-        ObjectNode constraintsBool = mapper.createObjectNode();
-        applyFilters(filter.getFilter(), constraintsBool);
-        applyRangeFilters(filter.getRangeFilters(), constraintsBool);
-        JsonNode constraintsMust = constraintsBool.get("must");
-        if (constraintsMust != null) {
-            ArrayNode filterArr = withArray(bool, "filter");
-            constraintsMust.forEach(filterArr::add);
-        }
+        ObjectNode bool = mapper.createObjectNode();
+        bool.putArray("must").add(knnQueryNode(embedding, knnWindow(filter), 1.0f, 0.0f, knnPreFilter));
         return mapper.createObjectNode().set("bool", bool);
     }
 

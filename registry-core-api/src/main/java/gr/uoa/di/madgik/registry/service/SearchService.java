@@ -47,9 +47,15 @@ public interface SearchService {
      * Recommends resources that are similar to the resource identified by the given {@code resourceIdAndValue},
      * further constrained by the provided {@code filter}.
      *
+     * <p>Each result is wrapped in a {@link ScoredResult} whose {@code score} is the cosine
+     * similarity between the reference resource and the candidate, normalised to {@code (0, 1]}.
+     * Results are ordered by descending score. Scores are not comparable across backends: the
+     * PostgreSQL path averages chunk-level similarities while Elasticsearch scores a single
+     * resource-level embedding.
+     *
      * @param filter             the additional filter criteria to apply
      * @param resourceIdAndValue the (field, value) pair used to resolve the reference resource for similarity matching
-     * @return a list of recommended resources
+     * @return a scored list of recommended resources, ordered by descending similarity
      * @throws ServiceException if the reference resource cannot be retrieved or the recommendation query fails
      */
     @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))

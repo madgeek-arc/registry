@@ -161,13 +161,15 @@ public interface GenericResourceService {
      * Returns resources that are similar to the resource identified by {@code id},
      * further constrained by the provided {@code filter}.
      *
-     * <p>Similarity is typically computed using vector embeddings when the backing
-     * search service supports them, falling back to keyword overlap otherwise.
+     * <p>Similarity is computed using vector embeddings. Each result is wrapped in a
+     * {@link gr.uoa.di.madgik.registry.domain.ScoredResult} whose {@code score} is the cosine
+     * similarity between the reference resource and the candidate, normalised to {@code (0, 1]}.
+     * Results are ordered by descending score.
      *
      * @param filter the additional filter and pagination criteria to apply
      * @param id     the identifier of the reference resource used as the similarity anchor
      * @param <T>    the expected domain type of each result
-     * @return an ordered list of scored, similar resources (most similar first)
+     * @return a scored list of similar resources ordered by descending similarity
      */
     <T> List<ScoredResult<T>> recommend(FacetFilter filter, String id);
 
