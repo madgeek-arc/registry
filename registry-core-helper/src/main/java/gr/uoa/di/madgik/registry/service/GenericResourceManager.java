@@ -18,7 +18,6 @@ package gr.uoa.di.madgik.registry.service;
 
 import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
-import gr.uoa.di.madgik.registry.exception.ResourceException;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
 import gr.uoa.di.madgik.registry.utils.LoggingUtils;
@@ -27,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -70,8 +68,8 @@ public class GenericResourceManager implements GenericResourceService {
     public <T> T get(String resourceTypeName, SearchService.KeyValue... keyValues) {
         Resource res = searchService.searchFields(resourceTypeName, keyValues);
         if (res == null) {
-            throw new ResourceException(
-                    String.format("%s does not exist!", resourceTypeName), HttpStatus.NOT_FOUND);
+            String id = keyValues.length > 0 ? keyValues[0].getValue() : null;
+            throw new ResourceNotFoundException(id, resourceTypeName);
         }
         return (T) parserPool.deserialize(res, getClassFromResourceType(resourceTypeName));
     }

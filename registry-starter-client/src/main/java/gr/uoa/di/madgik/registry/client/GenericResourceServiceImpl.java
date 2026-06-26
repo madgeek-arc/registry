@@ -341,7 +341,7 @@ public class GenericResourceServiceImpl implements GenericResourceService {
     private <T> SearchService.KeyValue[] extractPrimaryKeys(String resourceTypeName, T resource) {
         ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
         if (resourceType == null || resourceType.getIndexFields() == null) {
-            throw new ResourceException("ResourceType " + resourceTypeName + " not found", HttpStatus.NOT_FOUND);
+            throw new ResourceNotFoundException(resourceTypeName);
         }
 
         JsonNode root = objectMapper.valueToTree(resource);
