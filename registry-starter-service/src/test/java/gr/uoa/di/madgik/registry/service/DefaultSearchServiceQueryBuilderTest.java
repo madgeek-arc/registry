@@ -29,6 +29,7 @@ import gr.uoa.di.madgik.registry.domain.ResourceChunk;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Value;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import gr.uoa.di.madgik.registry.domain.index.SearchCapability;
 import gr.uoa.di.madgik.registry.exception.MissingResourceEmbeddingsException;
 import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
 import org.junit.jupiter.api.BeforeAll;
@@ -43,6 +44,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -284,6 +286,43 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
     }
 
     @Test
+    void searchWithHighlights_returnsHighlightFromTextOnlyField() {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+
+        // Add a TEXT-only 'bio' field to the employee type (mutates the shared in-memory cache)
+        ResourceType employee = resourceTypeService.getResourceType("employee");
+        List<IndexField> fields = employee.getIndexFields();
+        fields.add(textOnlyIndexField("bio", employee));
+        employee.setIndexFields(fields);
+
+        // Store a bio value containing "Jodeee" so the payload-wide LIKE match fires on the
+        // existing test resource and the bio field also gets a highlight
+        jdbcTemplate.update("""
+                INSERT INTO public.stringindexedfield (id, name, resource_id)
+                VALUES (?, ?, ?)
+                """, 551232L, "bio", DatabaseConfiguration.TEST_RESOURCE_ID);
+        jdbcTemplate.update("""
+                INSERT INTO public.stringindexedfield_values (stringindexedfield_id, "values")
+                VALUES (?, ?)
+                """, 551232L, "Jodeee loves data science");
+
+        viewService.deleteView("employee");
+        viewService.createView(employee);
+
+        FacetFilter filter = employeeFilter();
+        filter.setKeyword("Jodeee");
+
+        Paging<HighlightedResult<Resource>> result = searchService.searchWithHighlights(filter);
+
+        assertFalse(result.getResults().isEmpty());
+        HighlightedResult<Resource> hit = result.getResults().stream()
+                .filter(r -> DatabaseConfiguration.TEST_RESOURCE_ID.equals(r.getResult().getId()))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(hit.getHighlights().stream().anyMatch(h -> "bio".equals(h.getField())));
+    }
+
+    @Test
     void searchWithHighlights_returnsIndexedFieldHighlights() {
         FacetFilter filter = employeeFilter();
         filter.setKeyword("Jodeee");
@@ -521,6 +560,12 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
         indexField.setPath("//*[local-name()='author']/text()");
         indexField.setType("java.lang.String");
         indexField.setResourceType(resourceType);
+        return indexField;
+    }
+
+    private IndexField textOnlyIndexField(String name, ResourceType resourceType) {
+        IndexField indexField = indexField(name, resourceType);
+        indexField.setSearchCapabilities(EnumSet.of(SearchCapability.TEXT));
         return indexField;
     }
 

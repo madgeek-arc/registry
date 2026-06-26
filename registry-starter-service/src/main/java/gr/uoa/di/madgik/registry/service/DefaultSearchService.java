@@ -716,7 +716,8 @@ public class DefaultSearchService implements SearchService {
         }
         return resourceType.getIndexFields().stream()
                 .filter(indexField -> "java.lang.String".equals(indexField.getType()))
-                .filter(indexField -> indexField.hasSearchCapability(SearchCapability.KEYWORD))
+                .filter(indexField -> indexField.hasSearchCapability(SearchCapability.KEYWORD)
+                        || indexField.hasSearchCapability(SearchCapability.TEXT))
                 .map(IndexField::getName)
                 .sorted(String::compareToIgnoreCase)
                 .toList();

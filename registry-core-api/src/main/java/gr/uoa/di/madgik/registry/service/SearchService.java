@@ -19,6 +19,7 @@ package gr.uoa.di.madgik.registry.service;
 import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.ScoredResult;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import gr.uoa.di.madgik.registry.domain.index.SearchCapability;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 
@@ -99,7 +100,11 @@ public interface SearchService {
     /**
      * Derives the effective {@code browseBy} field list for a search request.
      *
-     * <p>First computes the intersection of labeled {@link IndexField} names across all supplied
+     * <p>A field is eligible for {@code browseBy} only when it has a non-null {@code label}
+     * <em>and</em> {@link SearchCapability#KEYWORD} capability. TEXT-only fields are excluded
+     * because faceting requires exact-value grouping, which is a keyword-style operation.</p>
+     *
+     * <p>First computes the intersection of eligible {@link IndexField} names across all supplied
      * resource types (alias groups only expose fields present in every member). When
      * {@code requestedBrowseBy} is provided, only the requested fields that still exist in that
      * intersection are kept. If none of the requested fields are valid, the full available
@@ -113,7 +118,7 @@ public interface SearchService {
         Set<String> availableBrowseBy = null;
         for (ResourceType rt : resourceTypes) {
             Set<String> labeledFields = rt.getIndexFields().stream()
-                    .filter(f -> f.getLabel() != null)
+                    .filter(f -> f.getLabel() != null && f.hasSearchCapability(SearchCapability.KEYWORD))
                     .map(IndexField::getName)
                     .collect(Collectors.toCollection(LinkedHashSet::new));
             if (availableBrowseBy == null) {

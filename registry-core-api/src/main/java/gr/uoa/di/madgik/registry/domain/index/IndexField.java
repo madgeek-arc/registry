@@ -50,6 +50,9 @@ public class IndexField implements Serializable {
     @Column
     private String type;
 
+    @Comment("Human-readable display label. Used for facet headings and as the semantic prefix " +
+            "in chunk embeddings. A field must have both a non-null label and KEYWORD capability " +
+            "to be eligible for the auto-derived browseBy/facet set.")
     @Column
     private String label;
 
@@ -62,7 +65,9 @@ public class IndexField implements Serializable {
     @Column
     private boolean primaryKey = false;
 
-    @Comment("Search capabilities for string fields. Defaults to KEYWORD when unset.")
+    @Comment("Search capabilities for string fields (KEYWORD, TEXT, or both). Defaults to KEYWORD " +
+            "when unset. KEYWORD gates facet/browseBy eligibility and SQL keyword highlights; " +
+            "TEXT adds a .text analyzed sub-field in Elasticsearch and enables sentence-level chunking.")
     @Convert(converter = SearchCapabilitySetConverter.class)
     @Column(name = "search_capabilities")
     private Set<SearchCapability> searchCapabilities = EnumSet.noneOf(SearchCapability.class);
