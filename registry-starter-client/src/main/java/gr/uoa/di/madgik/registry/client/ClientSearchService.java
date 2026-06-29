@@ -26,6 +26,10 @@ import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -169,12 +173,44 @@ public class ClientSearchService implements SearchService {
 
     @Override
     public List<ScoredResult<Resource>> recommend(FacetFilter filter, KeyValue idValue) throws ServiceException {
-        throw new UnsupportedOperationException("Not implemented");
+        String url = buildSearchUri(
+                registryHost + "/search/" + filter.getResourceType() + "/recommendations", filter)
+                .queryParam("field", idValue.getField())
+                .queryParam("value", idValue.getValue())
+                .toUriString();
+        ResponseEntity<List> response = restTemplate.getForEntity(url, List.class);
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            return convertScoredResults(response.getBody());
+        }
+        return new ArrayList<>();
     }
 
     @Override
     public List<ScoredResult<Resource>> recommend(FacetFilter filter, Resource queryResource) throws ServiceException {
-        throw new UnsupportedOperationException("Not implemented");
+        String url = buildSearchUri(
+                registryHost + "/search/" + filter.getResourceType() + "/recommendations", filter)
+                .toUriString();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Resource> entity = new HttpEntity<>(queryResource, headers);
+        ResponseEntity<List> response = restTemplate.exchange(url, HttpMethod.POST, entity, List.class);
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            return convertScoredResults(response.getBody());
+        }
+        return new ArrayList<>();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<ScoredResult<Resource>> convertScoredResults(List<?> items) {
+        return items.stream()
+                .map(item -> {
+                    ScoredResult<?> raw = objectMapper.convertValue(item, ScoredResult.class);
+                    ScoredResult<Resource> sr = new ScoredResult<>();
+                    sr.setScore(raw.getScore());
+                    sr.setResult(objectMapper.convertValue(raw.getResult(), Resource.class));
+                    return sr;
+                })
+                .toList();
     }
 
     @Override

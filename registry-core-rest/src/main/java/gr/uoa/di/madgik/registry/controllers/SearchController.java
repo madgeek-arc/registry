@@ -21,15 +21,18 @@ import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.ScoredResult;
 import gr.uoa.di.madgik.registry.service.SearchService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
+import java.util.List;
 
 @RestController
 public class SearchController {
@@ -101,5 +104,30 @@ public class SearchController {
                                       @RequestParam(value = "order", required = false, defaultValue = "ASC") String sortByType) {
         query = URLDecoder.decode(query, Charset.defaultCharset());
         return new ResponseEntity<>(searchService.cqlQuery(query, resourceType, quantity, from, sortBy, sortByType), HttpStatus.OK);
+    }
+
+    @BrowseParameters
+    @GetMapping(value = "/search/{name}/recommendations")
+    public ResponseEntity<List<ScoredResult<Resource>>> recommend(
+            @PathVariable("name") String resourceType,
+            @RequestParam MultiValueMap<String, Object> allRequestParams) throws ServiceException {
+        String field = allRequestParams.containsKey("field")
+                ? (String) allRequestParams.remove("field").get(0) : null;
+        String value = allRequestParams.containsKey("value")
+                ? (String) allRequestParams.remove("value").get(0) : null;
+        FacetFilter filter = FacetFilter.from(allRequestParams);
+        filter.setResourceType(resourceType);
+        return ResponseEntity.ok(searchService.recommend(filter, new SearchService.KeyValue(field, value)));
+    }
+
+    @BrowseParameters
+    @PostMapping(value = "/search/{name}/recommendations", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<ScoredResult<Resource>>> recommendByResource(
+            @PathVariable("name") String resourceType,
+            @RequestBody Resource resource,
+            @RequestParam MultiValueMap<String, Object> allRequestParams) throws ServiceException {
+        FacetFilter filter = FacetFilter.from(allRequestParams);
+        filter.setResourceType(resourceType);
+        return ResponseEntity.ok(searchService.recommend(filter, resource));
     }
 }
