@@ -18,6 +18,8 @@ package gr.uoa.di.madgik.registry.startup;
 
 import tools.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import gr.uoa.di.madgik.registry.domain.index.SearchCapability;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +33,11 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.*;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -42,12 +48,15 @@ public class ResourceTypeInit implements ApplicationRunner {
     private final ResourceTypeService resourceTypeService;
     private final ObjectMapper mapper;
     private final String resourceTypesLocation;
+    private final boolean refresh;
 
 
     public ResourceTypeInit(@Value("${registry.resource-type-init.location:classpath*:resourceTypes}") String resourceTypesLocation,
+                            @Value("${registry.resource-type-init.refresh:false}") boolean refresh,
                             ResourceTypeService resourceTypeService,
                             ObjectMapper objectMapper) {
         this.resourceTypesLocation = resourceTypesLocation;
+        this.refresh = refresh;
         this.resourceTypeService = resourceTypeService;
         this.mapper = objectMapper;
     }
@@ -102,20 +111,103 @@ public class ResourceTypeInit implements ApplicationRunner {
     }
 
     /**
-     * Reads {@link ResourceType} from {@link Resource} and adds it if not exists.
+     * Reads {@link ResourceType} from {@link Resource} and adds or updates it based on content hash.
      *
      * @param resource The resource containing the {@link ResourceType}.
      * @throws IOException
      */
     private void addResourceTypeFromFile(Resource resource) throws IOException {
-        ResourceType resourceType = mapper.readValue(resource.getInputStream(), ResourceType.class);
-        if (resourceTypeService.getResourceType(resourceType.getName()) == null) {
-            logger.info("Adding [resourceType={}]", resourceType.getName());
-            resourceType.setCreationDate(Instant.now());
-            resourceType.setModificationDate(Instant.now());
-            resourceTypeService.addResourceType(resourceType);
+        ResourceType fromFile = mapper.readValue(resource.getInputStream(), ResourceType.class);
+        ResourceType existing = resourceTypeService.getResourceType(fromFile.getName());
+
+        if (existing == null) {
+            logger.info("Adding [resourceType={}]", fromFile.getName());
+            fromFile.setCreationDate(Instant.now());
+            fromFile.setModificationDate(Instant.now());
+            resourceTypeService.addResourceType(fromFile);
+        } else if (refresh && !contentHash(existing).equals(contentHash(fromFile))) {
+            logger.info("Updating [resourceType={}]", fromFile.getName());
+            fromFile.setCreationDate(existing.getCreationDate());
+            fromFile.setModificationDate(Instant.now());
+            resourceTypeService.updateResourceType(fromFile);
         } else {
-            logger.debug("Found [resourceType={}]", resourceType.getName());
+            logger.debug("Found [resourceType={}]", existing.getName());
+        }
+    }
+
+    private String contentHash(ResourceType rt) {
+        String json = mapper.writeValueAsString(ResourceTypeContent.of(rt));
+        return sha256Hex(json);
+    }
+
+    private static String sha256Hex(String input) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256")
+                    .digest(input.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
+    }
+
+    // --- canonical content records (metadata fields excluded) ---
+
+    private record IndexFieldContent(
+            String name,
+            String path,
+            String type,
+            String label,
+            String defaultValue,
+            boolean multivalued,
+            boolean primaryKey,
+            Set<SearchCapability> searchCapabilities,
+            float embeddingWeight,
+            String relatedResourceType,
+            String relatedResourceTypeField
+    ) {
+        static IndexFieldContent of(IndexField f) {
+            return new IndexFieldContent(
+                    f.getName(),
+                    f.getPath(),
+                    f.getType(),
+                    f.getLabel(),
+                    f.getDefaultValue(),
+                    f.isMultivalued(),
+                    f.isPrimaryKey(),
+                    f.getSearchCapabilities(),
+                    f.getEmbeddingWeight(),
+                    f.getRelatedResourceType(),
+                    f.getRelatedResourceTypeField()
+            );
+        }
+    }
+
+    private record ResourceTypeContent(
+            String name,
+            String schema,
+            String schemaUrl,
+            String payloadType,
+            String indexMapperClass,
+            List<IndexFieldContent> indexFields,
+            SortedSet<String> aliases,
+            SortedMap<String, String> properties
+    ) {
+        static ResourceTypeContent of(ResourceType rt) {
+            List<IndexFieldContent> fields = rt.getIndexFields() == null ? List.of() :
+                    rt.getIndexFields().stream()
+                            .sorted(Comparator.comparing(f -> f.getName() != null ? f.getName() : ""))
+                            .map(IndexFieldContent::of)
+                            .toList();
+            return new ResourceTypeContent(
+                    rt.getName(),
+                    rt.getSchema(),
+                    rt.getSchemaUrl(),
+                    rt.getPayloadType(),
+                    rt.getIndexMapperClass(),
+                    fields,
+                    rt.getAliases() != null ? new TreeSet<>(rt.getAliases()) : new TreeSet<>(),
+                    rt.getProperties() != null ? new TreeMap<>(rt.getProperties()) : new TreeMap<>()
+            );
         }
     }
 }
