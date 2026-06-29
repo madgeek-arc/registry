@@ -135,7 +135,7 @@ public class ResourceTypeInit implements ApplicationRunner {
         }
     }
 
-    private String contentHash(ResourceType rt) {
+    String contentHash(ResourceType rt) {
         String json = mapper.writeValueAsString(ResourceTypeContent.of(rt));
         return sha256Hex(json);
     }
