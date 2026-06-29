@@ -18,6 +18,7 @@ package gr.uoa.di.madgik.registry.service;
 
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.domain.index.IndexedField;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -129,4 +130,14 @@ public interface ResourceService {
      * @param id the resource identifier
      */
     void deleteResource(String id);
+
+    /**
+     * Computes the runtime indexed-field values from the payload of a transient {@link Resource}
+     * without persisting it. Used to prepare a resource for embedding before it is saved.
+     *
+     * @param resource a resource with its payload and resourceType set
+     * @return the extracted indexed fields
+     * @throws ServiceException if field extraction fails
+     */
+    List<IndexedField> getIndexedFields(Resource resource);
 }

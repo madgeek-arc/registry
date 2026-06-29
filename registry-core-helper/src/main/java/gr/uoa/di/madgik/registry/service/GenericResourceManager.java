@@ -85,6 +85,22 @@ public class GenericResourceManager implements GenericResourceService {
     }
 
     @Override
+    public <T> List<ScoredResult<T>> recommend(FacetFilter filter, T resource) {
+        String resourceTypeName = filter.getResourceType();
+        Class<?> clazz = getClassFromResourceType(resourceTypeName);
+        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
+        Resource rawResource = new Resource();
+        rawResource.setResourceTypeName(resourceTypeName);
+        rawResource.setResourceType(resourceType);
+        rawResource.setPayload(serialize(resource, resourceType));
+        rawResource.setIndexedFields(resourceService.getIndexedFields(rawResource));
+        return searchService.recommend(filter, rawResource)
+                .stream()
+                .map(scored -> scored.<T>map(r -> (T) parserPool.deserialize(r, clazz)))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public <T> T add(String resourceTypeName, T resource) {
         return add(resourceTypeName, resource, true);
     }

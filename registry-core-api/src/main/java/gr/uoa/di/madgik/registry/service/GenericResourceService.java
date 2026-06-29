@@ -234,6 +234,19 @@ public interface GenericResourceService {
     <T> T update(String resourceTypeName, T resource, boolean validate);
 
     /**
+     * Returns resources similar to the given domain object by computing its embedding on-the-fly.
+     *
+     * <p>Unlike {@link #recommend(FacetFilter, String)}, the resource does not need to be stored in
+     * the registry. Its payload is serialized and embedded transiently; no data is persisted.
+     *
+     * @param filter   the search and pagination criteria; {@link FacetFilter#getResourceType()} must be set
+     * @param resource the domain object to use as the similarity anchor
+     * @param <T>      the expected domain type of each result
+     * @return a scored list of similar resources ordered by descending similarity
+     */
+    <T> List<ScoredResult<T>> recommend(FacetFilter filter, T resource);
+
+    /**
      * Returns {@code true} if a resource matching the primary key field(s) of {@code resource}
      * already exists in the registry.
      *

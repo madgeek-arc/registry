@@ -249,7 +249,8 @@ public class ResourceServiceImpl implements ResourceService {
         resourceDao.deleteResource(resourceDao.getResource(id));
     }
 
-    private List<IndexedField> getIndexedFields(Resource resource) throws ServiceException {
+    @Override
+    public List<IndexedField> getIndexedFields(Resource resource) throws ServiceException {
 
         ResourceType resourceType = resourceTypeDao.getResourceType(resource.getResourceType().getName());
         IndexMapper indexMapper = null;

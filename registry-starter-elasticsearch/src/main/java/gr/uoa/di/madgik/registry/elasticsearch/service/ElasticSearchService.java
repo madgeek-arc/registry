@@ -35,6 +35,7 @@ import co.elastic.clients.json.JsonpMapper;
 import co.elastic.clients.util.NamedValue;
 import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.FacetUtils;
+import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.elasticsearch.autoconfigure.RegistryElasticsearchProperties;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
@@ -266,6 +267,26 @@ public class ElasticSearchService implements SearchService {
             }
         }
 
+        ObjectNode bool = mapper.createObjectNode();
+        bool.putArray("must").add(knnQueryNode(embedding, knnWindow(filter), 1.0f, 0.0f, knnPreFilter));
+        return mapper.createObjectNode().set("bool", bool);
+    }
+
+    private ObjectNode createRecommendationQueryNode(FacetFilter filter, float[] embedding) {
+        ObjectNode knnPreFilter = mapper.createObjectNode();
+        applyFilters(filter.getFilter(), knnPreFilter);
+        applyRangeFilters(filter.getRangeFilters(), knnPreFilter);
+        if (StringUtils.hasText(filter.getKeyword())) {
+            Set<String> textFields = new HashSet<>(resolveTextFields(filter.getResourceType()));
+            if (!textFields.isEmpty()) {
+                ObjectNode textQuery = mapper.createObjectNode();
+                ObjectNode multiMatch = textQuery.putObject("multi_match");
+                multiMatch.put("query", filter.getKeyword());
+                ArrayNode fields = multiMatch.putArray("fields");
+                textFields.forEach(fields::add);
+                withArray(knnPreFilter, "filter").add(textQuery);
+            }
+        }
         ObjectNode bool = mapper.createObjectNode();
         bool.putArray("must").add(knnQueryNode(embedding, knnWindow(filter), 1.0f, 0.0f, knnPreFilter));
         return mapper.createObjectNode().set("bool", bool);
@@ -739,6 +760,42 @@ public class ElasticSearchService implements SearchService {
 
         Query query = toQuery(createRecommendationQueryNode(filter, resourceIdAndValue, embedding));
 
+        try {
+            SearchResponse<ObjectNode> response = client.search(s -> s
+                            .index(filter.getResourceType())
+                            .searchType(SearchType.DfsQueryThenFetch)
+                            .query(query)
+                            .source(src -> src.filter(f -> f.includes(List.of(INCLUDES))))
+                            .from(filter.getFrom())
+                            .size(quantity)
+                            .trackTotalHits(t -> t.enabled(true)),
+                    ObjectNode.class);
+            return response.hits().hits().stream()
+                    .map(hit -> ScoredResult.of(hit.score() != null ? hit.score().floatValue() : 0.0f, toResource(hit)))
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            throw new ServiceException("Recommend search failed", e);
+        }
+    }
+
+    @Override
+    public List<ScoredResult<Resource>> recommend(FacetFilter filter, Resource queryResource) {
+        List<IndexField> indexFields = new ArrayList<>(
+                resourceTypeService.getResourceTypeIndexFields(queryResource.getResourceTypeName()));
+        List<Segment> segments = ResourceEmbeddingSegmenter.segment(queryResource, indexFields);
+        if (segments.isEmpty()) {
+            throw new gr.uoa.di.madgik.registry.exception.ResourceNotFoundException(
+                    "No embeddable fields found for resource type: " + queryResource.getResourceTypeName(),
+                    new UnsupportedOperationException("No weighted fields to embed"));
+        }
+        float[] embedding = embeddingService.embed(segments);
+        if (embeddingIsEmpty(embedding)) {
+            throw new gr.uoa.di.madgik.registry.exception.ResourceNotFoundException(
+                    "Could not compute a usable embedding for the provided resource",
+                    new UnsupportedOperationException("Embedding value is empty"));
+        }
+        int quantity = normalizeQuantity(filter.getQuantity());
+        Query query = toQuery(createRecommendationQueryNode(filter, embedding));
         try {
             SearchResponse<ObjectNode> response = client.search(s -> s
                             .index(filter.getResourceType())

@@ -63,6 +63,9 @@ public interface SearchService {
     List<ScoredResult<Resource>> recommend(FacetFilter filter, KeyValue resourceIdAndValue) throws ServiceException;
 
     @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
+    List<ScoredResult<Resource>> recommend(FacetFilter filter, Resource resource) throws ServiceException;
+
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     Paging<Resource> searchKeyword(String resourceType, String keyword) throws ServiceException;
 
     @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))

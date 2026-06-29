@@ -23,6 +23,8 @@ import gr.uoa.di.madgik.registry.domain.Highlight;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.ResourceEmbeddingChunk;
+import gr.uoa.di.madgik.registry.domain.ResourceEmbeddingChunker;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.ScoredResult;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
@@ -305,6 +307,81 @@ public class DefaultSearchService implements SearchService {
                     JOIN filtered f ON f.id = rc.resource_id
                     JOIN source_chunks sc ON sc.embedding_model = rc.embedding_model
                     WHERE rc.resource_id <> :source_id
+                      AND (:keyword_enabled = FALSE OR lower(f.payload) LIKE :keyword_pattern)
+                    GROUP BY rc.resource_id, rc.chunk_idx
+                ),
+                candidate_scores AS (
+                    SELECT resource_id,
+                           AVG(best_similarity) AS score
+                    FROM candidate_chunk_scores
+                    GROUP BY resource_id
+                )
+                SELECT r.*, scored.score
+                FROM candidate_scores scored
+                JOIN resource r ON r.id = scored.resource_id
+                WHERE scored.score > 0.5
+                ORDER BY scored.score DESC, r.modification_date DESC, r.id
+                OFFSET :from LIMIT :quantity
+                """.formatted(filteredQuery);
+
+        return npJdbcTemplate.query(recommendationQuery, params, (rs, rowNum) -> {
+            Resource resource = resourceRowMapper.mapRow(rs, rowNum);
+            float score = rs.getFloat("score");
+            return ScoredResult.of(score, resource);
+        });
+    }
+
+    @Override
+    public List<ScoredResult<Resource>> recommend(FacetFilter filter, Resource queryResource) throws ServiceException {
+        validateQuantity(filter.getQuantity());
+        ResourceType resourceType = requireSingleResourceType(filter.getResourceType());
+
+        List<IndexField> indexFields = new ArrayList<>(
+                resourceTypeService.getResourceTypeIndexFields(queryResource.getResourceTypeName()));
+        List<ResourceEmbeddingChunk> chunks = ResourceEmbeddingChunker.chunk(queryResource, indexFields);
+        if (chunks.isEmpty()) {
+            throw new ServiceException(
+                    "No embeddable fields found for resource type: " + queryResource.getResourceTypeName());
+        }
+        float[] queryEmbedding = null;
+        for (ResourceEmbeddingChunk chunk : chunks) {
+            float[] chunkEmbed = embeddingService.embed(chunk.embeddingText());
+            if (queryEmbedding == null) {
+                queryEmbedding = chunkEmbed.clone();
+            } else {
+                for (int i = 0; i < queryEmbedding.length; i++) {
+                    queryEmbedding[i] += chunkEmbed[i];
+                }
+            }
+        }
+        for (int i = 0; i < queryEmbedding.length; i++) {
+            queryEmbedding[i] /= chunks.size();
+        }
+        if (!isUsableEmbedding(queryEmbedding)) {
+            throw new ServiceException("Could not compute a usable embedding for the provided resource");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("queryVector", toVectorLiteral(queryEmbedding));
+        params.addValue("embeddingModel", embeddingService.modelName());
+        params.addValue("from", filter.getFrom());
+        params.addValue("quantity", filter.getQuantity());
+        params.addValue("keyword_enabled", StringUtils.hasText(filter.getKeyword()));
+        params.addValue("keyword_pattern", "%" + Objects.toString(filter.getKeyword(), "").toLowerCase(Locale.ROOT) + "%");
+
+        String filteredQuery = createFilteredResourceScopeQuery(filter, List.of(resourceType), params);
+        String recommendationQuery = """
+                WITH filtered AS (
+                    %s
+                ),
+                candidate_chunk_scores AS (
+                    SELECT rc.resource_id,
+                           rc.chunk_idx,
+                           -- (1 + cosine) / 2 maps [-1, 1] → (0, 1], matching Elasticsearch's kNN score formula.
+                           MAX((1 + (1 - (rc.embedding <=> CAST(:queryVector AS vector)))::real) / 2) AS best_similarity
+                    FROM resource_chunk rc
+                    JOIN filtered f ON f.id = rc.resource_id
+                    WHERE rc.embedding_model = :embeddingModel
                       AND (:keyword_enabled = FALSE OR lower(f.payload) LIKE :keyword_pattern)
                     GROUP BY rc.resource_id, rc.chunk_idx
                 ),

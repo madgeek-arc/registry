@@ -21,6 +21,7 @@ import tools.jackson.databind.ObjectMapper;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import gr.uoa.di.madgik.registry.domain.index.IndexedField;
 import gr.uoa.di.madgik.registry.service.ResourceService;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 import org.slf4j.Logger;
@@ -167,6 +168,11 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     public void deleteResource(String id) {
         restTemplate.delete(registryHost + "/resources/" + id);
+    }
+
+    @Override
+    public List<IndexedField> getIndexedFields(Resource resource) {
+        throw new UnsupportedOperationException("Not implemented by registry-starter-client");
     }
 
 }

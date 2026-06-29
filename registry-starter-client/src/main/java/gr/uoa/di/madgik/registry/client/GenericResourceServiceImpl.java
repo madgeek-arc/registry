@@ -134,6 +134,11 @@ public class GenericResourceServiceImpl implements GenericResourceService {
     }
 
     @Override
+    public <T> List<ScoredResult<T>> recommend(FacetFilter filter, T resource) {
+        throw new UnsupportedOperationException("Not implemented by registry-starter-client");
+    }
+
+    @Override
     public <T> T add(String resourceTypeName, T resource) {
         return add(resourceTypeName, resource, true);
     }
