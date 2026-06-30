@@ -130,12 +130,20 @@ public class GenericResourceServiceImpl implements GenericResourceService {
 
     @Override
     public <T> List<ScoredResult<T>> recommend(FacetFilter filter, String id) {
-        throw new UnsupportedOperationException("Not implemented by registry-starter-client");
+        ResponseEntity<List> response = restTemplate.getForEntity(buildRecommendationsUri(filter, id), List.class);
+        List<?> body = response.getBody() == null ? List.of() : response.getBody();
+        return convertScoredResults(body, filter.getResourceType());
     }
 
     @Override
     public <T> List<ScoredResult<T>> recommend(FacetFilter filter, T resource) {
-        throw new UnsupportedOperationException("Not implemented by registry-starter-client");
+        String url = buildResourceRecommendationsUri(filter);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<T> entity = new HttpEntity<>(resource, headers);
+        ResponseEntity<List> response = restTemplate.exchange(url, HttpMethod.POST, entity, List.class);
+        List<?> body = response.getBody() == null ? List.of() : response.getBody();
+        return convertScoredResults(body, filter.getResourceType());
     }
 
     @Override
@@ -262,6 +270,15 @@ public class GenericResourceServiceImpl implements GenericResourceService {
 
     private String buildRecommendationsUri(FacetFilter filter, String id) {
         String base = registryHost + "/records/" + filter.getResourceType() + "/" + id + "/recommendations";
+        return buildRecommendationsBase(base, filter);
+    }
+
+    private String buildResourceRecommendationsUri(FacetFilter filter) {
+        String base = registryHost + "/records/" + filter.getResourceType() + "/recommendations";
+        return buildRecommendationsBase(base, filter);
+    }
+
+    private String buildRecommendationsBase(String base, FacetFilter filter) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(base)
                 .queryParam("keyword", filter.getKeyword())
                 .queryParam("from", filter.getFrom())
@@ -279,6 +296,19 @@ public class GenericResourceServiceImpl implements GenericResourceService {
             }
         }
         return builder.toUriString();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> List<ScoredResult<T>> convertScoredResults(List<?> items, String resourceTypeName) {
+        return items.stream()
+                .map(item -> {
+                    ScoredResult<?> raw = objectMapper.convertValue(item, ScoredResult.class);
+                    ScoredResult<T> sr = new ScoredResult<>();
+                    sr.setScore(raw.getScore());
+                    sr.setResult((T) convertValue(raw.getResult(), resourceTypeName));
+                    return sr;
+                })
+                .toList();
     }
 
     private <T> Paging<T> convertPaging(Paging<?> paging, String resourceTypeName) {

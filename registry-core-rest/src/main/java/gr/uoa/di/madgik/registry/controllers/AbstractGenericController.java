@@ -332,4 +332,19 @@ public abstract class AbstractGenericController<T> {
         List<ScoredResult<T>> results = genericResourceService.recommend(filter, id);
         return ResponseEntity.ok(results);
     }
+
+    @Operation(
+            summary = "Get recommendations for a resource payload",
+            description = "Returns resources similar to the provided resource payload, ordered by descending similarity. The resource does not need to be stored."
+    )
+    @BrowseParameters
+    @PostMapping(path = "/recommendations", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<ScoredResult<T>>> recommendByResource(
+            @RequestBody T resource,
+            @Parameter(hidden = true) @RequestParam MultiValueMap<String, Object> params) {
+        FacetFilter filter = FacetFilter.from(params);
+        filter.setResourceType(getResourceTypeName());
+        List<ScoredResult<T>> results = genericResourceService.recommend(filter, resource);
+        return ResponseEntity.ok(results);
+    }
 }

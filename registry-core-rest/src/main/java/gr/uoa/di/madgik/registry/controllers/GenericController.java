@@ -20,7 +20,6 @@ import gr.uoa.di.madgik.registry.annotation.BrowseParameters;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
-
 import gr.uoa.di.madgik.registry.service.GenericResourceService;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.http.HttpStatus;
@@ -130,5 +129,16 @@ public class GenericController {
         FacetFilter filter = FacetFilter.from(params);
         filter.setResourceType(resourceType);
         return ResponseEntity.ok(genericResourceService.recommend(filter, id));
+    }
+
+    @PostMapping(path = "{resourceType}/recommendations", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @BrowseParameters
+    public ResponseEntity<List<?>> recommendByResource(
+            @PathVariable("resourceType") String resourceType,
+            @RequestBody Object resource,
+            @Parameter(hidden = true) @RequestParam MultiValueMap<String, Object> params) {
+        FacetFilter filter = FacetFilter.from(params);
+        filter.setResourceType(resourceType);
+        return ResponseEntity.ok(genericResourceService.recommend(filter, resource));
     }
 }
