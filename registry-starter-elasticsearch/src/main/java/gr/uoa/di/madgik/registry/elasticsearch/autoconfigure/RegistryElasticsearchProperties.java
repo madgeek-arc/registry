@@ -37,6 +37,7 @@ import java.util.List;
  *       bucket-size: 100
  *     index:
  *       max-result-window: 10000
+ *       bulk-batch-size: 100
  *     search:
  *       highlight:
  *         fragment-size: 400
@@ -154,12 +155,28 @@ public class RegistryElasticsearchProperties {
          */
         private int maxResultWindow = 10000;
 
+        /**
+         * Maximum number of resources sent per Elasticsearch bulk request. Large resource types are
+         * split into sub-batches of this size so a single HTTP request doesn't exceed proxy/gateway
+         * body-size limits. Lower this if you see HTTP 413 errors during resource-type re-index or bulk
+         * restore; raise it to reduce the number of round-trips for large collections.
+         */
+        private int bulkBatchSize = 100;
+
         public int getMaxResultWindow() {
             return maxResultWindow;
         }
 
         public void setMaxResultWindow(int maxResultWindow) {
             this.maxResultWindow = maxResultWindow;
+        }
+
+        public int getBulkBatchSize() {
+            return bulkBatchSize;
+        }
+
+        public void setBulkBatchSize(int bulkBatchSize) {
+            this.bulkBatchSize = bulkBatchSize;
         }
     }
 

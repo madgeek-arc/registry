@@ -146,6 +146,7 @@ public class ElasticOperationsService implements IndexOperationsService {
     private final ElasticsearchClient client;
     private final EmbeddingService embeddingService;
     private final ObjectMapper objectMapper;
+    private final int bulkBatchSize;
 
     /**
      * Creates an indexing service backed by the typed Elasticsearch Java client.
@@ -153,31 +154,51 @@ public class ElasticOperationsService implements IndexOperationsService {
     public ElasticOperationsService(ResourceTypeService resourceTypeService, ResourceService resourceService,
                                     ElasticsearchClient client, EmbeddingService embeddingService,
                                     ObjectMapper objectMapper) {
+        this(resourceTypeService, resourceService, client, embeddingService, objectMapper, 100);
+    }
+
+    /**
+     * Creates an indexing service backed by the typed Elasticsearch Java client.
+     *
+     * @param bulkBatchSize maximum number of resources sent per Elasticsearch bulk request; larger
+     *                      resource lists are split into sub-batches of this size
+     */
+    public ElasticOperationsService(ResourceTypeService resourceTypeService, ResourceService resourceService,
+                                    ElasticsearchClient client, EmbeddingService embeddingService,
+                                    ObjectMapper objectMapper, int bulkBatchSize) {
         this.resourceTypeService = resourceTypeService;
         this.resourceService = resourceService;
         this.client = client;
         this.embeddingService = embeddingService;
         this.objectMapper = objectMapper;
+        this.bulkBatchSize = bulkBatchSize;
     }
 
     @Override
+    @Retryable(retryFor = ServiceException.class, maxAttempts = 2, backoff = @Backoff(value = 200))
     public void addBulk(List<Resource> resources) {
         if (resources == null || resources.isEmpty()) {
             return;
         }
-        try {
-            List<BulkOperation> ops = new ArrayList<>();
-            for (Resource resource : resources) {
-                Map<String, Object> doc = createDocumentForInsert(resource);
-                String indexName = resource.getResourceType().getName();
-                String resourceId = resource.getId();
-                ops.add(BulkOperation.of(op -> op.index(idx -> idx
-                        .index(indexName).id(resourceId).document(doc))));
+        // Split into sub-batches so a single HTTP request doesn't exceed proxy/gateway body-size
+        // limits (a large resource type sent as one bulk request can trigger an upstream 413).
+        for (int start = 0; start < resources.size(); start += bulkBatchSize) {
+            List<Resource> batch = resources.subList(start, Math.min(start + bulkBatchSize, resources.size()));
+            try {
+                List<BulkOperation> ops = new ArrayList<>();
+                for (Resource resource : batch) {
+                    Map<String, Object> doc = createDocumentForInsert(resource);
+                    String indexName = resource.getResourceType().getName();
+                    String resourceId = resource.getId();
+                    ops.add(BulkOperation.of(op -> op.index(idx -> idx
+                            .index(indexName).id(resourceId).document(doc))));
+                }
+                logger.info("Sending bulk request for {} resources ({} of {})",
+                        batch.size(), start + batch.size(), resources.size());
+                client.bulk(b -> b.operations(ops).refresh(Refresh.True));
+            } catch (IOException e) {
+                throw new ServiceException("Elastic bulk request failed", e);
             }
-            logger.info("Sending bulk request for {} resources", resources.size());
-            client.bulk(b -> b.operations(ops).refresh(Refresh.True));
-        } catch (IOException e) {
-            throw new ServiceException("Elastic bulk request failed", e);
         }
     }
 

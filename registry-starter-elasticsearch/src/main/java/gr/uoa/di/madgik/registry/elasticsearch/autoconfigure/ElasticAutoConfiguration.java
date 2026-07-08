@@ -135,8 +135,10 @@ public class ElasticAutoConfiguration {
                                                   ResourceService resourceService,
                                                   ElasticsearchClient client,
                                                   EmbeddingService embeddingService,
-                                                  ObjectMapper objectMapper) {
-        return new ElasticOperationsService(resourceTypeService, resourceService, client, embeddingService, objectMapper);
+                                                  ObjectMapper objectMapper,
+                                                  RegistryElasticsearchProperties elasticsearchProperties) {
+        return new ElasticOperationsService(resourceTypeService, resourceService, client, embeddingService,
+                objectMapper, elasticsearchProperties.getIndex().getBulkBatchSize());
     }
 
     /**
