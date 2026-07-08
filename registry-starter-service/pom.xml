@@ -93,6 +93,15 @@
             <scope>compile</scope>
         </dependency>
 
+        <!-- Optional: only consumers that already depend on Spring Security pull this in
+             transitively; it enables the opt-in records/**-scoped HttpFirewall relaxation
+             in RegistryServiceAutoConfiguration for consumers with "prefix/suffix" domain primary keys. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Spring -->
         <dependency>
             <groupId>org.springframework</groupId>
@@ -173,6 +182,16 @@
         </dependency>
 
         <!-- Test-->
+        <!-- GenericResourceManager (GenericResourceService impl) lives here, not in this module.
+             Not a compile dependency: every real consumer (e.g. resource-catalogue-service)
+             declares registry-core-helper itself alongside this starter, so GenericController
+             is only live in a real application when both are present together. Needed here at
+             test scope to exercise that same real wiring in this module's own integration tests. -->
+        <dependency>
+            <groupId>gr.uoa.di.madgik</groupId>
+            <artifactId>registry-core-helper</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>

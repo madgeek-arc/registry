@@ -17,8 +17,12 @@
 package gr.uoa.di.madgik.registry.configuration;
 
 import gr.uoa.di.madgik.registry.autoconfigure.RegistryEmbeddingServiceAutoConfiguration;
+import gr.uoa.di.madgik.registry.service.FacetLabelService;
+import gr.uoa.di.madgik.registry.service.GenericResourceManager;
+import gr.uoa.di.madgik.registry.service.ParserPool;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
@@ -32,6 +36,11 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         RegistryEmbeddingServiceAutoConfiguration.class
 })
 @EnableTransactionManagement
+// registry-core-helper (test-scope, see registry-starter-service/pom.xml) shares the
+// "gr.uoa.di.madgik.registry.service" package with this module's own service classes, so its
+// beans need excluding here: GenericResourceManager/ParserPool require a JAXBContext bean that
+// this narrower test context doesn't provide (only the full RegistryServiceAutoConfiguration
+// chain does), and FacetLabelService is likewise out of scope for DAO/service-level tests.
 @ComponentScan(basePackages = {
         "gr.uoa.di.madgik.registry.dao",
         "gr.uoa.di.madgik.registry.repository",
@@ -40,7 +49,9 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         "gr.uoa.di.madgik.registry.monitor",
         "gr.uoa.di.madgik.registry.validation",
         "gr.uoa.di.madgik.registry.backup"
-})
+},
+        excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
+                classes = {GenericResourceManager.class, ParserPool.class, FacetLabelService.class}))
 
 public class DatabaseConfiguration {
 
