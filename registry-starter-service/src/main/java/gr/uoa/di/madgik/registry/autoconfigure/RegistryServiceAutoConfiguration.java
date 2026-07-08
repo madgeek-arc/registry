@@ -23,6 +23,7 @@ import gr.uoa.di.madgik.registry.configuration.HibernateConfiguration;
 import gr.uoa.di.madgik.registry.configuration.ServiceConfiguration;
 import gr.uoa.di.madgik.registry.security.EncodedSlashHttpFirewall;
 import gr.uoa.di.madgik.registry.service.GenericResourceService;
+import gr.uoa.di.madgik.registry.service.VersionService;
 import gr.uoa.di.madgik.registry.startup.ResourceTypeInit;
 import org.apache.catalina.connector.Connector;
 import org.springframework.beans.factory.annotation.Value;
@@ -75,8 +76,8 @@ public class RegistryServiceAutoConfiguration {
     @ConditionalOnBean(GenericResourceService.class)
     @ConditionalOnMissingBean(GenericController.class)
     @ConditionalOnProperty(prefix = "registry.rest.generic-controller", name = "enabled", havingValue = "true", matchIfMissing = true)
-    GenericController genericController(GenericResourceService genericResourceService) {
-        return new GenericController(genericResourceService);
+    GenericController genericController(GenericResourceService genericResourceService, VersionService versionService) {
+        return new GenericController(genericResourceService, versionService);
     }
 
     /**
@@ -99,17 +100,16 @@ public class RegistryServiceAutoConfiguration {
 
     /**
      * Off by default, same flag as tomcatEncodedSlashCustomizer. Relaxes the firewall only for
-     * the configured path prefixes plus "records" (GenericController's base path), which is
-     * always included since GenericController is always registered by this starter — every
-     * other path keeps Spring Security's default strict firewall. A consumer only needs to list
-     * its own extra paths, e.g. "service,datasource"; "records" doesn't need to be repeated.
-     * Only takes effect when the consumer has Spring Security on its classpath
-     * (ConditionalOnClass) — consumers without Spring Security have no firewall to relax and get
-     * only the Tomcat-level fix above, which is all they need. Named (not type-based)
-     * ConditionalOnMissingBean so a consumer can supply its own WebSecurityCustomizer under a
-     * different name without conflict; note Spring Security accepts a
-     * List<WebSecurityCustomizer>, so if a consumer's own customizer also calls
-     * .httpFirewall(...), the last one applied wins.
+     * the configured path prefixes plus GenericController.BASE_PATH ("records"), which is always
+     * included since GenericController is always registered by this starter — every other path
+     * keeps Spring Security's default strict firewall. A consumer only needs to list its own
+     * extra paths, e.g. "service,datasource"; "records" doesn't need to be repeated. Only takes
+     * effect when the consumer has Spring Security on its classpath (ConditionalOnClass) —
+     * consumers without Spring Security have no firewall to relax and get only the Tomcat-level
+     * fix above, which is all they need. Named (not type-based) ConditionalOnMissingBean so a
+     * consumer can supply its own WebSecurityCustomizer under a different name without conflict;
+     * note Spring Security accepts a List<WebSecurityCustomizer>, so if a consumer's own
+     * customizer also calls .httpFirewall(...), the last one applied wins.
      */
     @Bean
     @ConditionalOnClass({HttpFirewall.class, WebSecurityCustomizer.class})
@@ -119,7 +119,7 @@ public class RegistryServiceAutoConfiguration {
             @Value("${registry.rest.generic-controller.encoded-slash-paths:}")
             List<String> encodedSlashPaths) {
         Set<String> paths = new LinkedHashSet<>(encodedSlashPaths);
-        paths.add("records");
+        paths.add(GenericController.BASE_PATH);
         HttpFirewall firewall = new EncodedSlashHttpFirewall(paths);
         return web -> web.httpFirewall(firewall);
     }

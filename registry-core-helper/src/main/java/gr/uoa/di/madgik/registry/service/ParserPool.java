@@ -79,16 +79,28 @@ public class ParserPool implements ParserService {
      *                          (XML only — see class-level documentation for how to register it)
      */
     @Override
-    @SuppressWarnings("unchecked")
     public <T> T deserialize(Resource resource, Class<T> returnType) {
         if (resource == null) {
             throw new ServiceException("Cannot deserialize a null resource");
         }
-        return switch (resource.getPayloadFormat()) {
-            case "xml" -> deserializeXml(resource.getPayload(), returnType);
-            case "json" -> deserializeJson(resource.getPayload(), returnType);
+        return deserialize(resource.getPayload(), resource.getPayloadFormat(), returnType);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @throws ServiceException if the payload format is not {@code "json"} or {@code "xml"},
+     *                          if JSON parsing fails, or if the target class is not registered
+     *                          in the {@link JAXBContext} (XML only — see class-level
+     *                          documentation for how to register it)
+     */
+    @Override
+    public <T> T deserialize(String payload, String payloadFormat, Class<T> returnType) {
+        return switch (payloadFormat) {
+            case "xml" -> deserializeXml(payload, returnType);
+            case "json" -> deserializeJson(payload, returnType);
             default -> throw new ServiceException(
-                    "Unsupported payload format '" + resource.getPayloadFormat() + "'. "
+                    "Unsupported payload format '" + payloadFormat + "'. "
                     + "Supported formats are: 'json', 'xml'.");
         };
     }

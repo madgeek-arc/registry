@@ -20,7 +20,12 @@ import gr.uoa.di.madgik.registry.annotation.BrowseParameters;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
+import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.Version;
+import gr.uoa.di.madgik.registry.domain.VersionDTO;
+import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.service.GenericResourceService;
+import gr.uoa.di.madgik.registry.service.VersionService;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,13 +36,17 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping(path = "records", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = GenericController.BASE_PATH, produces = MediaType.APPLICATION_JSON_VALUE)
 public class GenericController {
 
-    private final GenericResourceService genericResourceService;
+    public static final String BASE_PATH = "records";
 
-    public GenericController(GenericResourceService genericResourceService) {
+    private final GenericResourceService genericResourceService;
+    private final VersionService versionService;
+
+    public GenericController(GenericResourceService genericResourceService, VersionService versionService) {
         this.genericResourceService = genericResourceService;
+        this.versionService = versionService;
     }
 
     @PostMapping(path = "{resourceType}", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -118,6 +127,44 @@ public class GenericController {
     public ResponseEntity<Object> get(@PathVariable("resourceType") String resourceType,
                                       @PathVariable("id") String id) {
         return ResponseEntity.ok(genericResourceService.get(resourceType, id));
+    }
+
+    @GetMapping("{resourceType}/{id}/versions")
+    public ResponseEntity<List<VersionDTO<Object>>> getVersions(@PathVariable("resourceType") String resourceType,
+                                                                 @PathVariable("id") String id) {
+        Resource resource = genericResourceService.searchResource(resourceType, id, true);
+        List<Version> versions = versionService.getVersionsByResource(resource.getId());
+        List<VersionDTO<Object>> dtos = versions == null ? List.of() : versions.stream()
+                .map(v -> toVersionDTO(resourceType, v))
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
+
+    /**
+     * Fetches a single historical version of a resource.
+     *
+     * @param version the version label, i.e. {@link VersionDTO#getVersion()} from the
+     *                {@code /versions} listing endpoint.
+     */
+    @GetMapping("{resourceType}/{id}/versions/{version}")
+    public ResponseEntity<VersionDTO<Object>> getVersion(@PathVariable("resourceType") String resourceType,
+                                                         @PathVariable("id") String id,
+                                                         @PathVariable("version") String version) {
+        Resource resource = genericResourceService.searchResource(resourceType, id, true);
+        Version resourceVersion = versionService.getVersion(resource.getId(), version);
+        if (resourceVersion == null) {
+            throw new ResourceNotFoundException(version);
+        }
+        return ResponseEntity.ok(toVersionDTO(resourceType, resourceVersion));
+    }
+
+    private VersionDTO<Object> toVersionDTO(String resourceType, Version version) {
+        VersionDTO<Object> dto = new VersionDTO<>();
+        dto.setVersion(version.getVersion());
+        dto.setCreationDate(version.getCreationDate());
+        dto.setResourceId(version.getResource() != null ? version.getResource().getId() : null);
+        dto.setPayload(genericResourceService.get(resourceType, version));
+        return dto;
     }
 
     @GetMapping("{resourceType}/{id}/recommendations")

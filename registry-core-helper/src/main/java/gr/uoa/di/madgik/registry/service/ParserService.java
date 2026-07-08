@@ -84,6 +84,24 @@ public interface ParserService {
     <T> T deserialize(Resource resource, Class<T> returnType);
 
     /**
+     * Deserializes a raw payload string into an instance of {@code returnType}.
+     *
+     * <p>Use this overload when the payload is not backed by a {@link Resource} — e.g. a
+     * historical {@code Version} snapshot, which stores its own payload string but no
+     * {@code payloadFormat} field.
+     *
+     * @param payload      the raw serialized payload string; must not be {@code null}
+     * @param payloadFormat the format of the payload ({@code "json"} or {@code "xml"})
+     * @param returnType   the target Java class; for XML payloads this class must be registered
+     *                     in the {@code JAXBContext} bean
+     * @param <T>          the target type
+     * @return the deserialized domain object, never {@code null}
+     * @throws ServiceException if the format is unsupported, if parsing fails, or (for XML) if
+     *                          the class is not registered in the {@code JAXBContext}
+     */
+    <T> T deserialize(String payload, String payloadFormat, Class<T> returnType);
+
+    /**
      * Serializes {@code resource} to a string in the given {@code mediaType}.
      *
      * @param resource  the domain object to serialize; must not be {@code null}

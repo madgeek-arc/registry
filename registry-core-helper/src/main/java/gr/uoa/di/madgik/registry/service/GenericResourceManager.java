@@ -167,6 +167,16 @@ public class GenericResourceManager implements GenericResourceService {
     }
 
     @Override
+    public <T> T get(String resourceTypeName, Version version) {
+        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
+        if (resourceType == null) {
+            throw new ResourceNotFoundException(resourceTypeName);
+        }
+        return (T) parserPool.deserialize(version.getPayload(), resourceType.getPayloadType(),
+                getClassFromResourceType(resourceTypeName));
+    }
+
+    @Override
     public <T> Paging<T> getResults(FacetFilter filter) {
         Paging<T> results = convertToPaging(searchService.search(filter), filter.getResourceType());
         facetLabelService.enrichFacetLabels(results.getFacets(), filter.getResourceType());

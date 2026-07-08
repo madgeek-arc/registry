@@ -22,6 +22,7 @@ import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ScoredResult;
+import gr.uoa.di.madgik.registry.domain.Version;
 
 import java.util.List;
 import java.util.Map;
@@ -99,6 +100,21 @@ public interface GenericResourceService {
      *         the given id exists
      */
     <T> T get(String resourceTypeName, String id);
+
+    /**
+     * Deserializes a historical {@link Version} snapshot into the same domain type that
+     * {@code resourceTypeName} maps to.
+     *
+     * <p>Use this to resolve the payload of a {@code Version} returned by
+     * {@code VersionService} into the same object shape as {@link #get(String, String)},
+     * rather than exposing the raw registry {@link Version} entity to callers.
+     *
+     * @param resourceTypeName the name of the {@code ResourceType} the version belongs to
+     * @param version          the version whose payload snapshot should be deserialized
+     * @param <T>              the expected domain type
+     * @return the deserialized domain object as it existed at that version
+     */
+    <T> T get(String resourceTypeName, Version version);
 
     /**
      * Returns a paginated, faceted list of resources matching the given filter.

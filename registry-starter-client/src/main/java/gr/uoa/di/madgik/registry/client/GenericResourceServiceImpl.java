@@ -82,6 +82,11 @@ public class GenericResourceServiceImpl implements GenericResourceService {
     }
 
     @Override
+    public <T> T get(String resourceTypeName, Version version) {
+        return deserializePayload(version.getPayload(), resourceTypeName);
+    }
+
+    @Override
     public <T> Paging<T> getResults(FacetFilter filter) {
         ResponseEntity<Paging> response = restTemplate.getForEntity(buildBrowseUri(filter, null, false), Paging.class);
         Paging<?> paging = response.getBody() == null ? new Paging<>() : response.getBody();
@@ -346,12 +351,16 @@ public class GenericResourceServiceImpl implements GenericResourceService {
     }
 
     private <T> T deserialize(Resource resource, String resourceTypeName) {
+        return deserializePayload(resource.getPayload(), resourceTypeName);
+    }
+
+    private <T> T deserializePayload(String payload, String resourceTypeName) {
         Class<?> clazz = getClassFromResourceType(resourceTypeName);
         if (clazz == null || Map.class.equals(clazz)) {
-            return (T) parsePayloadAsMap(resource.getPayload());
+            return (T) parsePayloadAsMap(payload);
         }
         try {
-            return (T) objectMapper.readValue(resource.getPayload(), clazz);
+            return (T) objectMapper.readValue(payload, clazz);
         } catch (JacksonException e) {
             throw new ResourceException("Could not deserialize resource payload for " + resourceTypeName, HttpStatus.UNPROCESSABLE_CONTENT);
         }
