@@ -21,12 +21,11 @@ import gr.uoa.di.madgik.registry.configuration.BackupRestoreConfig;
 import gr.uoa.di.madgik.registry.configuration.BatchConfig;
 import gr.uoa.di.madgik.registry.configuration.HibernateConfiguration;
 import gr.uoa.di.madgik.registry.configuration.ServiceConfiguration;
-import gr.uoa.di.madgik.registry.security.EncodedSlashHttpFirewall;
+import gr.uoa.di.madgik.registry.security.EncodedSlashHttpFirewallConfiguration;
 import gr.uoa.di.madgik.registry.service.GenericResourceService;
 import gr.uoa.di.madgik.registry.service.VersionService;
 import gr.uoa.di.madgik.registry.startup.ResourceTypeInit;
 import org.apache.catalina.connector.Connector;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -39,11 +38,6 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
-import org.springframework.security.web.firewall.HttpFirewall;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -57,6 +51,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
         ServiceConfiguration.class,
         ResourceTypeInit.class,
         RegistryServiceComponentsConfiguration.class,
+        EncodedSlashHttpFirewallConfiguration.class,
 })
 public class RegistryServiceAutoConfiguration {
 
@@ -98,30 +93,8 @@ public class RegistryServiceAutoConfiguration {
                 connector -> connector.setEncodedSolidusHandling("passthrough"));
     }
 
-    /**
-     * Off by default, same flag as tomcatEncodedSlashCustomizer. Relaxes the firewall only for
-     * the configured path prefixes plus GenericController.BASE_PATH ("records"), which is always
-     * included since GenericController is always registered by this starter — every other path
-     * keeps Spring Security's default strict firewall. A consumer only needs to list its own
-     * extra paths, e.g. "service,datasource"; "records" doesn't need to be repeated. Only takes
-     * effect when the consumer has Spring Security on its classpath (ConditionalOnClass) —
-     * consumers without Spring Security have no firewall to relax and get only the Tomcat-level
-     * fix above, which is all they need. Named (not type-based) ConditionalOnMissingBean so a
-     * consumer can supply its own WebSecurityCustomizer under a different name without conflict;
-     * note Spring Security accepts a List<WebSecurityCustomizer>, so if a consumer's own
-     * customizer also calls .httpFirewall(...), the last one applied wins.
-     */
-    @Bean
-    @ConditionalOnClass({HttpFirewall.class, WebSecurityCustomizer.class})
-    @ConditionalOnMissingBean(name = "encodedSlashHttpFirewallCustomizer")
-    @ConditionalOnProperty(prefix = "registry.rest.generic-controller", name = "allow-encoded-slash", havingValue = "true")
-    WebSecurityCustomizer encodedSlashHttpFirewallCustomizer(
-            @Value("${registry.rest.generic-controller.encoded-slash-paths:}")
-            List<String> encodedSlashPaths) {
-        Set<String> paths = new LinkedHashSet<>(encodedSlashPaths);
-        paths.add(GenericController.BASE_PATH);
-        HttpFirewall firewall = new EncodedSlashHttpFirewall(paths);
-        return web -> web.httpFirewall(firewall);
-    }
+    // encodedSlashHttpFirewallCustomizer lives in EncodedSlashHttpFirewallConfiguration (imported
+    // above) so its Spring Security types are only introspected when that class's own
+    // ConditionalOnClass already holds — see the javadoc there for why.
 
 }
