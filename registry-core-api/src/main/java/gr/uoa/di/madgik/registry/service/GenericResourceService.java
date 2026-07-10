@@ -102,6 +102,26 @@ public interface GenericResourceService {
     <T> T get(String resourceTypeName, String id);
 
     /**
+     * Retrieves a single resource of the given type by its full primary key.
+     *
+     * <p>Use this instead of {@link #get(String, String)} for resource types with a composite
+     * primary key, where a single scalar {@code id} cannot unambiguously identify a resource.
+     *
+     * @param resourceTypeName the name of the {@code ResourceType} to search within
+     * @param keyValues        a map from primary-key field name to its value; must contain
+     *                         exactly the resource type's declared primary-key fields, no more,
+     *                         no fewer
+     * @param <T>              the expected domain type
+     * @return the deserialized domain object
+     * @throws gr.uoa.di.madgik.registry.exception.ResourceNotFoundException if no resource
+     *         matching the key exists
+     * @throws gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException if
+     *         {@code keyValues} does not contain exactly the resource type's declared
+     *         primary-key fields
+     */
+    <T> T getByKey(String resourceTypeName, Map<String, String> keyValues);
+
+    /**
      * Deserializes a historical {@link Version} snapshot into the same domain type that
      * {@code resourceTypeName} maps to.
      *
@@ -304,6 +324,19 @@ public interface GenericResourceService {
     <T> T delete(String resourceTypeName, String id);
 
     /**
+     * Deletes the resource matching the given full primary key.
+     *
+     * @see #getByKey(String, Map) for the key-matching rules and exceptions this method shares
+     * @param resourceTypeName the name of the {@code ResourceType} that owns the resource
+     * @param keyValues        a map from primary-key field name to its value; must contain
+     *                         exactly the resource type's declared primary-key fields, no more,
+     *                         no fewer
+     * @param <T>              the domain type
+     * @return the domain object as it was at the time of deletion
+     */
+    <T> T deleteByKey(String resourceTypeName, Map<String, String> keyValues);
+
+    /**
      * Validates the given resource against the registered validation rules for its type,
      * without persisting it.
      *
@@ -352,4 +385,19 @@ public interface GenericResourceService {
      * @return the raw {@link Resource}, or {@code null} if no match is found
      */
     Resource searchResource(String resourceTypeName, SearchService.KeyValue... keyValues);
+
+    /**
+     * Searches for the raw {@link Resource} wrapper matching the given full primary key.
+     *
+     * @see #getByKey(String, Map) for the key-matching rules and exceptions this method shares
+     * @param resourceTypeName the name of the {@code ResourceType} to search within
+     * @param keyValues        a map from primary-key field name to its value; must contain
+     *                         exactly the resource type's declared primary-key fields, no more,
+     *                         no fewer
+     * @param throwOnNull      if {@code true}, throws an exception when no resource is found;
+     *                         if {@code false}, returns {@code null} instead
+     * @return the raw {@link Resource}, or {@code null} if not found and {@code throwOnNull}
+     *         is {@code false}
+     */
+    Resource searchResourceByKey(String resourceTypeName, Map<String, String> keyValues, boolean throwOnNull);
 }

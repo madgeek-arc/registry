@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 @Service("genericResourceService")
 public class GenericResourceServiceImpl implements GenericResourceService {
@@ -84,6 +85,12 @@ public class GenericResourceServiceImpl implements GenericResourceService {
     @Override
     public <T> T get(String resourceTypeName, Version version) {
         return deserializePayload(version.getPayload(), resourceTypeName);
+    }
+
+    @Override
+    public <T> T getByKey(String resourceTypeName, Map<String, String> keyValues) {
+        ResponseEntity<Object> response = restTemplate.getForEntity(buildKeyUri(resourceTypeName, keyValues), Object.class);
+        return convertBody(response.getBody(), resourceTypeName);
     }
 
     @Override
@@ -171,7 +178,7 @@ public class GenericResourceServiceImpl implements GenericResourceService {
 
     @Override
     public <T> T update(String resourceTypeName, T resource, boolean validate) {
-        return exchangeBody(resourceTypeName, resolvePrimaryId(resourceTypeName, resource), resource, HttpMethod.PUT);
+        return exchangeBody(resourceTypeName, null, resource, HttpMethod.PUT);
     }
 
     @Override
@@ -184,6 +191,17 @@ public class GenericResourceServiceImpl implements GenericResourceService {
     public <T> T delete(String resourceTypeName, String id) {
         ResponseEntity<Object> response = restTemplate.exchange(
                 registryHost + "/records/" + resourceTypeName + "/" + id,
+                HttpMethod.DELETE,
+                null,
+                Object.class
+        );
+        return convertBody(response.getBody(), resourceTypeName);
+    }
+
+    @Override
+    public <T> T deleteByKey(String resourceTypeName, Map<String, String> keyValues) {
+        ResponseEntity<Object> response = restTemplate.exchange(
+                buildKeyUri(resourceTypeName, keyValues),
                 HttpMethod.DELETE,
                 null,
                 Object.class
@@ -222,6 +240,18 @@ public class GenericResourceServiceImpl implements GenericResourceService {
     @Override
     public Resource searchResource(String resourceTypeName, SearchService.KeyValue... keyValues) {
         return searchService.searchFields(resourceTypeName, keyValues);
+    }
+
+    @Override
+    public Resource searchResourceByKey(String resourceTypeName, Map<String, String> keyValues, boolean throwOnNull) {
+        SearchService.KeyValue[] resolved = keyValues.entrySet().stream()
+                .map(e -> new SearchService.KeyValue(e.getKey(), e.getValue()))
+                .toArray(SearchService.KeyValue[]::new);
+        Resource resource = searchService.searchFields(resourceTypeName, resolved);
+        if (resource == null && throwOnNull) {
+            throw new ResourceNotFoundException(joinKeyValues(keyValues), resourceTypeName);
+        }
+        return resource;
     }
 
     private <T> T addWithoutValidation(String resourceTypeName, T resource) {
@@ -303,6 +333,19 @@ public class GenericResourceServiceImpl implements GenericResourceService {
         return builder.toUriString();
     }
 
+    private String buildKeyUri(String resourceTypeName, Map<String, String> keyValues) {
+        String base = registryHost + "/records/" + resourceTypeName + "/key";
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(base);
+        keyValues.forEach(builder::queryParam);
+        return builder.toUriString();
+    }
+
+    private static String joinKeyValues(Map<String, String> keyValues) {
+        return keyValues.entrySet().stream()
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .collect(Collectors.joining(","));
+    }
+
     @SuppressWarnings("unchecked")
     private <T> List<ScoredResult<T>> convertScoredResults(List<?> items, String resourceTypeName) {
         return items.stream()
@@ -372,14 +415,6 @@ public class GenericResourceServiceImpl implements GenericResourceService {
         } catch (JacksonException e) {
             throw new ResourceException("Could not deserialize resource payload", HttpStatus.UNPROCESSABLE_CONTENT);
         }
-    }
-
-    private <T> String resolvePrimaryId(String resourceTypeName, T resource) {
-        SearchService.KeyValue[] primaryKeys = extractPrimaryKeys(resourceTypeName, resource);
-        if (primaryKeys.length == 0) {
-            throw new ResourceException("No primary key fields found for " + resourceTypeName, HttpStatus.UNPROCESSABLE_CONTENT);
-        }
-        return primaryKeys[0].getValue();
     }
 
     private <T> SearchService.KeyValue[] extractPrimaryKeys(String resourceTypeName, T resource) {

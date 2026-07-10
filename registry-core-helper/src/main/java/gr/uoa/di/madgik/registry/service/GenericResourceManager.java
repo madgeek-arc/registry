@@ -174,8 +174,22 @@ public class GenericResourceManager implements GenericResourceService {
     }
 
     @Override
+    public <T> T deleteByKey(String resourceTypeName, Map<String, String> keyValues) {
+        Resource res = searchResourceByKey(resourceTypeName, keyValues, true);
+        logger.info(LoggingUtils.deleteResource(resourceTypeName, joinKeyValues(keyValues), res));
+        resourceService.deleteResource(res.getId());
+        return (T) parserPool.deserialize(res, getClassFromResourceType(resourceTypeName));
+    }
+
+    @Override
     public <T> T get(String resourceTypeName, String id) {
         Resource res = searchResource(resourceTypeName, id, true);
+        return (T) parserPool.deserialize(res, getClassFromResourceType(res.getResourceTypeName()));
+    }
+
+    @Override
+    public <T> T getByKey(String resourceTypeName, Map<String, String> keyValues) {
+        Resource res = searchResourceByKey(resourceTypeName, keyValues, true);
         return (T) parserPool.deserialize(res, getClassFromResourceType(res.getResourceTypeName()));
     }
 
@@ -291,6 +305,21 @@ public class GenericResourceManager implements GenericResourceService {
         return searchService.searchFields(resourceTypeName, keyValues);
     }
 
+    @Override
+    public Resource searchResourceByKey(String resourceTypeName, Map<String, String> keyValues, boolean throwOnNull) {
+        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
+        if (resourceType == null) {
+            throw ResourceNotFoundException.unknownResourceType(resourceTypeName);
+        }
+        SearchService.KeyValue[] resolved = resolvePrimaryKeyValues(resourceType, keyValues);
+        Resource res = searchService.searchFields(resourceTypeName, resolved);
+        if (throwOnNull) {
+            return Optional.ofNullable(res)
+                    .orElseThrow(() -> new ResourceNotFoundException(joinKeyValues(keyValues), resourceTypeName));
+        }
+        return res;
+    }
+
     private String resolveSinglePrimaryKeyField(String resourceTypeName) {
         ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
         if (resourceType == null) {
@@ -310,6 +339,41 @@ public class GenericResourceManager implements GenericResourceService {
                             .formatted(resourceTypeName));
         }
         return primaryKeyFields.getFirst().getName();
+    }
+
+    /**
+     * Validates that {@code keyValues} contains exactly {@code resourceType}'s declared
+     * primary-key fields — no more, no fewer — and converts it to the {@link SearchService.KeyValue}
+     * array the search layer expects.
+     */
+    private SearchService.KeyValue[] resolvePrimaryKeyValues(ResourceType resourceType, Map<String, String> keyValues) {
+        List<String> pkFieldNames = resourceType.getIndexFields().stream()
+                .filter(IndexField::isPrimaryKey)
+                .map(IndexField::getName)
+                .toList();
+        if (pkFieldNames.isEmpty()) {
+            throw new ServiceException(
+                    String.format("ResourceType [%s] has no primary key field defined", resourceType.getName()));
+        }
+        Set<String> expected = new HashSet<>(pkFieldNames);
+        if (!expected.equals(keyValues.keySet())) {
+            Set<String> missing = new HashSet<>(expected);
+            missing.removeAll(keyValues.keySet());
+            Set<String> unexpected = new HashSet<>(keyValues.keySet());
+            unexpected.removeAll(expected);
+            throw new UnsupportedSearchParameterException(
+                    "ResourceType '%s' has primary key field(s) %s; missing=%s, unexpected=%s"
+                            .formatted(resourceType.getName(), pkFieldNames, missing, unexpected));
+        }
+        return pkFieldNames.stream()
+                .map(name -> new SearchService.KeyValue(name, keyValues.get(name)))
+                .toArray(SearchService.KeyValue[]::new);
+    }
+
+    private static String joinKeyValues(Map<String, String> keyValues) {
+        return keyValues.entrySet().stream()
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .collect(Collectors.joining(","));
     }
 
     public <T> List<T> convertToList(@NotNull List<Resource> resources, String resourceTypeName) {
