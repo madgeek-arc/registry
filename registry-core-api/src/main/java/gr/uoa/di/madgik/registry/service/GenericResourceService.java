@@ -210,6 +210,24 @@ public interface GenericResourceService {
     <T> List<ScoredResult<T>> recommend(FacetFilter filter, String id);
 
     /**
+     * Returns resources that are similar to the resource identified by its full primary key,
+     * further constrained by the provided {@code filter}. The composite-key equivalent of
+     * {@link #recommend(FacetFilter, String)}.
+     *
+     * @param filter    the additional filter and pagination criteria to apply
+     * @param keyValues a map from primary-key field name to its value; must contain exactly
+     *                  the resource type's declared primary-key fields, no more, no fewer
+     * @param <T>       the expected domain type of each result
+     * @return a scored list of similar resources ordered by descending similarity
+     * @throws gr.uoa.di.madgik.registry.exception.ResourceNotFoundException if no resource
+     *         matching the key exists
+     * @throws gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException if
+     *         {@code keyValues} does not contain exactly the resource type's declared
+     *         primary-key fields
+     */
+    <T> List<ScoredResult<T>> recommendByKey(FacetFilter filter, Map<String, String> keyValues);
+
+    /**
      * Persists a new resource with validation enabled.
      *
      * <p>Equivalent to {@code add(resourceTypeName, resource, true)}.

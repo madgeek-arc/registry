@@ -148,6 +148,13 @@ public class GenericResourceServiceImpl implements GenericResourceService {
     }
 
     @Override
+    public <T> List<ScoredResult<T>> recommendByKey(FacetFilter filter, Map<String, String> keyValues) {
+        ResponseEntity<List> response = restTemplate.getForEntity(buildKeyRecommendationsUri(filter, keyValues), List.class);
+        List<?> body = response.getBody() == null ? List.of() : response.getBody();
+        return convertScoredResults(body, filter.getResourceType());
+    }
+
+    @Override
     public <T> List<ScoredResult<T>> recommend(FacetFilter filter, T resource) {
         String url = buildResourceRecommendationsUri(filter);
         HttpHeaders headers = new HttpHeaders();
@@ -336,6 +343,20 @@ public class GenericResourceServiceImpl implements GenericResourceService {
     private String buildKeyUri(String resourceTypeName, Map<String, String> keyValues) {
         String base = registryHost + "/records/" + resourceTypeName + "/key";
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(base);
+        keyValues.forEach(builder::queryParam);
+        return builder.toUriString();
+    }
+
+    // Deliberately omits filter.getFilter(): GenericController's /key/recommendations route
+    // treats every non-reserved query parameter as part of the composite primary key, so it
+    // cannot also accept orthogonal facet-filter criteria in the same request.
+    private String buildKeyRecommendationsUri(FacetFilter filter, Map<String, String> keyValues) {
+        String base = registryHost + "/records/" + filter.getResourceType() + "/key/recommendations";
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(base)
+                .queryParam("keyword", filter.getKeyword())
+                .queryParam("from", filter.getFrom())
+                .queryParam("quantity", filter.getQuantity())
+                .queryParam("browseBy", filter.getBrowseBy());
         keyValues.forEach(builder::queryParam);
         return builder.toUriString();
     }

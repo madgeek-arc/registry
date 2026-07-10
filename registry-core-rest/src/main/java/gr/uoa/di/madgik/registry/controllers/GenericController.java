@@ -33,7 +33,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping(path = GenericController.BASE_PATH, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -67,6 +69,29 @@ public class GenericController {
     public ResponseEntity<Object> delete(@PathVariable("resourceType") String resourceType,
                                          @PathVariable("id") String id) {
         Object deleted = genericResourceService.delete(resourceType, id);
+        return ResponseEntity.ok(deleted);
+    }
+
+    /**
+     * Composite-primary-key equivalent of {@link #get(String, String)}. Every query parameter
+     * on this route is treated as a primary-key field=value pair; the resource type's declared
+     * primary-key fields must all be present, and no others.
+     */
+    @GetMapping("{resourceType}/key")
+    public ResponseEntity<Object> getByKey(@PathVariable("resourceType") String resourceType,
+                                           @RequestParam Map<String, String> keyValues) {
+        return ResponseEntity.ok(genericResourceService.getByKey(resourceType, keyValues));
+    }
+
+    /**
+     * Composite-primary-key equivalent of {@link #delete(String, String)}.
+     *
+     * @see #getByKey(String, Map) for the query-parameter convention this route shares
+     */
+    @DeleteMapping("{resourceType}/key")
+    public ResponseEntity<Object> deleteByKey(@PathVariable("resourceType") String resourceType,
+                                              @RequestParam Map<String, String> keyValues) {
+        Object deleted = genericResourceService.deleteByKey(resourceType, keyValues);
         return ResponseEntity.ok(deleted);
     }
 
@@ -157,6 +182,39 @@ public class GenericController {
         return ResponseEntity.ok(toVersionDTO(resourceType, resourceVersion));
     }
 
+    /**
+     * Composite-primary-key equivalent of {@link #getVersions(String, String)}.
+     *
+     * @see #getByKey(String, Map) for the query-parameter convention this route shares
+     */
+    @GetMapping("{resourceType}/key/versions")
+    public ResponseEntity<List<VersionDTO<Object>>> getVersionsByKey(@PathVariable("resourceType") String resourceType,
+                                                                       @RequestParam Map<String, String> keyValues) {
+        Resource resource = genericResourceService.searchResourceByKey(resourceType, keyValues, true);
+        List<Version> versions = versionService.getVersionsByResource(resource.getId());
+        List<VersionDTO<Object>> dtos = versions == null ? List.of() : versions.stream()
+                .map(v -> toVersionDTO(resourceType, v))
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
+
+    /**
+     * Composite-primary-key equivalent of {@link #getVersion(String, String, String)}.
+     *
+     * @see #getByKey(String, Map) for the query-parameter convention this route shares
+     */
+    @GetMapping("{resourceType}/key/versions/{version}")
+    public ResponseEntity<VersionDTO<Object>> getVersionByKey(@PathVariable("resourceType") String resourceType,
+                                                               @RequestParam Map<String, String> keyValues,
+                                                               @PathVariable("version") String version) {
+        Resource resource = genericResourceService.searchResourceByKey(resourceType, keyValues, true);
+        Version resourceVersion = versionService.getVersion(resource.getId(), version);
+        if (resourceVersion == null) {
+            throw new ResourceNotFoundException(version);
+        }
+        return ResponseEntity.ok(toVersionDTO(resourceType, resourceVersion));
+    }
+
     private VersionDTO<Object> toVersionDTO(String resourceType, Version version) {
         VersionDTO<Object> dto = new VersionDTO<>();
         dto.setVersion(version.getVersion());
@@ -175,6 +233,36 @@ public class GenericController {
         FacetFilter filter = FacetFilter.from(params);
         filter.setResourceType(resourceType);
         return ResponseEntity.ok(genericResourceService.recommend(filter, id));
+    }
+
+    /**
+     * Composite-primary-key equivalent of {@link #recommend(String, String, MultiValueMap)}.
+     *
+     * <p>Unlike that endpoint, every non-reserved query parameter here is treated as part of the
+     * composite primary key identifying the reference resource — {@link FacetFilter#getFilter()}
+     * criteria orthogonal to the key (e.g. additional facet filters) are not supported on this
+     * route, since the same query string cannot unambiguously carry both. {@code keyword},
+     * {@code from}, {@code quantity}, {@code sort}/{@code order}, and {@code browseBy} are
+     * reserved by {@link FacetFilter#getFrom()} and still apply normally.
+     */
+    @GetMapping("{resourceType}/key/recommendations")
+    @BrowseParameters
+    public ResponseEntity<List<?>> recommendByKey(@PathVariable("resourceType") String resourceType,
+                                                  @Parameter(hidden = true)
+                                                  @RequestParam MultiValueMap<String, Object> params) {
+        FacetFilter filter = FacetFilter.from(params);
+        filter.setResourceType(resourceType);
+        Map<String, String> keyValues = new LinkedHashMap<>();
+        filter.getFilter().forEach((field, value) -> keyValues.put(field, firstValue(value)));
+        filter.getFilter().clear();
+        return ResponseEntity.ok(genericResourceService.recommendByKey(filter, keyValues));
+    }
+
+    private static String firstValue(Object value) {
+        if (value instanceof List<?> list) {
+            return list.isEmpty() ? null : String.valueOf(list.get(0));
+        }
+        return value == null ? null : value.toString();
     }
 
     @PostMapping(path = "{resourceType}/recommendations", consumes = MediaType.APPLICATION_JSON_VALUE)
