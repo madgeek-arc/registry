@@ -21,12 +21,16 @@ import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
+import gr.uoa.di.madgik.registry.domain.ScoredResult;
 import gr.uoa.di.madgik.registry.domain.Version;
 import gr.uoa.di.madgik.registry.domain.VersionDTO;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.service.GenericResourceService;
 import gr.uoa.di.madgik.registry.service.VersionService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -37,8 +41,69 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Domain-agnostic REST controller exposing CRUD, browse, and recommendation operations for
+ * <em>any</em> registered {@code ResourceType}, addressed dynamically by the {@code resourceType}
+ * path segment rather than fixed per-type at compile time.
+ *
+ * <p>This is the intended domain-facing alternative to the frozen {@code ResourceController}/
+ * {@code SearchController}, and to per-type controllers built by extending
+ * {@link AbstractGenericController} — use this one when the set of resource types isn't known
+ * until runtime (e.g. a generic admin UI or a client that discovers types via
+ * {@code ResourceTypeService}).
+ *
+ * <h2>Endpoints</h2>
+ * <table border="1">
+ *   <caption>Endpoint overview</caption>
+ *   <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+ *   <tr><td>POST</td>   <td>/{resourceType}</td>                     <td>Create a new resource</td></tr>
+ *   <tr><td>PUT</td>    <td>/{resourceType}</td>                     <td>Update an existing resource (identity from body)</td></tr>
+ *   <tr><td>DELETE</td> <td>/{resourceType}/{id}</td>                 <td>Delete a resource by single primary key</td></tr>
+ *   <tr><td>GET</td>    <td>/{resourceType}/key</td>                  <td>Get a resource by composite primary key</td></tr>
+ *   <tr><td>DELETE</td> <td>/{resourceType}/key</td>                  <td>Delete a resource by composite primary key</td></tr>
+ *   <tr><td>GET</td>    <td>/{resourceType}</td>                      <td>Paginated browse with facets</td></tr>
+ *   <tr><td>GET</td>    <td>/{resourceType}/semantic</td>              <td>Embedding-based semantic browse</td></tr>
+ *   <tr><td>GET</td>    <td>/{resourceType}/hybrid</td>                <td>Combined lexical/semantic browse</td></tr>
+ *   <tr><td>GET</td>    <td>/{resourceType}/highlighted</td>           <td>Browse with keyword-highlight fragments</td></tr>
+ *   <tr><td>GET</td>    <td>/{resourceType}/hybrid/highlighted</td>    <td>Hybrid browse with highlights</td></tr>
+ *   <tr><td>GET</td>    <td>/{resourceType}/{id}</td>                  <td>Fetch a single resource by single primary key</td></tr>
+ *   <tr><td>GET</td>    <td>/{resourceType}/{id}/versions</td>         <td>List historical versions</td></tr>
+ *   <tr><td>GET</td>    <td>/{resourceType}/{id}/versions/{version}</td> <td>Fetch one historical version</td></tr>
+ *   <tr><td>GET</td>    <td>/{resourceType}/key/versions</td>          <td>List historical versions by composite key</td></tr>
+ *   <tr><td>GET</td>    <td>/{resourceType}/key/versions/{version}</td> <td>Fetch one historical version by composite key</td></tr>
+ *   <tr><td>GET</td>    <td>/{resourceType}/{id}/recommendations</td>  <td>Similar-resource recommendations by id</td></tr>
+ *   <tr><td>GET</td>    <td>/{resourceType}/key/recommendations</td>   <td>Similar-resource recommendations by composite key</td></tr>
+ *   <tr><td>POST</td>   <td>/{resourceType}/recommendations</td>       <td>Recommendations for an unsaved resource payload</td></tr>
+ * </table>
+ *
+ * <h2>Single vs. composite primary keys</h2>
+ * <p>{@code {id}}-based routes work only for resource types with exactly one
+ * {@code primaryKey = true} field; a composite-key type used with them fails with a 400
+ * ({@link gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException}). The
+ * {@code /key} routes are the literal-segment sibling that works for both — every query
+ * parameter on those routes is treated as one primary-key field=value pair, and the resource
+ * type's declared primary-key fields must all be present, no more, no fewer. {@code PUT} needs
+ * neither variant: identity is always derived from the request body via
+ * {@code extractPrimaryKeys}, regardless of key cardinality.
+ *
+ * <h2>Exception handling</h2>
+ * <p>Unchecked exceptions (e.g.
+ * {@link gr.uoa.di.madgik.registry.exception.ResourceNotFoundException}) propagate as-is and are
+ * mapped to RFC 7807 {@link org.springframework.http.ProblemDetail} bodies by the library-default
+ * {@code GlobalExceptionHandler}.
+ *
+ * <h2>Out of scope</h2>
+ * <p>Authentication/authorization, CORS, rate limiting, and request logging are left to the
+ * embedding application, consistent with every other controller in this repository — this
+ * controller does not add any access control of its own.
+ *
+ * @see AbstractGenericController
+ * @see GenericResourceService
+ * @see FacetFilter
+ */
 @RestController
 @RequestMapping(path = GenericController.BASE_PATH, produces = MediaType.APPLICATION_JSON_VALUE)
+@Tag(name = "Records", description = "Dynamic CRUD, browse, and recommendation operations for any registered resource type")
 public class GenericController {
 
     public static final String BASE_PATH = "records";
@@ -51,6 +116,23 @@ public class GenericController {
         this.versionService = versionService;
     }
 
+    /**
+     * Creates a new resource of the given type.
+     *
+     * @param resourceType the name of the {@code ResourceType} to create the resource under
+     * @param resource     the domain object to persist
+     * @return the persisted resource, potentially enriched with generated fields, wrapped in
+     *         {@code 201 Created}
+     */
+    @Operation(
+            summary = "Create a new resource",
+            description = "Persists a new resource of the given resource type. Validation is applied before saving.",
+            responses = {
+                    @ApiResponse(responseCode = "201", description = "Resource created successfully"),
+                    @ApiResponse(responseCode = "404", description = "Unknown resource type"),
+                    @ApiResponse(responseCode = "409", description = "A resource with the same primary key already exists")
+            }
+    )
     @PostMapping(path = "{resourceType}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Object> create(@PathVariable("resourceType") String resourceType,
                                          @RequestBody Object resource) {
@@ -58,6 +140,22 @@ public class GenericController {
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
+    /**
+     * Updates an existing resource. Identity is derived entirely from the primary-key field(s)
+     * in the request body — single or composite alike — so no {@code id} path segment is needed.
+     *
+     * @param resourceType the name of the {@code ResourceType} that owns the resource
+     * @param resource     the updated domain object; must contain valid primary key field(s)
+     * @return the updated resource wrapped in {@code 200 OK}
+     */
+    @Operation(
+            summary = "Update a resource",
+            description = "Replaces the payload of an existing resource. The primary key(s), single or composite, are read from the request body.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Resource updated successfully"),
+                    @ApiResponse(responseCode = "404", description = "Resource not found")
+            }
+    )
     @PutMapping(path = "{resourceType}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Object> update(@PathVariable("resourceType") String resourceType,
                                          @RequestBody Object resource) {
@@ -65,6 +163,23 @@ public class GenericController {
         return ResponseEntity.ok(updated);
     }
 
+    /**
+     * Deletes the resource identified by its single primary key. Composite-key resource types
+     * must use {@link #deleteByKey(String, Map)} instead.
+     *
+     * @param resourceType the name of the {@code ResourceType} that owns the resource
+     * @param id           the identifier of the resource to delete
+     * @return the deleted resource as it existed at deletion time, wrapped in {@code 200 OK}
+     */
+    @Operation(
+            summary = "Delete a resource by id",
+            description = "Removes the resource with the given id and returns its last known state.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Resource deleted successfully"),
+                    @ApiResponse(responseCode = "404", description = "Resource not found"),
+                    @ApiResponse(responseCode = "400", description = "Resource type has a composite primary key; use /key instead")
+            }
+    )
     @DeleteMapping("{resourceType}/{id}")
     public ResponseEntity<Object> delete(@PathVariable("resourceType") String resourceType,
                                          @PathVariable("id") String id) {
@@ -76,7 +191,20 @@ public class GenericController {
      * Composite-primary-key equivalent of {@link #get(String, String)}. Every query parameter
      * on this route is treated as a primary-key field=value pair; the resource type's declared
      * primary-key fields must all be present, and no others.
+     *
+     * @param resourceType the name of the {@code ResourceType} to search within
+     * @param keyValues    one query parameter per declared primary-key field
+     * @return the deserialized domain object wrapped in {@code 200 OK}
      */
+    @Operation(
+            summary = "Get a resource by composite primary key",
+            description = "Fetches a resource by its full primary key, single or composite. Every query parameter is treated as one primary-key field=value pair; the resource type's declared primary-key fields must all be present, and no others.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Resource found"),
+                    @ApiResponse(responseCode = "404", description = "Resource not found"),
+                    @ApiResponse(responseCode = "400", description = "Query parameters don't exactly match the resource type's declared primary-key fields")
+            }
+    )
     @GetMapping("{resourceType}/key")
     public ResponseEntity<Object> getByKey(@PathVariable("resourceType") String resourceType,
                                            @RequestParam Map<String, String> keyValues) {
@@ -86,8 +214,20 @@ public class GenericController {
     /**
      * Composite-primary-key equivalent of {@link #delete(String, String)}.
      *
+     * @param resourceType the name of the {@code ResourceType} that owns the resource
+     * @param keyValues    one query parameter per declared primary-key field
+     * @return the deleted resource as it existed at deletion time, wrapped in {@code 200 OK}
      * @see #getByKey(String, Map) for the query-parameter convention this route shares
      */
+    @Operation(
+            summary = "Delete a resource by composite primary key",
+            description = "Removes the resource matching the given full primary key and returns its last known state.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Resource deleted successfully"),
+                    @ApiResponse(responseCode = "404", description = "Resource not found"),
+                    @ApiResponse(responseCode = "400", description = "Query parameters don't exactly match the resource type's declared primary-key fields")
+            }
+    )
     @DeleteMapping("{resourceType}/key")
     public ResponseEntity<Object> deleteByKey(@PathVariable("resourceType") String resourceType,
                                               @RequestParam Map<String, String> keyValues) {
@@ -95,6 +235,23 @@ public class GenericController {
         return ResponseEntity.ok(deleted);
     }
 
+    /**
+     * Returns a paginated, faceted listing of resources of the given type.
+     *
+     * @param params       the raw query parameters (keyword, from, quantity, sort/order, browseBy,
+     *                      and arbitrary facet filters), bound via {@link FacetFilter#from(Map)}
+     * @param resourceType the name of the {@code ResourceType} to browse
+     * @return a {@link Paging} result containing the hits and computed facets, wrapped in
+     *         {@code 200 OK}
+     */
+    @Operation(
+            summary = "Browse resources",
+            description = "Returns a paginated, faceted list of resources. Supports filtering, sorting, and keyword search.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Results returned"),
+                    @ApiResponse(responseCode = "400", description = "quantity exceeds the configured maximum")
+            }
+    )
     @GetMapping(path = "{resourceType}")
     @BrowseParameters
     public ResponseEntity<Paging<Object>> browse(@Parameter(hidden = true)
@@ -105,6 +262,10 @@ public class GenericController {
         return ResponseEntity.ok(genericResourceService.getResults(filter));
     }
 
+    @Operation(
+            summary = "Browse resources semantically",
+            description = "Returns a paginated list of resources using embedding-based semantic search."
+    )
     @GetMapping(path = "{resourceType}/semantic")
     @BrowseParameters
     public ResponseEntity<Paging<Object>> semanticBrowse(@Parameter(hidden = true)
@@ -115,6 +276,10 @@ public class GenericController {
         return ResponseEntity.ok(genericResourceService.getSemanticResults(filter));
     }
 
+    @Operation(
+            summary = "Browse resources with hybrid search",
+            description = "Returns a paginated list of resources using combined lexical and semantic ranking."
+    )
     @GetMapping(path = "{resourceType}/hybrid")
     @BrowseParameters
     public ResponseEntity<Paging<Object>> hybridBrowse(@Parameter(hidden = true)
@@ -125,6 +290,18 @@ public class GenericController {
         return ResponseEntity.ok(genericResourceService.getHybridResults(filter));
     }
 
+    /**
+     * Returns a paginated listing of resources with keyword-highlight fragments for each hit.
+     *
+     * @param resourceType the name of the {@code ResourceType} to browse
+     * @param params       the raw query parameters; a non-empty {@code keyword} is required for
+     *                      highlights to be populated
+     * @return a {@link Paging} of {@link HighlightedResult} wrappers, wrapped in {@code 200 OK}
+     */
+    @Operation(
+            summary = "Browse resources with highlights",
+            description = "Same as the standard browse endpoint but each result also carries keyword-highlight fragments."
+    )
     @GetMapping("{resourceType}/highlighted")
     @BrowseParameters
     public ResponseEntity<Paging<HighlightedResult<Object>>> browseHighlighted(
@@ -136,6 +313,10 @@ public class GenericController {
         return ResponseEntity.ok(genericResourceService.getHighlightedResults(filter));
     }
 
+    @Operation(
+            summary = "Browse resources with hybrid highlights",
+            description = "Returns hybrid-ranked results with lexical highlights and semantic snippets."
+    )
     @GetMapping("{resourceType}/hybrid/highlighted")
     @BrowseParameters
     public ResponseEntity<Paging<HighlightedResult<Object>>> browseHybridHighlighted(
@@ -147,12 +328,44 @@ public class GenericController {
         return ResponseEntity.ok(genericResourceService.getHybridHighlightedResults(filter));
     }
 
+    /**
+     * Retrieves a single resource by its single primary key. Composite-key resource types must
+     * use {@link #getByKey(String, Map)} instead.
+     *
+     * @param resourceType the name of the {@code ResourceType} to search within
+     * @param id           the identifier of the resource to fetch
+     * @return the deserialized domain object wrapped in {@code 200 OK}
+     */
+    @Operation(
+            summary = "Get a resource by id",
+            description = "Fetches the resource with the given id from the given resource type.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Resource found"),
+                    @ApiResponse(responseCode = "404", description = "Resource not found"),
+                    @ApiResponse(responseCode = "400", description = "Resource type has a composite primary key; use /key instead")
+            }
+    )
     @GetMapping("{resourceType}/{id}")
     public ResponseEntity<Object> get(@PathVariable("resourceType") String resourceType,
                                       @PathVariable("id") String id) {
         return ResponseEntity.ok(genericResourceService.get(resourceType, id));
     }
 
+    /**
+     * Lists the historical versions of a resource identified by its single primary key.
+     *
+     * @param resourceType the name of the {@code ResourceType} that owns the resource
+     * @param id           the identifier of the resource
+     * @return the version history, newest first, wrapped in {@code 200 OK}
+     */
+    @Operation(
+            summary = "List a resource's versions",
+            description = "Returns the historical versions of the resource with the given id.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Versions returned"),
+                    @ApiResponse(responseCode = "404", description = "Resource not found")
+            }
+    )
     @GetMapping("{resourceType}/{id}/versions")
     public ResponseEntity<List<VersionDTO<Object>>> getVersions(@PathVariable("resourceType") String resourceType,
                                                                  @PathVariable("id") String id) {
@@ -167,9 +380,20 @@ public class GenericController {
     /**
      * Fetches a single historical version of a resource.
      *
+     * @param resourceType the name of the {@code ResourceType} that owns the resource
+     * @param id           the identifier of the resource
      * @param version the version label, i.e. {@link VersionDTO#getVersion()} from the
      *                {@code /versions} listing endpoint.
+     * @return the version's payload as it existed at that point in time, wrapped in {@code 200 OK}
      */
+    @Operation(
+            summary = "Get a single version",
+            description = "Fetches one historical version of a resource by its version label.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Version found"),
+                    @ApiResponse(responseCode = "404", description = "Resource or version not found")
+            }
+    )
     @GetMapping("{resourceType}/{id}/versions/{version}")
     public ResponseEntity<VersionDTO<Object>> getVersion(@PathVariable("resourceType") String resourceType,
                                                          @PathVariable("id") String id,
@@ -185,8 +409,20 @@ public class GenericController {
     /**
      * Composite-primary-key equivalent of {@link #getVersions(String, String)}.
      *
+     * @param resourceType the name of the {@code ResourceType} that owns the resource
+     * @param keyValues    one query parameter per declared primary-key field
+     * @return the version history, newest first, wrapped in {@code 200 OK}
      * @see #getByKey(String, Map) for the query-parameter convention this route shares
      */
+    @Operation(
+            summary = "List a resource's versions by composite primary key",
+            description = "Returns the historical versions of the resource matching the given full primary key.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Versions returned"),
+                    @ApiResponse(responseCode = "404", description = "Resource not found"),
+                    @ApiResponse(responseCode = "400", description = "Query parameters don't exactly match the resource type's declared primary-key fields")
+            }
+    )
     @GetMapping("{resourceType}/key/versions")
     public ResponseEntity<List<VersionDTO<Object>>> getVersionsByKey(@PathVariable("resourceType") String resourceType,
                                                                        @RequestParam Map<String, String> keyValues) {
@@ -201,8 +437,22 @@ public class GenericController {
     /**
      * Composite-primary-key equivalent of {@link #getVersion(String, String, String)}.
      *
+     * @param resourceType the name of the {@code ResourceType} that owns the resource
+     * @param keyValues    one query parameter per declared primary-key field
+     * @param version      the version label, i.e. {@link VersionDTO#getVersion()} from the
+     *                     {@code /key/versions} listing endpoint
+     * @return the version's payload as it existed at that point in time, wrapped in {@code 200 OK}
      * @see #getByKey(String, Map) for the query-parameter convention this route shares
      */
+    @Operation(
+            summary = "Get a single version by composite primary key",
+            description = "Fetches one historical version of a resource, identified by its full primary key, by version label.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Version found"),
+                    @ApiResponse(responseCode = "404", description = "Resource or version not found"),
+                    @ApiResponse(responseCode = "400", description = "Query parameters don't exactly match the resource type's declared primary-key fields")
+            }
+    )
     @GetMapping("{resourceType}/key/versions/{version}")
     public ResponseEntity<VersionDTO<Object>> getVersionByKey(@PathVariable("resourceType") String resourceType,
                                                                @RequestParam Map<String, String> keyValues,
@@ -224,9 +474,21 @@ public class GenericController {
         return dto;
     }
 
+    /**
+     * Returns resources similar to the one identified by its single primary key.
+     *
+     * @param resourceType the name of the {@code ResourceType} to search within
+     * @param id           the identifier of the reference resource
+     * @param params       the raw query parameters for pagination and additional filtering
+     * @return an ordered list of similar resources wrapped in {@code 200 OK}
+     */
+    @Operation(
+            summary = "Get recommendations for a resource by id",
+            description = "Returns resources similar to the one identified by id, ordered by descending similarity."
+    )
     @GetMapping("{resourceType}/{id}/recommendations")
     @BrowseParameters
-    public ResponseEntity<List<?>> recommend(@PathVariable("resourceType") String resourceType,
+    public ResponseEntity<List<ScoredResult<Object>>> recommend(@PathVariable("resourceType") String resourceType,
                                              @PathVariable("id") String id,
                                              @Parameter(hidden = true)
                                              @RequestParam MultiValueMap<String, Object> params) {
@@ -243,11 +505,25 @@ public class GenericController {
      * criteria orthogonal to the key (e.g. additional facet filters) are not supported on this
      * route, since the same query string cannot unambiguously carry both. {@code keyword},
      * {@code from}, {@code quantity}, {@code sort}/{@code order}, and {@code browseBy} are
-     * reserved by {@link FacetFilter#getFrom()} and still apply normally.
+     * reserved by {@link FacetFilter#from(Map)} and still apply normally.
+     *
+     * @param resourceType the name of the {@code ResourceType} to search within
+     * @param params       the raw query parameters; every non-reserved entry is treated as one
+     *                     primary-key field=value pair
+     * @return an ordered list of similar resources wrapped in {@code 200 OK}
      */
+    @Operation(
+            summary = "Get recommendations for a resource by composite primary key",
+            description = "Returns resources similar to the one identified by its full primary key, ordered by descending similarity. Does not support additional facet-filter criteria in the same request (see method Javadoc).",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Results returned"),
+                    @ApiResponse(responseCode = "404", description = "Resource not found"),
+                    @ApiResponse(responseCode = "400", description = "Query parameters don't exactly match the resource type's declared primary-key fields")
+            }
+    )
     @GetMapping("{resourceType}/key/recommendations")
     @BrowseParameters
-    public ResponseEntity<List<?>> recommendByKey(@PathVariable("resourceType") String resourceType,
+    public ResponseEntity<List<ScoredResult<Object>>> recommendByKey(@PathVariable("resourceType") String resourceType,
                                                   @Parameter(hidden = true)
                                                   @RequestParam MultiValueMap<String, Object> params) {
         FacetFilter filter = FacetFilter.from(params);
@@ -265,9 +541,21 @@ public class GenericController {
         return value == null ? null : value.toString();
     }
 
+    /**
+     * Returns resources similar to the given, not-necessarily-persisted resource payload.
+     *
+     * @param resourceType the name of the {@code ResourceType} to search within
+     * @param resource     the domain object to use as the similarity anchor; does not need to be stored
+     * @param params       the raw query parameters for pagination and additional filtering
+     * @return an ordered list of similar resources wrapped in {@code 200 OK}
+     */
+    @Operation(
+            summary = "Get recommendations for a resource payload",
+            description = "Returns resources similar to the provided resource payload, ordered by descending similarity. The resource does not need to be stored."
+    )
     @PostMapping(path = "{resourceType}/recommendations", consumes = MediaType.APPLICATION_JSON_VALUE)
     @BrowseParameters
-    public ResponseEntity<List<?>> recommendByResource(
+    public ResponseEntity<List<ScoredResult<Object>>> recommendByResource(
             @PathVariable("resourceType") String resourceType,
             @RequestBody Object resource,
             @Parameter(hidden = true) @RequestParam MultiValueMap<String, Object> params) {
