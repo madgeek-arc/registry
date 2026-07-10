@@ -115,6 +115,16 @@ class GenericControllerCrudIntegrationTest extends PostgreSqlTestContainerSuppor
         assertEquals(404, readTree(response).get("status").asInt());
     }
 
+    @Test
+    void browseWithExcessiveQuantityReturnsBadRequest() throws Exception {
+        // elastic.index.max_result_window defaults to 10000 (GenericResourceManager); one past
+        // that must be rejected outright rather than silently clamped.
+        HttpResponse<String> response = send("GET", "/records/widget?quantity=10001", null);
+
+        assertEquals(400, response.statusCode());
+        assertEquals(400, readTree(response).get("status").asInt());
+    }
+
     private HttpResponse<String> send(String method, String path, String body) throws Exception {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:" + port + path))
