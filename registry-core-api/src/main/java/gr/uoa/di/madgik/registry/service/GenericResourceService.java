@@ -200,11 +200,24 @@ public interface GenericResourceService {
      * @return the persisted domain object, potentially enriched with generated fields (e.g. id)
      * @throws gr.uoa.di.madgik.registry.exception.ResourceAlreadyExistsException if a resource
      *         with the same primary key already exists
+     * @see #add(String, Object, boolean) for a note on the limits of this duplicate check
      */
     <T> T add(String resourceTypeName, T resource);
 
     /**
      * Persists a new resource, optionally skipping validation.
+     *
+     * <p><b>Known limitation:</b> the duplicate-key check is a plain read-then-write
+     * (search for an existing match, then insert) rather than an atomic, database-enforced
+     * constraint. Business-key values live in the EAV-style {@code IndexedField} tables, keyed
+     * dynamically per {@code ResourceType} rather than in dedicated columns, so there is no
+     * static shape to declare a {@code UNIQUE} index over without denormalizing business-key
+     * values onto {@code Resource} itself — a disproportionate schema change for this check
+     * alone. In practice this means two requests that concurrently create a resource with the
+     * same primary key can both pass the check and both persist, instead of one receiving a
+     * {@link gr.uoa.di.madgik.registry.exception.ResourceAlreadyExistsException}. Callers that
+     * need a hard guarantee against concurrent duplicate creates must add their own
+     * serialization (e.g. an application-level lock keyed on the business key).
      *
      * @param resourceTypeName the name of the {@code ResourceType} under which to store the resource
      * @param resource         the domain object to persist
