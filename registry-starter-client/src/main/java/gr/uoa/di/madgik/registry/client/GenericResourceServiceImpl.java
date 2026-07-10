@@ -34,6 +34,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -192,6 +193,16 @@ public class GenericResourceServiceImpl implements GenericResourceService {
     public <T> boolean exists(String resourceTypeName, T resource) {
         SearchService.KeyValue[] keyValues = extractPrimaryKeys(resourceTypeName, resource);
         return searchResource(resourceTypeName, keyValues) != null;
+    }
+
+    @Override
+    public <T> Map<String, String> getPrimaryKeyValues(String resourceTypeName, T resource) {
+        SearchService.KeyValue[] keyValues = extractPrimaryKeys(resourceTypeName, resource);
+        Map<String, String> result = new LinkedHashMap<>();
+        for (SearchService.KeyValue keyValue : keyValues) {
+            result.put(keyValue.getField(), keyValue.getValue());
+        }
+        return result;
     }
 
     @Override

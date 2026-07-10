@@ -89,6 +89,10 @@ class GenericControllerCompositeKeyIntegrationTest extends PostgreSqlTestContain
         HttpResponse<String> created = send("POST", "/records/gadget", "{\"vendor\":\"acme\",\"sku\":\"X1\",\"label\":\"Gadget One\"}");
         assertEquals(201, created.statusCode());
         assertEquals("Gadget One", readTree(created).get("label").asString());
+        URI location = URI.create(created.headers().firstValue("Location").orElseThrow());
+        assertEquals("/records/gadget/key", location.getPath());
+        assertTrue(location.getQuery().contains("vendor=acme"));
+        assertTrue(location.getQuery().contains("sku=X1"));
 
         HttpResponse<String> duplicate = send("POST", "/records/gadget", "{\"vendor\":\"acme\",\"sku\":\"X1\",\"label\":\"Duplicate\"}");
         assertEquals(409, duplicate.statusCode());

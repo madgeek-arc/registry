@@ -330,6 +330,23 @@ public interface GenericResourceService {
     <T> boolean exists(String resourceTypeName, T resource);
 
     /**
+     * Returns the primary-key field name(s) and value(s) of {@code resource}, in the same
+     * declaration order as the resource type's {@code primaryKey} index fields.
+     *
+     * <p>Used to build a {@code Location} header or otherwise identify a resource by key right
+     * after {@link #add(String, Object)}, without re-deriving the key-extraction logic that
+     * {@code add}/{@code update}/{@code exists} already perform internally.
+     *
+     * @param resourceTypeName the name of the {@code ResourceType} that owns the resource
+     * @param resource         the domain object whose primary key(s) to extract
+     * @param <T>              the domain type
+     * @return an ordered map from primary-key field name to its value; has more than one entry
+     *         only for a composite primary key
+     * @throws ServiceException if the resource type has no primary key fields defined
+     */
+    <T> Map<String, String> getPrimaryKeyValues(String resourceTypeName, T resource);
+
+    /**
      * Deletes the resource with the given id from the given resource type.
      *
      * @param resourceTypeName the name of the {@code ResourceType} that owns the resource

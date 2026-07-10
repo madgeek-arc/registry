@@ -146,6 +146,21 @@ public class GenericResourceManager implements GenericResourceService {
     }
 
     @Override
+    public <T> Map<String, String> getPrimaryKeyValues(String resourceTypeName, T resource) {
+        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
+        if (resourceType == null) {
+            throw ResourceNotFoundException.unknownResourceType(resourceTypeName);
+        }
+        String payload = serialize(resource, resourceType);
+        SearchService.KeyValue[] keyValues = extractPrimaryKeys(resourceType, payload);
+        Map<String, String> result = new LinkedHashMap<>();
+        for (SearchService.KeyValue keyValue : keyValues) {
+            result.put(keyValue.getField(), keyValue.getValue());
+        }
+        return result;
+    }
+
+    @Override
     public <T> T update(String resourceTypeName, T resource) {
         return update(resourceTypeName, resource, true);
     }

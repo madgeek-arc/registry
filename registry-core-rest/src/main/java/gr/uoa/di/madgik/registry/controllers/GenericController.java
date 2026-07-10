@@ -31,12 +31,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -121,8 +122,12 @@ public class GenericController {
      *
      * @param resourceType the name of the {@code ResourceType} to create the resource under
      * @param resource     the domain object to persist
+     * @param uriBuilder   injected by Spring MVC, pre-populated with the current request's
+     *                     scheme/host/port/context-path; used to build the {@code Location} header
      * @return the persisted resource, potentially enriched with generated fields, wrapped in
-     *         {@code 201 Created}
+     *         {@code 201 Created} with a {@code Location} header pointing at the new resource
+     *         (the {@code {id}} route for a single primary key, the {@code /key} route for a
+     *         composite one)
      */
     @Operation(
             summary = "Create a new resource",
@@ -135,9 +140,32 @@ public class GenericController {
     )
     @PostMapping(path = "{resourceType}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Object> create(@PathVariable("resourceType") String resourceType,
-                                         @RequestBody Object resource) {
+                                         @RequestBody Object resource,
+                                         UriComponentsBuilder uriBuilder) {
         Object created = genericResourceService.add(resourceType, resource);
-        return new ResponseEntity<>(created, HttpStatus.CREATED);
+        return ResponseEntity.created(buildLocation(uriBuilder, resourceType, created)).body(created);
+    }
+
+    /**
+     * Builds the {@code Location} URI for a just-created resource, appending either an
+     * {@code {id}} segment (single primary key) or a {@code /key?field=value...} query (composite
+     * primary key) onto {@code /{BASE_PATH}/{resourceType}}. The injected {@code uriBuilder} only
+     * carries the current request's scheme/host/port/context-path (not the mapped
+     * {@code {resourceType}} path itself), so that prefix is added explicitly here. Path/query
+     * values are percent-encoded via {@link UriComponentsBuilder#encode()} so a key value
+     * containing a slash round-trips the same way {@code GET {resourceType}/{id}} expects it
+     * (see the encoded-slash firewall support).
+     */
+    private URI buildLocation(UriComponentsBuilder uriBuilder, String resourceType, Object created) {
+        Map<String, String> keyValues = genericResourceService.getPrimaryKeyValues(resourceType, created);
+        UriComponentsBuilder builder = uriBuilder.path("/{base}/{resourceType}");
+        if (keyValues.size() == 1) {
+            String id = keyValues.values().iterator().next();
+            return builder.pathSegment(id).buildAndExpand(BASE_PATH, resourceType).encode().toUri();
+        }
+        builder.pathSegment("key");
+        keyValues.forEach(builder::queryParam);
+        return builder.buildAndExpand(BASE_PATH, resourceType).encode().toUri();
     }
 
     /**

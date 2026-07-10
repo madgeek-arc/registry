@@ -82,6 +82,8 @@ class GenericControllerCrudIntegrationTest extends PostgreSqlTestContainerSuppor
         HttpResponse<String> created = send("POST", "/records/widget", "{\"code\":\"W-1\",\"label\":\"Widget One\"}");
         assertEquals(201, created.statusCode());
         assertEquals("Widget One", readTree(created).get("label").asString());
+        assertEquals("http://localhost:" + port + "/records/widget/W-1",
+                created.headers().firstValue("Location").orElse(null));
 
         HttpResponse<String> duplicate = send("POST", "/records/widget", "{\"code\":\"W-1\",\"label\":\"Widget One Duplicate\"}");
         assertEquals(409, duplicate.statusCode());

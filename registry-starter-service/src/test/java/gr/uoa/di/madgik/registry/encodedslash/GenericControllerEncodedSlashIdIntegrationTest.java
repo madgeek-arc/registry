@@ -87,4 +87,30 @@ class GenericControllerEncodedSlashIdIntegrationTest extends PostgreSqlTestConta
         assertTrue(response.body().contains("idPrefix/idSuffix"),
                 "expected the resolved employee_slash resource to contain the decoded id, got: " + response.body());
     }
+
+    @Test
+    void createWithSlashInIdReturnsRoundTrippableEncodedLocationHeader() throws Exception {
+        viewService.createView(resourceTypeService.getResourceType("employee_slash"));
+
+        HttpRequest createRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + port + "/records/employee_slash"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"first_name\":\"newPrefix/newSuffix\"}"))
+                .build();
+
+        HttpResponse<String> created = HttpClient.newHttpClient()
+                .send(createRequest, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(201, created.statusCode());
+        String location = created.headers().firstValue("Location").orElseThrow();
+        assertEquals("http://localhost:" + port + "/records/employee_slash/newPrefix%2FnewSuffix", location);
+
+        HttpRequest getRequest = HttpRequest.newBuilder().uri(URI.create(location)).GET().build();
+        HttpResponse<String> fetched = HttpClient.newHttpClient()
+                .send(getRequest, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, fetched.statusCode());
+        assertTrue(fetched.body().contains("newPrefix/newSuffix"),
+                "expected the Location header to resolve back to the created resource, got: " + fetched.body());
+    }
 }
