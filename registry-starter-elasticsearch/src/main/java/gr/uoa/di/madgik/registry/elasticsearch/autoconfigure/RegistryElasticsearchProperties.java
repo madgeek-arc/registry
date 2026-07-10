@@ -149,9 +149,16 @@ public class RegistryElasticsearchProperties {
      */
     public static class Index {
         /**
-         * Value used as the {@code max_result_window} index setting and as the upper bound for
-         * {@code from + size} in search requests. Elasticsearch's default is {@code 10000};
-         * increase with caution as large windows require more heap on the coordinating node.
+         * Application-side upper bound for {@code from + size} in search requests
+         * ({@link gr.uoa.di.madgik.registry.elasticsearch.service.ElasticSearchService}
+         * rejects requests that exceed it rather than silently truncating them). Elasticsearch's
+         * own {@code max_result_window} default is {@code 10000}, which is why this defaults to
+         * the same value — but this property is <b>not</b> currently applied as the actual
+         * {@code max_result_window} index setting when creating indices; it is purely an
+         * application-side check. If the live index's real {@code max_result_window} is ever
+         * changed directly (e.g. via the Elasticsearch API), this value should be kept in sync
+         * manually, or requests within this application-side limit can still be rejected by
+         * Elasticsearch itself.
          */
         private int maxResultWindow = 10000;
 

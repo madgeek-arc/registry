@@ -30,6 +30,7 @@ import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.ScoredResult;
 import gr.uoa.di.madgik.registry.elasticsearch.autoconfigure.RegistryElasticsearchProperties;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
+import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.SearchService;
@@ -331,6 +332,46 @@ class ElasticSearchServiceIntegrationTest {
         assertEquals(2, results.getTotal());
         assertEquals(100, results.getFrom());
         assertTrue(results.getResults() == null || results.getResults().isEmpty());
+    }
+
+    @Test
+    void search_fromPlusQuantityExceedsWindow_throwsUnsupportedSearchParameterException() throws Exception {
+        // maxResultWindow is 1000 in this test's RegistryElasticsearchProperties; 999 + 10 = 1009
+        // exceeds it even though quantity (10) alone would not.
+        String index = createIndex();
+        indexDocument(index, "doc1", "first document", List.of(1.0f, 0.0f, 0.0f));
+
+        FacetFilter filter = filter(index, null);
+        filter.setFrom(999);
+        filter.setQuantity(10);
+
+        assertThrows(UnsupportedSearchParameterException.class, () -> searchService.search(filter));
+    }
+
+    @Test
+    void search_fromAtWindow_throwsUnsupportedSearchParameterExceptionRegardlessOfQuantity() throws Exception {
+        String index = createIndex();
+        indexDocument(index, "doc1", "first document", List.of(1.0f, 0.0f, 0.0f));
+
+        FacetFilter filter = filter(index, null);
+        filter.setFrom(1000);
+        filter.setQuantity(1);
+
+        assertThrows(UnsupportedSearchParameterException.class, () -> searchService.search(filter));
+    }
+
+    @Test
+    void search_maxValueQuantityIsClampedToFitWindowInsteadOfRejected() throws Exception {
+        String index = createIndex();
+        indexDocument(index, "doc1", "first document", List.of(1.0f, 0.0f, 0.0f));
+
+        FacetFilter filter = filter(index, null);
+        filter.setFrom(0);
+        filter.setQuantity(Integer.MAX_VALUE);
+
+        Paging<Resource> results = searchService.search(filter);
+
+        assertEquals(1, results.getTotal());
     }
 
     @Test

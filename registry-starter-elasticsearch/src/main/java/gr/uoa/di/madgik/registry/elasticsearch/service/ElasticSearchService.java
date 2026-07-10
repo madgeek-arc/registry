@@ -37,6 +37,7 @@ import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.FacetUtils;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.elasticsearch.autoconfigure.RegistryElasticsearchProperties;
+import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
 import gr.uoa.di.madgik.registry.service.EmbeddingService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.SearchService;
@@ -408,7 +409,7 @@ public class ElasticSearchService implements SearchService {
 
     private Paging<Resource> buildSearch(FacetFilter filter, ObjectNode queryNode) {
         filter.setBrowseBy(resolveBrowseBy(filter));
-        int quantity = normalizeQuantity(filter.getQuantity());
+        int quantity = resolveQuantity(filter.getFrom(), filter.getQuantity());
 
         try {
             SearchResponse<ObjectNode> response = client.search(s -> s
@@ -430,7 +431,7 @@ public class ElasticSearchService implements SearchService {
 
     private Paging<HighlightedResult<Resource>> buildSearchWithHighlights(FacetFilter filter, ObjectNode queryNode) {
         filter.setBrowseBy(resolveBrowseBy(filter));
-        int quantity = normalizeQuantity(filter.getQuantity());
+        int quantity = resolveQuantity(filter.getFrom(), filter.getQuantity());
 
         try {
             List<NamedValue<HighlightField>> highlightFields = resolveTextFields(filter.getResourceType()).stream()
@@ -615,12 +616,40 @@ public class ElasticSearchService implements SearchService {
         return SearchService.resolveBrowseBy(resourceTypes, filter.getBrowseBy());
     }
 
-    private int normalizeQuantity(int quantity) {
-        if (quantity > maxQuantity) {
-            logger.debug("Quantity too large, using {}.", maxQuantity);
-            return maxQuantity;
-        } else if (quantity < 0) {
+    /**
+     * Validates that {@code from + quantity} fits within Elasticsearch's real
+     * {@code index.max_result_window} constraint ({@code from + size <= max_result_window}),
+     * rather than checking {@code quantity} alone — a request with a large {@code from} and a
+     * small {@code quantity} can still exceed the window, and previously slipped through
+     * unchecked straight into Elasticsearch, which then rejected it with a raw, unmapped
+     * {@code illegal_argument_exception}.
+     *
+     * <p>Rejects rather than silently clamps, consistent with this API's error contract: a
+     * caller asking for more than the window allows should get a clear 400, not fewer results
+     * than requested with no signal that anything was truncated. {@link Integer#MAX_VALUE} is
+     * the one carve-out — an established "fetch everything" sentinel (e.g.
+     * {@code DefaultSearchService.searchKeyword}) — and is clamped down to whatever fits in the
+     * window given {@code from}, rather than rejected like a genuine oversized request. If
+     * {@code from} alone already meets or exceeds the window, no quantity — however small — can
+     * produce a valid response at that offset, so that case is always rejected, sentinel or not.
+     */
+    private int resolveQuantity(int from, int quantity) {
+        if (quantity < 0) {
             throw new IllegalArgumentException("Quantity cannot be negative.");
+        }
+        if (from >= maxQuantity) {
+            throw new UnsupportedSearchParameterException(
+                    "Requested from=%d is at or beyond the maximum result window [%d]."
+                            .formatted(from, maxQuantity));
+        }
+        int remaining = maxQuantity - from;
+        if (quantity == Integer.MAX_VALUE) {
+            return remaining;
+        }
+        if (quantity > remaining) {
+            throw new UnsupportedSearchParameterException(
+                    "Requested from=%d and quantity=%d together exceed the maximum result window [%d]."
+                            .formatted(from, quantity, maxQuantity));
         }
         return quantity;
     }
@@ -695,7 +724,7 @@ public class ElasticSearchService implements SearchService {
                                      int from,
                                      String sortByField,
                                      String sortOrder) {
-        int size = normalizeQuantity(quantity);
+        int size = resolveQuantity(from, quantity);
         CQLParser parser = new CQLParser(query);
         parser.parse();
         ElasticsearchQueryGenerator generator;
@@ -748,7 +777,7 @@ public class ElasticSearchService implements SearchService {
 
     @Override
     public List<ScoredResult<Resource>> recommend(FacetFilter filter, KeyValue resourceIdAndValue) {
-        int quantity = normalizeQuantity(filter.getQuantity());
+        int quantity = resolveQuantity(filter.getFrom(), filter.getQuantity());
 
         float[] embedding = getEmbeddingForResource(filter.getResourceType(), resourceIdAndValue);
         if (embeddingIsEmpty(embedding)) {
@@ -794,7 +823,7 @@ public class ElasticSearchService implements SearchService {
                     "Could not compute a usable embedding for the provided resource",
                     new UnsupportedOperationException("Embedding value is empty"));
         }
-        int quantity = normalizeQuantity(filter.getQuantity());
+        int quantity = resolveQuantity(filter.getFrom(), filter.getQuantity());
         Query query = toQuery(createRecommendationQueryNode(filter, embedding));
         try {
             SearchResponse<ObjectNode> response = client.search(s -> s
