@@ -62,7 +62,17 @@ public class ResourceType {
     @Column
     private String indexMapperClass;
 
+    // Without an explicit ORDER BY, Hibernate gives no guaranteed iteration order for this Set,
+    // and it can vary between fetches of the same data (query plan, cache hit/miss, etc.). This
+    // doesn't affect correctness anywhere — every consumer (search matching, KeyValue arrays,
+    // resolvePrimaryKeyValues) is field-name-keyed and order-independent by construction. It only
+    // affects the readability/reproducibility of composite-key log lines and exception messages
+    // that join multiple primaryKey fields into "field=value,field=value" strings (see
+    // GenericResourceManager.extractPrimaryKeys/resolvePrimaryKeyValues): without this, the same
+    // resource type's fields could print in a different order between two otherwise-identical
+    // calls. @OrderBy makes that output deterministic.
     @OneToMany(mappedBy = "resourceType", fetch = FetchType.EAGER, cascade = {CascadeType.ALL}, orphanRemoval = true)
+    @OrderBy("name ASC")
     @JsonManagedReference(value = "resourcetype-indexfields")
     private Set<IndexField> indexFields = new LinkedHashSet<>();
 
