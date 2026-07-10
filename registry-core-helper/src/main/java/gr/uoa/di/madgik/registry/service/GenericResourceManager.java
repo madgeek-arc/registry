@@ -18,6 +18,7 @@ package gr.uoa.di.madgik.registry.service;
 
 import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import gr.uoa.di.madgik.registry.exception.ResourceAlreadyExistsException;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
 import gr.uoa.di.madgik.registry.utils.LoggingUtils;
@@ -112,10 +113,19 @@ public class GenericResourceManager implements GenericResourceService {
             throw ResourceNotFoundException.unknownResourceType(resourceTypeName);
         }
         runValidation(resource, resourceTypeName, validate);
+        String payload = serialize(resource, resourceType);
+        SearchService.KeyValue[] keyValues = extractPrimaryKeys(resourceType, payload);
+        if (searchResource(resourceTypeName, keyValues) != null) {
+            throw new ResourceAlreadyExistsException(
+                    Arrays.stream(keyValues)
+                            .map(kv -> kv.getField() + "=" + kv.getValue())
+                            .collect(Collectors.joining(",")),
+                    resourceTypeName);
+        }
         Resource res = new Resource();
         res.setResourceTypeName(resourceTypeName);
         res.setResourceType(resourceType);
-        res.setPayload(serialize(resource, resourceType));
+        res.setPayload(payload);
         logger.info("adding : [resourceType={}] : [body={}]", resourceTypeName, resource);
         resourceService.addResource(res);
         return resource;
