@@ -109,7 +109,7 @@ public class GenericResourceManager implements GenericResourceService {
     public <T> T add(String resourceTypeName, T resource, boolean validate) {
         ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
         if (resourceType == null) {
-            throw new ResourceNotFoundException(resourceTypeName);
+            throw ResourceNotFoundException.unknownResourceType(resourceTypeName);
         }
         runValidation(resource, resourceTypeName, validate);
         Resource res = new Resource();
@@ -173,7 +173,7 @@ public class GenericResourceManager implements GenericResourceService {
     public <T> T get(String resourceTypeName, Version version) {
         ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
         if (resourceType == null) {
-            throw new ResourceNotFoundException(resourceTypeName);
+            throw ResourceNotFoundException.unknownResourceType(resourceTypeName);
         }
         return (T) parserPool.deserialize(version.getPayload(), resourceType.getPayloadType(),
                 getClassFromResourceType(resourceTypeName));
@@ -284,7 +284,7 @@ public class GenericResourceManager implements GenericResourceService {
     private String resolveSinglePrimaryKeyField(String resourceTypeName) {
         ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
         if (resourceType == null) {
-            throw new ResourceNotFoundException(resourceTypeName);
+            throw ResourceNotFoundException.unknownResourceType(resourceTypeName);
         }
 
         List<IndexField> primaryKeyFields = resourceType.getIndexFields().stream()

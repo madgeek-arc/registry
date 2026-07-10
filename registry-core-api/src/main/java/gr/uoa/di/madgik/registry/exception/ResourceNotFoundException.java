@@ -52,4 +52,13 @@ public class ResourceNotFoundException extends RuntimeException {
     public ResourceNotFoundException(String message, Throwable cause) {
         super(message, cause);
     }
+
+    /**
+     * Constructs a ResourceNotFoundException indicating that the given resource type or alias
+     * itself does not exist, as opposed to a specific resource instance within a known type.
+     */
+    public static ResourceNotFoundException unknownResourceType(String resourceTypeOrAlias) {
+        return new ResourceNotFoundException(
+                String.format("Resource type or alias '%s' does not exist", resourceTypeOrAlias), (Throwable) null);
+    }
 }

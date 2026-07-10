@@ -703,7 +703,7 @@ public class DefaultSearchService implements SearchService {
         if (resourceType == null) {
             resourceTypes = resourceTypeService.getAllResourceTypeByAlias(resourceTypeOrAlias);
             if (resourceTypes.isEmpty()) {
-                throw new ServiceException("No resource types found for alias: " + resourceTypeOrAlias);
+                throw ResourceNotFoundException.unknownResourceType(resourceTypeOrAlias);
             }
         } else {
             resourceTypes.add(resourceType);
