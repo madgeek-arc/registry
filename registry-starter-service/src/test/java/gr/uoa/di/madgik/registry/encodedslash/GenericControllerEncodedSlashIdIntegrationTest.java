@@ -19,6 +19,7 @@ package gr.uoa.di.madgik.registry.encodedslash;
 import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ViewService;
+import gr.uoa.di.madgik.registry.testsupport.GenericControllerTestApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;

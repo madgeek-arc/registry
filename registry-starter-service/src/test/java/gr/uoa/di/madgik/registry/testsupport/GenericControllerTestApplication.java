@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package gr.uoa.di.madgik.registry.encodedslash;
+package gr.uoa.di.madgik.registry.testsupport;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -28,21 +28,24 @@ import org.springframework.security.web.SecurityFilterChain;
  * for embedded-server tests that need the full production wiring, unlike the narrower
  * {@code DatabaseConfiguration} test config used by DAO/service-level tests.
  *
- * <p>Deliberately lives in its own package, not {@code gr.uoa.di.madgik.registry.controllers}:
+ * <p>Deliberately lives outside {@code gr.uoa.di.madgik.registry.controllers}:
  * {@code @SpringBootApplication}'s implicit component scan would otherwise re-scan
  * {@code GenericController} as a plain {@code @RestController} stereotype bean, bypassing the
  * exclude-filter that {@code RegistryServiceComponentsConfiguration} relies on to let the
  * conditional {@code genericController()} @Bean method be the sole source of that bean.
+ *
+ * <p>Shared across every embedded-server test package that needs this wiring (encoded-slash
+ * firewall tests, general {@code GenericController} CRUD tests, etc.) rather than duplicated
+ * per package.
  */
 @SpringBootApplication
-class GenericControllerTestApplication {
+public class GenericControllerTestApplication {
 
     /**
-     * These tests are about the HttpFirewall (which runs ahead of authorization in the filter
-     * chain, so a permit-all rule here doesn't mask a firewall rejection), not about
-     * authentication — without this, Spring Security's default auto-configured chain would
-     * secure every endpoint and requests would fail with 401 before ever reaching the firewall
-     * question being tested.
+     * Most of these tests are about behavior that runs ahead of authorization in the filter
+     * chain (e.g. the HttpFirewall), or don't exercise security at all — without this, Spring
+     * Security's default auto-configured chain would secure every endpoint and requests would
+     * fail with 401 before ever reaching the thing being tested.
      */
     @Bean
     SecurityFilterChain permitAllFilterChain(HttpSecurity http) throws Exception {
