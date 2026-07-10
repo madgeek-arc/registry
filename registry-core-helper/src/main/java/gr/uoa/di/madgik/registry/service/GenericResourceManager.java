@@ -108,6 +108,9 @@ public class GenericResourceManager implements GenericResourceService {
     @Override
     public <T> T add(String resourceTypeName, T resource, boolean validate) {
         ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
+        if (resourceType == null) {
+            throw new ResourceNotFoundException(resourceTypeName);
+        }
         runValidation(resource, resourceTypeName, validate);
         Resource res = new Resource();
         res.setResourceTypeName(resourceTypeName);
