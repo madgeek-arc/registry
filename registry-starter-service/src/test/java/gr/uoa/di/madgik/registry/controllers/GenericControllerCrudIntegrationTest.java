@@ -91,7 +91,7 @@ class GenericControllerCrudIntegrationTest extends PostgreSqlTestContainerSuppor
         assertEquals(200, fetched.statusCode());
         assertEquals("Widget One", readTree(fetched).get("label").asString());
 
-        HttpResponse<String> updated = send("PUT", "/records/widget/W-1", "{\"code\":\"W-1\",\"label\":\"Widget One Updated\"}");
+        HttpResponse<String> updated = send("PUT", "/records/widget", "{\"code\":\"W-1\",\"label\":\"Widget One Updated\"}");
         assertEquals(200, updated.statusCode());
         assertEquals("Widget One Updated", readTree(updated).get("label").asString());
 

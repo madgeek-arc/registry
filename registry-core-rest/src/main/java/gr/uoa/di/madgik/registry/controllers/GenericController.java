@@ -56,9 +56,8 @@ public class GenericController {
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
-    @PutMapping(path = "{resourceType}/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(path = "{resourceType}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Object> update(@PathVariable("resourceType") String resourceType,
-                                         @PathVariable("id") String id,
                                          @RequestBody Object resource) {
         Object updated = genericResourceService.update(resourceType, resource);
         return ResponseEntity.ok(updated);
