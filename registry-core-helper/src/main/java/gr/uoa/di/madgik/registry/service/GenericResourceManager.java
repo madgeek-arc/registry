@@ -26,7 +26,6 @@ import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -45,17 +44,14 @@ public class GenericResourceManager implements GenericResourceService {
     protected final ParserService parserPool;
     protected final FacetLabelService facetLabelService;
     protected final ResourceValidator validator;
-    protected final int maxQuantity;
 
-    protected GenericResourceManager(@Value("${elastic.index.max_result_window:10000}") int maxQuantity,
-                                     SearchService searchService,
+    protected GenericResourceManager(SearchService searchService,
                                      ResourceService resourceService,
                                      ResourceTypeService resourceTypeService,
                                      VersionService versionService,
                                      ParserService parserPool,
                                      FacetLabelService facetLabelService,
                                      @Autowired(required = false) ResourceValidator validator) {
-        this.maxQuantity = maxQuantity;
         this.searchService = searchService;
         this.resourceService = resourceService;
         this.resourceTypeService = resourceTypeService;
@@ -77,7 +73,6 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public <T> List<ScoredResult<T>> recommend(FacetFilter filter, String id) {
-        validateQuantity(filter);
         String resourceTypeName = filter.getResourceType();
         Class<?> clazz = getClassFromResourceType(resourceTypeName);
         return searchService.recommend(filter, new SearchService.KeyValue(resolveSinglePrimaryKeyField(resourceTypeName), id))
@@ -88,7 +83,6 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public <T> List<ScoredResult<T>> recommendByKey(FacetFilter filter, Map<String, String> keyValues) {
-        validateQuantity(filter);
         String resourceTypeName = filter.getResourceType();
         Class<?> clazz = getClassFromResourceType(resourceTypeName);
         Resource reference = searchResourceByKey(resourceTypeName, keyValues, true);
@@ -100,7 +94,6 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public <T> List<ScoredResult<T>> recommend(FacetFilter filter, T resource) {
-        validateQuantity(filter);
         String resourceTypeName = filter.getResourceType();
         Class<?> clazz = getClassFromResourceType(resourceTypeName);
         ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
@@ -219,7 +212,6 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public <T> Paging<T> getResults(FacetFilter filter) {
-        validateQuantity(filter);
         Paging<T> results = convertToPaging(searchService.search(filter), filter.getResourceType());
         facetLabelService.enrichFacetLabels(results.getFacets(), filter.getResourceType());
         return results;
@@ -227,7 +219,6 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public <T> Paging<T> getSemanticResults(FacetFilter filter) {
-        validateQuantity(filter);
         Paging<T> results = convertToPaging(searchService.semanticSearch(filter), filter.getResourceType());
         facetLabelService.enrichFacetLabels(results.getFacets(), filter.getResourceType());
         return results;
@@ -235,7 +226,6 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public <T> Paging<T> getHybridResults(FacetFilter filter) {
-        validateQuantity(filter);
         Paging<T> results = convertToPaging(searchService.hybridSearch(filter), filter.getResourceType());
         facetLabelService.enrichFacetLabels(results.getFacets(), filter.getResourceType());
         return results;
@@ -243,7 +233,6 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public <T> Paging<HighlightedResult<T>> getHighlightedResults(FacetFilter filter) {
-        validateQuantity(filter);
         Paging<HighlightedResult<T>> results = convertToPagingWithHighlights(
                 searchService.searchWithHighlights(filter), filter.getResourceType());
         facetLabelService.enrichFacetLabels(results.getFacets(), filter.getResourceType());
@@ -252,7 +241,6 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public <T> Paging<HighlightedResult<T>> getHybridHighlightedResults(FacetFilter filter) {
-        validateQuantity(filter);
         Paging<HighlightedResult<T>> results = convertToPagingWithHighlights(
                 searchService.hybridSearchWithHighlights(filter), filter.getResourceType());
         facetLabelService.enrichFacetLabels(results.getFacets(), filter.getResourceType());
@@ -268,7 +256,6 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public <T> Map<String, List<T>> getResultsGrouped(FacetFilter filter, String category) {
-        validateQuantity(filter);
         Map<String, List<T>> result = new HashMap<>();
         Class<?> clazz = getClassFromResourceType(filter.getResourceType());
         Map<String, List<Resource>> resources = searchService.searchByCategory(filter, category);
@@ -388,20 +375,6 @@ public class GenericResourceManager implements GenericResourceService {
         return pkFieldNames.stream()
                 .map(name -> new SearchService.KeyValue(name, keyValues.get(name)))
                 .toArray(SearchService.KeyValue[]::new);
-    }
-
-    /**
-     * Rejects (rather than silently clamping) requests for more results than
-     * {@code elastic.index.max_result_window} allows, so an oversized {@code quantity} fails
-     * fast with a 400 instead of forcing the search backend to materialize an unbounded result
-     * set.
-     */
-    private void validateQuantity(FacetFilter filter) {
-        if (filter.getQuantity() > maxQuantity) {
-            throw new UnsupportedSearchParameterException(
-                    "Requested quantity [%d] exceeds the maximum allowed [%d]."
-                            .formatted(filter.getQuantity(), maxQuantity));
-        }
     }
 
     private static String joinKeyValues(Map<String, String> keyValues) {
