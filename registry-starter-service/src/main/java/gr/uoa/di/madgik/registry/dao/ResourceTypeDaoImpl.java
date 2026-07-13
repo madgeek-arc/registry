@@ -18,6 +18,8 @@ package gr.uoa.di.madgik.registry.dao;
 
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
+import gr.uoa.di.madgik.registry.domain.index.SearchCapability;
+import jakarta.persistence.FlushModeType;
 import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -28,8 +30,11 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Repository("resourceTypeDao")
@@ -45,6 +50,87 @@ public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements Re
 
     public ResourceType getResourceType(String name) {
         return getSingleResult("name", name);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public ResourceType getPersistedSnapshot(String name) {
+        // FlushModeType.COMMIT on every query here, in the order they run, for the same reason as
+        // ResourceDaoImpl.getPersistedContent(): none of them may trigger Hibernate's default
+        // auto-flush-before-query, or a pending in-memory change on an already-managed ResourceType
+        // (or IndexField) for this name would get flushed to the database before we read it.
+        // Scalar/projection selects (not entity fetches) also mean Hibernate has no managed instance
+        // to substitute in place of what the database actually returns. Callers must run this
+        // before anything else touches ResourceType, ResourceType_aliases, ResourceType_properties,
+        // or IndexField for this name in the same call.
+        List<Object[]> scalarRows = getEntityManager()
+                .createQuery("SELECT rt.schema, rt.schemaUrl, rt.payloadType, rt.indexMapperClass FROM ResourceType rt WHERE rt.name = :name", Object[].class)
+                .setFlushMode(FlushModeType.COMMIT)
+                .setParameter("name", name)
+                .getResultList();
+        if (scalarRows.isEmpty()) {
+            return null;
+        }
+        Object[] scalarRow = scalarRows.get(0);
+
+        Set<String> aliases = new HashSet<>(getEntityManager()
+                .createQuery("SELECT a FROM ResourceType rt JOIN rt.aliases a WHERE rt.name = :name", String.class)
+                .setFlushMode(FlushModeType.COMMIT)
+                .setParameter("name", name)
+                .getResultList());
+
+        Map<String, String> properties = new HashMap<>();
+        for (Object[] row : (List<Object[]>) (List<?>) getEntityManager()
+                .createQuery("SELECT KEY(p), VALUE(p) FROM ResourceType rt JOIN rt.properties p WHERE rt.name = :name", Object[].class)
+                .setFlushMode(FlushModeType.COMMIT)
+                .setParameter("name", name)
+                .getResultList()) {
+            properties.put((String) row[0], (String) row[1]);
+        }
+
+        List<IndexField> indexFields = new ArrayList<>();
+        for (Object[] row : (List<Object[]>) (List<?>) getEntityManager()
+                .createQuery("SELECT f.name, f.path, f.type, f.label, f.defaultValue, f.multivalued, f.primaryKey, "
+                        + "f.searchCapabilities, f.embeddingWeight, f.relatedResourceType, f.relatedResourceTypeField "
+                        + "FROM IndexField f WHERE f.resourceType.name = :name", Object[].class)
+                .setFlushMode(FlushModeType.COMMIT)
+                .setParameter("name", name)
+                .getResultList()) {
+            IndexField field = new IndexField();
+            field.setName((String) row[0]);
+            field.setPath((String) row[1]);
+            field.setType((String) row[2]);
+            field.setLabel((String) row[3]);
+            field.setDefaultValue((String) row[4]);
+            field.setMultivalued((boolean) row[5]);
+            field.setPrimaryKey((boolean) row[6]);
+            field.setSearchCapabilities(IndexField.normalizeSearchCapabilities((Set<SearchCapability>) row[7]));
+            field.setEmbeddingWeight(IndexField.normalizeEmbeddingWeight((Float) row[8], (String) row[2]));
+            field.setRelatedResourceType((String) row[9]);
+            field.setRelatedResourceTypeField((String) row[10]);
+            indexFields.add(field);
+        }
+
+        // "not_set" is the persisted sentinel for "no schema URL" (see
+        // ResourceTypeServiceImpl.normalizeResourceType), which canonicalizes it - and null - down
+        // to null before ResourceTypeChangeDetector.hasSameDefinition ever runs on a candidate.
+        // Reading the raw column here without the same canonicalization would make every
+        // schema-based (non-URL) resource type compare as "changed" against its own unchanged self.
+        String schemaUrl = (String) scalarRow[1];
+        if ("not_set".equals(schemaUrl)) {
+            schemaUrl = null;
+        }
+
+        ResourceType snapshot = new ResourceType();
+        snapshot.setName(name);
+        snapshot.setSchema((String) scalarRow[0]);
+        snapshot.setSchemaUrl(schemaUrl);
+        snapshot.setPayloadType((String) scalarRow[2]);
+        snapshot.setIndexMapperClass((String) scalarRow[3]);
+        snapshot.setAliases(aliases);
+        snapshot.setProperties(properties);
+        snapshot.setIndexFields(indexFields);
+        return snapshot;
     }
 
     public List<ResourceType> getAllResourceType() {

@@ -26,6 +26,21 @@ public interface ResourceTypeDao {
 
     ResourceType getResourceType(String name);
 
+    /**
+     * Builds a detached snapshot of the resource type's last-committed definition (schema,
+     * schemaUrl, payloadType, indexMapperClass, aliases, properties, and index fields), reading
+     * every part of it via queries that bypass the persistence context, so pending in-memory
+     * changes on an already-managed instance for the same name are never reflected in the result.
+     * Intended for {@link gr.uoa.di.madgik.registry.service.ResourceTypeChangeDetector#hasSameDefinition}
+     * comparisons that need the true previous definition even when the caller passed in an entity
+     * it already fetched and mutated in place.
+     *
+     * @param name the resource type name
+     * @return a detached {@link ResourceType} carrying only the definition fields, or {@code null}
+     * if no resource type exists with that name
+     */
+    ResourceType getPersistedSnapshot(String name);
+
     List<ResourceType> getAllResourceType();
 
     List<ResourceType> getAllResourceTypeByAlias(String alias);

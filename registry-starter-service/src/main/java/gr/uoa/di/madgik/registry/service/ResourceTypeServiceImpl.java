@@ -244,8 +244,13 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
             @CacheEvict(value = "resourceTypeIndexFields", key = "#resourceType.name")
     })
     public ResourceType updateResourceType(ResourceType resourceType) throws ServiceException {
-        ResourceType existing = resourceTypeDao.getResourceType(resourceType.getName());
-        if (existing == null) {
+        // getPersistedSnapshot(), not getResourceType(): must run before anything else in this
+        // method touches ResourceType/IndexField for this name - see its javadoc and the caveat on
+        // ResourceTypeChangeDetector.hasSameDefinition for why a normal entity fetch here would be
+        // unsafe if resourceType were ever the same managed instance a caller fetched and mutated
+        // in place.
+        ResourceType persistedSnapshot = resourceTypeDao.getPersistedSnapshot(resourceType.getName());
+        if (persistedSnapshot == null) {
             throw new ServiceException("ResourceType [" + resourceType.getName() + "] does not exist");
         }
 
@@ -258,8 +263,9 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
                             resourceType.getName()));
         }
 
-        boolean skipRefresh = ResourceTypeChangeDetector.hasSameDefinition(existing, resourceType);
+        boolean skipRefresh = ResourceTypeChangeDetector.hasSameDefinition(persistedSnapshot, resourceType);
 
+        ResourceType existing = resourceTypeDao.getResourceType(resourceType.getName());
         existing.setSchema(resourceType.getSchema());
         existing.setSchemaUrl(resourceType.getSchemaUrl());
         existing.setPayloadType(resourceType.getPayloadType());

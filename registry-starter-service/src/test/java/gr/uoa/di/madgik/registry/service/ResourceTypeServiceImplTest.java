@@ -27,6 +27,7 @@ import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -35,6 +36,9 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = DatabaseConfiguration.class, properties = "spring.profiles.active=test")
@@ -48,6 +52,9 @@ class ResourceTypeServiceImplTest extends PostgreSqlTestContainerSupport {
 
     @MockitoBean
     AuditActorProvider auditActorProvider;
+
+    @MockitoSpyBean
+    ResourceTypeProjectionRefreshService resourceTypeProjectionRefreshService;
 
     @Autowired
     ResourceTypeService resourceTypeService;
@@ -115,6 +122,35 @@ class ResourceTypeServiceImplTest extends PostgreSqlTestContainerSupport {
                 .extracting(ResourceType::getName)
                 .containsExactly("employee");
         assertThat(schemaDao.getSchemaByUrl("employee").getSchema()).isEqualTo(existing.getSchema());
+    }
+
+    @Test
+    void updateResourceType_with_already_managed_instance_still_detects_real_change() {
+        when(auditActorProvider.currentActor()).thenReturn(TEST_ACTOR);
+
+        // Mirrors a caller that fetches the current entity and mutates it in place before
+        // resubmitting the same instance (e.g. GenericResourceManager.update()'s shape for
+        // Resource) - the pattern that defeated a naive existing-vs-candidate comparison. See the
+        // caveat on ResourceTypeChangeDetector.hasSameDefinition.
+        ResourceType existing = resourceTypeService.getResourceType("employee");
+        existing.getAliases().add("changed-alias");
+
+        resourceTypeService.updateResourceType(existing);
+
+        assertThat(resourceTypeService.getResourceType("employee").getAliases())
+                .contains("changed-alias");
+        verify(resourceTypeProjectionRefreshService).refresh(any());
+    }
+
+    @Test
+    void updateResourceType_noop_with_already_managed_instance_skips_refresh() {
+        when(auditActorProvider.currentActor()).thenReturn(TEST_ACTOR);
+
+        ResourceType existing = resourceTypeService.getResourceType("employee");
+
+        resourceTypeService.updateResourceType(existing);
+
+        verify(resourceTypeProjectionRefreshService, never()).refresh(any());
     }
 
     @Test

@@ -51,15 +51,17 @@ public final class ResourceTypeChangeDetector {
      * collections are treated consistently. Index fields are compared by name and by the full field
      * definition relevant to persistence and indexing, not merely by field identity.</p>
      *
-     * <p><b>Caller caveat:</b> this only works correctly if {@code candidate} is not the same
-     * JPA-managed instance as {@code existing} (e.g. a detached object freshly deserialized from a
-     * request body or a file, as today's callers - {@code ResourceTypeController} and
-     * {@code ResourceTypeInit} - do). If a caller ever fetched the current entity, mutated it in
-     * place, and passed that same instance back in, {@code existing} and {@code candidate} would
-     * be the identical object by the time this method runs (JPA's persistence-context identity
-     * map), making this comparison trivially {@code true} regardless of what actually changed. See
-     * the equivalent guard added to {@code GenericResourceManager.update()} for a concrete case
-     * where that exact pattern silently defeated a same-shaped check.</p>
+     * <p><b>Caller requirement:</b> {@code existing} must come from
+     * {@link gr.uoa.di.madgik.registry.dao.ResourceTypeDao#getPersistedSnapshot}, not a normal
+     * entity fetch. A normal fetch can return the exact same JPA-managed instance as
+     * {@code candidate} when a caller fetched the current entity, mutated it in place, and passed
+     * that same instance back in - at that point {@code existing} and {@code candidate} are
+     * identical, making this comparison trivially {@code true} regardless of what actually changed.
+     * {@code getPersistedSnapshot} sidesteps this by reading every part of the definition through
+     * flush-suppressed scalar queries into a fresh, never-managed {@code ResourceType}, the same
+     * technique {@code ResourceDaoImpl.getPersistedContent} uses for {@code Resource} updates. Both
+     * current call sites ({@code ResourceMonitor.resourceTypeUpdated} and
+     * {@code ResourceTypeServiceImpl.updateResourceType}) already do this.</p>
      *
      * @param existing the currently persisted resource type definition
      * @param candidate the incoming resource type definition proposed for update

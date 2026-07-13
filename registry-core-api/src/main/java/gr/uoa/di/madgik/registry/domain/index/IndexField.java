@@ -155,10 +155,22 @@ public class IndexField implements Serializable {
     }
 
     public Set<SearchCapability> getSearchCapabilities() {
-        if (searchCapabilities == null || searchCapabilities.isEmpty()) {
+        return normalizeSearchCapabilities(searchCapabilities);
+    }
+
+    /**
+     * Applies the same KEYWORD-default normalization as {@link #getSearchCapabilities()}, for
+     * callers that read the raw column value directly (e.g. a DAO projection query) instead of
+     * going through an {@code IndexField} instance.
+     *
+     * @param raw the raw, possibly {@code null} or empty search capabilities value
+     * @return the normalized, never-empty set of capabilities
+     */
+    public static Set<SearchCapability> normalizeSearchCapabilities(Set<SearchCapability> raw) {
+        if (raw == null || raw.isEmpty()) {
             return EnumSet.of(SearchCapability.KEYWORD);
         }
-        return EnumSet.copyOf(searchCapabilities);
+        return EnumSet.copyOf(raw);
     }
 
     public void setSearchCapabilities(Set<SearchCapability> searchCapabilities) {
@@ -174,10 +186,23 @@ public class IndexField implements Serializable {
     }
 
     public float getEmbeddingWeight() {
-        if (embeddingWeight == null) {
+        return normalizeEmbeddingWeight(embeddingWeight, type);
+    }
+
+    /**
+     * Applies the same type-dependent default as {@link #getEmbeddingWeight()}, for callers that
+     * read the raw column values directly (e.g. a DAO projection query) instead of going through
+     * an {@code IndexField} instance.
+     *
+     * @param raw the raw, possibly {@code null} embedding weight value
+     * @param type the field's {@code type}, used to pick the default when {@code raw} is {@code null}
+     * @return the normalized embedding weight
+     */
+    public static float normalizeEmbeddingWeight(Float raw, String type) {
+        if (raw == null) {
             return "java.lang.String".equals(type) ? DEFAULT_NULL_EMBEDDING_WEIGHT : 0.0f;
         }
-        return embeddingWeight;
+        return raw;
     }
 
     public void setEmbeddingWeight(Float embeddingWeight) {

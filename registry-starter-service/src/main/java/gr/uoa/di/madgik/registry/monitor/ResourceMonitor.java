@@ -164,7 +164,11 @@ public class ResourceMonitor {
 
     @Around("execution (* gr.uoa.di.madgik.registry.service.ResourceTypeService.updateResourceType(gr.uoa.di.madgik.registry.domain.ResourceType)) && args(resourceType)")
     public ResourceType resourceTypeUpdated(ProceedingJoinPoint pjp, ResourceType resourceType) throws Throwable {
-        ResourceType previous = resourceType == null ? null : resourceTypeDao.getResourceType(resourceType.getName());
+        // getPersistedSnapshot(), not getResourceType(): see its javadoc and the caveat on
+        // ResourceTypeChangeDetector.hasSameDefinition for why a normal entity fetch here would be
+        // unsafe if resourceType were ever the same managed instance a caller fetched and mutated
+        // in place. Must run before pjp.proceed() touches ResourceType/IndexField for this name.
+        ResourceType previous = resourceType == null ? null : resourceTypeDao.getPersistedSnapshot(resourceType.getName());
         boolean skipListeners = previous != null && ResourceTypeChangeDetector.hasSameDefinition(previous, resourceType);
         ResourceType updated = (ResourceType) pjp.proceed();
 
