@@ -180,8 +180,17 @@ public class GenericResourceManager implements GenericResourceService {
                                 .collect(Collectors.joining(",")),
                         resourceTypeName));
 
-        res.setPayload(payload);
         String logId = Arrays.stream(keyValues).map(SearchService.KeyValue::getValue).collect(Collectors.joining(","));
+
+        // Compared before mutating res: res is a managed entity, so setPayload() below would
+        // otherwise corrupt this "previous payload" read if taken afterwards. Skipping here avoids
+        // a no-op Version row and no-op modifiedBy/listener churn for a submission that changes nothing.
+        if (Objects.equals(res.getPayload(), payload)) {
+            logger.debug("Skipping update for resource type '{}' id '{}': submitted payload is unchanged", resourceTypeName, logId);
+            return resource;
+        }
+
+        res.setPayload(payload);
         logger.info(LoggingUtils.updateResource(resourceTypeName, logId, resource));
         resourceService.updateResource(res);
         return resource;
