@@ -16,6 +16,7 @@
 
 package gr.uoa.di.madgik.registry.monitor;
 
+import gr.uoa.di.madgik.registry.dao.PersistedResourceContent;
 import gr.uoa.di.madgik.registry.dao.ResourceDao;
 import gr.uoa.di.madgik.registry.dao.ResourceTypeDao;
 import gr.uoa.di.madgik.registry.domain.Resource;
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Created by antleb on 5/26/16.
@@ -74,6 +76,22 @@ public class ResourceMonitor {
     public Resource resourceUpdated(ProceedingJoinPoint pjp, Resource resource) throws Throwable {
         if (resource.getId() == null || resource.getId().isEmpty()) {
             throw new ServiceException("Empty resource ID");
+        }
+
+        // Must be the first thing that touches the Resource table in this whole call: if "resource"
+        // is an already-managed entity a caller fetched and mutated in place (e.g.
+        // GenericResourceManager.update()), the *next* ordinary query against Resource - even the
+        // resourceDao.getResource() call just below - would trigger Hibernate's default
+        // auto-flush-before-query and silently write that mutation to the database before anyone
+        // gets a chance to compare against it. getPersistedContent() is flush-suppressed for this
+        // reason, but that only helps if nothing else got there first.
+        PersistedResourceContent persisted = resourceDao.getPersistedContent(resource.getId());
+        if (persisted != null
+                && Objects.equals(persisted.payload(), resource.getPayload())
+                && Objects.equals(persisted.payloadFormat(), resource.getPayloadFormat())
+                && Objects.equals(persisted.resourceTypeName(), resource.getResourceTypeName())) {
+            logger.debug("Skipping update for resource '{}': persisted content is unchanged", resource.getId());
+            return resourceDao.getResource(resource.getId());
         }
 
         Resource previous = resourceDao.getResource(resource.getId());

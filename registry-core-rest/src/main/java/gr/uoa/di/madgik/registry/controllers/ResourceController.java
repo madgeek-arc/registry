@@ -32,7 +32,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 
 @RestController
 public class ResourceController {
@@ -110,29 +109,10 @@ public class ResourceController {
 
     @PutMapping(value = "/resources", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Resource> updateResource(@RequestBody Resource resource) {
-        // "resource" is a fresh object deserialized straight from the request body, never
-        // previously loaded through JPA in this request, so comparing it against the persisted
-        // state here is safe (no risk of both referring to the same managed, already-mutated
-        // entity - see GenericResourceManager.update() for the case where that risk is real).
-        if (resource.getId() != null && !resource.getId().isEmpty()) {
-            Resource current = resourceService.getResource(resource.getId());
-            if (current != null && hasSameContent(current, resource)) {
-                return ResponseEntity.ok(current);
-            }
-        }
-
         resource.setModificationDate(Instant.now());
         Resource resourceFinal;
         resourceFinal = resourceService.updateResource(resource);
         return ResponseEntity.ok(resourceFinal);
-    }
-
-    private static boolean hasSameContent(Resource existing, Resource candidate) {
-        return Objects.equals(existing.getPayload(), candidate.getPayload())
-                && Objects.equals(existing.getPayloadFormat(), candidate.getPayloadFormat())
-                && Objects.equals(existing.getPayloadUrl(), candidate.getPayloadUrl())
-                && Objects.equals(existing.getSearchableArea(), candidate.getSearchableArea())
-                && Objects.equals(existing.getResourceTypeName(), candidate.getResourceTypeName());
     }
 
     @DeleteMapping(value = "/resources/{id}")

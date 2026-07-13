@@ -37,6 +37,18 @@ public interface ResourceDao {
     Resource getResource(String id);
 
     /**
+     * Reads the resource's last-committed content directly from the database, bypassing the
+     * persistence context so pending in-memory changes on an already-managed instance for the same
+     * id are never reflected in the result. Intended for no-op-update detection, which needs the
+     * true previous state even when the caller passed in an entity it already fetched and mutated
+     * in place.
+     *
+     * @param id the resource identifier
+     * @return the persisted content, or {@code null} if no resource exists with that id
+     */
+    PersistedResourceContent getPersistedContent(String id);
+
+    /**
      * Returns resources modified strictly after {@code date}, optionally filtered by resource type name.
      *
      * @param date the lower bound for {@code modificationDate}

@@ -191,6 +191,31 @@ class ResourceServiceImplTest extends PostgreSqlTestContainerSupport {
 
     @Test
     @Order(12)
+    void updateResource_NOOP_SKIPS_VERSION() {
+        Resource before = resourceService.getResource(TEST_RESOURCE_ID);
+        String previousVersion = before.getVersion();
+
+        // A different actor for this call only: if the no-op guard failed to skip the update body,
+        // modifiedBy would flip to this value instead of staying whatever it already was.
+        when(auditActorProvider.currentActor()).thenReturn("should-not-be-used");
+
+        // A fresh, detached Resource carrying exactly what's already persisted - mirrors what
+        // ResourceController.updateResource() receives from a request body.
+        Resource resubmitted = new Resource();
+        resubmitted.setId(before.getId());
+        resubmitted.setPayload(before.getPayload());
+        resubmitted.setPayloadFormat(before.getPayloadFormat());
+        resubmitted.setResourceTypeName(before.getResourceTypeName());
+
+        Resource result = resourceService.updateResource(resubmitted);
+
+        Assertions.assertEquals(previousVersion, result.getVersion());
+        Assertions.assertEquals(before.getModificationDate(), result.getModificationDate());
+        Assertions.assertEquals(before.getModifiedBy(), result.getModifiedBy());
+    }
+
+    @Test
+    @Order(13)
     void updateResource_MISSING_ID() {
         Resource missing = newEmployeeResource("Ghost Employee", 22);
         missing.setId("missing-resource");
@@ -202,7 +227,7 @@ class ResourceServiceImplTest extends PostgreSqlTestContainerSupport {
     }
 
     @Test
-    @Order(13)
+    @Order(14)
     void changeResourceType_OK() {
         String resourceTypeName = "employee";
         Resource resource = resourceService.changeResourceType(testingResource, resourceTypeDao.getResourceType(resourceTypeName));
@@ -210,7 +235,7 @@ class ResourceServiceImplTest extends PostgreSqlTestContainerSupport {
     }
 
     @Test
-    @Order(14)
+    @Order(15)
     void changeResourceType_REGENERATES_INDEXED_FIELDS() {
         ResourceType minimalResourceType = createResourceType(
                 "employee-minimal",
@@ -231,7 +256,7 @@ class ResourceServiceImplTest extends PostgreSqlTestContainerSupport {
     }
 
     @Test
-    @Order(15)
+    @Order(16)
     void changeResourceType_INVALID_TARGET() {
         ResourceType invalidResourceType = createResourceType(
                 "employee-json",
@@ -246,7 +271,7 @@ class ResourceServiceImplTest extends PostgreSqlTestContainerSupport {
     }
 
     @Test
-    @Order(16)
+    @Order(17)
     void deleteResource() {
         resourceService.deleteResource(TEST_RESOURCE_ID);
         Assertions.assertEquals(resourceService.getResource().size(), 0);

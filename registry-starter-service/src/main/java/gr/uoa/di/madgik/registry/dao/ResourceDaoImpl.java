@@ -18,6 +18,7 @@ package gr.uoa.di.madgik.registry.dao;
 
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
+import jakarta.persistence.FlushModeType;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
@@ -48,6 +49,23 @@ public class ResourceDaoImpl extends AbstractDao<Resource> implements ResourceDa
 
     public Resource getResource(String id) {
         return getSingleResult("id", id);
+    }
+
+    @Override
+    public PersistedResourceContent getPersistedContent(String id) {
+        // FlushModeType.COMMIT: this must never trigger Hibernate's default auto-flush-before-query
+        // behavior, or a pending in-memory change on an already-managed Resource for this id would
+        // get flushed to the database right before we read it - defeating the whole point of reading
+        // the "previous" state here. Selecting scalar columns (not the entity) also means Hibernate
+        // has no managed instance to substitute in place of what the database actually returns.
+        return getEntityManager()
+                .createQuery("SELECT r.payload, r.payloadFormat, r.resourceType.name FROM Resource r WHERE r.id = :id", Object[].class)
+                .setFlushMode(FlushModeType.COMMIT)
+                .setParameter("id", id)
+                .getResultStream()
+                .findFirst()
+                .map(row -> new PersistedResourceContent((String) row[0], (String) row[1], (String) row[2]))
+                .orElse(null);
     }
 
     private List<Resource> getSince(Instant date, String resourceType, String dateType) {
