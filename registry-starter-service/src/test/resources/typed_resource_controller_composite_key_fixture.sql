@@ -1,6 +1,6 @@
 --
 -- Dedicated resourceType ("gadget") with a composite primary key (vendor + sku) for
--- GenericController /key route integration tests. All current fixtures used elsewhere have
+-- TypedResourceController /key route integration tests. All current fixtures used elsewhere have
 -- exactly one primarykey=true field, so composite-key behavior needs its own resourceType.
 --
 

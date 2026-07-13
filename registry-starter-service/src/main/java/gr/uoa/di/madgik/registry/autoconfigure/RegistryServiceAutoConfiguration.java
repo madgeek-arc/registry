@@ -16,7 +16,7 @@
 
 package gr.uoa.di.madgik.registry.autoconfigure;
 
-import gr.uoa.di.madgik.registry.controllers.GenericController;
+import gr.uoa.di.madgik.registry.controllers.TypedResourceController;
 import gr.uoa.di.madgik.registry.configuration.BackupRestoreConfig;
 import gr.uoa.di.madgik.registry.configuration.BatchConfig;
 import gr.uoa.di.madgik.registry.configuration.HibernateConfiguration;
@@ -69,15 +69,15 @@ public class RegistryServiceAutoConfiguration {
 
     @Bean
     @ConditionalOnBean(GenericResourceService.class)
-    @ConditionalOnMissingBean(GenericController.class)
-    @ConditionalOnProperty(prefix = "registry.rest.generic-controller", name = "enabled", havingValue = "true", matchIfMissing = true)
-    GenericController genericController(GenericResourceService genericResourceService, VersionService versionService) {
-        return new GenericController(genericResourceService, versionService);
+    @ConditionalOnMissingBean(TypedResourceController.class)
+    @ConditionalOnProperty(prefix = "registry.rest.typed-resources-controller", name = "enabled", havingValue = "true", matchIfMissing = true)
+    TypedResourceController typedResourceController(GenericResourceService genericResourceService, VersionService versionService) {
+        return new TypedResourceController(genericResourceService, versionService);
     }
 
     /**
      * Off by default: only consumers whose domain primary keys can contain "/" (and thus
-     * reach GenericController's {@code {resourceType}/{id}/...} routes with a URL-encoded
+     * reach TypedResourceController's {@code {resourceType}/{id}/...} routes with a URL-encoded
      * slash in {@code {id}}) need this. Everyone else keeps Tomcat's default (safer) handling,
      * which rejects encoded slashes outright. "passthrough" (not "decode") is required: it
      * leaves "%2F" encoded in the raw request URI, so Spring's PathPatternParser can percent-decode
@@ -87,7 +87,7 @@ public class RegistryServiceAutoConfiguration {
     @Bean
     @ConditionalOnClass(Connector.class)
     @ConditionalOnMissingBean(name = "tomcatEncodedSlashCustomizer")
-    @ConditionalOnProperty(prefix = "registry.rest.generic-controller", name = "allow-encoded-slash", havingValue = "true")
+    @ConditionalOnProperty(prefix = "registry.rest", name = "allow-encoded-slash", havingValue = "true")
     WebServerFactoryCustomizer<TomcatServletWebServerFactory> tomcatEncodedSlashCustomizer() {
         return factory -> factory.addConnectorCustomizers(
                 connector -> connector.setEncodedSolidusHandling("passthrough"));

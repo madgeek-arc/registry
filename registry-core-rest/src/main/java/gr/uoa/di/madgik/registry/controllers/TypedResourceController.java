@@ -103,16 +103,15 @@ import java.util.Map;
  * @see FacetFilter
  */
 @RestController
-@RequestMapping(path = GenericController.BASE_PATH, produces = MediaType.APPLICATION_JSON_VALUE)
-@Tag(name = "Records", description = "Dynamic CRUD, browse, and recommendation operations for any registered resource type")
-public class GenericController {
+@RequestMapping(path = TypedResourceController.BASE_PATH, produces = MediaType.APPLICATION_JSON_VALUE)
+public class TypedResourceController {
 
     public static final String BASE_PATH = "records";
 
     private final GenericResourceService genericResourceService;
     private final VersionService versionService;
 
-    public GenericController(GenericResourceService genericResourceService, VersionService versionService) {
+    public TypedResourceController(GenericResourceService genericResourceService, VersionService versionService) {
         this.genericResourceService = genericResourceService;
         this.versionService = versionService;
     }
@@ -129,7 +128,13 @@ public class GenericController {
      *         (the {@code {id}} route for a single primary key, the {@code /key} route for a
      *         composite one)
      */
+    // Tag descriptions live here on purpose (not on the class - that would tag every method with both).
+    // Move these two lines in another common method if you ever remove/retag create(), otherwise
+    // Swagger UI will lose the group descriptions.
+    @Tag(name = "Records (by id)", description = "Operations for resource types with a single primary key, addressed via the {id} path segment.")
+    @Tag(name = "Records (by key)", description = "Operations for resource types with a composite primary key, addressed via /key?field=value... query parameters.")
     @Operation(
+            tags = {"Records (by id)", "Records (by key)"},
             summary = "Create a new resource",
             description = "Persists a new resource of the given resource type. Validation is applied before saving.",
             responses = {
@@ -177,6 +182,7 @@ public class GenericController {
      * @return the updated resource wrapped in {@code 200 OK}
      */
     @Operation(
+            tags = {"Records (by id)", "Records (by key)"},
             summary = "Update a resource",
             description = "Replaces the payload of an existing resource. The primary key(s), single or composite, are read from the request body.",
             responses = {
@@ -200,6 +206,7 @@ public class GenericController {
      * @return the deleted resource as it existed at deletion time, wrapped in {@code 200 OK}
      */
     @Operation(
+            tags = {"Records (by id)"},
             summary = "Delete a resource by id",
             description = "Removes the resource with the given id and returns its last known state.",
             responses = {
@@ -225,6 +232,7 @@ public class GenericController {
      * @return the deserialized domain object wrapped in {@code 200 OK}
      */
     @Operation(
+            tags = {"Records (by key)"},
             summary = "Get a resource by composite primary key",
             description = "Fetches a resource by its full primary key, single or composite. Every query parameter is treated as one primary-key field=value pair; the resource type's declared primary-key fields must all be present, and no others.",
             responses = {
@@ -248,6 +256,7 @@ public class GenericController {
      * @see #getByKey(String, Map) for the query-parameter convention this route shares
      */
     @Operation(
+            tags = {"Records (by key)"},
             summary = "Delete a resource by composite primary key",
             description = "Removes the resource matching the given full primary key and returns its last known state.",
             responses = {
@@ -273,6 +282,7 @@ public class GenericController {
      *         {@code 200 OK}
      */
     @Operation(
+            tags = {"Records (by id)", "Records (by key)"},
             summary = "Browse resources",
             description = "Returns a paginated, faceted list of resources. Supports filtering, sorting, and keyword search.",
             responses = {
@@ -291,6 +301,7 @@ public class GenericController {
     }
 
     @Operation(
+            tags = {"Records (by id)", "Records (by key)"},
             summary = "Browse resources semantically",
             description = "Returns a paginated list of resources using embedding-based semantic search."
     )
@@ -305,6 +316,7 @@ public class GenericController {
     }
 
     @Operation(
+            tags = {"Records (by id)", "Records (by key)"},
             summary = "Browse resources with hybrid search",
             description = "Returns a paginated list of resources using combined lexical and semantic ranking."
     )
@@ -327,6 +339,7 @@ public class GenericController {
      * @return a {@link Paging} of {@link HighlightedResult} wrappers, wrapped in {@code 200 OK}
      */
     @Operation(
+            tags = {"Records (by id)", "Records (by key)"},
             summary = "Browse resources with highlights",
             description = "Same as the standard browse endpoint but each result also carries keyword-highlight fragments."
     )
@@ -342,6 +355,7 @@ public class GenericController {
     }
 
     @Operation(
+            tags = {"Records (by id)", "Records (by key)"},
             summary = "Browse resources with hybrid highlights",
             description = "Returns hybrid-ranked results with lexical highlights and semantic snippets."
     )
@@ -365,6 +379,7 @@ public class GenericController {
      * @return the deserialized domain object wrapped in {@code 200 OK}
      */
     @Operation(
+            tags = {"Records (by id)"},
             summary = "Get a resource by id",
             description = "Fetches the resource with the given id from the given resource type.",
             responses = {
@@ -387,6 +402,7 @@ public class GenericController {
      * @return the version history, newest first, wrapped in {@code 200 OK}
      */
     @Operation(
+            tags = {"Records (by id)"},
             summary = "List a resource's versions",
             description = "Returns the historical versions of the resource with the given id.",
             responses = {
@@ -415,6 +431,7 @@ public class GenericController {
      * @return the version's payload as it existed at that point in time, wrapped in {@code 200 OK}
      */
     @Operation(
+            tags = {"Records (by id)"},
             summary = "Get a single version",
             description = "Fetches one historical version of a resource by its version label.",
             responses = {
@@ -443,6 +460,7 @@ public class GenericController {
      * @see #getByKey(String, Map) for the query-parameter convention this route shares
      */
     @Operation(
+            tags = {"Records (by key)"},
             summary = "List a resource's versions by composite primary key",
             description = "Returns the historical versions of the resource matching the given full primary key.",
             responses = {
@@ -473,6 +491,7 @@ public class GenericController {
      * @see #getByKey(String, Map) for the query-parameter convention this route shares
      */
     @Operation(
+            tags = {"Records (by key)"},
             summary = "Get a single version by composite primary key",
             description = "Fetches one historical version of a resource, identified by its full primary key, by version label.",
             responses = {
@@ -511,6 +530,7 @@ public class GenericController {
      * @return an ordered list of similar resources wrapped in {@code 200 OK}
      */
     @Operation(
+            tags = {"Records (by id)"},
             summary = "Get recommendations for a resource by id",
             description = "Returns resources similar to the one identified by id, ordered by descending similarity."
     )
@@ -541,6 +561,7 @@ public class GenericController {
      * @return an ordered list of similar resources wrapped in {@code 200 OK}
      */
     @Operation(
+            tags = {"Records (by key)"},
             summary = "Get recommendations for a resource by composite primary key",
             description = "Returns resources similar to the one identified by its full primary key, ordered by descending similarity. Does not support additional facet-filter criteria in the same request (see method Javadoc).",
             responses = {
@@ -578,6 +599,7 @@ public class GenericController {
      * @return an ordered list of similar resources wrapped in {@code 200 OK}
      */
     @Operation(
+            tags = {"Records (by id)", "Records (by key)"},
             summary = "Get recommendations for a resource payload",
             description = "Returns resources similar to the provided resource payload, ordered by descending similarity. The resource does not need to be stored."
     )

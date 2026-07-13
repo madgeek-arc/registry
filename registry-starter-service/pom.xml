@@ -184,7 +184,7 @@
         <!-- Test-->
         <!-- GenericResourceManager (GenericResourceService impl) lives here, not in this module.
              Not a compile dependency: every real consumer (e.g. resource-catalogue-service)
-             declares registry-core-helper itself alongside this starter, so GenericController
+             declares registry-core-helper itself alongside this starter, so TypedResourceController
              is only live in a real application when both are present together. Needed here at
              test scope to exercise that same real wiring in this module's own integration tests. -->
         <dependency>

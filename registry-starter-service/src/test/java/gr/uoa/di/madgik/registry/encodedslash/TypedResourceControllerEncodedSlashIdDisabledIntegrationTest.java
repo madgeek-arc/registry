@@ -17,7 +17,7 @@
 package gr.uoa.di.madgik.registry.encodedslash;
 
 import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
-import gr.uoa.di.madgik.registry.testsupport.GenericControllerTestApplication;
+import gr.uoa.di.madgik.registry.testsupport.TypedResourceControllerTestApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,19 +33,19 @@ import java.net.http.HttpResponse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Sibling of GenericControllerEncodedSlashIdIntegrationTest with allow-encoded-slash left at its
+ * Sibling of TypedResourceControllerEncodedSlashIdIntegrationTest with allow-encoded-slash left at its
  * unset/false default — proves the property genuinely gates the relaxation (default stays
  * off/safe) rather than the encoded slash simply working regardless of configuration.
  */
 @SpringBootTest(
-        classes = GenericControllerTestApplication.class,
+        classes = TypedResourceControllerTestApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "spring.profiles.active=test")
 // Class-level @Sql on a subclass overrides (does not merge with) the superclass's declaration,
 // so the full script list — including the base fixtures the superclass would otherwise load — is
 // repeated here explicitly, with the encoded-slash fixture appended last.
 @Sql(scripts = {"/resource_chunk.sql", "/data.sql", "/employee_slash_fixture.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
-class GenericControllerEncodedSlashIdDisabledIntegrationTest extends PostgreSqlTestContainerSupport {
+class TypedResourceControllerEncodedSlashIdDisabledIntegrationTest extends PostgreSqlTestContainerSupport {
 
     @LocalServerPort
     private int port;

@@ -30,16 +30,16 @@ import org.springframework.security.web.SecurityFilterChain;
  *
  * <p>Deliberately lives outside {@code gr.uoa.di.madgik.registry.controllers}:
  * {@code @SpringBootApplication}'s implicit component scan would otherwise re-scan
- * {@code GenericController} as a plain {@code @RestController} stereotype bean, bypassing the
+ * {@code TypedResourceController} as a plain {@code @RestController} stereotype bean, bypassing the
  * exclude-filter that {@code RegistryServiceComponentsConfiguration} relies on to let the
- * conditional {@code genericController()} @Bean method be the sole source of that bean.
+ * conditional {@code typedResourceController()} @Bean method be the sole source of that bean.
  *
  * <p>Shared across every embedded-server test package that needs this wiring (encoded-slash
- * firewall tests, general {@code GenericController} CRUD tests, etc.) rather than duplicated
+ * firewall tests, general {@code TypedResourceController} CRUD tests, etc.) rather than duplicated
  * per package.
  */
 @SpringBootApplication
-public class GenericControllerTestApplication {
+public class TypedResourceControllerTestApplication {
 
     /**
      * Most of these tests are about behavior that runs ahead of authorization in the filter

@@ -19,7 +19,7 @@ package gr.uoa.di.madgik.registry.encodedslash;
 import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ViewService;
-import gr.uoa.di.madgik.registry.testsupport.GenericControllerTestApplication;
+import gr.uoa.di.madgik.registry.testsupport.TypedResourceControllerTestApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,22 +39,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Real embedded-server test (not MockMvc, which never touches the actual Tomcat connector)
  * proving the full production autoconfiguration chain — Tomcat connector relaxation, the
- * {@code encodedSlashHttpFirewallCustomizer} WebSecurityCustomizer, and GenericController
+ * {@code encodedSlashHttpFirewallCustomizer} WebSecurityCustomizer, and TypedResourceController
  * itself — works end-to-end for a URL-encoded slash in {@code {id}} when
  * {@code allow-encoded-slash=true}. See the disabled-flag sibling test for the negative case.
  */
 @SpringBootTest(
-        classes = GenericControllerTestApplication.class,
+        classes = TypedResourceControllerTestApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
                 "spring.profiles.active=test",
-                "registry.rest.generic-controller.allow-encoded-slash=true"
+                "registry.rest.allow-encoded-slash=true"
         })
 // Class-level @Sql on a subclass overrides (does not merge with) the superclass's declaration,
 // so the full script list — including the base fixtures the superclass would otherwise load — is
 // repeated here explicitly, with the encoded-slash fixture appended last.
 @Sql(scripts = {"/resource_chunk.sql", "/data.sql", "/employee_slash_fixture.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
-class GenericControllerEncodedSlashIdIntegrationTest extends PostgreSqlTestContainerSupport {
+class TypedResourceControllerEncodedSlashIdIntegrationTest extends PostgreSqlTestContainerSupport {
 
     @LocalServerPort
     private int port;
@@ -69,7 +69,7 @@ class GenericControllerEncodedSlashIdIntegrationTest extends PostgreSqlTestConta
     private ViewService viewService;
 
     @Test
-    void encodedSlashInRecordsIdReachesGenericControllerWhenEnabled() throws Exception {
+    void encodedSlashInRecordsIdReachesTypedResourceControllerWhenEnabled() throws Exception {
         // ResourceTypeViewInit only builds SQL views for resource types that exist at
         // application startup; "employee_slash" is inserted afterward by @Sql, so its view has
         // to be created explicitly here too — same pattern DefaultSearchServiceQueryBuilderTest uses.

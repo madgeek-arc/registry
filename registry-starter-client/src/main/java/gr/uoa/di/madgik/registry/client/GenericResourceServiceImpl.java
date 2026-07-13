@@ -358,7 +358,7 @@ public class GenericResourceServiceImpl implements GenericResourceService {
         return builder.toUriString();
     }
 
-    // Deliberately omits filter.getFilter(): GenericController's /key/recommendations route
+    // Deliberately omits filter.getFilter(): TypedResourceController's /key/recommendations route
     // treats every non-reserved query parameter as part of the composite primary key, so it
     // cannot also accept orthogonal facet-filter criteria in the same request.
     private String buildKeyRecommendationsUri(FacetFilter filter, Map<String, String> keyValues) {

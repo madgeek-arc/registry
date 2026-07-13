@@ -53,8 +53,8 @@ class EncodedSlashHttpFirewallConfigurationTest {
     void beanRegisters_whenPropertyTrue_andSecurityWebOnClasspath() {
         contextRunner
                 .withPropertyValues(
-                        "registry.rest.generic-controller.allow-encoded-slash=true",
-                        "registry.rest.generic-controller.encoded-slash-paths=service,datasource")
+                        "registry.rest.allow-encoded-slash=true",
+                        "registry.rest.encoded-slash-paths=service,datasource")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(WebSecurityCustomizer.class);
@@ -72,7 +72,7 @@ class EncodedSlashHttpFirewallConfigurationTest {
     @Test
     void beanAbsent_whenPropertyExplicitlyFalse() {
         contextRunner
-                .withPropertyValues("registry.rest.generic-controller.allow-encoded-slash=false")
+                .withPropertyValues("registry.rest.allow-encoded-slash=false")
                 .run(context -> assertThat(context).doesNotHaveBean(WebSecurityCustomizer.class));
     }
 
@@ -90,8 +90,8 @@ class EncodedSlashHttpFirewallConfigurationTest {
         contextRunner
                 .withClassLoader(new FilteredClassLoader(HttpFirewall.class, WebSecurityCustomizer.class))
                 .withPropertyValues(
-                        "registry.rest.generic-controller.allow-encoded-slash=true",
-                        "registry.rest.generic-controller.encoded-slash-paths=service")
+                        "registry.rest.allow-encoded-slash=true",
+                        "registry.rest.encoded-slash-paths=service")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).doesNotHaveBean(WebSecurityCustomizer.class);

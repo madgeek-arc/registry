@@ -1,5 +1,5 @@
 --
--- Dedicated resourceType ("widget") for general GenericController CRUD integration tests.
+-- Dedicated resourceType ("widget") for general TypedResourceController CRUD integration tests.
 -- Uses a JSON payload (plain Jackson deserialization) rather than reusing the shared "employee"
 -- fixture from data.sql, whose XML payload requires a JAXB-registered class unrelated to what
 -- these tests are actually verifying.

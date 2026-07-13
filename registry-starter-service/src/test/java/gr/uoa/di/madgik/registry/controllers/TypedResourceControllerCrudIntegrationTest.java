@@ -19,7 +19,7 @@ package gr.uoa.di.madgik.registry.controllers;
 import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ViewService;
-import gr.uoa.di.madgik.registry.testsupport.GenericControllerTestApplication;
+import gr.uoa.di.madgik.registry.testsupport.TypedResourceControllerTestApplication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.embedding.EmbeddingModel;
@@ -39,20 +39,20 @@ import java.net.http.HttpResponse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * First real embedded-server (not MockMvc) coverage of {@link GenericController}'s core CRUD
+ * First real embedded-server (not MockMvc) coverage of {@link TypedResourceController}'s core CRUD
  * flow, and of the {@code registry-core-rest} error handling wired up in
  * {@code GlobalExceptionHandler}. Bootstraps the test infrastructure that later
  * duplicate-key-detection and composite-primary-key tests build on.
  */
 @SpringBootTest(
-        classes = GenericControllerTestApplication.class,
+        classes = TypedResourceControllerTestApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "spring.profiles.active=test")
 // Class-level @Sql on a subclass overrides (does not merge with) the superclass's declaration,
 // so the full script list — including the base fixtures the superclass would otherwise load — is
 // repeated here explicitly, with the widget fixture appended last.
-@Sql(scripts = {"/resource_chunk.sql", "/data.sql", "/generic_controller_crud_fixture.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
-class GenericControllerCrudIntegrationTest extends PostgreSqlTestContainerSupport {
+@Sql(scripts = {"/resource_chunk.sql", "/data.sql", "/typed_resource_controller_crud_fixture.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
+class TypedResourceControllerCrudIntegrationTest extends PostgreSqlTestContainerSupport {
 
     @LocalServerPort
     private int port;

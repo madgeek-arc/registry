@@ -19,7 +19,7 @@ package gr.uoa.di.madgik.registry.controllers;
 import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.ViewService;
-import gr.uoa.di.madgik.registry.testsupport.GenericControllerTestApplication;
+import gr.uoa.di.madgik.registry.testsupport.TypedResourceControllerTestApplication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.embedding.EmbeddingModel;
@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Embedded-server coverage of {@link GenericController}'s {@code /key} route family, which
+ * Embedded-server coverage of {@link TypedResourceController}'s {@code /key} route family, which
  * exists specifically for resource types with a composite primary key (none of the fixtures used
  * elsewhere have more than one {@code primarykey=true} field).
  *
@@ -52,14 +52,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@code DefaultSearchServiceSemanticTest} for embedding-level recommend coverage.
  */
 @SpringBootTest(
-        classes = GenericControllerTestApplication.class,
+        classes = TypedResourceControllerTestApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "spring.profiles.active=test")
 // Class-level @Sql on a subclass overrides (does not merge with) the superclass's declaration,
 // so the full script list — including the base fixtures the superclass would otherwise load — is
 // repeated here explicitly, with the composite-key fixture appended last.
-@Sql(scripts = {"/resource_chunk.sql", "/data.sql", "/generic_controller_composite_key_fixture.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
-class GenericControllerCompositeKeyIntegrationTest extends PostgreSqlTestContainerSupport {
+@Sql(scripts = {"/resource_chunk.sql", "/data.sql", "/typed_resource_controller_composite_key_fixture.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
+class TypedResourceControllerCompositeKeyIntegrationTest extends PostgreSqlTestContainerSupport {
 
     @LocalServerPort
     private int port;

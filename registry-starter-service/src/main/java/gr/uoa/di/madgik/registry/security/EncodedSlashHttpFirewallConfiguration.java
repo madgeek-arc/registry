@@ -16,7 +16,7 @@
 
 package gr.uoa.di.madgik.registry.security;
 
-import gr.uoa.di.madgik.registry.controllers.GenericController;
+import gr.uoa.di.madgik.registry.controllers.TypedResourceController;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -47,8 +47,8 @@ public class EncodedSlashHttpFirewallConfiguration {
 
     /**
      * Off by default, same flag as {@code tomcatEncodedSlashCustomizer}. Relaxes the firewall
-     * only for the configured path prefixes plus {@code GenericController.BASE_PATH} ("records"),
-     * which is always included since {@code GenericController} is always registered by this
+     * only for the configured path prefixes plus {@code TypedResourceController.BASE_PATH} ("records"),
+     * which is always included since {@code TypedResourceController} is always registered by this
      * starter — every other path keeps Spring Security's default strict firewall. A consumer
      * only needs to list its own extra paths, e.g. "service,datasource"; "records" doesn't need
      * to be repeated. Named (not type-based) {@code ConditionalOnMissingBean} so a consumer can
@@ -58,12 +58,12 @@ public class EncodedSlashHttpFirewallConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(name = "encodedSlashHttpFirewallCustomizer")
-    @ConditionalOnProperty(prefix = "registry.rest.generic-controller", name = "allow-encoded-slash", havingValue = "true")
+    @ConditionalOnProperty(prefix = "registry.rest", name = "allow-encoded-slash", havingValue = "true")
     WebSecurityCustomizer encodedSlashHttpFirewallCustomizer(
-            @Value("${registry.rest.generic-controller.encoded-slash-paths:}")
+            @Value("${registry.rest.encoded-slash-paths:}")
             List<String> encodedSlashPaths) {
         Set<String> paths = new LinkedHashSet<>(encodedSlashPaths);
-        paths.add(GenericController.BASE_PATH);
+        paths.add(TypedResourceController.BASE_PATH);
         HttpFirewall firewall = new EncodedSlashHttpFirewall(paths);
         return web -> web.httpFirewall(firewall);
     }
