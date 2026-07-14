@@ -24,3 +24,13 @@ VALUES
 ('code', NULL, 'code', false, '$.code', true, 'java.lang.String', 'widget'),
 ('label', NULL, 'label', false, '$.label', false, 'java.lang.String', 'widget')
 ON CONFLICT (name, resourcetype_name) DO NOTHING;
+
+-- Alias for the alias-resolution coverage in TypedResourceControllerCrudIntegrationTest: CRUD/
+-- version routes must resolve this the same way the browse endpoint already resolves aliases.
+-- Name picked to avoid colliding with any other resourceType's canonical name in this shared
+-- test schema (e.g. "gadget" is itself a real composite-key resourceType elsewhere).
+INSERT INTO public.resourcetype_aliases (resourcetype_name, aliases)
+SELECT 'widget', 'widget-alias'
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.resourcetype_aliases WHERE resourcetype_name = 'widget' AND aliases = 'widget-alias'
+);

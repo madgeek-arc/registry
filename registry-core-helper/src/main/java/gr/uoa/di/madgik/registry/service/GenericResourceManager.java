@@ -63,19 +63,21 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public <T> T get(String resourceTypeName, SearchService.KeyValue... keyValues) {
-        Resource res = searchService.searchFields(resourceTypeName, keyValues);
+        ResourceType resourceType = resolveResourceType(resourceTypeName);
+        Resource res = searchService.searchFields(resourceType.getName(), keyValues);
         if (res == null) {
             String id = keyValues.length > 0 ? keyValues[0].getValue() : null;
             throw new ResourceNotFoundException(id, resourceTypeName);
         }
-        return (T) parserPool.deserialize(res, getClassFromResourceType(resourceTypeName));
+        return (T) parserPool.deserialize(res, getClassFromResourceType(resourceType.getName()));
     }
 
     @Override
     public <T> List<ScoredResult<T>> recommend(FacetFilter filter, String id) {
         String resourceTypeName = filter.getResourceType();
-        Class<?> clazz = getClassFromResourceType(resourceTypeName);
-        return searchService.recommend(filter, new SearchService.KeyValue(resolveSinglePrimaryKeyField(resourceTypeName), id))
+        ResourceType resourceType = resolveResourceType(resourceTypeName);
+        Class<?> clazz = getClassFromResourceType(resourceType.getName());
+        return searchService.recommend(filter, new SearchService.KeyValue(resolveSinglePrimaryKeyField(resourceType), id))
                 .stream()
                 .map(scored -> scored.<T>map(resource -> (T) parserPool.deserialize(resource, clazz)))
                 .collect(Collectors.toList());
@@ -84,8 +86,8 @@ public class GenericResourceManager implements GenericResourceService {
     @Override
     public <T> List<ScoredResult<T>> recommendByKey(FacetFilter filter, Map<String, String> keyValues) {
         String resourceTypeName = filter.getResourceType();
-        Class<?> clazz = getClassFromResourceType(resourceTypeName);
         Resource reference = searchResourceByKey(resourceTypeName, keyValues, true);
+        Class<?> clazz = getClassFromResourceType(reference.getResourceTypeName());
         return searchService.recommend(filter, reference)
                 .stream()
                 .map(scored -> scored.<T>map(resource -> (T) parserPool.deserialize(resource, clazz)))
@@ -95,10 +97,10 @@ public class GenericResourceManager implements GenericResourceService {
     @Override
     public <T> List<ScoredResult<T>> recommend(FacetFilter filter, T resource) {
         String resourceTypeName = filter.getResourceType();
-        Class<?> clazz = getClassFromResourceType(resourceTypeName);
-        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
+        ResourceType resourceType = resolveResourceType(resourceTypeName);
+        Class<?> clazz = getClassFromResourceType(resourceType.getName());
         Resource rawResource = new Resource();
-        rawResource.setResourceTypeName(resourceTypeName);
+        rawResource.setResourceTypeName(resourceType.getName());
         rawResource.setResourceType(resourceType);
         rawResource.setPayload(serialize(resource, resourceType));
         rawResource.setIndexedFields(resourceService.getIndexedFields(rawResource));
@@ -115,14 +117,11 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public <T> T add(String resourceTypeName, T resource, boolean validate) {
-        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
-        if (resourceType == null) {
-            throw ResourceNotFoundException.unknownResourceType(resourceTypeName);
-        }
+        ResourceType resourceType = resolveResourceType(resourceTypeName);
         runValidation(resource, resourceTypeName, validate);
         String payload = serialize(resource, resourceType);
         SearchService.KeyValue[] keyValues = extractPrimaryKeys(resourceType, payload);
-        if (searchResource(resourceTypeName, keyValues) != null) {
+        if (searchResource(resourceType.getName(), keyValues) != null) {
             throw new ResourceAlreadyExistsException(
                     Arrays.stream(keyValues)
                             .map(kv -> kv.getField() + "=" + kv.getValue())
@@ -130,7 +129,7 @@ public class GenericResourceManager implements GenericResourceService {
                     resourceTypeName);
         }
         Resource res = new Resource();
-        res.setResourceTypeName(resourceTypeName);
+        res.setResourceTypeName(resourceType.getName());
         res.setResourceType(resourceType);
         res.setPayload(payload);
         logger.info("adding : [resourceType={}] : [body={}]", resourceTypeName, resource);
@@ -140,17 +139,14 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public <T> boolean exists(String resourceTypeName, T resource) { // TODO: do not get, just check
-        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
+        ResourceType resourceType = resolveResourceType(resourceTypeName);
         String payload = serialize(resource, resourceType);
-        return searchResource(resourceTypeName, extractPrimaryKeys(resourceType, payload)) != null;
+        return searchResource(resourceType.getName(), extractPrimaryKeys(resourceType, payload)) != null;
     }
 
     @Override
     public <T> Map<String, String> getPrimaryKeyValues(String resourceTypeName, T resource) {
-        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
-        if (resourceType == null) {
-            throw ResourceNotFoundException.unknownResourceType(resourceTypeName);
-        }
+        ResourceType resourceType = resolveResourceType(resourceTypeName);
         String payload = serialize(resource, resourceType);
         SearchService.KeyValue[] keyValues = extractPrimaryKeys(resourceType, payload);
         Map<String, String> result = new LinkedHashMap<>();
@@ -167,13 +163,13 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public <T> T update(String resourceTypeName, T resource, boolean validate) {
-        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
+        ResourceType resourceType = resolveResourceType(resourceTypeName);
         String payload = serialize(resource, resourceType);
         SearchService.KeyValue[] keyValues = extractPrimaryKeys(resourceType, payload);
 
         runValidation(resource, resourceTypeName, validate);
 
-        Resource res = Optional.ofNullable(searchResource(resourceTypeName, keyValues))
+        Resource res = Optional.ofNullable(searchResource(resourceType.getName(), keyValues))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         Arrays.stream(keyValues)
                                 .map(kv -> kv.getField() + "=" + kv.getValue())
@@ -192,7 +188,7 @@ public class GenericResourceManager implements GenericResourceService {
         Resource res = searchResource(resourceTypeName, id, true);
         logger.info(LoggingUtils.deleteResource(resourceTypeName, id, res));
         resourceService.deleteResource(res.getId());
-        return (T) parserPool.deserialize(res, getClassFromResourceType(resourceTypeName));
+        return (T) parserPool.deserialize(res, getClassFromResourceType(res.getResourceTypeName()));
     }
 
     @Override
@@ -200,7 +196,7 @@ public class GenericResourceManager implements GenericResourceService {
         Resource res = searchResourceByKey(resourceTypeName, keyValues, true);
         logger.info(LoggingUtils.deleteResource(resourceTypeName, joinKeyValues(keyValues), res));
         resourceService.deleteResource(res.getId());
-        return (T) parserPool.deserialize(res, getClassFromResourceType(resourceTypeName));
+        return (T) parserPool.deserialize(res, getClassFromResourceType(res.getResourceTypeName()));
     }
 
     @Override
@@ -217,12 +213,9 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public <T> T get(String resourceTypeName, Version version) {
-        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
-        if (resourceType == null) {
-            throw ResourceNotFoundException.unknownResourceType(resourceTypeName);
-        }
+        ResourceType resourceType = resolveResourceType(resourceTypeName);
         return (T) parserPool.deserialize(version.getPayload(), resourceType.getPayloadType(),
-                getClassFromResourceType(resourceTypeName));
+                getClassFromResourceType(resourceType.getName()));
     }
 
     @Override
@@ -313,8 +306,9 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public Resource searchResource(String resourceTypeName, String id, boolean throwOnNull) {
-        Resource res = searchService.searchFields(resourceTypeName,
-                new SearchService.KeyValue(resolveSinglePrimaryKeyField(resourceTypeName), id));
+        ResourceType resourceType = resolveResourceType(resourceTypeName);
+        Resource res = searchService.searchFields(resourceType.getName(),
+                new SearchService.KeyValue(resolveSinglePrimaryKeyField(resourceType), id));
         if (throwOnNull) {
             return Optional.ofNullable(res)
                     .orElseThrow(() -> new ResourceNotFoundException(id, resourceTypeName));
@@ -329,12 +323,9 @@ public class GenericResourceManager implements GenericResourceService {
 
     @Override
     public Resource searchResourceByKey(String resourceTypeName, Map<String, String> keyValues, boolean throwOnNull) {
-        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
-        if (resourceType == null) {
-            throw ResourceNotFoundException.unknownResourceType(resourceTypeName);
-        }
+        ResourceType resourceType = resolveResourceType(resourceTypeName);
         SearchService.KeyValue[] resolved = resolvePrimaryKeyValues(resourceType, keyValues);
-        Resource res = searchService.searchFields(resourceTypeName, resolved);
+        Resource res = searchService.searchFields(resourceType.getName(), resolved);
         if (throwOnNull) {
             return Optional.ofNullable(res)
                     .orElseThrow(() -> new ResourceNotFoundException(joinKeyValues(keyValues), resourceTypeName));
@@ -342,23 +333,41 @@ public class GenericResourceManager implements GenericResourceService {
         return res;
     }
 
-    private String resolveSinglePrimaryKeyField(String resourceTypeName) {
-        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeName);
-        if (resourceType == null) {
-            throw ResourceNotFoundException.unknownResourceType(resourceTypeName);
+    /**
+     * Resolves {@code resourceTypeOrAlias} to a single concrete {@link ResourceType}, falling
+     * back to alias lookup when it isn't already a canonical name. Throws if unknown, or if the
+     * alias spans more than one resource type — single-record operations need one concrete type,
+     * unlike browse/search which can operate across an alias group.
+     */
+    private ResourceType resolveResourceType(String resourceTypeOrAlias) {
+        ResourceType resourceType = resourceTypeService.getResourceType(resourceTypeOrAlias);
+        if (resourceType != null) {
+            return resourceType;
         }
+        List<ResourceType> byAlias = resourceTypeService.getAllResourceTypeByAlias(resourceTypeOrAlias);
+        if (byAlias.isEmpty()) {
+            throw ResourceNotFoundException.unknownResourceType(resourceTypeOrAlias);
+        }
+        if (byAlias.size() > 1) {
+            throw new ServiceException(String.format(
+                    "Resource type alias '%s' matches multiple resource types; this operation " +
+                            "requires a concrete resource type, not an alias group.", resourceTypeOrAlias));
+        }
+        return byAlias.getFirst();
+    }
 
+    private String resolveSinglePrimaryKeyField(ResourceType resourceType) {
         List<IndexField> primaryKeyFields = resourceType.getIndexFields().stream()
                 .filter(IndexField::isPrimaryKey)
                 .toList();
         if (primaryKeyFields.isEmpty()) {
             throw new ServiceException(
-                    String.format("ResourceType [%s] has no primary key field defined", resourceTypeName));
+                    String.format("ResourceType [%s] has no primary key field defined", resourceType.getName()));
         }
         if (primaryKeyFields.size() > 1) {
             throw new UnsupportedSearchParameterException(
                     "ResourceType '%s' has a composite primary key; path lookup by primary key is not supported."
-                            .formatted(resourceTypeName));
+                            .formatted(resourceType.getName()));
         }
         return primaryKeyFields.getFirst().getName();
     }

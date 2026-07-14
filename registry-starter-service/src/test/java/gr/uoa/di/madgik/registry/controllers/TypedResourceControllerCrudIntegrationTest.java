@@ -117,6 +117,40 @@ class TypedResourceControllerCrudIntegrationTest extends PostgreSqlTestContainer
         assertEquals(404, readTree(response).get("status").asInt());
     }
 
+    /**
+     * Regression coverage for GenericResourceManager's alias resolution: CRUD/version routes
+     * previously 404'd on a resource-type alias ("widget-alias", declared in the fixture SQL)
+     * even though the browse endpoint already resolved it — see GenericResourceManager.resolveResourceType.
+     */
+    @Test
+    void aliasRoundTripAcrossCrudAndVersionRoutes() throws Exception {
+        HttpResponse<String> created = send("POST", "/records/widget-alias", "{\"code\":\"W-2\",\"label\":\"Widget Two\"}");
+        assertEquals(201, created.statusCode());
+        assertEquals("Widget Two", readTree(created).get("label").asString());
+
+        HttpResponse<String> fetchedById = send("GET", "/records/widget-alias/W-2", null);
+        assertEquals(200, fetchedById.statusCode());
+        assertEquals("Widget Two", readTree(fetchedById).get("label").asString());
+
+        HttpResponse<String> fetchedByKey = send("GET", "/records/widget-alias/key?code=W-2", null);
+        assertEquals(200, fetchedByKey.statusCode());
+        assertEquals("Widget Two", readTree(fetchedByKey).get("label").asString());
+
+        HttpResponse<String> versions = send("GET", "/records/widget-alias/key/versions?code=W-2", null);
+        assertEquals(200, versions.statusCode());
+        assertEquals(1, readTree(versions).size());
+
+        HttpResponse<String> updated = send("PUT", "/records/widget-alias", "{\"code\":\"W-2\",\"label\":\"Widget Two Updated\"}");
+        assertEquals(200, updated.statusCode());
+        assertEquals("Widget Two Updated", readTree(updated).get("label").asString());
+
+        HttpResponse<String> deleted = send("DELETE", "/records/widget-alias/W-2", null);
+        assertEquals(200, deleted.statusCode());
+
+        HttpResponse<String> afterDelete = send("GET", "/records/widget-alias/W-2", null);
+        assertEquals(404, afterDelete.statusCode());
+    }
+
     private HttpResponse<String> send(String method, String path, String body) throws Exception {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:" + port + path))
