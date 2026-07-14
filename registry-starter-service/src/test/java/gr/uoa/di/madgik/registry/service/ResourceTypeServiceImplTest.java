@@ -36,6 +36,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -288,6 +289,137 @@ class ResourceTypeServiceImplTest extends PostgreSqlTestContainerSupport {
                 .doesNotContain("nickname", "preferred_name");
         assertThat(getViewRowValues("employee_view", "first_name"))
                 .containsExactly(tuple("Jodeee"));
+    }
+
+    @Test
+    void addResourceType_rejects_alias_with_mismatched_primaryKey_field_name() {
+        when(auditActorProvider.currentActor()).thenReturn(TEST_ACTOR);
+        ResourceType employee = resourceTypeService.getResourceType("employee");
+
+        ResourceType candidate = newResourceType("dept_a", employee, Set.of("resourceTypes"), List.of(
+                indexField("dept_id", "//*[local-name()='id']/text()", "java.lang.String", true)));
+
+        assertThrows(ServiceException.class, () -> resourceTypeService.addResourceType(candidate));
+        assertThat(resourceTypeService.getResourceType("dept_a")).isNull();
+    }
+
+    @Test
+    void addResourceType_accepts_alias_with_matching_primaryKey_field_name_ignoring_type() {
+        when(auditActorProvider.currentActor()).thenReturn(TEST_ACTOR);
+        ResourceType employee = resourceTypeService.getResourceType("employee");
+
+        ResourceType candidate = newResourceType("dept_b", employee, Set.of("resourceTypes"), List.of(
+                indexField("first_name", "//*[local-name()='id']/text()", "java.lang.Integer", true)));
+
+        resourceTypeService.addResourceType(candidate);
+
+        assertThat(resourceTypeService.getAllResourceTypeByAlias("resourceTypes"))
+                .extracting(ResourceType::getName)
+                .contains("employee", "dept_b");
+    }
+
+    @Test
+    void addResourceType_allows_type_with_no_aliases() {
+        when(auditActorProvider.currentActor()).thenReturn(TEST_ACTOR);
+        ResourceType employee = resourceTypeService.getResourceType("employee");
+
+        ResourceType candidate = newResourceType("dept_c", employee, Set.of(), List.of(
+                indexField("anything_id", "//*[local-name()='id']/text()", "java.lang.String", true)));
+
+        ResourceType persisted = resourceTypeService.addResourceType(candidate);
+
+        assertThat(persisted.getName()).isEqualTo("dept_c");
+    }
+
+    @Test
+    void addResourceType_allows_alias_unclaimed_by_any_other_type() {
+        when(auditActorProvider.currentActor()).thenReturn(TEST_ACTOR);
+        ResourceType employee = resourceTypeService.getResourceType("employee");
+
+        ResourceType candidate = newResourceType("dept_d", employee, Set.of("totally-unique-alias-xyz"), List.of(
+                indexField("anything_id", "//*[local-name()='id']/text()", "java.lang.String", true)));
+
+        resourceTypeService.addResourceType(candidate);
+
+        assertThat(resourceTypeService.getAllResourceTypeByAlias("totally-unique-alias-xyz"))
+                .extracting(ResourceType::getName)
+                .containsExactly("dept_d");
+    }
+
+    @Test
+    void updateResourceType_rejects_alias_causing_primaryKey_conflict() {
+        when(auditActorProvider.currentActor()).thenReturn(TEST_ACTOR);
+        ResourceType employee = resourceTypeService.getResourceType("employee");
+
+        ResourceType typeA = newResourceType("dept_e", employee, Set.of("dept-alias"), List.of(
+                indexField("dept_id", "//*[local-name()='id']/text()", "java.lang.String", true)));
+        resourceTypeService.addResourceType(typeA);
+
+        ResourceType typeB = newResourceType("dept_f", employee, Set.of("dept-f-alias"), List.of(
+                indexField("unit_id", "//*[local-name()='id']/text()", "java.lang.String", true)));
+        resourceTypeService.addResourceType(typeB);
+
+        ResourceType typeBUpdate = newResourceType("dept_f", employee, Set.of("dept-f-alias", "dept-alias"), List.of(
+                indexField("unit_id", "//*[local-name()='id']/text()", "java.lang.String", true)));
+
+        assertThrows(ServiceException.class, () -> resourceTypeService.updateResourceType(typeBUpdate));
+        assertThat(resourceTypeService.getResourceType("dept_f").getAliases()).doesNotContain("dept-alias");
+    }
+
+    @Test
+    void updateResourceType_accepts_alias_when_primaryKey_field_names_match() {
+        when(auditActorProvider.currentActor()).thenReturn(TEST_ACTOR);
+        ResourceType employee = resourceTypeService.getResourceType("employee");
+
+        ResourceType typeA = newResourceType("dept_i", employee, Set.of("dept-i-alias"), List.of(
+                indexField("dept_id", "//*[local-name()='id']/text()", "java.lang.String", true)));
+        resourceTypeService.addResourceType(typeA);
+
+        ResourceType typeB = newResourceType("dept_j", employee, Set.of("dept-j-alias"), List.of(
+                indexField("dept_id", "//*[local-name()='id']/text()", "java.lang.Integer", true)));
+        resourceTypeService.addResourceType(typeB);
+
+        ResourceType typeBUpdate = newResourceType("dept_j", employee, Set.of("dept-j-alias", "dept-i-alias"), List.of(
+                indexField("dept_id", "//*[local-name()='id']/text()", "java.lang.Integer", true)));
+
+        resourceTypeService.updateResourceType(typeBUpdate);
+
+        assertThat(resourceTypeService.getAllResourceTypeByAlias("dept-i-alias"))
+                .extracting(ResourceType::getName)
+                .containsExactlyInAnyOrder("dept_i", "dept_j");
+    }
+
+    @Test
+    void updateResourceType_self_exclusion_allows_renaming_own_primaryKey_field() {
+        when(auditActorProvider.currentActor()).thenReturn(TEST_ACTOR);
+        ResourceType employee = resourceTypeService.getResourceType("employee");
+
+        ResourceType candidate = newResourceType("dept_h", employee, Set.of("dept-h-alias"), List.of(
+                indexField("dept_id", "//*[local-name()='id']/text()", "java.lang.String", true)));
+        resourceTypeService.addResourceType(candidate);
+
+        // Renaming the sole primaryKey field while keeping the same, solely-owned alias must not
+        // conflict against its own previously-persisted definition - this is exactly what
+        // self-exclusion in validateAliasPrimaryKeyCompatibility guards against.
+        ResourceType renamed = newResourceType("dept_h", employee, Set.of("dept-h-alias"), List.of(
+                indexField("dept_code", "//*[local-name()='id']/text()", "java.lang.String", true)));
+
+        ResourceType persisted = resourceTypeService.updateResourceType(renamed);
+
+        assertThat(persisted.getIndexFields()).extracting(IndexField::getName).containsExactly("dept_code");
+    }
+
+    private ResourceType newResourceType(String name, ResourceType schemaSource, Set<String> aliases,
+                                          List<IndexField> indexFields) {
+        ResourceType resourceType = new ResourceType();
+        resourceType.setName(name);
+        resourceType.setPayloadType(schemaSource.getPayloadType());
+        resourceType.setSchema(schemaSource.getSchema());
+        resourceType.setSchemaUrl(null);
+        resourceType.setIndexMapperClass(schemaSource.getIndexMapperClass());
+        resourceType.setAliases(aliases);
+        resourceType.setIndexFields(indexFields);
+        return resourceType;
     }
 
     private List<String> getViewColumns(String viewName) {

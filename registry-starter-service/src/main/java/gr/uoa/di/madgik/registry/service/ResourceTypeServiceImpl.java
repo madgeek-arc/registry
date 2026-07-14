@@ -59,6 +59,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Created by antleb on 7/14/16.
@@ -215,6 +216,9 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
                     String.format("ResourceType [%s] must have at least one IndexField with primaryKey=true",
                             resourceType.getName()));
         }
+
+        validateAliasPrimaryKeyCompatibility(resourceType);
+
         for (IndexField field : resourceType.getIndexFields())
             field.setResourceType(resourceType);
 
@@ -263,6 +267,8 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
                             resourceType.getName()));
         }
 
+        validateAliasPrimaryKeyCompatibility(resourceType);
+
         boolean skipRefresh = ResourceTypeChangeDetector.hasSameDefinition(persistedSnapshot, resourceType);
 
         ResourceType existing = resourceTypeDao.getResourceType(resourceType.getName());
@@ -304,6 +310,48 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
         }
 
         return existing;
+    }
+
+    private static Set<String> primaryKeyFieldNames(ResourceType resourceType) {
+        if (resourceType.getIndexFields() == null) {
+            return Set.of();
+        }
+        return resourceType.getIndexFields().stream()
+                .filter(IndexField::isPrimaryKey)
+                .map(IndexField::getName)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Rejects an alias if some other ResourceType already declares it with a different set of
+     * primaryKey IndexField names - alias groups are treated as interchangeable by browse/search
+     * and by key-based lookup (KeyValue pairs keyed purely by field name), so a name mismatch
+     * would silently break that assumption once persisted.
+     */
+    private void validateAliasPrimaryKeyCompatibility(ResourceType resourceType) throws ServiceException {
+        Set<String> aliases = resourceType.getAliases();
+        if (aliases == null || aliases.isEmpty()) {
+            return;
+        }
+
+        Set<String> ownPrimaryKeyNames = primaryKeyFieldNames(resourceType);
+
+        for (String alias : aliases) {
+            for (ResourceType sibling : resourceTypeDao.getAllResourceTypeByAlias(alias)) {
+                if (sibling.getName().equals(resourceType.getName())) {
+                    continue;
+                }
+                Set<String> siblingPrimaryKeyNames = primaryKeyFieldNames(sibling);
+                if (!ownPrimaryKeyNames.equals(siblingPrimaryKeyNames)) {
+                    throw new ServiceException(
+                            String.format("ResourceType [%s] declares alias [%s] which is already declared by " +
+                                            "ResourceType [%s] with a different set of primaryKey IndexField names " +
+                                            "(%s vs %s)",
+                                    resourceType.getName(), alias, sibling.getName(),
+                                    ownPrimaryKeyNames, siblingPrimaryKeyNames));
+                }
+            }
+        }
     }
 
     private void normalizeResourceType(ResourceType resourceType) throws ServiceException {
