@@ -26,15 +26,16 @@
         <owasp-dependency-check-plugin.version>12.2.2</owasp-dependency-check-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>${project.parent.version}</spring-boot.version>
-        <springdoc.version>3.0.0</springdoc.version>
-        <logging.version>2.25.3</logging.version>
+        <springdoc.version>3.0.3</springdoc.version>
+        <logging.version>2.25.5</logging.version>
         <joda-time.version>2.12.5</joda-time.version>
         <hibernate.version>6.5.2.Final</hibernate.version>
-        <elasticsearch.version>9.3.2</elasticsearch.version>
-        <testcontainers.version>2.0.3</testcontainers.version>
-        <spring-retry.version>2.0.12</spring-retry.version>
-        <saxon-he.version>11.4</saxon-he.version>
-        <tomcat.version>11.0.22</tomcat.version> <!-- CVE-2026-41293, CVE-2026-43512, CVE-2026-43515 -->
+        <elasticsearch.version>9.4.3</elasticsearch.version>
+        <testcontainers.version>2.0.5</testcontainers.version>
+        <spring-retry.version>2.0.13</spring-retry.version>
+        <saxon-he.version>12.10</saxon-he.version>
+        <tomcat.version>11.0.24</tomcat.version>
+        <postgresql.version>42.7.13</postgresql.version>
         <!-- Preserve test JVM args from other plugins/builds and append the Mockito agent in surefire. -->
         <argLine></argLine>
     </properties>
@@ -123,7 +124,7 @@
             <dependency> <!-- Addresses issues of version shipped by spring-boot 4.0.6 -->
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-bom</artifactId>
-                <version>6.2.6</version>
+                <version>6.2.7</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
