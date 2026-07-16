@@ -27,7 +27,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>${project.parent.version}</spring-boot.version>
         <springdoc.version>3.0.3</springdoc.version>
-        <logging.version>2.25.5</logging.version>
+        <log4j2.version>2.26.1</log4j2.version>
         <joda-time.version>2.12.5</joda-time.version>
         <hibernate.version>6.5.2.Final</hibernate.version>
         <elasticsearch.version>9.4.3</elasticsearch.version>
@@ -206,15 +206,7 @@
     </dependencyManagement>
 
     <dependencies>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-slf4j-impl</artifactId>
-            <version>${logging.version}</version>
-        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
