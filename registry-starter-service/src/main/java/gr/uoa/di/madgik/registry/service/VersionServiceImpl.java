@@ -79,5 +79,12 @@ public class VersionServiceImpl implements VersionService {
         return versionDao.getAllVersions();
     }
 
+    @Override
+    @Transactional
+    public Version updateVersion(Version version) {
+        versionDao.updateVersion(version);
+        return version;
+    }
+
 }
 
