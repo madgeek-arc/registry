@@ -78,4 +78,10 @@ public class VersionServiceImpl implements VersionService {
         return getListVersions(registryHost + "/version");
     }
 
+    @Override
+    public Version updateVersion(Version version) {
+        throw new UnsupportedOperationException("updateVersion is intentionally not exposed over REST — " +
+                "history rewrites (e.g. GDPR erasure) require embedding the registry directly");
+    }
+
 }
