@@ -30,5 +30,21 @@ public interface VersionService {
 
     List<Version> getAllVersions();
 
+    /**
+     * Overwrites the payload of an already-persisted {@link Version}, in place.
+     * <p>
+     * Versions are otherwise an immutable audit trail — this exists solely for rewriting
+     * historical payloads to comply with erasure obligations (e.g. GDPR right-to-erasure),
+     * where PII must be scrubbed from past revisions of a resource, not just its current one.
+     * It is intentionally not reachable over REST, and not implemented by the REST-client-backed
+     * {@code VersionService}: callers must be embedding the registry directly against its own
+     * persistence unit.
+     *
+     * @param version a {@link Version} obtained from this service, with its payload already
+     *                mutated by the caller
+     * @return the persisted {@link Version}
+     */
+    Version updateVersion(Version version);
+
 }
 
