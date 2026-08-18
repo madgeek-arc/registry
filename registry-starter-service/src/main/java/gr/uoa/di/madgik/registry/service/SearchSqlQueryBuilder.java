@@ -64,6 +64,7 @@ final class SearchSqlQueryBuilder {
         private List<ResourceType> resourceTypes = Collections.emptyList();
         private MapSqlParameterSource params = new MapSqlParameterSource();
         private String cqlQuery;
+        private String lexicalPredicate = "TRUE";
 
         private Builder(SearchSqlQueryBuilder delegate) {
             this.delegate = delegate;
@@ -89,13 +90,23 @@ final class SearchSqlQueryBuilder {
             return this;
         }
 
+        /**
+         * Sets the lexical where-predicate (already resolved against the outer {@code ar} alias
+         * used by {@link #buildSearchQuery()}) applied to filter matching rows. Defaults to
+         * {@code TRUE} (match everything), mirroring the historical blank-keyword behavior.
+         */
+        Builder withLexicalPredicate(String lexicalPredicate) {
+            this.lexicalPredicate = lexicalPredicate;
+            return this;
+        }
+
         SearchSqlQuery buildSearchQuery() {
             String nestedQuery = delegate.createQueryWithInnerJoins(filter, resourceTypes,
                     resourceType -> delegate.createViewQuery(filter, params, resourceType));
             return new SearchSqlQuery(
                     nestedQuery,
-                    "SELECT * FROM ( %s ) ar WHERE ar.payload LIKE :keyword OFFSET :from LIMIT :quantity".formatted(nestedQuery),
-                    "SELECT COUNT(*) FROM ( %s ) ar WHERE ar.payload LIKE :keyword".formatted(nestedQuery),
+                    "SELECT * FROM ( %s ) ar WHERE %s OFFSET :from LIMIT :quantity".formatted(nestedQuery, lexicalPredicate),
+                    "SELECT COUNT(*) FROM ( %s ) ar WHERE %s".formatted(nestedQuery, lexicalPredicate),
                     params
             );
         }

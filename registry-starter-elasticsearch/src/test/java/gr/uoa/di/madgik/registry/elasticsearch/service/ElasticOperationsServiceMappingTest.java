@@ -24,6 +24,7 @@ import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -178,5 +179,31 @@ class ElasticOperationsServiceMappingTest {
         assertEquals("keyword", description.get("type"));
         assertTrue(description.containsKey("ignore_above"));
         assertEquals("text", text.get("type"));
+        assertEquals("custom_english_analyzer", text.get("analyzer"));
+        assertEquals("custom_english_search_analyzer", text.get("search_analyzer"));
+    }
+
+    @Test
+    void indexSettings_defineSeparateIndexAndSearchAnalyzers() throws Exception {
+        Field indexSettingsField = ElasticOperationsService.class.getDeclaredField("INDEX_SETTINGS_MAP");
+        indexSettingsField.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> indexSettings = (Map<String, Object>) indexSettingsField.get(null);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> analysis = (Map<String, Object>) indexSettings.get("analysis");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> analyzers = (Map<String, Object>) analysis.get("analyzer");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> indexAnalyzer = (Map<String, Object>) analyzers.get("custom_english_analyzer");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> searchAnalyzer = (Map<String, Object>) analyzers.get("custom_english_search_analyzer");
+
+        assertEquals("standard", indexAnalyzer.get("tokenizer"));
+        assertEquals(List.of("lowercase", "keyword_repeat", "porter_stem", "remove_duplicates"),
+                indexAnalyzer.get("filter"));
+
+        assertEquals("standard", searchAnalyzer.get("tokenizer"));
+        assertEquals(List.of("lowercase", "stop", "porter_stem"), searchAnalyzer.get("filter"));
     }
 }

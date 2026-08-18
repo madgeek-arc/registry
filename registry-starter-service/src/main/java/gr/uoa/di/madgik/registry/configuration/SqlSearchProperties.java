@@ -27,6 +27,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *   sql:
  *     search:
  *       semantic-min-score: 0.3
+ *       lexical-strategy: full-text
  *       highlight:
  *         payload-context-chars: 80
  *         payload-max-fragments: 5
@@ -43,6 +44,13 @@ public class SqlSearchProperties {
      */
     private float semanticMinScore = 0.3f;
 
+    /**
+     * Which {@code LexicalSearchStrategy} bean serves lexical matching for {@code search()} and
+     * hybrid search's lexical part, matched against a strategy's {@code name()}: {@code full-text}
+     * (default — Postgres {@code tsvector}/{@code tsquery}).
+     */
+    private String lexicalStrategy = "full-text";
+
     private final Highlight highlight = new Highlight();
 
     public float getSemanticMinScore() {
@@ -51,6 +59,14 @@ public class SqlSearchProperties {
 
     public void setSemanticMinScore(float semanticMinScore) {
         this.semanticMinScore = semanticMinScore;
+    }
+
+    public String getLexicalStrategy() {
+        return lexicalStrategy;
+    }
+
+    public void setLexicalStrategy(String lexicalStrategy) {
+        this.lexicalStrategy = lexicalStrategy;
     }
 
     public Highlight getHighlight() {

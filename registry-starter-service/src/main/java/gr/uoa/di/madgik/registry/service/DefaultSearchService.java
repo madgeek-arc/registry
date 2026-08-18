@@ -29,9 +29,12 @@ import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.ScoredResult;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.domain.index.SearchCapability;
+import gr.uoa.di.madgik.registry.domain.StopWordFilter;
 import gr.uoa.di.madgik.registry.exception.MissingResourceEmbeddingsException;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
+import gr.uoa.di.madgik.registry.service.lexical.LexicalMatch;
+import gr.uoa.di.madgik.registry.service.lexical.LexicalSearchStrategySelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.regex.Pattern;
@@ -77,6 +80,7 @@ public class DefaultSearchService implements SearchService {
     private final ResourceRowMapper resourceRowMapper;
     private final EmbeddingService embeddingService;
     private final ResourceChunkDao resourceChunkDao;
+    private final LexicalSearchStrategySelector lexicalSearchStrategySelector;
     private final int payloadHighlightContextChars;
     private final int payloadHighlightMaxFragments;
     private final int semanticSnippetMaxChars;
@@ -87,6 +91,7 @@ public class DefaultSearchService implements SearchService {
                                 SqlFacetService sqlFacetService,
                                 EmbeddingService embeddingService,
                                 ResourceChunkDao resourceChunkDao,
+                                LexicalSearchStrategySelector lexicalSearchStrategySelector,
                                 SqlSearchProperties sqlSearchProperties) {
         this.dataSource = dataSource;
         this.npJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
@@ -95,6 +100,7 @@ public class DefaultSearchService implements SearchService {
         this.resourceRowMapper = new ResourceRowMapper();
         this.embeddingService = embeddingService;
         this.resourceChunkDao = resourceChunkDao;
+        this.lexicalSearchStrategySelector = lexicalSearchStrategySelector;
         this.payloadHighlightContextChars = sqlSearchProperties.getHighlight().getPayloadContextChars();
         this.payloadHighlightMaxFragments = sqlSearchProperties.getHighlight().getPayloadMaxFragments();
         this.semanticSnippetMaxChars = sqlSearchProperties.getHighlight().getSemanticMaxChars();
@@ -143,19 +149,17 @@ public class DefaultSearchService implements SearchService {
         validateQuantity(filter.getQuantity());
         List<String> browseBy = resolveBrowseBy(filter);
         List<ResourceType> resourceTypes = getResourceTypes(filter.getResourceType());
-        String keyword = StringUtils.hasText(filter.getKeyword())
-                ? "%" + filter.getKeyword() + "%"
-                : "%";
 
         MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("keyword", keyword);
         params.addValue("from", filter.getFrom());
         params.addValue("quantity", filter.getQuantity());
+        LexicalMatch lexicalMatch = lexicalSearchStrategySelector.active().build(filter.getKeyword(), params);
 
         SearchSqlQueryBuilder.SearchSqlQuery sqlQuery = SearchSqlQueryBuilder.builder(dataSource)
                 .withFilter(filter)
                 .withResourceTypes(resourceTypes)
                 .withParameters(params)
+                .withLexicalPredicate(lexicalMatch.wherePredicate("ar"))
                 .buildSearchQuery();
 
         Integer total = npJdbcTemplate.queryForObject(sqlQuery.countQuery(), sqlQuery.params(),
@@ -164,7 +168,7 @@ public class DefaultSearchService implements SearchService {
         List<String> matchedIds = browseBy.isEmpty()
                 ? List.of()
                 : npJdbcTemplate.queryForList(
-                        "SELECT ar.id FROM (%s) ar WHERE ar.payload LIKE :keyword".formatted(sqlQuery.nestedQuery()),
+                        "SELECT ar.id FROM (%s) ar WHERE %s".formatted(sqlQuery.nestedQuery(), lexicalMatch.wherePredicate("ar")),
                         sqlQuery.params(),
                         String.class
                 );
@@ -255,11 +259,14 @@ public class DefaultSearchService implements SearchService {
         QueryExecutionResult hybrid = executeHybridQuery(filter, browseBy, resourceTypes, embedding);
         List<Resource> resources = hybrid.rows().stream().map(ScoredRow::resource).toList();
         Map<String, List<Highlight>> lexicalHighlightsById = loadHighlightsByResourceId(resources, filter.getKeyword());
+        List<String> lowerTerms = StopWordFilter.filterStopWords(filter.getKeyword()).stream()
+                .map(t -> t.toLowerCase(Locale.ROOT))
+                .toList();
         List<HighlightedResult<Resource>> results = hybrid.rows().stream()
                 .map(row -> HighlightedResult.of(
                         row.score(),
                         row.resource(),
-                        buildHybridHighlights(row, filter.getKeyword(), lexicalHighlightsById.getOrDefault(row.resource().getId(), List.of()))
+                        buildHybridHighlights(row, lowerTerms, lexicalHighlightsById.getOrDefault(row.resource().getId(), List.of()))
                 ))
                 .toList();
 
@@ -578,10 +585,9 @@ public class DefaultSearchService implements SearchService {
         params.addValue("quantity", filter.getQuantity());
         params.addValue("queryVector", toVectorLiteral(embedding));
         params.addValue("embeddingModel", embeddingService.modelName());
-        params.addValue("keywordText", filter.getKeyword().toLowerCase(Locale.ROOT));
-        params.addValue("keywordPattern", "%" + filter.getKeyword().toLowerCase(Locale.ROOT) + "%");
         params.addValue("rrfK", HYBRID_RRF_K);
         params.addValue("semanticMinScore", semanticMinScore);
+        LexicalMatch lexicalMatch = lexicalSearchStrategySelector.active().build(filter.getKeyword(), params);
 
         String filteredQuery = createFilteredResourceScopeQuery(filter, resourceTypes, params);
         String hybridCte = """
@@ -590,18 +596,11 @@ public class DefaultSearchService implements SearchService {
                 ),
                 lexical_hits AS (
                     SELECT f.id,
-                           -- Approximate keyword frequency: count non-overlapping occurrences via
-                           -- string-length difference. GREATEST(1, …) ensures the score is never
-                           -- zero for a matching document, but note that the numeric value of
-                           -- lexical_score is NOT used in the final merged score — only the
-                           -- ROW_NUMBER() rank derived from it matters for RRF.
-                           GREATEST(
-                               1,
-                               (length(lower(f.payload)) - length(replace(lower(f.payload), :keywordText, '')))
-                               / NULLIF(length(:keywordText), 0)
-                           )::real AS lexical_score
+                           -- The strategy's rank expression drives ROW_NUMBER() below; its numeric
+                           -- value is NOT used in the final merged score — only lexical_rank is.
+                           (%s)::real AS lexical_score
                     FROM filtered f
-                    WHERE lower(f.payload) LIKE :keywordPattern
+                    WHERE %s
                 ),
                 lexical_ranked AS (
                     SELECT l.id,
@@ -648,7 +647,7 @@ public class DefaultSearchService implements SearchService {
                     FROM lexical_ranked l
                     FULL OUTER JOIN semantic_ranked s ON s.id = l.id
                 )
-                """.formatted(filteredQuery);
+                """.formatted(filteredQuery, lexicalMatch.rankExpression("f"), lexicalMatch.wherePredicate("f"));
 
         Integer total = npJdbcTemplate.queryForObject(hybridCte + " SELECT COUNT(*) FROM merged_hits", params, Integer.class);
         if (total == null || total == 0) {
@@ -754,7 +753,8 @@ public class DefaultSearchService implements SearchService {
     }
 
     private Map<String, List<Highlight>> loadHighlightsByResourceId(List<Resource> resources, String keyword) {
-        if (!StringUtils.hasText(keyword) || resources == null || resources.isEmpty()) {
+        List<String> terms = StopWordFilter.filterStopWords(keyword);
+        if (terms.isEmpty() || resources == null || resources.isEmpty()) {
             return Collections.emptyMap();
         }
 
@@ -780,7 +780,7 @@ public class DefaultSearchService implements SearchService {
                 if (id == null) {
                     continue;
                 }
-                highlightsById.put(id.toString(), buildHighlights(row, fieldNames, keyword));
+                highlightsById.put(id.toString(), buildHighlights(row, fieldNames, terms));
             }
         }
         return highlightsById;
@@ -800,22 +800,20 @@ public class DefaultSearchService implements SearchService {
                 .toList();
     }
 
-    private List<Highlight> buildHighlights(Map<String, Object> row, List<String> fieldNames, String keyword) {
-        if (!StringUtils.hasText(keyword) || row == null || fieldNames == null || fieldNames.isEmpty()) {
+    private List<Highlight> buildHighlights(Map<String, Object> row, List<String> fieldNames, List<String> terms) {
+        if (terms == null || terms.isEmpty() || row == null || fieldNames == null || fieldNames.isEmpty()) {
             return Collections.emptyList();
         }
 
-        String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
+        List<String> lowerTerms = terms.stream().map(t -> t.toLowerCase(Locale.ROOT)).toList();
         List<Highlight> highlights = new ArrayList<>();
         for (String fieldName : fieldNames) {
             for (Object value : extractHighlightValues(row.get(fieldName))) {
                 if (highlights.size() >= payloadHighlightMaxFragments) {
                     return highlights;
                 }
-                Highlight highlight = createFieldHighlight(fieldName, Objects.toString(value, null), keyword, lowerKeyword);
-                if (highlight != null) {
-                    highlights.add(highlight);
-                }
+                highlights.addAll(createFieldHighlights(fieldName, Objects.toString(value, null), lowerTerms,
+                        payloadHighlightMaxFragments - highlights.size()));
             }
         }
         return highlights;
@@ -839,13 +837,13 @@ public class DefaultSearchService implements SearchService {
         }
     }
 
-    private List<Highlight> buildHybridHighlights(ScoredRow row, String keyword, List<Highlight> lexicalHighlights) {
+    private List<Highlight> buildHybridHighlights(ScoredRow row, List<String> lowerTerms, List<Highlight> lexicalHighlights) {
         if (!StringUtils.hasText(row.semanticSnippet())) {
             return new ArrayList<>(lexicalHighlights);
         }
 
         String fieldName = StringUtils.hasText(row.semanticField()) ? row.semanticField() : "semantic";
-        Highlight semanticHighlight = new Highlight(fieldName, emphasizeKeyword(createSemanticSnippet(row.semanticSnippet()), keyword));
+        Highlight semanticHighlight = new Highlight(fieldName, emphasizeTerms(createSemanticSnippet(row.semanticSnippet()), lowerTerms));
         List<Highlight> highlights = new ArrayList<>(lexicalHighlights.size() + 1);
         boolean merged = false;
 
@@ -925,28 +923,101 @@ public class DefaultSearchService implements SearchService {
         return List.of(value);
     }
 
-    private Highlight createFieldHighlight(String fieldName, String value, String keyword, String lowerKeyword) {
-        if (!StringUtils.hasText(fieldName) || !StringUtils.hasText(value)) {
-            return null;
+    /**
+     * Builds up to {@code maxFragments} highlights for a single field value, finding each
+     * significant term's first occurrence and merging term matches that fall within
+     * {@link #payloadHighlightContextChars} of each other into a single snippet (otherwise
+     * emitting separate fragments), replacing the previous single-full-phrase substring match.
+     */
+    private List<Highlight> createFieldHighlights(String fieldName, String value, List<String> lowerTerms, int maxFragments) {
+        if (!StringUtils.hasText(fieldName) || !StringUtils.hasText(value) || maxFragments <= 0) {
+            return List.of();
         }
 
-        String lowerValue = value.toLowerCase(Locale.ROOT);
-        int matchIndex = lowerValue.indexOf(lowerKeyword);
-        if (matchIndex < 0) {
-            return null;
+        List<int[]> spans = findTermSpans(value.toLowerCase(Locale.ROOT), lowerTerms);
+        if (spans.isEmpty()) {
+            return List.of();
         }
 
-        int snippetStart = Math.max(0, matchIndex - payloadHighlightContextChars);
-        int snippetEnd = Math.min(value.length(), matchIndex + keyword.length() + payloadHighlightContextChars);
-        String snippet = value.substring(snippetStart, snippetEnd);
+        List<List<int[]>> groups = new ArrayList<>();
+        List<int[]> currentGroup = new ArrayList<>();
+        int groupEnd = -1;
+        for (int[] span : spans) {
+            if (!currentGroup.isEmpty() && span[0] - groupEnd > payloadHighlightContextChars) {
+                groups.add(currentGroup);
+                currentGroup = new ArrayList<>();
+            }
+            currentGroup.add(span);
+            groupEnd = Math.max(groupEnd, span[1]);
+        }
+        groups.add(currentGroup);
 
-        int snippetMatchStart = matchIndex - snippetStart;
-        int snippetMatchEnd = snippetMatchStart + keyword.length();
-        String emphasized = snippet.substring(0, snippetMatchStart)
-                + "<em>" + snippet.substring(snippetMatchStart, snippetMatchEnd) + "</em>"
-                + snippet.substring(snippetMatchEnd);
+        List<Highlight> highlights = new ArrayList<>();
+        for (List<int[]> group : groups) {
+            if (highlights.size() >= maxFragments) {
+                break;
+            }
+            int groupStart = group.get(0)[0];
+            int groupLastEnd = group.get(group.size() - 1)[1];
+            int snippetStart = Math.max(0, groupStart - payloadHighlightContextChars);
+            int snippetEnd = Math.min(value.length(), groupLastEnd + payloadHighlightContextChars);
+            String snippet = value.substring(snippetStart, snippetEnd);
 
-        return new Highlight(fieldName, emphasized);
+            List<int[]> relativeSpans = group.stream()
+                    .map(span -> new int[]{span[0] - snippetStart, span[1] - snippetStart})
+                    .toList();
+            highlights.add(new Highlight(fieldName, emphasizeSpans(snippet, relativeSpans)));
+        }
+        return highlights;
+    }
+
+    /**
+     * Finds each term's first (non-overlapping) occurrence in {@code lowerText}, returning
+     * {@code [start, end)} spans sorted by position.
+     */
+    private List<int[]> findTermSpans(String lowerText, List<String> lowerTerms) {
+        List<int[]> spans = new ArrayList<>();
+        for (String lowerTerm : lowerTerms) {
+            if (lowerTerm.isEmpty()) {
+                continue;
+            }
+            int matchIndex = lowerText.indexOf(lowerTerm);
+            if (matchIndex >= 0) {
+                spans.add(new int[]{matchIndex, matchIndex + lowerTerm.length()});
+            }
+        }
+        spans.sort(Comparator.comparingInt(span -> span[0]));
+        return spans;
+    }
+
+    /**
+     * Wraps each {@code [start, end)} span in {@code <em>}/{@code </em>}, skipping/clamping any
+     * span that overlaps one already emitted.
+     */
+    private String emphasizeSpans(String text, List<int[]> spans) {
+        if (spans.isEmpty()) {
+            return text;
+        }
+        StringBuilder result = new StringBuilder();
+        int cursor = 0;
+        for (int[] span : spans) {
+            int start = Math.max(span[0], cursor);
+            int end = Math.min(Math.max(span[1], start), text.length());
+            if (start >= text.length()) {
+                break;
+            }
+            if (start > cursor) {
+                result.append(text, cursor, start);
+            }
+            if (end > start) {
+                result.append("<em>").append(text, start, end).append("</em>");
+                cursor = end;
+            }
+        }
+        if (cursor < text.length()) {
+            result.append(text, cursor, text.length());
+        }
+        return result.toString();
     }
 
     private String createSemanticSnippet(String content) {
@@ -957,22 +1028,12 @@ public class DefaultSearchService implements SearchService {
         return normalized.substring(0, semanticSnippetMaxChars).trim() + "...";
     }
 
-    private String emphasizeKeyword(String text, String keyword) {
-        if (!StringUtils.hasText(text) || !StringUtils.hasText(keyword)) {
+    private String emphasizeTerms(String text, List<String> lowerTerms) {
+        if (!StringUtils.hasText(text) || lowerTerms == null || lowerTerms.isEmpty()) {
             return text;
         }
-
-        String lowerText = text.toLowerCase(Locale.ROOT);
-        String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
-        int matchIndex = lowerText.indexOf(lowerKeyword);
-        if (matchIndex < 0) {
-            return text;
-        }
-
-        int matchEnd = matchIndex + keyword.length();
-        return text.substring(0, matchIndex)
-                + "<em>" + text.substring(matchIndex, matchEnd) + "</em>"
-                + text.substring(matchEnd);
+        List<int[]> spans = findTermSpans(text.toLowerCase(Locale.ROOT), lowerTerms);
+        return emphasizeSpans(text, spans);
     }
 
     private ResourceType requireSingleResourceType(String resourceTypeOrAlias) {

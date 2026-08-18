@@ -87,6 +87,9 @@ public class ElasticOperationsService implements IndexOperationsService {
     }
 
     private static final String TEXT_ANALYZER = "custom_english_analyzer";
+    // Search-time-only analyzer: stop-word removal and stemming happen here, without changing
+    // how documents are indexed (custom_english_analyzer, above, is unaffected).
+    private static final String SEARCH_TEXT_ANALYZER = "custom_english_search_analyzer";
     private static final Map<String, Object> INDEX_SETTINGS_MAP = Map.of(
             "analysis", Map.of(
                     "analyzer", Map.of(
@@ -97,6 +100,14 @@ public class ElasticOperationsService implements IndexOperationsService {
                                             "keyword_repeat",
                                             "porter_stem",
                                             "remove_duplicates"
+                                    )
+                            ),
+                            SEARCH_TEXT_ANALYZER, Map.of(
+                                    "tokenizer", "standard",
+                                    "filter", List.of(
+                                            "lowercase",
+                                            "stop",
+                                            "porter_stem"
                                     )
                             )
                     )
@@ -112,7 +123,8 @@ public class ElasticOperationsService implements IndexOperationsService {
     );
     private static final Map<String, Object> TEXT_MAP = Map.of(
             "type", "text",
-            "analyzer", TEXT_ANALYZER);
+            "analyzer", TEXT_ANALYZER,
+            "search_analyzer", SEARCH_TEXT_ANALYZER);
     private static final Map<String, Object> SOURCE_ONLY_STRING_MAP = Map.of(
             "type", "keyword",
             "index", false,

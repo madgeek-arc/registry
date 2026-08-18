@@ -263,6 +263,24 @@ class ElasticSearchServiceQueryNodeTest {
     }
 
     // -------------------------------------------------------------------------
+    // Stop-word removal / stemming is handled by Elasticsearch's own search_analyzer
+    // (see ElasticOperationsService.SEARCH_TEXT_ANALYZER), not by app-layer stripping — the
+    // raw keyword must reach multi_match unchanged.
+    // -------------------------------------------------------------------------
+
+    @Test
+    void lexicalQuery_passesRawKeywordToMultiMatch() throws Exception {
+        FacetFilter filter = filter("my_index");
+        filter.setKeyword("the impact of climate change");
+
+        ObjectNode query = invoke(filter);
+        ArrayNode must = must(query);
+        String multiMatchQuery = must.get(0).get("multi_match").get("query").asText();
+
+        assertEquals("the impact of climate change", multiMatchQuery);
+    }
+
+    // -------------------------------------------------------------------------
     // Hybrid keyword query — multi-match + kNN combined in a bool/should
     // -------------------------------------------------------------------------
 
