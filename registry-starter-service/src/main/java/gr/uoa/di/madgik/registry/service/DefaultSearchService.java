@@ -438,6 +438,16 @@ public class DefaultSearchService implements SearchService {
             );
         }
 
+        List<String> nullValued = Arrays.stream(fields)
+                .filter(kv -> kv.getValue() == null)
+                .map(KeyValue::getField)
+                .toList();
+        if (!nullValued.isEmpty()) {
+            throw new UnsupportedSearchParameterException(
+                    "searchFields requires a non-null value for every field; field(s) %s were null (resourceType=%s)."
+                            .formatted(nullValued, resourceType));
+        }
+
         FacetFilter filter = new FacetFilter();
         filter.setResourceType(resourceType);
         filter.setFrom(0);

@@ -319,6 +319,17 @@ class ElasticSearchServiceIntegrationTest {
     }
 
     @Test
+    void searchFields_rejectsNullValuedField() throws Exception {
+        String index = createIndex();
+        indexDocument(index, "doc1", "first document", List.of(1.0f, 0.0f, 0.0f));
+
+        UnsupportedSearchParameterException exception = assertThrows(UnsupportedSearchParameterException.class,
+                () -> searchService.searchFields(index, new SearchService.KeyValue("id", null)));
+
+        assertTrue(exception.getMessage().contains("id"));
+    }
+
+    @Test
     void search_emptyPageBeyondTotal_preservesTotalAndFrom() throws Exception {
         String index = createIndex();
         indexDocument(index, "doc1", "first document", List.of(1.0f, 0.0f, 0.0f));

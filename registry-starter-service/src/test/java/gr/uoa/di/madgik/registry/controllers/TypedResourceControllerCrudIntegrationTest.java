@@ -110,6 +110,20 @@ class TypedResourceControllerCrudIntegrationTest extends PostgreSqlTestContainer
     }
 
     @Test
+    void createWithMissingPrimaryKeyReturnsBadRequestInsteadOfServerError() throws Exception {
+        HttpResponse<String> response = send("POST", "/records/widget", "{\"label\":\"No Code\"}");
+        assertEquals(400, response.statusCode());
+        assertEquals(400, readTree(response).get("status").asInt());
+    }
+
+    @Test
+    void createWithNullPrimaryKeyReturnsBadRequestInsteadOfServerError() throws Exception {
+        HttpResponse<String> response = send("POST", "/records/widget", "{\"code\":null,\"label\":\"Null Code\"}");
+        assertEquals(400, response.statusCode());
+        assertEquals(400, readTree(response).get("status").asInt());
+    }
+
+    @Test
     void createOnUnknownResourceTypeReturnsNotFoundInsteadOfServerError() throws Exception {
         HttpResponse<String> response = send("POST", "/records/does-not-exist", "{\"code\":\"W-1\"}");
 

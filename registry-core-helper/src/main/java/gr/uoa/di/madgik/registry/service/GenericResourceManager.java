@@ -428,10 +428,20 @@ public class GenericResourceManager implements GenericResourceService {
             throw new ServiceException(
                     String.format("ResourceType [%s] has no primary key field defined", resourceType.getName()));
         }
-        return pkFields.stream()
+        SearchService.KeyValue[] keyValues = pkFields.stream()
                 .map(f -> new SearchService.KeyValue(f.getName(),
                         parserPool.extractValue(payload, resourceType.getPayloadType(), f.getPath())))
                 .toArray(SearchService.KeyValue[]::new);
+        List<String> missing = Arrays.stream(keyValues)
+                .filter(kv -> kv.getValue() == null)
+                .map(SearchService.KeyValue::getField)
+                .toList();
+        if (!missing.isEmpty()) {
+            throw new ServiceException(String.format(
+                    "ResourceType [%s] primary key field(s) %s have no value in the payload.",
+                    resourceType.getName(), missing));
+        }
+        return keyValues;
     }
 
     private <T> void runValidation(T resource, String resourceTypeName, boolean validate) {

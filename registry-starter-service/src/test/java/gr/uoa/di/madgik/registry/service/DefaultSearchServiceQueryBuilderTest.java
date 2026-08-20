@@ -200,6 +200,14 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
     }
 
     @Test
+    void searchFields_rejectsNullValuedField() {
+        UnsupportedSearchParameterException exception = assertThrows(UnsupportedSearchParameterException.class,
+                () -> searchService.searchFields("employee", new SearchService.KeyValue("first_name", null)));
+
+        assertTrue(exception.getMessage().contains("first_name"));
+    }
+
+    @Test
     void search_usingAlias_returnsMatchingResource() {
         FacetFilter filter = employeeFilter();
         filter.setResourceType("resourceTypes");

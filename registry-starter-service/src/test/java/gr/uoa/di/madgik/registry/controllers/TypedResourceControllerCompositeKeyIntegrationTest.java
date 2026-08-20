@@ -126,6 +126,13 @@ class TypedResourceControllerCompositeKeyIntegrationTest extends PostgreSqlTestC
     }
 
     @Test
+    void createWithMissingCompositeKeyFieldReturnsBadRequest() throws Exception {
+        HttpResponse<String> response = send("POST", "/records/gadget", "{\"vendor\":\"acme\",\"label\":\"Missing sku\"}");
+        assertEquals(400, response.statusCode());
+        assertTrue(readTree(response).get("detail").asString().contains("sku"));
+    }
+
+    @Test
     void getByKeyWithMissingFieldReturnsBadRequest() throws Exception {
         HttpResponse<String> response = send("GET", "/records/gadget/key?vendor=acme", null);
         assertEquals(400, response.statusCode());

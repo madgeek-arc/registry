@@ -869,6 +869,16 @@ public class ElasticSearchService implements SearchService {
                         .map(keyValue -> keyValue.getField() + "=" + keyValue.getValue())
                         .collect(Collectors.toSet()))));
 
+        List<String> nullValued = Arrays.stream(fields)
+                .filter(kv -> kv.getValue() == null)
+                .map(KeyValue::getField)
+                .toList();
+        if (!nullValued.isEmpty()) {
+            throw new UnsupportedSearchParameterException(
+                    "searchFields requires a non-null value for every field; field(s) %s were null (resourceType=%s)."
+                            .formatted(nullValued, resourceType));
+        }
+
         List<Query> musts = Arrays.stream(fields)
                 .map(kv -> Query.of(q -> q.terms(t -> t.field(kv.getField())
                         .terms(tv -> tv.value(List.of(FieldValue.of(kv.getValue())))))))
