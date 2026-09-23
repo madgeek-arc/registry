@@ -1,3 +1,40 @@
+## [4.3.0](https://github.com/madgeek-arc/registry/compare/v4.2.0...v4.3.0) (2026-09-23)
+
+### Features
+
+* add VersionService.updateVersion for history-rewrite erasure ([63a6d7a](https://github.com/madgeek-arc/registry/commit/63a6d7a97664b28a115cd2f8054d3c5dd27afa6e))
+
+### Bug Fixes
+
+* **search:** close leaked JDBC connection in array-filter binding ([3b3dcdd](https://github.com/madgeek-arc/registry/commit/3b3dcdd24cd7c4a54e519b7278f635c7e20a1c47))
+## [4.2.0](https://github.com/madgeek-arc/registry/compare/v4.1.0...v4.2.0) (2026-04-04)
+
+### Features
+
+* Alters implementation for weighted embeddings ([acd3db7](https://github.com/madgeek-arc/registry/commit/acd3db73ad26a9c05f96d86f6219750cd9cc0e2a))
+* **elastic,recommend:** Implements search for recommendations based on a given resource (only for elasticsearch module) ([4148ff4](https://github.com/madgeek-arc/registry/commit/4148ff48ad81b670e92cfa0d0739221669181a97))
+
+### Bug Fixes
+
+* Adds missing Bean and suppresses failing dependency check ([8e1eb7e](https://github.com/madgeek-arc/registry/commit/8e1eb7ea3958b36007d2483febb5753274bcde81))
+* Check for NaN was incorrect ([b8aa8fb](https://github.com/madgeek-arc/registry/commit/b8aa8fb114320c5efc9a8b6b917d61aa528f824a))
+* **deps:** Adds bom for spring-ai ([cccebc1](https://github.com/madgeek-arc/registry/commit/cccebc1b69ada32e8c7e62a05df658b96ac03d41))
+* Excludes the resource used to get recommendations from the recommendation query ([2a50898](https://github.com/madgeek-arc/registry/commit/2a508982b562c34e7e8a2a75bb2effb8bf4f2d93))
+* Fetches resource type aliases and properties eagerly ([1d300eb](https://github.com/madgeek-arc/registry/commit/1d300ebf355542f3a166c77b0ebb9415a224cf91))
+* Method creating embedding throws exception when no text is provided ([339e602](https://github.com/madgeek-arc/registry/commit/339e602dc678ca897d4da109ecc5f49ebb31e5d7))
+* removes non null constraint from embedding weight and sets column name ([de4f642](https://github.com/madgeek-arc/registry/commit/de4f642d1dc97c39ebccaf1514e028346263cd9c))
+* Replaces transformers dependency with autoconfiguration dependency ([16616ca](https://github.com/madgeek-arc/registry/commit/16616cabf4040ec34fcde010254d6de476dfb46b))
+* Resources' version on update was still using timestamp instead of uuid ([b8508c3](https://github.com/madgeek-arc/registry/commit/b8508c3bee769d7fbe58cd66b9b807dc0a178269))
+* Searches for existence of 'embedding' field before using it for scoring and applies weights on simple text and vector search scores. ([4c2d73e](https://github.com/madgeek-arc/registry/commit/4c2d73ede3d26ab5acf20140e90d40cd93142740))
+* **tests:** Fix issues in application tests ([d341a4c](https://github.com/madgeek-arc/registry/commit/d341a4c5ef7f45fb946c61689d4eefe604cc4ce9))
+* Throws exception when recommend method cannot run ([862358b](https://github.com/madgeek-arc/registry/commit/862358b86e414e920c9b455de9e8f25b4295388d))
+* Updates code to create embeddings only for fields with embeddingWeight > 0 ([45e6f04](https://github.com/madgeek-arc/registry/commit/45e6f043dea9e4406bef322487c318e4a3470e9d))
+* Uses Set to create browse by fields to ensure there are no duplicates. ([de26817](https://github.com/madgeek-arc/registry/commit/de268178882320d8a94e2c9a27b6fa173b5724ce))
+
+### Reverts
+
+* Revert "refactor: removes code setting version manually" ([8563ba2](https://github.com/madgeek-arc/registry/commit/8563ba2492a63d59502335e1cefcbc2277ed5e1f))
+* Revert "refactor: removes code setting version manually" ([5853d9b](https://github.com/madgeek-arc/registry/commit/5853d9b45553f66913256f7527b61a2247943fa1))
 ## [4.1.0](https://github.com/madgeek-arc/registry/compare/v4.0.4...v4.1.0) (2025-12-23)
 
 ### Features
