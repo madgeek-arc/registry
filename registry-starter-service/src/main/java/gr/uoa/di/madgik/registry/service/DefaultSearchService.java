@@ -278,9 +278,7 @@ public class DefaultSearchService implements SearchService {
                 // append where clause
                 if (isDataTypeArray(resourceType.getName(), entry.getKey())) {
                     // PostgreSQL specific code: Checks whether the array contains any occurrence of the values list
-                    Connection conn;
-                    try {
-                        conn = Objects.requireNonNull(npJdbcTemplate.getJdbcTemplate().getDataSource()).getConnection();
+                    try (Connection conn = Objects.requireNonNull(npJdbcTemplate.getJdbcTemplate().getDataSource()).getConnection()) {
                         params.addValue(entry.getKey(), conn.createArrayOf("text", filterValues.toArray()), SqlTypes.ARRAY); // replace existing value with correct one
                     } catch (SQLException e) {
                         logger.error("Failed to execute SQL operation for entry: {} with values: {}. Error: {}", entry.getKey(), filterValues.toArray(), e.getMessage(), e);
