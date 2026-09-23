@@ -37,6 +37,7 @@ import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchProperties;
@@ -111,5 +112,22 @@ public class ElasticAutoConfiguration {
     SearchService elasticSearchService(RestHighLevelClient client, EmbeddingService embeddingService) {
         ElasticSearchService service = new ElasticSearchService(client, embeddingService);
         return service;
+    }
+
+    /**
+     * Triggers the embedding model's first inference during application startup instead of on the first
+     * keyword search. The underlying model (native libraries, tokenizer, weights) is loaded lazily on its
+     * first call, which otherwise delays whichever user request happens to trigger it by several seconds.
+     */
+    @Bean
+    ApplicationRunner embeddingServiceWarmupRunner(EmbeddingService embeddingService) {
+        return args -> {
+            try {
+                embeddingService.embed("warmup");
+                logger.info("Embedding model warmed up");
+            } catch (Exception e) {
+                logger.warn("Embedding model warmup failed; the first keyword search will incur the initialization cost", e);
+            }
+        };
     }
 }
