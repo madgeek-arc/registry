@@ -16,6 +16,7 @@
 
 package gr.uoa.di.madgik.registry.service;
 
+import gr.uoa.di.madgik.registry.dao.SqlIdentifiers;
 import gr.uoa.di.madgik.registry.domain.Facet;
 import gr.uoa.di.madgik.registry.domain.FacetUtils;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
@@ -73,9 +74,9 @@ class SqlFacetService {
     }
 
     private List<Value> loadFacetValues(IndexField field, List<String> matchedIds) {
-        String valueExpression = field.isMultivalued() ? "facet_value" : "view_row.%s".formatted(field.getName());
+        String valueExpression = field.isMultivalued() ? "facet_value" : "view_row.%s".formatted(SqlIdentifiers.quoteColumn(field.getName()));
         String joinExpression = field.isMultivalued()
-                ? "CROSS JOIN LATERAL unnest(view_row.%s) AS facet_value ".formatted(field.getName())
+                ? "CROSS JOIN LATERAL unnest(view_row.%s) AS facet_value ".formatted(SqlIdentifiers.quoteColumn(field.getName()))
                 : "";
         String countExpression = field.isMultivalued() ? "COUNT(DISTINCT view_row.id)" : "COUNT(*)";
         String sql = """

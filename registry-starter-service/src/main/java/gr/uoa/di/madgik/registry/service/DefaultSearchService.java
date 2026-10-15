@@ -18,6 +18,7 @@ package gr.uoa.di.madgik.registry.service;
 
 import gr.uoa.di.madgik.registry.configuration.SqlSearchProperties;
 import gr.uoa.di.madgik.registry.dao.ResourceChunkDao;
+import gr.uoa.di.madgik.registry.dao.SqlIdentifiers;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.Highlight;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
@@ -510,7 +511,8 @@ public class DefaultSearchService implements SearchService {
 
         String sql = String.format(
                 "SELECT %s, %s FROM %s_view WHERE %s IN (:ids)",
-                idField, labelField, resourceTypeName, idField);
+                SqlIdentifiers.quoteColumn(idField), SqlIdentifiers.quoteColumn(labelField), resourceTypeName,
+                SqlIdentifiers.quoteColumn(idField));
 
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("ids", ids);
@@ -782,7 +784,7 @@ public class DefaultSearchService implements SearchService {
             }
 
             String sql = "SELECT id, %s FROM %s_view WHERE id IN (:ids)"
-                    .formatted(String.join(", ", fieldNames), resourceTypeName);
+                    .formatted(fieldNames.stream().map(SqlIdentifiers::quoteColumn).collect(Collectors.joining(", ")), resourceTypeName);
             MapSqlParameterSource params = new MapSqlParameterSource("ids", ids);
             List<Map<String, Object>> rows = npJdbcTemplate.queryForList(sql, params);
             for (Map<String, Object> row : rows) {
@@ -1070,7 +1072,7 @@ public class DefaultSearchService implements SearchService {
                     String.format("Unknown recommendation field '%s' for resource type '%s'", field, resourceType.getName()));
         }
 
-        String sql = "SELECT * FROM %s_view WHERE %s = :value LIMIT 1".formatted(resourceType.getName(), field);
+        String sql = "SELECT * FROM %s_view WHERE %s = :value LIMIT 1".formatted(resourceType.getName(), SqlIdentifiers.quoteColumn(field));
         try {
             return npJdbcTemplate.queryForMap(sql, new MapSqlParameterSource("value", value));
         } catch (EmptyResultDataAccessException e) {

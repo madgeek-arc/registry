@@ -16,6 +16,7 @@
 
 package gr.uoa.di.madgik.registry.service;
 
+import gr.uoa.di.madgik.registry.dao.SqlIdentifiers;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.RangeFilter;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
@@ -226,11 +227,11 @@ final class SearchSqlQueryBuilder {
 
             if (isDataTypeArray(resourceType, field)) {
                 bindPostgresArray(params, field, filterValues);
-                whereClause.append(String.format("%s && :%s", field, field));
+                whereClause.append(String.format("%s && :%s", SqlIdentifiers.quoteColumn(field), field));
             } else if (filterValues.size() != 1) {
-                whereClause.append(String.format("%s IN (:%s)", field, field));
+                whereClause.append(String.format("%s IN (:%s)", SqlIdentifiers.quoteColumn(field), field));
             } else {
-                whereClause.append(String.format("%s = :%s", field, field));
+                whereClause.append(String.format("%s = :%s", SqlIdentifiers.quoteColumn(field), field));
             }
         }
 
@@ -244,11 +245,11 @@ final class SearchSqlQueryBuilder {
             List<String> conditions = new ArrayList<>();
             if (rf.getFrom() != null) {
                 params.addValue(field + "_from", rf.getFrom());
-                conditions.add(String.format("%s >= :%s_from", field, field));
+                conditions.add(String.format("%s >= :%s_from", SqlIdentifiers.quoteColumn(field), field));
             }
             if (rf.getTo() != null) {
                 params.addValue(field + "_to", rf.getTo());
-                conditions.add(String.format("%s <= :%s_to", field, field));
+                conditions.add(String.format("%s <= :%s_to", SqlIdentifiers.quoteColumn(field), field));
             }
 
             if (conditions.isEmpty()) {
@@ -257,7 +258,7 @@ final class SearchSqlQueryBuilder {
                         whereClause.append(" AND ");
                     }
                     dirty = true;
-                    whereClause.append(String.format("(%s IS NULL)", field));
+                    whereClause.append(String.format("(%s IS NULL)", SqlIdentifiers.quoteColumn(field)));
                 }
                 continue;
             }
@@ -268,7 +269,7 @@ final class SearchSqlQueryBuilder {
             dirty = true;
             String rangeExpr = String.join(" AND ", conditions);
             if (rf.isIncludeNull()) {
-                whereClause.append(String.format("(%s IS NULL OR (%s))", field, rangeExpr));
+                whereClause.append(String.format("(%s IS NULL OR (%s))", SqlIdentifiers.quoteColumn(field), rangeExpr));
             } else {
                 whereClause.append(String.format("(%s)", rangeExpr));
             }
@@ -335,14 +336,18 @@ final class SearchSqlQueryBuilder {
     private static String buildOrderBy(FacetFilter filter) {
         StringBuilder orderBuilder = new StringBuilder();
         if (filter.getOrderBy() != null && !filter.getOrderBy().isEmpty()) {
-            orderBuilder.append(" ORDER BY ");
             List<String> orderBy = new ArrayList<>();
             for (Map.Entry<String, Object> entry : filter.getOrderBy().entrySet()) {
                 String field = entry.getKey().replaceAll("[^A-Za-z0-9_]", "");
+                if (field.isEmpty()) {
+                    continue;
+                }
                 String order = (String) ((Map<String, Object>) entry.getValue()).get("order");
-                orderBy.add(String.format("%s %s", field, "desc".equalsIgnoreCase(order) ? "DESC" : "ASC"));
+                orderBy.add(String.format("%s %s", SqlIdentifiers.quoteColumn(field), "desc".equalsIgnoreCase(order) ? "DESC" : "ASC"));
             }
-            orderBuilder.append(String.join(",", orderBy));
+            if (!orderBy.isEmpty()) {
+                orderBuilder.append(" ORDER BY ").append(String.join(",", orderBy));
+            }
         }
         return orderBuilder.toString();
     }
@@ -356,7 +361,7 @@ final class SearchSqlQueryBuilder {
      */
     private boolean isDataTypeArray(ResourceType resourceType, String columnName) {
         IndexField field = resourceType.getIndexFields().stream()
-                .filter(rt -> rt.getName().equals(columnName))
+                .filter(rt -> rt.getName().equalsIgnoreCase(columnName))
                 .findFirst()
                 .orElseThrow(() -> new ServiceException("Could not find field"));
         return field.isMultivalued();
@@ -374,7 +379,7 @@ final class SearchSqlQueryBuilder {
         }
         return resourceType.getIndexFields().stream()
                 .map(IndexField::getName)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(() -> new TreeSet<>(String.CASE_INSENSITIVE_ORDER)));
     }
 
     /**
@@ -411,7 +416,7 @@ final class SearchSqlQueryBuilder {
 
         if (resourceType.getIndexFields() != null) {
             String type = resourceType.getIndexFields().stream()
-                    .filter(i -> i.getName().equals(fieldName))
+                    .filter(i -> i.getName().equalsIgnoreCase(fieldName))
                     .findFirst()
                     .orElseThrow(() -> new ServiceException("Unknown filter field: " + fieldName))
                     .getType();
@@ -580,13 +585,14 @@ final class SearchSqlQueryBuilder {
             String parameterName = "cql_" + cqlParameterIndex++;
             params.addValue(parameterName, coerceValue(field, term.getValue()));
 
+            String column = SqlIdentifiers.quoteColumn(field);
             return switch (relation.getComparitor()) {
-                case EQUALS -> field + " = :" + parameterName;
-                case NOT_EQUALS -> field + " <> :" + parameterName;
-                case GREATER -> field + " > :" + parameterName;
-                case GREATER_EQUALS -> field + " >= :" + parameterName;
-                case LESS -> field + " < :" + parameterName;
-                case LESS_EQUALS -> field + " <= :" + parameterName;
+                case EQUALS -> column + " = :" + parameterName;
+                case NOT_EQUALS -> column + " <> :" + parameterName;
+                case GREATER -> column + " > :" + parameterName;
+                case GREATER_EQUALS -> column + " >= :" + parameterName;
+                case LESS -> column + " < :" + parameterName;
+                case LESS_EQUALS -> column + " <= :" + parameterName;
                 default -> throw new IllegalArgumentException(
                         "Unsupported CQL operator: " + relation.getComparitor().getToken());
             };
