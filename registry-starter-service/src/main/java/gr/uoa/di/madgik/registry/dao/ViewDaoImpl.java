@@ -142,7 +142,7 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
                     // define output table schema
                     iter = singleVal_indexMap.get(s).iterator();
                     while (iter.hasNext()) {
-                        queryString = queryString.concat(", " + iter.next() + " " + dataTypeMap.get(s));
+                        queryString = queryString.concat(", " + SqlIdentifiers.quoteColumn(iter.next()) + " " + dataTypeMap.get(s));
                     }
                     queryString = queryString.concat(") ) s_" + s + " USING(id)");
                 }
@@ -181,7 +181,7 @@ public class ViewDaoImpl extends AbstractDao<Version> implements ViewDao {
                     // define output table schema
                     iter = multiVal_indexMap.get(m).iterator();
                     while (iter.hasNext()) {
-                        queryString = queryString.concat(", " + iter.next() + " " + dataTypeMap.get(m) + "[]");
+                        queryString = queryString.concat(", " + SqlIdentifiers.quoteColumn(iter.next()) + " " + dataTypeMap.get(m) + "[]");
                     }
                     queryString = queryString.concat(") ) m_" + m + " USING(id)");
                 }

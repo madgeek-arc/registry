@@ -19,6 +19,7 @@ package gr.uoa.di.madgik.registry.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import gr.uoa.di.madgik.registry.dao.SqlIdentifiers;
 import gr.uoa.di.madgik.registry.domain.*;
 import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import org.hibernate.type.SqlTypes;
@@ -283,11 +284,11 @@ public class DefaultSearchService implements SearchService {
                     } catch (SQLException e) {
                         logger.error("Failed to execute SQL operation for entry: {} with values: {}. Error: {}", entry.getKey(), filterValues.toArray(), e.getMessage(), e);
                     }
-                    whereClause.append(String.format("%s && :%s", entry.getKey(), entry.getKey()));
+                    whereClause.append(String.format("%s && :%s", SqlIdentifiers.quoteColumn(entry.getKey()), entry.getKey()));
                 } else if (filterValues.size() != 1) {
-                    whereClause.append(String.format("%s IN (:%s)", entry.getKey(), entry.getKey()));
+                    whereClause.append(String.format("%s IN (:%s)", SqlIdentifiers.quoteColumn(entry.getKey()), entry.getKey()));
                 } else {
-                    whereClause.append(String.format("%s = :%s", entry.getKey(), entry.getKey()));
+                    whereClause.append(String.format("%s = :%s", SqlIdentifiers.quoteColumn(entry.getKey()), entry.getKey()));
                 }
             }
         }
@@ -302,14 +303,18 @@ public class DefaultSearchService implements SearchService {
     private static String buildOrderBy(FacetFilter filter) {
         StringBuilder orderBuilder = new StringBuilder();
         if (filter.getOrderBy() != null && !filter.getOrderBy().isEmpty()) {
-            orderBuilder.append(" ORDER BY ");
             List<String> orderBy = new ArrayList<>();
             for (Map.Entry<String, Object> entry : filter.getOrderBy().entrySet()) {
                 String field = entry.getKey().replaceAll("[^A-Za-z0-9_]","");
+                if (field.isEmpty()) {
+                    continue;
+                }
                 String order = (String) ((Map<String, Object>) entry.getValue()).get("order");
-                orderBy.add(String.format("%s %s", field, "desc".equalsIgnoreCase(order) ? "DESC" : "ASC"));
+                orderBy.add(String.format("%s %s", SqlIdentifiers.quoteColumn(field), "desc".equalsIgnoreCase(order) ? "DESC" : "ASC"));
             }
-            orderBuilder.append(String.join(",", orderBy));
+            if (!orderBy.isEmpty()) {
+                orderBuilder.append(" ORDER BY ").append(String.join(",", orderBy));
+            }
         }
         return orderBuilder.toString();
     }
@@ -356,7 +361,7 @@ public class DefaultSearchService implements SearchService {
     }
 
     private boolean isDataTypeArray(String resourceTypeName, String columnName) {
-        IndexField field = resourceTypeService.getResourceTypeIndexFields(resourceTypeName).stream().filter(rt -> rt.getName().equals(columnName)).findFirst().orElseThrow(() -> new ServiceException("Could not find field"));
+        IndexField field = resourceTypeService.getResourceTypeIndexFields(resourceTypeName).stream().filter(rt -> rt.getName().equalsIgnoreCase(columnName)).findFirst().orElseThrow(() -> new ServiceException("Could not find field"));
         return field.isMultivalued();
     }
 
@@ -395,7 +400,7 @@ public class DefaultSearchService implements SearchService {
         }
 
         if (resourceType.getIndexFields() != null) {
-            String type = resourceType.getIndexFields().stream().filter(i -> i.getName().equals(entry.getKey())).findFirst().get().getType();
+            String type = resourceType.getIndexFields().stream().filter(i -> i.getName().equalsIgnoreCase(entry.getKey())).findFirst().get().getType();
             if (Boolean.class.getName().equals(type)) {
                 valuesList = (List) valuesList.stream().map(v -> Boolean.parseBoolean(String.valueOf(v))).toList();
             }
