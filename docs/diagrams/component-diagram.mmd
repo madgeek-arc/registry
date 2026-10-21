@@ -1,0 +1,38 @@
+flowchart LR
+    APP["Host application<br/>(embeds starters)"] -- "Java service API" --> SVC
+    HTTP["HTTP clients /<br/>registry-starter-client"] -- "REST" --> REST
+
+    subgraph REG[registry-starter-service + registry-core-rest]
+        REST["Controllers (registry.rest.enabled)<br/>/resources /resourceType /search /records<br/>/version /dump /restore /resourcesync"] --> SVC
+        SVC[ResourceService / ResourceTypeService<br/>validation, index mapping] --> DAO[DAOs + ViewDao]
+        SVC -. "@Around" .-> MON[ResourceMonitor]
+        MON --> VER[VersionMonitor]
+        MON --> CHUNK[ResourceChunkIndexService]
+        SRCH[DefaultSearchService<br/>full-text + pgvector] --> DAO
+        BATCH[Spring Batch<br/>dump / restore] --> DAO
+        EMB[WeightedSegmentEmbeddingService<br/>bundled ONNX model]
+        CHUNK --> EMB
+        SRCH --> EMB
+    end
+
+    subgraph ES[registry-starter-elasticsearch]
+        ESL[ElasticResourceListener] --> EOPS[ElasticOperationsService]
+        ESS[ElasticSearchService<br/>@Primary SearchService]
+        SYNC[SearchIndexConsistencyService<br/>startup reindex]
+    end
+
+    subgraph JMS[registry-starter-jms]
+        JMSL[JmsResourceListener]
+    end
+
+    MON --> ESL
+    MON --> JMSL
+    EOPS --> EMB
+    ESS --> EMB
+    DAO --> PG[(PostgreSQL + pgvector<br/>tables, chunks, per-type views)]
+    CHUNK --> PG
+    EOPS --> ELASTIC[(Elasticsearch 9.x)]
+    ESS --> ELASTIC
+    SYNC --> ELASTIC
+    SYNC --> PG
+    JMSL -- "topics prefix.type.create/update/delete" --> MQ[(ActiveMQ)]

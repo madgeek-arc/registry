@@ -1,0 +1,19 @@
+sequenceDiagram
+    participant C as Caller (REST or Java)
+    participant M as ResourceMonitor (@Around)
+    participant S as ResourceServiceImpl (@Transactional)
+    participant V as ResourceSchemaValidator
+    participant I as IndexMapper (JSONPath / XPath)
+    participant DB as PostgreSQL
+    participant L as Listeners (VersionMonitor, ResourceChunkIndexService, Elastic, JMS)
+    C->>M: addResource(resource)
+    M->>S: proceed()
+    S->>V: validate payload (JSON Schema / XSD)
+    S->>I: extract index fields
+    S->>DB: insert Resource + IndexedFields
+    S-->>M: saved resource
+    loop each ResourceListener
+        M->>L: resourceAdded(resource)
+        Note over M,L: exceptions are logged, not rethrown
+    end
+    M-->>C: resource
