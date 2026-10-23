@@ -1,0 +1,32 @@
+{
+  "properties": [
+    {
+      "name": "registry.rest.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "Whether to register the registry REST controllers (resources, resource types, search, versions, schemas, dump/restore, ResourceSync, typed records). The registry adds no authentication: when enabled, the application must guard these paths in its own security configuration."
+    },
+    {
+      "name": "registry.rest.typed-resources-controller.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "Whether to register the typed records controller (/records/**). Has no effect when registry.rest.enabled is false."
+    },
+    {
+      "name": "registry.rest.allow-encoded-slash",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Whether to accept URL-encoded slashes (%2F) in /records/** IDs and in registry.rest.encoded-slash-paths."
+    },
+    {
+      "name": "registry.rest.encoded-slash-paths",
+      "type": "java.util.List<java.lang.String>",
+      "description": "Extra path prefixes, besides 'records', where the Spring Security firewall accepts %2F when registry.rest.allow-encoded-slash is true."
+    },
+    {
+      "name": "registry.host",
+      "type": "java.lang.String",
+      "description": "Public base URL used in ResourceSync documents. When unset, the URL of the current request is used."
+    }
+  ]
+}

@@ -16,10 +16,8 @@
 
 package gr.uoa.di.madgik.registry.autoconfigure;
 
-import gr.uoa.di.madgik.registry.controllers.TypedResourceController;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.FilterType;
 
 /**
  * Registers all stereotype beans contributed by the registry service starter.
@@ -43,6 +41,6 @@ import org.springframework.context.annotation.FilterType;
         "gr.uoa.di.madgik.registry.startup",       // startup repair/bootstrap tasks
         "gr.uoa.di.madgik.registry.validation",    // @Service ResourceSchemaValidator
         "gr.uoa.di.madgik.registry.backup",        // @Service + @StepScope batch components (recursive — covers .dump and .restore)
-        "gr.uoa.di.madgik.registry.controllers",   // @RestController controllers (from registry-core-rest jar)
-}, excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = TypedResourceController.class))
+        "gr.uoa.di.madgik.registry.controllers.advice", // @RestControllerAdvice (from registry-core-rest jar)
+})
 class RegistryServiceComponentsConfiguration {}
