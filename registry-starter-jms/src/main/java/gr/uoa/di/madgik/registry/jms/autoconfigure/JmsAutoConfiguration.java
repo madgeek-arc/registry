@@ -45,6 +45,8 @@ public class JmsAutoConfiguration {
     private static final Logger logger = LoggerFactory.getLogger(JmsAutoConfiguration.class);
 
     @Configuration(proxyBeanMethods = false)
+    @ConditionalOnProperty(prefix = "registry.jms", name = "enabled", matchIfMissing = true)
+    @EnableConfigurationProperties(JmsProperties.class)
     @Import(JmsResourceListener.class)
     public static class ConfigureJms {
 
