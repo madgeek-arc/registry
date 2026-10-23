@@ -19,20 +19,26 @@ package gr.uoa.di.madgik.registry.autoconfigure;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 import tools.jackson.databind.cfg.DateTimeFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 @AutoConfiguration(afterName = "org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration")
+@EnableConfigurationProperties(RegistryClientProperties.class)
 @Import(RegistryClientComponentsConfiguration.class)
 public class RegistryClientAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    RestTemplate restTemplate() {
-        return new RestTemplate();
+    RestTemplate restTemplate(RegistryClientProperties properties) {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(properties.getConnectTimeout());
+        requestFactory.setReadTimeout(properties.getReadTimeout());
+        return new RestTemplate(requestFactory);
     }
 
     @Bean
