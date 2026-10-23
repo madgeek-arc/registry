@@ -31,6 +31,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -88,8 +89,15 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, e.getMessage(), request);
     }
 
+    /**
+     * Keeps the status of Spring MVC's own exceptions (unknown path, unsupported method or media type,
+     * missing parameter, {@code ResponseStatusException}, ...) instead of reporting them as 500.
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleUnexpected(Exception e, HttpServletRequest request) {
+        if (e instanceof ErrorResponse errorResponse) {
+            return build(errorResponse.getStatusCode(), errorResponse.getBody().getDetail(), request);
+        }
         logger.error("Unhandled exception while processing {} {}", request.getMethod(), request.getRequestURI(), e);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", request);
     }
