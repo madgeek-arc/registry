@@ -45,10 +45,8 @@ import java.time.Instant;
  * response shape out of the box, instead of each embedding app's default error page.
  *
  * <p>Registered at {@link Ordered#LOWEST_PRECEDENCE} deliberately: this is a fallback. An
- * embedding application that supplies its own {@code @ControllerAdvice} (e.g. catalogue's
- * {@code GenericExceptionController}, which already handles {@link ResourceException},
- * {@link ResourceAlreadyExistsException}, and {@link ResourceNotFoundException} with its own
- * {@link ProblemDetail} conventions) should declare an explicit, higher-precedence
+ * embedding application that supplies its own {@code @ControllerAdvice} for the same exception
+ * types should declare an explicit, higher-precedence
  * {@code @Order} on its own advice to take priority for exception types both advices handle.
  * Without an explicit order on both sides, Spring resolves per-advice-bean and does not warn
  * on the overlap, so the winner would otherwise depend on undefined bean registration order.

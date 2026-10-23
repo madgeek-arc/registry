@@ -263,8 +263,6 @@ public class FacetLabelService {
      *   <li>{@code "some-thing_here"} → {@code "Some-Thing Here"}</li>
      *   <li>{@code ""} or {@code null} → {@code "-"}</li>
      * </ul>
-     *
-     * <p>Inspired by the {@code FacetEnrichmentAspect} from the observatory application.
      */
     static String toProperCase(String value) {
         if (value == null || value.isEmpty()) {
