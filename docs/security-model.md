@@ -1,4 +1,4 @@
-# Registry — Security
+# Registry — Security model
 
 ## Authentication and authorisation
 

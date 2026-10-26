@@ -19,7 +19,7 @@ The registry has no authentication or authorisation. Any application that embeds
 `registry-starter-service` registers the registry REST controllers by default, including bulk export
 (`/dump/`), bulk import (`/restore/`) and deletes, and **is responsible for guarding those paths** in
 its own security configuration. An application that only uses the registry in-process sets
-`registry.rest.enabled=false`. See [docs/security.md](docs/security.md).
+`registry.rest.enabled=false`. See [docs/security-model.md](docs/security-model.md).
 
 ## Modules
 
@@ -62,7 +62,7 @@ See [application-example.properties](application-example.properties) and
 - [Architecture](docs/architecture.md) · [Integration](docs/integration.md) · [API](docs/api.md)
 - [Configuration](docs/configuration.md) · [Example configuration](application-example.properties)
 - [Deployment](docs/deployment.md) · [Operations](docs/operations.md) · [Troubleshooting](docs/troubleshooting.md)
-- [Security](docs/security.md) · [Development](docs/development.md) · [Testing](docs/testing.md)
+- [Security model](docs/security-model.md) · [Security policy](SECURITY.md) · [Development](docs/development.md) · [Testing](docs/testing.md)
 - [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
 ## Licence
