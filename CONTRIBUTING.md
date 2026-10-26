@@ -8,6 +8,8 @@ Use [GitHub Issues](https://github.com/madgeek-arc/registry/issues) for bugs, fe
 questions. For bugs, include the version, the environment, the steps to reproduce, and the expected
 and actual behaviour.
 
+Don't report security vulnerabilities in public issues; follow [SECURITY.md](SECURITY.md) instead.
+
 ## Branching
 
 - `master` is the integration and release branch and carries the next `-SNAPSHOT` version.

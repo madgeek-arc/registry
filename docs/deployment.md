@@ -2,7 +2,7 @@
 
 The repository contains no Dockerfile, compose file, Kubernetes manifest or CI pipeline. It builds
 Maven artefacts and one executable jar. Applications that embed the starters deploy the registry as
-part of themselves, and are responsible for securing its REST paths (see [security.md](security.md)).
+part of themselves, and are responsible for securing its REST paths (see [security-model.md](security-model.md)).
 
 Production deployment isn't defined in this repository. `registry-service` can run as the executable
 jar managed as a system service, or in a container started with Docker Compose or deployed on

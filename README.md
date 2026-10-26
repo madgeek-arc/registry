@@ -16,7 +16,7 @@ talk to a remote registry through `registry-starter-client`.
 The registry has no authentication or authorisation, and every application that embeds
 `registry-starter-service` gets the registry REST controllers, including bulk export (`/dump/`), bulk
 import (`/restore/`) and deletes. **The consuming application is responsible for guarding those
-paths** in its own security configuration. See [docs/security.md](docs/security.md).
+paths** in its own security configuration. See [docs/security-model.md](docs/security-model.md).
 
 ## Version lines
 
@@ -59,7 +59,7 @@ served at `/v3/api-docs` and the Swagger UI at `/swagger-ui.html`.
 - [Architecture](docs/architecture.md) · [Integration](docs/integration.md) · [API](docs/api.md)
 - [Configuration](docs/configuration.md) · [Example configuration](application-example.properties)
 - [Deployment](docs/deployment.md) · [Operations](docs/operations.md) · [Troubleshooting](docs/troubleshooting.md)
-- [Security](docs/security.md) · [Development](docs/development.md) · [Testing](docs/testing.md)
+- [Security model](docs/security-model.md) · [Security policy](SECURITY.md) · [Development](docs/development.md) · [Testing](docs/testing.md)
 - [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
 ## Licence

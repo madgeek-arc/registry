@@ -139,7 +139,7 @@ The registry owns its database. Host applications share it when they embed the s
 ## Security
 
 There's no authentication or authorisation, and the dump/restore endpoints export and overwrite
-the whole store. See [security.md](security.md).
+the whole store. See [security-model.md](security-model.md).
 
 ## Significant design decisions
 
