@@ -11,7 +11,6 @@ full-text search), optionally indexed in Elasticsearch, and changes can be annou
 |---|---|
 | Component | Registry (`gr.uoa.di.madgik:registry`) |
 | Type | Supporting service: a set of Spring Boot starters embedded in applications, plus an optional standalone `registry-service` |
-| Status | `version/5.0.0` line, `5.0.0-SNAPSHOT` (unreleased). The latest release, `v4.3.1`, is on the `master` (4.3.x) line |
 | Technology | Java 25, Spring Boot 4.0, Hibernate 6.5 / Spring Data JPA, PostgreSQL + pgvector + Flyway, Spring Batch 6, Elasticsearch Java client 9.4, ActiveMQ (JMS), Spring AI transformers (bundled ONNX model), Jackson 3, springdoc-openapi 3, Maven |
 | API | Yes: REST (`registry-core-rest`), no authentication of its own: the consuming application guards the paths or disables the controllers; Java API when embedded |
 | Swagger | Generated at runtime by springdoc (`/v3/api-docs`; Swagger UI in `registry-service`) |
