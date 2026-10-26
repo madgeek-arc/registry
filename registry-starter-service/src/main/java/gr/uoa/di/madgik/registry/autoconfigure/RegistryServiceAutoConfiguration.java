@@ -16,18 +16,14 @@
 
 package gr.uoa.di.madgik.registry.autoconfigure;
 
-import gr.uoa.di.madgik.registry.controllers.TypedResourceController;
 import gr.uoa.di.madgik.registry.configuration.BackupRestoreConfig;
 import gr.uoa.di.madgik.registry.configuration.BatchConfig;
 import gr.uoa.di.madgik.registry.configuration.HibernateConfiguration;
 import gr.uoa.di.madgik.registry.configuration.ServiceConfiguration;
 import gr.uoa.di.madgik.registry.security.EncodedSlashHttpFirewallConfiguration;
-import gr.uoa.di.madgik.registry.service.GenericResourceService;
-import gr.uoa.di.madgik.registry.service.VersionService;
 import gr.uoa.di.madgik.registry.startup.ResourceTypeInit;
 import org.apache.catalina.connector.Connector;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -51,6 +47,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
         ServiceConfiguration.class,
         ResourceTypeInit.class,
         RegistryServiceComponentsConfiguration.class,
+        RegistryRestControllersConfiguration.class,
         EncodedSlashHttpFirewallConfiguration.class,
 })
 public class RegistryServiceAutoConfiguration {
@@ -65,14 +62,6 @@ public class RegistryServiceAutoConfiguration {
                 .expireAfterAccess(1, TimeUnit.HOURS));
 
         return manager;
-    }
-
-    @Bean
-    @ConditionalOnBean(GenericResourceService.class)
-    @ConditionalOnMissingBean(TypedResourceController.class)
-    @ConditionalOnProperty(prefix = "registry.rest.typed-resources-controller", name = "enabled", havingValue = "true", matchIfMissing = true)
-    TypedResourceController typedResourceController(GenericResourceService genericResourceService, VersionService versionService) {
-        return new TypedResourceController(genericResourceService, versionService);
     }
 
     /**

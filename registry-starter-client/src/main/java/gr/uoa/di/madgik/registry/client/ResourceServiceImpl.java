@@ -69,7 +69,6 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public Resource getResource(String id) {
-        RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> response = restTemplate.getForEntity(registryHost + "/resources/whatever/" + id, String.class);
         if (response.getStatusCode().is2xxSuccessful()) {
             try {

@@ -31,7 +31,7 @@ import org.springframework.security.web.SecurityFilterChain;
  * <p>Deliberately lives outside {@code gr.uoa.di.madgik.registry.controllers}:
  * {@code @SpringBootApplication}'s implicit component scan would otherwise re-scan
  * {@code TypedResourceController} as a plain {@code @RestController} stereotype bean, bypassing the
- * exclude-filter that {@code RegistryServiceComponentsConfiguration} relies on to let the
+ * exclude-filter that {@code RegistryRestControllersConfiguration} relies on to let the
  * conditional {@code typedResourceController()} @Bean method be the sole source of that bean.
  *
  * <p>Shared across every embedded-server test package that needs this wiring (encoded-slash

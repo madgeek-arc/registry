@@ -50,8 +50,8 @@ import java.util.Arrays;
  *       The class <strong>must</strong>:<br>
  *       1. Be annotated with {@code @XmlRootElement} (or reachable via {@code @XmlSeeAlso}).<br>
  *       2. Be registered in the {@code JAXBContext} Spring bean at application startup.<br>
- *       When using the catalogue library, registration is done by adding the class's package
- *       to the {@code catalogue-lib.jaxb.include-packages} configuration property.
+ *       When the registry service starter provides the bean, registration is done by adding the
+ *       class's package to the {@code registry.jaxb.include-packages} configuration property.
  *     </td>
  *   </tr>
  * </table>

@@ -48,8 +48,7 @@ public class EncodedSlashHttpFirewallConfiguration {
     /**
      * Off by default, same flag as {@code tomcatEncodedSlashCustomizer}. Relaxes the firewall
      * only for the configured path prefixes plus {@code TypedResourceController.BASE_PATH} ("records"),
-     * which is always included since {@code TypedResourceController} is always registered by this
-     * starter — every other path keeps Spring Security's default strict firewall. A consumer
+     * which is always included — every other path keeps Spring Security's default strict firewall. A consumer
      * only needs to list its own extra paths, e.g. "service,datasource"; "records" doesn't need
      * to be repeated. Named (not type-based) {@code ConditionalOnMissingBean} so a consumer can
      * supply its own {@code WebSecurityCustomizer} under a different name without conflict; note

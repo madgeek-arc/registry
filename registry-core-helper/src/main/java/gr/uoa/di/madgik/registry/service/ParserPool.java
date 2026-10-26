@@ -51,8 +51,8 @@ import java.io.StringWriter;
  *   <li>The class must be annotated with {@code @XmlRootElement} (or registered via
  *       {@code @XmlSeeAlso} from a class that is).</li>
  *   <li>The class (or its containing package) must be included in the packages scanned when the
- *       {@code JAXBContext} bean is constructed. When using the catalogue library this is
- *       configured via the {@code catalogue-lib.jaxb.include-packages} property.</li>
+ *       {@code JAXBContext} bean is constructed: the {@code registry.jaxb.include-packages} property
+ *       when the registry service starter provides the bean.</li>
  * </ol>
  * <p>If these conditions are not met, {@link #serialize} and {@link #deserialize} will throw a
  * {@link ServiceException} with an actionable message explaining what to configure.
@@ -218,7 +218,8 @@ public class ParserPool implements ParserService {
                 "Failed to %s XML payload for class '%s'. "
                 + "The class is not registered in the JAXBContext. "
                 + "Ensure the class is annotated with @XmlRootElement and its package is included "
-                + "in the 'catalogue-lib.jaxb.include-packages' configuration property.",
+                + "in the JAXBContext bean ('registry.jaxb.include-packages' when the registry service "
+                + "starter provides it).",
                 operation, className);
     }
 }

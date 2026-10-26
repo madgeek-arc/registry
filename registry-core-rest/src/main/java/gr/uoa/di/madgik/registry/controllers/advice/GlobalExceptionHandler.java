@@ -31,6 +31,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -44,10 +45,8 @@ import java.time.Instant;
  * response shape out of the box, instead of each embedding app's default error page.
  *
  * <p>Registered at {@link Ordered#LOWEST_PRECEDENCE} deliberately: this is a fallback. An
- * embedding application that supplies its own {@code @ControllerAdvice} (e.g. catalogue's
- * {@code GenericExceptionController}, which already handles {@link ResourceException},
- * {@link ResourceAlreadyExistsException}, and {@link ResourceNotFoundException} with its own
- * {@link ProblemDetail} conventions) should declare an explicit, higher-precedence
+ * embedding application that supplies its own {@code @ControllerAdvice} for the same exception
+ * types should declare an explicit, higher-precedence
  * {@code @Order} on its own advice to take priority for exception types both advices handle.
  * Without an explicit order on both sides, Spring resolves per-advice-bean and does not warn
  * on the overlap, so the winner would otherwise depend on undefined bean registration order.
@@ -88,8 +87,15 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, e.getMessage(), request);
     }
 
+    /**
+     * Keeps the status of Spring MVC's own exceptions (unknown path, unsupported method or media type,
+     * missing parameter, {@code ResponseStatusException}, ...) instead of reporting them as 500.
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleUnexpected(Exception e, HttpServletRequest request) {
+        if (e instanceof ErrorResponse errorResponse) {
+            return build(errorResponse.getStatusCode(), errorResponse.getBody().getDetail(), request);
+        }
         logger.error("Unhandled exception while processing {} {}", request.getMethod(), request.getRequestURI(), e);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", request);
     }

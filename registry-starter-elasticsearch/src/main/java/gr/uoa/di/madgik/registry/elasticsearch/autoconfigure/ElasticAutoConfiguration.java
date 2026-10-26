@@ -80,22 +80,25 @@ public class ElasticAutoConfiguration {
     }
 
     /**
-     * Creates the low-level REST transport client required by the official typed API client.
+     * Creates the low-level REST transport client required by the official typed API client, with one node
+     * per entry of {@code registry.elasticsearch.uris}. Credentials, when set, apply to every node.
      */
     @Bean
     @ConditionalOnMissingBean
     Rest5Client restClient(RegistryElasticsearchProperties properties) {
-        URI uri = firstUri(properties.getUris());
+        List<URI> uris = nodeUris(properties.getUris());
         BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         if (properties.getUsername() != null && properties.getPassword() != null) {
-            credentialsProvider.setCredentials(
-                    new AuthScope(uri.getHost(), port(uri)),
-                    new UsernamePasswordCredentials(properties.getUsername(), properties.getPassword().toCharArray()));
+            for (URI uri : uris) {
+                credentialsProvider.setCredentials(
+                        new AuthScope(uri.getHost(), uri.getPort()),
+                        new UsernamePasswordCredentials(properties.getUsername(), properties.getPassword().toCharArray()));
+            }
         }
-        Rest5ClientBuilder restClientBuilder = Rest5Client.builder(uri)
+        Rest5ClientBuilder restClientBuilder = Rest5Client.builder(uris)
                 .setHttpClientConfigCallback(httpClientBuilder ->
                         httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
-        logger.info("Elasticsearch REST transport created for {}", uri);
+        logger.info("Elasticsearch REST transport created for {}", uris);
         return restClientBuilder.build();
     }
 
@@ -183,18 +186,31 @@ public class ElasticAutoConfiguration {
                 elasticsearchProperties, indexFieldsResolver);
     }
 
-    private static URI firstUri(List<String> uris) {
+    /**
+     * Parses each configured URI, defaulting the scheme to {@code http} and the port to 9200 ({@code http})
+     * or 443 ({@code https}).
+     */
+    static List<URI> nodeUris(List<String> uris) {
         if (uris == null || uris.isEmpty()) {
             throw new IllegalStateException("registry.elasticsearch.uris must contain at least one URI");
         }
-        String rawUri = uris.getFirst();
-        if (!rawUri.contains("://")) {
-            rawUri = "http://" + rawUri;
-        }
-        return URI.create(rawUri);
+        return uris.stream()
+                .map(String::trim)
+                .map(raw -> raw.contains("://") ? raw : "http://" + raw)
+                .map(URI::create)
+                .map(ElasticAutoConfiguration::withPort)
+                .toList();
     }
 
-    private static int port(URI uri) {
-        return uri.getPort() == -1 ? ("https".equalsIgnoreCase(uri.getScheme()) ? 443 : 9200) : uri.getPort();
+    private static URI withPort(URI uri) {
+        if (uri.getHost() == null) {
+            throw new IllegalStateException("Invalid registry.elasticsearch.uris entry: " + uri);
+        }
+        if (uri.getPort() != -1) {
+            return uri;
+        }
+        int port = "https".equalsIgnoreCase(uri.getScheme()) ? 443 : 9200;
+        return URI.create(uri.getScheme() + "://" + uri.getRawAuthority() + ":" + port
+                + (uri.getRawPath() == null ? "" : uri.getRawPath()));
     }
 }

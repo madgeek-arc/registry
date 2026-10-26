@@ -17,9 +17,15 @@
 package gr.uoa.di.madgik.registry;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 
-@SpringBootApplication
+/**
+ * Standalone registry. All beans come from the registry starters' auto-configurations, so the
+ * {@code registry.*.enabled} switches behave as they do in an embedding application.
+ */
+@SpringBootConfiguration
+@EnableAutoConfiguration
 public class RegistryService {
     public static void main(String[] args) {
         SpringApplication.run(RegistryService.class, args);

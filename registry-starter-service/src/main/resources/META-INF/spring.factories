@@ -1,0 +1,2 @@
+org.springframework.boot.EnvironmentPostProcessor=\
+gr.uoa.di.madgik.registry.autoconfigure.RegistryEmbeddingModelDefaults

@@ -274,6 +274,9 @@
                         <parameters>true</parameters>
                         <source>${java.version}</source>
                         <target>${java.version}</target>
+                        <!-- JDK 23+ no longer runs classpath annotation processors by default; the Spring Boot
+                             configuration and auto-configure processors generate the starters' metadata. -->
+                        <proc>full</proc>
                     </configuration>
                 </plugin>
                 <plugin>

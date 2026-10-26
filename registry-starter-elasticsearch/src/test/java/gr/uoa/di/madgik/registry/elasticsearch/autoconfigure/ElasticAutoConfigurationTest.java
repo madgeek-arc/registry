@@ -29,6 +29,7 @@ import gr.uoa.di.madgik.registry.service.ResourceService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeProjectionService;
 import gr.uoa.di.madgik.registry.service.ResourceTypeService;
 import gr.uoa.di.madgik.registry.service.SearchService;
+import co.elastic.clients.transport.rest5_client.low_level.Rest5Client;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration;
@@ -40,6 +41,7 @@ import javax.sql.DataSource;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -97,5 +99,24 @@ class ElasticAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(SearchService.class);
                     assertThat(context).doesNotHaveBean(SearchIndexConsistencyService.class);
                 });
+    }
+
+    @Test
+    void restClient_connects_to_every_configured_uri() {
+        contextRunner.withPropertyValues("registry.elasticsearch.uris=http://es1:9201,https://es2,es3")
+                .run(context -> {
+                    Rest5Client client = context.getBean(Rest5Client.class);
+                    assertThat(client.getNodes())
+                            .extracting(node -> node.getHost().toURI())
+                            .containsExactly("http://es1:9201", "https://es2:443", "http://es3:9200");
+                });
+    }
+
+    @Test
+    void nodeUris_rejects_missing_or_hostless_entries() {
+        assertThatThrownBy(() -> ElasticAutoConfiguration.nodeUris(List.of()))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> ElasticAutoConfiguration.nodeUris(List.of("http://")))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }
