@@ -5,18 +5,6 @@ A generic, schema-driven resource store for Spring Boot. Applications register *
 **resources** of those types. Resources are persisted in PostgreSQL (with pgvector embeddings and
 full-text search), optionally indexed in Elasticsearch, and changes can be announced over JMS.
 
-## Component metadata
-
-| Field | Value |
-|---|---|
-| Component | Registry (`gr.uoa.di.madgik:registry`) |
-| Type | Supporting service: a set of Spring Boot starters embedded in applications, plus an optional standalone `registry-service` |
-| Technology | Java 25, Spring Boot 4.0, Hibernate 6.5 / Spring Data JPA, PostgreSQL + pgvector + Flyway, Spring Batch 6, Elasticsearch Java client 9.4, ActiveMQ (JMS), Spring AI transformers (bundled ONNX model), Jackson 3, springdoc-openapi 3, Maven |
-| API | Yes: REST (`registry-core-rest`), no authentication of its own: the consuming application guards the paths or disables the controllers; Java API when embedded |
-| Swagger | Generated at runtime by springdoc (`/v3/api-docs`; Swagger UI in `registry-service`) |
-| Deployment | Library (Maven artefacts, `registry-bom`); `registry-service` executable jar |
-| Documentation | [docs/](docs/) |
-
 ## Role
 
 Provides the persistence, versioning, validation and search layer that applications build on. They
@@ -66,7 +54,8 @@ java -jar registry-service/target/RegistryService-5.0.0-SNAPSHOT.jar \
 
 With only PostgreSQL available, add `--registry.elasticsearch.enabled=false --registry.jms.enabled=false`.
 See [application-example.properties](application-example.properties) and
-[docs/configuration.md](docs/configuration.md) for the settings.
+[docs/configuration.md](docs/configuration.md) for the settings. The OpenAPI document is served at
+`/v3/api-docs` and the Swagger UI at `/swagger-ui.html`.
 
 ## Documentation
 
