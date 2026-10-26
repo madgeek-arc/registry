@@ -11,7 +11,6 @@ Elasticsearch (with semantic embeddings), and changes can be announced over JMS.
 |---|---|
 | Component | Registry (`gr.uoa.di.madgik:registry`) |
 | Type | Supporting service: a set of Spring Boot starters embedded in applications, plus an optional standalone `registry-service` |
-| Status | Released (`v4.3.1`); `master` is `4.3.2-SNAPSHOT` |
 | Technology | Java 21, Spring Boot 3.5, Hibernate 6.5 / Spring Data JPA, PostgreSQL + Flyway, Spring Batch 5, Elasticsearch 7.17 (High Level REST Client), ActiveMQ (JMS), Spring AI transformers (ONNX embeddings), springdoc-openapi, Maven |
 | API | Yes: REST (`registry-core-rest`), no authentication: the consuming application guards the paths; Java API when embedded |
 | Swagger | Generated at runtime by springdoc (`/v3/api-docs`; Swagger UI in `registry-service`) |
