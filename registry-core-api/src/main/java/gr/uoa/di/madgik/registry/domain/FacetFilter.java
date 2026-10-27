@@ -199,7 +199,7 @@ public class FacetFilter {
     }
 
     public void addFilter(String key, Object value) {
-        if (!Objects.equals(value, ""))
+        if (value != null && !Objects.equals(value, ""))
             this.filter.put(key, value);
     }
 
