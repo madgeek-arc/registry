@@ -16,6 +16,11 @@
 
 package gr.uoa.di.madgik.registry.utils;
 
+/**
+ * @deprecated formats the whole resource into the message, which writes any personal data it holds
+ * to the logs. Log the resource type and id instead.
+ */
+@Deprecated
 public class LoggingUtils {
 
     public static <T> String addResource(String resourceTypeName, String id, T obj) {

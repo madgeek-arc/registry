@@ -21,7 +21,6 @@ import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.exception.ResourceAlreadyExistsException;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
-import gr.uoa.di.madgik.registry.utils.LoggingUtils;
 import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -132,7 +131,7 @@ public class GenericResourceManager implements GenericResourceService {
         res.setResourceTypeName(resourceType.getName());
         res.setResourceType(resourceType);
         res.setPayload(payload);
-        logger.info("adding : [resourceType={}] : [body={}]", resourceTypeName, resource);
+        logger.info("Adding {} [{}]", resourceTypeName, logId(resourceTypeName, joinValues(keyValues)));
         resourceService.addResource(res);
         return resource;
     }
@@ -177,8 +176,7 @@ public class GenericResourceManager implements GenericResourceService {
                         resourceTypeName));
 
         res.setPayload(payload);
-        String logId = Arrays.stream(keyValues).map(SearchService.KeyValue::getValue).collect(Collectors.joining(","));
-        logger.info(LoggingUtils.updateResource(resourceTypeName, logId, resource));
+        logger.info("Updating {} [{}]", resourceTypeName, logId(resourceTypeName, joinValues(keyValues)));
         resourceService.updateResource(res);
         return resource;
     }
@@ -186,7 +184,7 @@ public class GenericResourceManager implements GenericResourceService {
     @Override
     public <T> T delete(String resourceTypeName, String id) {
         Resource res = searchResource(resourceTypeName, id, true);
-        logger.info(LoggingUtils.deleteResource(resourceTypeName, id, res));
+        logger.info("Deleting {} [{}]", resourceTypeName, logId(resourceTypeName, id));
         resourceService.deleteResource(res.getId());
         return (T) parserPool.deserialize(res, getClassFromResourceType(res.getResourceTypeName()));
     }
@@ -194,7 +192,7 @@ public class GenericResourceManager implements GenericResourceService {
     @Override
     public <T> T deleteByKey(String resourceTypeName, Map<String, String> keyValues) {
         Resource res = searchResourceByKey(resourceTypeName, keyValues, true);
-        logger.info(LoggingUtils.deleteResource(resourceTypeName, joinKeyValues(keyValues), res));
+        logger.info("Deleting {} [{}]", resourceTypeName, logId(resourceTypeName, joinKeyValues(keyValues)));
         resourceService.deleteResource(res.getId());
         return (T) parserPool.deserialize(res, getClassFromResourceType(res.getResourceTypeName()));
     }
@@ -399,6 +397,18 @@ public class GenericResourceManager implements GenericResourceService {
         return pkFieldNames.stream()
                 .map(name -> new SearchService.KeyValue(name, keyValues.get(name)))
                 .toArray(SearchService.KeyValue[]::new);
+    }
+
+    /**
+     * Returns the form of a resource id written to the logs. Override to pseudonymise ids that are
+     * personal data.
+     */
+    protected String logId(String resourceTypeName, String id) {
+        return id;
+    }
+
+    private static String joinValues(SearchService.KeyValue[] keyValues) {
+        return Arrays.stream(keyValues).map(SearchService.KeyValue::getValue).collect(Collectors.joining(","));
     }
 
     private static String joinKeyValues(Map<String, String> keyValues) {
