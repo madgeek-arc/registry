@@ -248,6 +248,9 @@ public class ResourceTypeServiceImpl implements ResourceTypeService {
             @CacheEvict(value = "resourceTypeIndexFields", key = "#resourceType.name")
     })
     public ResourceType updateResourceType(ResourceType resourceType) throws ServiceException {
+        // Serializes concurrent updates of the same type, so a later one reads the definition an
+        // earlier one committed and its projection refresh never overlaps another.
+        resourceTypeDao.lockResourceType(resourceType.getName());
         // getPersistedSnapshot(), not getResourceType(): must run before anything else in this
         // method touches ResourceType/IndexField for this name - see its javadoc and the caveat on
         // ResourceTypeChangeDetector.hasSameDefinition for why a normal entity fetch here would be

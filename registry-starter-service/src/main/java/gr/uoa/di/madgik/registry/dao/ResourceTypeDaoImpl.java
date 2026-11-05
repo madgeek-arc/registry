@@ -53,6 +53,16 @@ public class ResourceTypeDaoImpl extends AbstractDao<ResourceType> implements Re
     }
 
     @Override
+    @Transactional
+    public void lockResourceType(String name) {
+        getEntityManager()
+                .createNativeQuery("SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext('resource_type'), hashtext(:name))) l")
+                .setFlushMode(FlushModeType.COMMIT)
+                .setParameter("name", name)
+                .getSingleResult();
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public ResourceType getPersistedSnapshot(String name) {
         // FlushModeType.COMMIT on every query here, in the order they run, for the same reason as

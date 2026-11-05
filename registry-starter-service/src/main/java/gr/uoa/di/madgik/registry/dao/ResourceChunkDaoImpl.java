@@ -34,6 +34,8 @@ import java.util.StringJoiner;
 @Transactional(isolation = Isolation.READ_COMMITTED, readOnly = true)
 public class ResourceChunkDaoImpl implements ResourceChunkDao {
 
+    private static final String LOCK_SQL =
+            "SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext('resource_chunk'), hashtext(:resourceId))) l";
     private static final String DELETE_SQL = "DELETE FROM resource_chunk WHERE resource_id = :resourceId";
     private static final String INSERT_SQL = """
             INSERT INTO resource_chunk (
@@ -97,6 +99,7 @@ public class ResourceChunkDaoImpl implements ResourceChunkDao {
     @Override
     @Transactional
     public void deleteByResourceId(String resourceId) {
+        lockResourceChunks(resourceId);
         jdbcTemplate.update(DELETE_SQL, new MapSqlParameterSource("resourceId", resourceId));
     }
 
@@ -113,6 +116,14 @@ public class ResourceChunkDaoImpl implements ResourceChunkDao {
         return jdbcTemplate.query(FIND_BY_RESOURCE_ID_SQL,
                 new MapSqlParameterSource("resourceId", resourceId),
                 rowMapper);
+    }
+
+    /**
+     * Serializes chunk writers of the same resource until the surrounding transaction ends, so that a
+     * concurrent writer cannot commit rows between this transaction's delete and its inserts.
+     */
+    private void lockResourceChunks(String resourceId) {
+        jdbcTemplate.queryForObject(LOCK_SQL, new MapSqlParameterSource("resourceId", resourceId), Integer.class);
     }
 
     private String toVectorLiteral(float[] embedding) {

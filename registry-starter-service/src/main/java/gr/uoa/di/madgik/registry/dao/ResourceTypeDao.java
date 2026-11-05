@@ -41,6 +41,14 @@ public interface ResourceTypeDao {
      */
     ResourceType getPersistedSnapshot(String name);
 
+    /**
+     * Blocks until no other transaction holds the lock for the given resource type name, then holds
+     * it until the current transaction ends. Must be called within a transaction.
+     *
+     * @param name the resource type name
+     */
+    void lockResourceType(String name);
+
     List<ResourceType> getAllResourceType();
 
     List<ResourceType> getAllResourceTypeByAlias(String alias);
