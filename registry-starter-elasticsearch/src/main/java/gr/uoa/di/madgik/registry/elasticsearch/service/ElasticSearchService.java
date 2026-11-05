@@ -74,6 +74,10 @@ public class ElasticSearchService implements SearchService {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticSearchService.class);
     private static final String[] INCLUDES = {"id", "payload", "creation_date", "modification_date", "created_by", "modified_by", "payloadFormat", "version"};
+    // bool_prefix scores the last word as a constant, so exact matches are boosted well above it
+    // to rank every exact match ahead of prefix-only matches.
+    private static final double EXACT_MATCH_BOOST = 10.0;
+    private static final double PREFIX_MATCH_BOOST = 0.1;
 
     private final ElasticsearchClient client;
     private final JsonpMapper jsonpMapper;
@@ -86,6 +90,8 @@ public class ElasticSearchService implements SearchService {
     private final int topHitsSize;
     private final int bucketSize;
     private final int maxQuantity;
+    private final boolean prefixMatchingEnabled;
+    private final int prefixMatchingMinLength;
 
     /**
      * Creates a search service backed by the typed Elasticsearch Java client.
@@ -106,6 +112,8 @@ public class ElasticSearchService implements SearchService {
         this.topHitsSize = elasticsearchProperties.getAggregation().getTopHitsSize();
         this.bucketSize = elasticsearchProperties.getAggregation().getBucketSize();
         this.maxQuantity = elasticsearchProperties.getIndex().getMaxResultWindow();
+        this.prefixMatchingEnabled = elasticsearchProperties.getSearch().getPrefixMatching().isEnabled();
+        this.prefixMatchingMinLength = elasticsearchProperties.getSearch().getPrefixMatching().getMinLength();
         mapper = JsonMapper.builder()
                 .findAndAddModules()
                 .propertyNamingStrategy(new ResourcePropertyName())
@@ -166,10 +174,7 @@ public class ElasticSearchService implements SearchService {
                 // multi_match clause with an empty field list.
                 must.addObject().putObject("match_none");
             } else {
-                ObjectNode textQuery = must.addObject().putObject("multi_match");
-                textQuery.put("query", filter.getKeyword());
-                ArrayNode fields = textQuery.putArray("fields");
-                textFields.forEach(fields::add);
+                must.add(lexicalMatchNode(filter.getKeyword(), textFields));
             }
         } else {
             must.addObject().putObject("match_all");
@@ -178,6 +183,46 @@ public class ElasticSearchService implements SearchService {
         applyFilters(filter.getFilter(), bool);
         applyRangeFilters(filter.getRangeFilters(), bool);
         return mapper.createObjectNode().set("bool", bool);
+    }
+
+    /**
+     * Builds the keyword clause: an exact {@code multi_match}, combined with a {@code bool_prefix}
+     * match on the last word when prefix matching applies to the keyword.
+     */
+    private ObjectNode lexicalMatchNode(String keyword, Set<String> textFields) {
+        ObjectNode exactQuery = multiMatchNode(keyword, textFields);
+        if (!appliesPrefixMatching(keyword)) {
+            return exactQuery;
+        }
+        exactQuery.withObject("multi_match").put("boost", EXACT_MATCH_BOOST);
+
+        ObjectNode prefixQuery = multiMatchNode(keyword, textFields);
+        prefixQuery.withObject("multi_match")
+                .put("type", "bool_prefix")
+                .put("boost", PREFIX_MATCH_BOOST);
+
+        ObjectNode query = mapper.createObjectNode();
+        ObjectNode bool = query.putObject("bool");
+        bool.putArray("should").add(exactQuery).add(prefixQuery);
+        bool.put("minimum_should_match", 1);
+        return query;
+    }
+
+    private ObjectNode multiMatchNode(String keyword, Set<String> textFields) {
+        ObjectNode query = mapper.createObjectNode();
+        ObjectNode multiMatch = query.putObject("multi_match");
+        multiMatch.put("query", keyword);
+        ArrayNode fields = multiMatch.putArray("fields");
+        textFields.forEach(fields::add);
+        return query;
+    }
+
+    private boolean appliesPrefixMatching(String keyword) {
+        if (!prefixMatchingEnabled) {
+            return false;
+        }
+        String[] words = keyword.strip().split("\\s+");
+        return words[words.length - 1].length() >= prefixMatchingMinLength;
     }
 
     // Preserved for tests and internal callers that still expect the lexical query builder.

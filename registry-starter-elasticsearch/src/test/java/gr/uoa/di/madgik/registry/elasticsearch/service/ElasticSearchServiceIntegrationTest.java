@@ -86,6 +86,7 @@ class ElasticSearchServiceIntegrationTest {
     private ElasticsearchTransport transport;
     private EmbeddingService embeddingService;
     private ElasticSearchService searchService;
+    private ElasticSearchService prefixSearchService;
 
     @BeforeAll
     void setUp() {
@@ -121,6 +122,17 @@ class ElasticSearchServiceIntegrationTest {
                 embeddingService,
                 resourceTypeService,
                 elasticsearchProperties,
+                new ElasticIndexFieldsResolver(client)
+        );
+
+        RegistryElasticsearchProperties prefixProperties = new RegistryElasticsearchProperties();
+        prefixProperties.getSearch().getPrefixMatching().setEnabled(true);
+        prefixSearchService = new ElasticSearchService(
+                client,
+                new Jackson3JsonpMapper((JsonMapper) objectMapper),
+                embeddingService,
+                resourceTypeService,
+                prefixProperties,
                 new ElasticIndexFieldsResolver(client)
         );
     }
@@ -187,6 +199,33 @@ class ElasticSearchServiceIntegrationTest {
         assertEquals("neighbor", ids.getFirst());
         assertFalse(ids.contains("source"));
         assertFalse(ids.contains("missing"));
+    }
+
+    @Test
+    void search_prefixMatching_findsPartialWord_andRanksExactMatchFirst() throws Exception {
+        String index = createIndex();
+        indexDocumentWithoutEmbedding(index, "prefix-only", "provider registry");
+        indexDocumentWithoutEmbedding(index, "exact", "prov registry");
+        indexDocumentWithoutEmbedding(index, "unrelated", "catalogue handbook");
+
+        List<String> ids = prefixSearchService.search(filter(index, "prov")).getResults().stream()
+                .map(Resource::getId)
+                .toList();
+
+        assertEquals(List.of("exact", "prefix-only"), ids);
+    }
+
+    @Test
+    void search_prefixMatchingDisabled_matchesWholeWordsOnly() throws Exception {
+        String index = createIndex();
+        indexDocumentWithoutEmbedding(index, "prefix-only", "provider registry");
+        indexDocumentWithoutEmbedding(index, "exact", "prov registry");
+
+        List<String> ids = searchService.search(filter(index, "prov")).getResults().stream()
+                .map(Resource::getId)
+                .toList();
+
+        assertEquals(List.of("exact"), ids);
     }
 
     @Test

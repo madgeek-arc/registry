@@ -42,6 +42,9 @@ import java.util.List;
  *       highlight:
  *         fragment-size: 400
  *         number-of-fragments: 5
+ *       prefix-matching:
+ *         enabled: false
+ *         min-length: 3
  * }</pre>
  *
  * <p>At least one URI must be provided. When {@code username} and {@code password} are both set,
@@ -192,9 +195,47 @@ public class RegistryElasticsearchProperties {
      */
     public static class Search {
         private final Highlight highlight = new Highlight();
+        private final PrefixMatching prefixMatching = new PrefixMatching();
 
         public Highlight getHighlight() {
             return highlight;
+        }
+
+        public PrefixMatching getPrefixMatching() {
+            return prefixMatching;
+        }
+    }
+
+    /**
+     * Prefix matching for lexical keyword search. When enabled, the last word of the keyword also
+     * matches as a prefix, ranked below exact matches, so a partly typed word finds results.
+     */
+    public static class PrefixMatching {
+        /**
+         * Whether the last word of a lexical keyword also matches as a prefix.
+         */
+        private boolean enabled = false;
+
+        /**
+         * Minimum length of the last word for prefix matching to apply. Shorter words match
+         * exactly only, since very short prefixes match most documents.
+         */
+        private int minLength = 3;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getMinLength() {
+            return minLength;
+        }
+
+        public void setMinLength(int minLength) {
+            this.minLength = minLength;
         }
     }
 

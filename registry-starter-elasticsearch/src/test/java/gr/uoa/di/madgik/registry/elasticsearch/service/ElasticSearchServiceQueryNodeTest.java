@@ -370,8 +370,122 @@ class ElasticSearchServiceQueryNodeTest {
     }
 
     // -------------------------------------------------------------------------
+    // Prefix matching
+    // -------------------------------------------------------------------------
+
+    @Test
+    void lexicalQuery_prefixMatchingDisabled_usesPlainMultiMatch() throws Exception {
+        FacetFilter filter = filter("my_index");
+        filter.setKeyword("registry");
+
+        ArrayNode must = must(invoke(filter));
+
+        assertEquals(1, must.size());
+        ObjectNode multiMatch = (ObjectNode) must.get(0).get("multi_match");
+        assertEquals("registry", multiMatch.get("query").asText());
+        assertFalse(multiMatch.has("type"));
+        assertFalse(multiMatch.has("boost"));
+    }
+
+    @Test
+    void lexicalQuery_prefixMatchingEnabled_combinesBoostedExactAndPrefixClauses() throws Exception {
+        enablePrefixMatching();
+        FacetFilter filter = filter("my_index");
+        filter.setKeyword("regis");
+
+        ObjectNode bool = (ObjectNode) must(invoke(filter)).get(0).get("bool");
+        ArrayNode should = (ArrayNode) bool.get("should");
+
+        assertEquals(1, bool.get("minimum_should_match").asInt());
+        assertEquals(2, should.size());
+
+        ObjectNode exact = (ObjectNode) should.get(0).get("multi_match");
+        assertEquals("regis", exact.get("query").asText());
+        assertFalse(exact.has("type"));
+
+        ObjectNode prefix = (ObjectNode) should.get(1).get("multi_match");
+        assertEquals("regis", prefix.get("query").asText());
+        assertEquals("bool_prefix", prefix.get("type").asText());
+        assertEquals("indexField.text", prefix.get("fields").get(0).asText());
+
+        assertTrue(exact.get("boost").asDouble() > prefix.get("boost").asDouble());
+    }
+
+    @Test
+    void lexicalQuery_prefixMatchingEnabled_lastWordBelowMinLength_usesPlainMultiMatch() throws Exception {
+        enablePrefixMatching();
+        FacetFilter filter = filter("my_index");
+        filter.setKeyword("registry ab");
+
+        ObjectNode multiMatch = (ObjectNode) must(invoke(filter)).get(0).get("multi_match");
+
+        assertNotNull(multiMatch);
+        assertFalse(multiMatch.has("type"));
+        assertFalse(multiMatch.has("boost"));
+    }
+
+    @Test
+    void lexicalQuery_prefixMatchingEnabled_measuresLastWordOnly() throws Exception {
+        enablePrefixMatching();
+        FacetFilter filter = filter("my_index");
+        filter.setKeyword("ab regis  ");
+
+        assertNotNull(must(invoke(filter)).get(0).get("bool"));
+    }
+
+    @Test
+    void lexicalQuery_prefixMatchingEnabled_blankKeyword_usesPlainMultiMatch() throws Exception {
+        enablePrefixMatching();
+        FacetFilter filter = filter("my_index");
+        filter.setKeyword("   ");
+
+        assertNotNull(must(invoke(filter)).get(0).get("multi_match"));
+    }
+
+    @Test
+    void lexicalQuery_prefixMatchingEnabled_keepsFiltersInMust() throws Exception {
+        enablePrefixMatching();
+        FacetFilter filter = filter("my_index");
+        filter.setKeyword("regis");
+        filter.addFilter("status", "APPROVED");
+
+        ArrayNode must = must(invoke(filter));
+
+        assertEquals(2, must.size());
+        assertNotNull(must.get(0).get("bool"));
+        assertNotNull(must.get(1).get("term"));
+    }
+
+    @Test
+    void hybridQuery_prefixMatchingEnabled_doesNotAddPrefixClause() throws Exception {
+        enablePrefixMatching();
+        when(embeddingService.embed("regis")).thenReturn(new float[]{1.0f, 0.0f, 0.0f});
+        FacetFilter filter = filter("my_index");
+        filter.setKeyword("regis");
+
+        ObjectNode query = invokeHybrid(filter);
+
+        assertFalse(query.toString().contains("bool_prefix"));
+    }
+
+    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    private void enablePrefixMatching() throws Exception {
+        RegistryElasticsearchProperties properties = new RegistryElasticsearchProperties();
+        properties.getSearch().getPrefixMatching().setEnabled(true);
+        ElasticIndexFieldsResolver indexFieldsResolver = mock(ElasticIndexFieldsResolver.class);
+        when(indexFieldsResolver.getTextFields("my_index")).thenReturn(List.of("indexField.text"));
+        service = new ElasticSearchService(
+                client,
+                mock(JsonpMapper.class),
+                embeddingService,
+                mock(ResourceTypeService.class),
+                properties,
+                indexFieldsResolver
+        );
+    }
 
     private FacetFilter filter(String resourceType) {
         FacetFilter ff = new FacetFilter();
