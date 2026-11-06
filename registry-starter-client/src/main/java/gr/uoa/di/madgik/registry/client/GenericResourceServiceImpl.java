@@ -289,6 +289,12 @@ public class GenericResourceServiceImpl implements GenericResourceService {
         return convertBody(response.getBody(), resourceTypeName);
     }
 
+    private void addFixedFields(UriComponentsBuilder builder, FacetFilter filter) {
+        if (!filter.getFixedFilters().isEmpty()) {
+            builder.queryParam(FacetFilter.FIXED_FIELDS_PARAMETER, filter.getFixedFilters().keySet());
+        }
+    }
+
     private String buildBrowseUri(FacetFilter filter, String mode, boolean highlighted) {
         String suffix = highlighted
                 ? mode == null ? "/highlighted" : "/" + mode + "/highlighted"
@@ -299,6 +305,7 @@ public class GenericResourceServiceImpl implements GenericResourceService {
                 .queryParam("from", filter.getFrom())
                 .queryParam("quantity", filter.getQuantity())
                 .queryParam("browseBy", filter.getBrowseBy());
+        addFixedFields(builder, filter);
 
         if (filter.getOrderBy() != null) {
             builder.queryParam("sort", filter.getOrderBy().keySet());
@@ -337,6 +344,7 @@ public class GenericResourceServiceImpl implements GenericResourceService {
                 .queryParam("from", filter.getFrom())
                 .queryParam("quantity", filter.getQuantity())
                 .queryParam("browseBy", filter.getBrowseBy());
+        addFixedFields(builder, filter);
 
         for (Map.Entry<String, Object> entry : filter.getFilter().entrySet()) {
             Object value = entry.getValue();
@@ -368,6 +376,7 @@ public class GenericResourceServiceImpl implements GenericResourceService {
                 .queryParam("from", filter.getFrom())
                 .queryParam("quantity", filter.getQuantity())
                 .queryParam("browseBy", filter.getBrowseBy());
+        addFixedFields(builder, filter);
         keyValues.forEach(builder::queryParam);
         return builder.toUriString();
     }

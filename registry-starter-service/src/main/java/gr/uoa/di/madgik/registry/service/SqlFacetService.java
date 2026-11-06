@@ -27,10 +27,12 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.function.Function;
 
 @Service
 class SqlFacetService {
@@ -49,6 +51,18 @@ class SqlFacetService {
         if (matchedIds == null || matchedIds.isEmpty()) {
             return List.of();
         }
+        return createFacets(browseBy, resourceTypes, field -> matchedIds, Map.of());
+    }
+
+    /**
+     * Creates facets over a separate set of matched ids per field. Each selected value is kept in the
+     * facet of its field, even when no matched id has it.
+     *
+     * @param matchedIdsByField resolves the ids of the resources a field's facet counts
+     * @param selections        the selected values by field
+     */
+    List<Facet> createFacets(List<String> browseBy, List<ResourceType> resourceTypes,
+                             Function<String, List<String>> matchedIdsByField, Map<String, Object> selections) {
         Map<String, IndexField> fieldMap = buildFieldMap(resourceTypes);
         return FacetUtils.createFacets(
                 browseBy,
@@ -58,7 +72,10 @@ class SqlFacetService {
                 },
                 field -> {
                     IndexField indexField = fieldMap.get(field);
-                    return indexField != null ? loadFacetValues(indexField, matchedIds) : null;
+                    return indexField != null
+                            ? FacetUtils.includeSelectedValues(
+                                    loadFacetValues(indexField, matchedIdsByField.apply(field)), selections.get(field))
+                            : null;
                 }
         );
     }
@@ -74,6 +91,9 @@ class SqlFacetService {
     }
 
     private List<Value> loadFacetValues(IndexField field, List<String> matchedIds) {
+        if (matchedIds.isEmpty()) {
+            return new ArrayList<>();
+        }
         String valueExpression = field.isMultivalued() ? "facet_value" : "view_row.%s".formatted(SqlIdentifiers.quoteColumn(field.getName()));
         String joinExpression = field.isMultivalued()
                 ? "CROSS JOIN LATERAL unnest(view_row.%s) AS facet_value ".formatted(SqlIdentifiers.quoteColumn(field.getName()))

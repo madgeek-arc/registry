@@ -78,6 +78,7 @@ public class ElasticSearchService implements SearchService {
     // to rank every exact match ahead of prefix-only matches.
     private static final double EXACT_MATCH_BOOST = 10.0;
     private static final double PREFIX_MATCH_BOOST = 0.1;
+    private static final String FACET_VALUES_AGGREGATION = "values";
 
     private final ElasticsearchClient client;
     private final JsonpMapper jsonpMapper;
@@ -163,6 +164,13 @@ public class ElasticSearchService implements SearchService {
     }
 
     private ObjectNode createLexicalQueryNode(FacetFilter filter) {
+        return createLexicalQueryNode(filter, filter.getFilter());
+    }
+
+    /**
+     * Builds the lexical query constrained by {@code filters} instead of all the filters of {@code filter}.
+     */
+    private ObjectNode createLexicalQueryNode(FacetFilter filter, Map<String, Object> filters) {
         ObjectNode bool = mapper.createObjectNode();
         ArrayNode must = bool.putArray("must");
 
@@ -180,7 +188,7 @@ public class ElasticSearchService implements SearchService {
             must.addObject().putObject("match_all");
         }
 
-        applyFilters(filter.getFilter(), bool);
+        applyFilters(filters, bool);
         applyRangeFilters(filter.getRangeFilters(), bool);
         return mapper.createObjectNode().set("bool", bool);
     }
@@ -346,23 +354,42 @@ public class ElasticSearchService implements SearchService {
             return;
         }
         ArrayNode must = withArray(boolNode, "must");
-        for (Map.Entry<String, Object> filterSet : filters.entrySet()) {
-            if (filterSet.getValue() instanceof Collection<?> values) {
-                ObjectNode internal = mapper.createObjectNode();
-                ArrayNode should = internal.putObject("bool").putArray("should");
-                for (Object value : values) {
-                    ObjectNode match = mapper.createObjectNode();
-                    match.putObject("match").set(filterSet.getKey(), mapper.valueToTree(value));
-                    should.add(match);
-                }
-                internal.withObject("bool").put("minimum_should_match", 1);
-                must.add(internal);
-            } else {
-                ObjectNode term = mapper.createObjectNode();
-                term.putObject("term").set(filterSet.getKey(), mapper.valueToTree(filterSet.getValue()));
-                must.add(term);
+        filters.forEach((field, value) -> must.add(filterClause(field, value)));
+    }
+
+    /**
+     * Builds the clause for one filter: a term query for a single value, or a query matching any of
+     * the values of a collection.
+     */
+    private ObjectNode filterClause(String field, Object filterValue) {
+        if (filterValue instanceof Collection<?> values) {
+            ObjectNode internal = mapper.createObjectNode();
+            ArrayNode should = internal.putObject("bool").putArray("should");
+            for (Object value : values) {
+                ObjectNode match = mapper.createObjectNode();
+                match.putObject("match").set(field, mapper.valueToTree(value));
+                should.add(match);
             }
+            internal.withObject("bool").put("minimum_should_match", 1);
+            return internal;
         }
+        ObjectNode term = mapper.createObjectNode();
+        term.putObject("term").set(field, mapper.valueToTree(filterValue));
+        return term;
+    }
+
+    /**
+     * Builds a non-scoring query requiring all the selections, except the one on {@code excludedField}.
+     */
+    private Query selectionsQuery(Map<String, Object> selections, String excludedField) {
+        ObjectNode query = mapper.createObjectNode();
+        ArrayNode clauses = query.putObject("bool").putArray("filter");
+        selections.forEach((field, value) -> {
+            if (!field.equals(excludedField)) {
+                clauses.add(filterClause(field, value));
+            }
+        });
+        return toQuery(query);
     }
 
     /**
@@ -440,12 +467,31 @@ public class ElasticSearchService implements SearchService {
                 }).collect(Collectors.toList());
     }
 
-    private Map<String, Aggregation> buildAggregations(List<String> browseBy) {
+    /**
+     * Builds one aggregation per facet field. With selections, each terms aggregation is scoped by the
+     * selections on the other fields, because the selections are not part of the main query.
+     */
+    private Map<String, Aggregation> buildAggregations(List<String> browseBy, Map<String, Object> selections) {
         if (browseBy == null) return Map.of();
         return browseBy.stream().collect(Collectors.toMap(
                 field -> "by_" + field,
-                field -> Aggregation.of(a -> a.terms(t -> t.field(field).size(bucketSize)))
+                field -> selections.isEmpty()
+                        ? termsAggregation(field)
+                        : Aggregation.of(a -> a
+                                .filter(selectionsQuery(selections, field))
+                                .aggregations(FACET_VALUES_AGGREGATION, termsAggregation(field)))
         ));
+    }
+
+    private Aggregation termsAggregation(String field) {
+        return Aggregation.of(a -> a.terms(t -> t.field(field).size(bucketSize)));
+    }
+
+    /**
+     * Returns the post filter applying {@code selections} to the hits, or {@code null} without selections.
+     */
+    private Query postFilter(Map<String, Object> selections) {
+        return selections.isEmpty() ? null : selectionsQuery(selections, null);
     }
 
     // -------------------------------------------------------------------------
@@ -453,6 +499,14 @@ public class ElasticSearchService implements SearchService {
     // -------------------------------------------------------------------------
 
     private Paging<Resource> buildSearch(FacetFilter filter, ObjectNode queryNode) {
+        return buildSearch(filter, queryNode, Map.of());
+    }
+
+    /**
+     * Runs a search whose {@code queryNode} leaves out {@code selections}: they apply to the hits as a
+     * post filter, and to each facet except the one of their own field.
+     */
+    private Paging<Resource> buildSearch(FacetFilter filter, ObjectNode queryNode, Map<String, Object> selections) {
         filter.setBrowseBy(resolveBrowseBy(filter));
         int quantity = resolveQuantity(filter.getFrom(), filter.getQuantity());
 
@@ -466,15 +520,25 @@ public class ElasticSearchService implements SearchService {
                             .size(quantity)
                             .trackTotalHits(t -> t.enabled(true))
                             .sort(buildSorts(filter.getOrderBy()))
-                            .aggregations(buildAggregations(filter.getBrowseBy())),
+                            .postFilter(postFilter(selections))
+                            .aggregations(buildAggregations(filter.getBrowseBy(), selections)),
                     ObjectNode.class);
-            return responseToPaging(response, filter.getFrom(), filter.getBrowseBy(), filter.getResourceType());
+            return responseToPaging(response, filter.getFrom(), filter.getBrowseBy(), filter.getResourceType(), selections);
         } catch (IOException e) {
             throw new ServiceException("Search failed", e);
         }
     }
 
     private Paging<HighlightedResult<Resource>> buildSearchWithHighlights(FacetFilter filter, ObjectNode queryNode) {
+        return buildSearchWithHighlights(filter, queryNode, Map.of());
+    }
+
+    /**
+     * Runs a highlighted search whose {@code queryNode} leaves out {@code selections}: they apply to the
+     * hits as a post filter, and to each facet except the one of their own field.
+     */
+    private Paging<HighlightedResult<Resource>> buildSearchWithHighlights(FacetFilter filter, ObjectNode queryNode,
+                                                                          Map<String, Object> selections) {
         filter.setBrowseBy(resolveBrowseBy(filter));
         int quantity = resolveQuantity(filter.getFrom(), filter.getQuantity());
 
@@ -494,12 +558,14 @@ public class ElasticSearchService implements SearchService {
                             .size(quantity)
                             .trackTotalHits(t -> t.enabled(true))
                             .sort(buildSorts(filter.getOrderBy()))
-                            .aggregations(buildAggregations(filter.getBrowseBy()))
+                            .postFilter(postFilter(selections))
+                            .aggregations(buildAggregations(filter.getBrowseBy(), selections))
                             .highlight(h -> h
                                     .order(HighlighterOrder.Score)
                                     .fields(highlightFields)),
                     ObjectNode.class);
-            return highlightedResponseToPaging(response, filter.getFrom(), filter.getBrowseBy(), filter.getResourceType());
+            return highlightedResponseToPaging(response, filter.getFrom(), filter.getBrowseBy(), filter.getResourceType(),
+                    selections);
         } catch (IOException e) {
             throw new ServiceException("Search with highlights failed", e);
         }
@@ -567,9 +633,10 @@ public class ElasticSearchService implements SearchService {
     }
 
     private Paging<Resource> responseToPaging(SearchResponse<ObjectNode> response, int from,
-                                              List<String> browseBy, String resourceTypeName) {
+                                              List<String> browseBy, String resourceTypeName,
+                                              Map<String, Object> selections) {
         List<Hit<ObjectNode>> hits = response.hits().hits();
-        List<Facet> facets = createFacets(browseBy, resourceTypeName, response.aggregations());
+        List<Facet> facets = createFacets(browseBy, resourceTypeName, response.aggregations(), selections);
         if (hits.isEmpty()) {
             return new Paging<>(extractTotal(response), from, from, List.of(), facets);
         }
@@ -581,10 +648,11 @@ public class ElasticSearchService implements SearchService {
 
     private Paging<HighlightedResult<Resource>> highlightedResponseToPaging(
             SearchResponse<ObjectNode> response, int from,
-            List<String> browseBy, String resourceTypeName) {
+            List<String> browseBy, String resourceTypeName,
+            Map<String, Object> selections) {
 
         List<Hit<ObjectNode>> hits = response.hits().hits();
-        List<Facet> facets = createFacets(browseBy, resourceTypeName, response.aggregations());
+        List<Facet> facets = createFacets(browseBy, resourceTypeName, response.aggregations(), selections);
         if (hits.isEmpty()) {
             return new Paging<>(extractTotal(response), from, from, List.of(), facets);
         }
@@ -609,18 +677,21 @@ public class ElasticSearchService implements SearchService {
     }
 
     private List<Facet> createFacets(List<String> browseBy, String resourceTypeName,
-                                     Map<String, Aggregate> aggregations) {
+                                     Map<String, Aggregate> aggregations, Map<String, Object> selections) {
         Map<String, String> fieldLabels = resourceTypeService.getIndexFieldLabels(resourceTypeName);
         return FacetUtils.createFacets(
                 browseBy,
                 fieldLabels::get,
-                field -> aggregationValues(field, aggregations)
+                field -> FacetUtils.includeSelectedValues(aggregationValues(field, aggregations), selections.get(field))
         );
     }
 
     private List<gr.uoa.di.madgik.registry.domain.Value> aggregationValues(String browseBy, Map<String, Aggregate> aggregations) {
         List<gr.uoa.di.madgik.registry.domain.Value> values = new ArrayList<>();
         Aggregate agg = aggregations != null ? aggregations.get("by_" + browseBy) : null;
+        if (agg != null && agg.isFilter()) {
+            agg = agg.filter().aggregations().get(FACET_VALUES_AGGREGATION);
+        }
         if (agg != null && agg.isSterms()) {
             for (StringTermsBucket bucket : agg.sterms().buckets().array()) {
                 values.add(new gr.uoa.di.madgik.registry.domain.Value(
@@ -794,7 +865,7 @@ public class ElasticSearchService implements SearchService {
                                     SortOptions.of(so -> so.field(f -> f.field(sortByField)
                                                                        .order("asc".equalsIgnoreCase(sortOrder) ? SortOrder.Asc : SortOrder.Desc))))),
                     ObjectNode.class);
-            return responseToPaging(response, from, null, null);
+            return responseToPaging(response, from, null, null, Map.of());
         } catch (IOException e) {
             throw new ServiceException("CQL search failed", e);
         }
@@ -807,7 +878,8 @@ public class ElasticSearchService implements SearchService {
 
     @Override
     public Paging<Resource> search(FacetFilter filter) {
-        return buildSearch(filter, createLexicalQueryNode(filter));
+        return buildSearch(filter, createLexicalQueryNode(filter, filter.getFixedFilters()),
+                filter.getSelectionFilters());
     }
 
     @Override
@@ -898,7 +970,8 @@ public class ElasticSearchService implements SearchService {
 
     @Override
     public Paging<HighlightedResult<Resource>> searchWithHighlights(FacetFilter filter) {
-        return buildSearchWithHighlights(filter, createLexicalQueryNode(filter));
+        return buildSearchWithHighlights(filter, createLexicalQueryNode(filter, filter.getFixedFilters()),
+                filter.getSelectionFilters());
     }
 
     @Override

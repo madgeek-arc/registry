@@ -19,6 +19,7 @@ package gr.uoa.di.madgik.registry.service;
 import gr.uoa.di.madgik.registry.configuration.SqlSearchProperties;
 import gr.uoa.di.madgik.registry.dao.ResourceChunkDao;
 import gr.uoa.di.madgik.registry.dao.SqlIdentifiers;
+import gr.uoa.di.madgik.registry.domain.Facet;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.Highlight;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
@@ -166,15 +167,49 @@ public class DefaultSearchService implements SearchService {
         Integer total = npJdbcTemplate.queryForObject(sqlQuery.countQuery(), sqlQuery.params(),
                 new SingleColumnRowMapper<>(Integer.class));
         List<Resource> resources = npJdbcTemplate.query(sqlQuery.resultQuery(), sqlQuery.params(), resourceRowMapper);
-        List<String> matchedIds = browseBy.isEmpty()
-                ? List.of()
-                : npJdbcTemplate.queryForList(
-                        "SELECT ar.id FROM (%s) ar WHERE %s".formatted(sqlQuery.nestedQuery(), lexicalMatch.wherePredicate("ar")),
-                        sqlQuery.params(),
-                        String.class
-                );
+        List<String> matchedIds = browseBy.isEmpty() ? List.of() : queryMatchedIds(sqlQuery, lexicalMatch);
+        Map<String, Object> selections = filter.getSelectionFilters();
+        List<Facet> facets = selections.isEmpty() || browseBy.isEmpty()
+                ? sqlFacetService.createFacets(browseBy, resourceTypes, matchedIds)
+                : sqlFacetService.createFacets(browseBy, resourceTypes,
+                        field -> selections.containsKey(field)
+                                ? matchedIdsWithoutFilter(filter, field, resourceTypes)
+                                : matchedIds,
+                        selections);
         return new Paging<>(total == null ? 0 : total, filter.getFrom(), filter.getFrom() + resources.size(), resources,
-                sqlFacetService.createFacets(browseBy, resourceTypes, matchedIds));
+                facets);
+    }
+
+    private List<String> queryMatchedIds(SearchSqlQueryBuilder.SearchSqlQuery sqlQuery, LexicalMatch lexicalMatch) {
+        return npJdbcTemplate.queryForList(
+                "SELECT ar.id FROM (%s) ar WHERE %s".formatted(sqlQuery.nestedQuery(), lexicalMatch.wherePredicate("ar")),
+                sqlQuery.params(),
+                String.class
+        );
+    }
+
+    /**
+     * Returns the ids of the resources matching {@code filter} when its filter on {@code field} is ignored.
+     */
+    private List<String> matchedIdsWithoutFilter(FacetFilter filter, String field, List<ResourceType> resourceTypes) {
+        FacetFilter scope = new FacetFilter();
+        scope.setResourceType(filter.getResourceType());
+        scope.setKeyword(filter.getKeyword());
+        scope.setFilter(new LinkedHashMap<>(filter.getFilter()));
+        scope.getFilter().remove(field);
+        scope.setRangeFilters(new LinkedHashMap<>(filter.getRangeFilters()));
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("from", filter.getFrom());
+        params.addValue("quantity", filter.getQuantity());
+        LexicalMatch lexicalMatch = lexicalSearchStrategySelector.active().build(scope.getKeyword(), params);
+
+        return queryMatchedIds(SearchSqlQueryBuilder.builder(dataSource)
+                .withFilter(scope)
+                .withResourceTypes(resourceTypes)
+                .withParameters(params)
+                .withLexicalPredicate(lexicalMatch.wherePredicate("ar"))
+                .buildSearchQuery(), lexicalMatch);
     }
 
     @Override

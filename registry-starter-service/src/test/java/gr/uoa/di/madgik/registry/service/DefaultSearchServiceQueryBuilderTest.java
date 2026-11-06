@@ -245,6 +245,48 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
     }
 
     @Test
+    void search_selection_keepsAlternativesOfItsOwnFacet() {
+        FacetFilter filter = employeeFilter();
+        filter.setBrowseBy(List.of("age"));
+        filter.addFilter("age", List.of("99"), false);
+
+        Paging<Resource> result = searchService.search(filter);
+
+        assertEquals(0, result.getTotal());
+        assertEquals(1, result.getFacets().size());
+        List<Value> values = result.getFacets().getFirst().getValues();
+        assertEquals(List.of("28", "99"), values.stream().map(Value::getValue).toList());
+        assertEquals(List.of(1L, 0L), values.stream().map(Value::getCount).toList());
+    }
+
+    @Test
+    void search_fixedFilter_constrainsItsOwnFacet() {
+        FacetFilter filter = employeeFilter();
+        filter.setBrowseBy(List.of("age"));
+        filter.addFilter("age", List.of("99"));
+
+        Paging<Resource> result = searchService.search(filter);
+
+        assertEquals(0, result.getTotal());
+        assertTrue(result.getFacets().isEmpty());
+    }
+
+    @Test
+    void search_selection_stillAppliesFixedFiltersToItsOwnFacet() {
+        FacetFilter filter = employeeFilter();
+        filter.setBrowseBy(List.of("age"));
+        filter.addFilter("single", List.of("true"));
+        filter.addFilter("age", List.of("28"), false);
+
+        Paging<Resource> result = searchService.search(filter);
+
+        assertEquals(0, result.getTotal());
+        List<Value> values = result.getFacets().getFirst().getValues();
+        assertEquals(List.of("28"), values.stream().map(Value::getValue).toList());
+        assertEquals(List.of(0L), values.stream().map(Value::getCount).toList());
+    }
+
+    @Test
     void search_multivaluedField_usesArrayContainsPredicate() {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         jdbcTemplate.update("""

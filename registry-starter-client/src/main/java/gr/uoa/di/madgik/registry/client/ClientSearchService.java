@@ -138,6 +138,7 @@ public class ClientSearchService implements SearchService {
                 .queryParam("from", filter.getFrom())
                 .queryParam("quantity", filter.getQuantity())
                 .queryParam("browseBy", filter.getBrowseBy());
+        addFixedFields(builder, filter);
         if (filter.getOrderBy() != null) {
             builder.queryParam("sort", filter.getOrderBy().keySet());
             builder.queryParam("order", filter.getOrderBy().values()
@@ -254,12 +255,19 @@ public class ClientSearchService implements SearchService {
         return convertHighlightedPaging(paging);
     }
 
+    private void addFixedFields(UriComponentsBuilder builder, FacetFilter filter) {
+        if (!filter.getFixedFilters().isEmpty()) {
+            builder.queryParam(FacetFilter.FIXED_FIELDS_PARAMETER, filter.getFixedFilters().keySet());
+        }
+    }
+
     private UriComponentsBuilder buildSearchUri(String path, FacetFilter filter) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(path)
                 .queryParam("keyword", filter.getKeyword())
                 .queryParam("from", filter.getFrom())
                 .queryParam("quantity", filter.getQuantity())
                 .queryParam("browseBy", filter.getBrowseBy());
+        addFixedFields(builder, filter);
         if (filter.getOrderBy() != null) {
             builder.queryParam("sort", filter.getOrderBy().keySet());
             builder.queryParam("order", filter.getOrderBy().values()

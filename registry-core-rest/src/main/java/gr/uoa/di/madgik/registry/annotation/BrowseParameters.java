@@ -35,7 +35,8 @@ import java.lang.annotation.Target;
         @Parameter(in = ParameterIn.QUERY, name = "from", description = "Starting index in the result set", content = @Content(schema = @Schema(type = "string", defaultValue = "0"))),
         @Parameter(in = ParameterIn.QUERY, name = "quantity", description = "Quantity to be fetched", content = @Content(schema = @Schema(type = "string", defaultValue = "10"))),
         @Parameter(in = ParameterIn.QUERY, name = "sort", description = "Field to use for sorting", content = @Content(schema = @Schema(type = "string"))),
-        @Parameter(in = ParameterIn.QUERY, name = "order", description = "Order of results", content = @Content(schema = @Schema(type = "string", defaultValue = "asc", allowableValues = {"asc", "desc"})))
+        @Parameter(in = ParameterIn.QUERY, name = "order", description = "Order of results", content = @Content(schema = @Schema(type = "string", defaultValue = "asc", allowableValues = {"asc", "desc"}))),
+        @Parameter(in = ParameterIn.QUERY, name = "browseBy", description = "Facet fields to return, repeated or comma-separated. Returns all available facets when omitted or when none of the given fields is available", content = @Content(schema = @Schema(type = "string")))
 })
 public @interface BrowseParameters {
 }

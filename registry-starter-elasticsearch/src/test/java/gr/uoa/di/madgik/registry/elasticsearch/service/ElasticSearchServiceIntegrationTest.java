@@ -22,12 +22,15 @@ import co.elastic.clients.json.jackson.Jackson3JsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest5_client.Rest5ClientTransport;
 import co.elastic.clients.transport.rest5_client.low_level.Rest5Client;
+import gr.uoa.di.madgik.registry.domain.Facet;
 import gr.uoa.di.madgik.registry.domain.FacetFilter;
 import gr.uoa.di.madgik.registry.domain.HighlightedResult;
 import gr.uoa.di.madgik.registry.domain.Paging;
 import gr.uoa.di.madgik.registry.domain.Resource;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.ScoredResult;
+import gr.uoa.di.madgik.registry.domain.Value;
+import gr.uoa.di.madgik.registry.domain.index.IndexField;
 import gr.uoa.di.madgik.registry.elasticsearch.autoconfigure.RegistryElasticsearchProperties;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
@@ -50,10 +53,13 @@ import java.io.StringReader;
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -80,6 +86,8 @@ class ElasticSearchServiceIntegrationTest {
                     .forStatusCode(200)
                     .withStartupTimeout(Duration.ofMinutes(2)));
 
+    private static final String FACET_INDEX_PREFIX = "facets-";
+
     private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
     private ElasticsearchClient client;
     private Rest5Client restClient;
@@ -103,7 +111,9 @@ class ElasticSearchServiceIntegrationTest {
         when(resourceTypeService.getResourceType(anyString())).thenAnswer(invocation -> {
             ResourceType resourceType = new ResourceType();
             resourceType.setName(invocation.getArgument(0, String.class));
-            resourceType.setIndexFields(new ArrayList<>());
+            resourceType.setIndexFields(resourceType.getName().startsWith(FACET_INDEX_PREFIX)
+                    ? facetIndexFields()
+                    : new ArrayList<>());
             return resourceType;
         });
         when(resourceTypeService.getIndexFieldLabels(anyString())).thenReturn(Map.of());
@@ -145,6 +155,136 @@ class ElasticSearchServiceIntegrationTest {
         if (restClient != null) {
             restClient.close();
         }
+    }
+
+    @Test
+    void search_selection_keepsAlternativesOfItsOwnFacet_andNarrowsOtherFacets() throws Exception {
+        FacetFilter filter = publicFacetFilter(createFacetIndex());
+        filter.addFilter("category", List.of("x"), false);
+
+        Paging<Resource> results = searchService.search(filter);
+
+        assertEquals(List.of("a"), ids(results));
+        assertEquals(1, results.getTotal());
+        assertEquals(Map.of("x", 1L, "y", 2L, "z", 1L), facetCounts(results, "category"));
+        assertEquals(Map.of("eu", 1L), facetCounts(results, "region"));
+    }
+
+    @Test
+    void search_selectionsOnOneField_returnTheirUnion() throws Exception {
+        FacetFilter filter = publicFacetFilter(createFacetIndex());
+        filter.addFilter("category", List.of("x", "y"), false);
+
+        Paging<Resource> results = searchService.search(filter);
+
+        assertEquals(Set.of("a", "b", "c"), Set.copyOf(ids(results)));
+        assertEquals(3, results.getTotal());
+        assertEquals(Map.of("x", 1L, "y", 2L, "z", 1L), facetCounts(results, "category"));
+        assertEquals(Map.of("eu", 2L, "us", 1L), facetCounts(results, "region"));
+    }
+
+    @Test
+    void search_selectionsOnTwoFields_scopeEachOthersFacets() throws Exception {
+        FacetFilter filter = publicFacetFilter(createFacetIndex());
+        filter.addFilter("category", List.of("y"), false);
+        filter.addFilter("region", List.of("eu"), false);
+
+        Paging<Resource> results = searchService.search(filter);
+
+        assertEquals(List.of("b"), ids(results));
+        assertEquals(Map.of("x", 1L, "y", 1L), facetCounts(results, "category"));
+        assertEquals(Map.of("eu", 1L, "us", 1L), facetCounts(results, "region"));
+    }
+
+    @Test
+    void search_selectionsMatchingNothing_stayInTheirFacetsWithZeroCount() throws Exception {
+        FacetFilter filter = publicFacetFilter(createFacetIndex());
+        filter.addFilter("category", List.of("z"), false);
+        filter.addFilter("region", List.of("eu"), false);
+
+        Paging<Resource> results = searchService.search(filter);
+
+        assertTrue(results.getResults().isEmpty());
+        assertEquals(0, results.getTotal());
+        assertEquals(Map.of("x", 1L, "y", 1L, "z", 0L), facetCounts(results, "category"));
+        assertEquals(Map.of("us", 1L, "eu", 0L), facetCounts(results, "region"));
+    }
+
+    @Test
+    void search_fixedFilter_constrainsEveryFacet_evenWhenSentByTheClient() throws Exception {
+        String index = createFacetIndex();
+        Map<String, List<Object>> params = new HashMap<>();
+        params.put("visibility", new ArrayList<>(List.of("hidden")));
+        params.put("category", new ArrayList<>(List.of("x")));
+        FacetFilter filter = FacetFilter.from(params);
+        filter.setResourceType(index);
+        filter.addFilter("visibility", "public");
+
+        Paging<Resource> results = searchService.search(filter);
+
+        assertEquals(List.of("a"), ids(results));
+        assertEquals(Map.of("public", 1L), facetCounts(results, "visibility"));
+        assertEquals(Map.of("x", 1L, "y", 2L, "z", 1L), facetCounts(results, "category"));
+    }
+
+    @Test
+    void search_withoutSelections_narrowsEveryFacet() throws Exception {
+        FacetFilter filter = publicFacetFilter(createFacetIndex());
+        filter.addFilter("category", List.of("y"));
+
+        Paging<Resource> results = searchService.search(filter);
+
+        assertEquals(Set.of("b", "c"), Set.copyOf(ids(results)));
+        assertEquals(Map.of("y", 2L), facetCounts(results, "category"));
+        assertEquals(Map.of("eu", 1L, "us", 1L), facetCounts(results, "region"));
+    }
+
+    @Test
+    void search_browseBy_returnsOnlyRequestedFacets() throws Exception {
+        FacetFilter filter = publicFacetFilter(createFacetIndex());
+        filter.addFilter("category", List.of("x"), false);
+        filter.setBrowseBy(List.of("region"));
+
+        Paging<Resource> results = searchService.search(filter);
+
+        assertEquals(List.of("region"), results.getFacets().stream().map(Facet::getField).toList());
+    }
+
+    @Test
+    void searchWithHighlights_appliesSelectionsLikeSearch() throws Exception {
+        FacetFilter filter = publicFacetFilter(createFacetIndex());
+        filter.setKeyword("alpha");
+        filter.addFilter("category", List.of("x"), false);
+
+        Paging<HighlightedResult<Resource>> results = searchService.searchWithHighlights(filter);
+
+        assertEquals(List.of("a"), results.getResults().stream().map(r -> r.getResult().getId()).toList());
+        assertEquals(1, results.getTotal());
+        assertEquals(Map.of("x", 1L, "y", 2L, "z", 1L), facetCounts(results, "category"));
+    }
+
+    @Test
+    void searchByCategory_appliesSelectionsAsFilters() throws Exception {
+        FacetFilter filter = publicFacetFilter(createFacetIndex());
+        filter.addFilter("category", List.of("x"), false);
+
+        Map<String, List<Resource>> results = searchService.searchByCategory(filter, "region");
+
+        assertEquals(Set.of("eu"), results.keySet());
+        assertEquals(List.of("a"), results.get("eu").stream().map(Resource::getId).toList());
+    }
+
+    @Test
+    void hybridSearch_keepsSelectionsInTheQuery() throws Exception {
+        FacetFilter filter = publicFacetFilter(createFacetIndex());
+        filter.setKeyword("alpha");
+        filter.addFilter("category", List.of("x"), false);
+        when(embeddingService.embed("alpha")).thenReturn(new float[0]);
+
+        Paging<Resource> results = searchService.hybridSearch(filter);
+
+        assertEquals(List.of("a"), ids(results));
+        assertEquals(Map.of("x", 1L), facetCounts(results, "category"));
     }
 
     @Test
@@ -582,6 +722,92 @@ class ElasticSearchServiceIntegrationTest {
 
         client.indices().create(c -> c.index(index).withJson(new StringReader(mapping)));
         return index;
+    }
+
+    private static List<IndexField> facetIndexFields() {
+        List<IndexField> fields = new ArrayList<>();
+        for (String name : List.of("category", "region", "visibility")) {
+            IndexField field = new IndexField();
+            field.setName(name);
+            field.setLabel(name);
+            fields.add(field);
+        }
+        return fields;
+    }
+
+    private FacetFilter publicFacetFilter(String index) {
+        FacetFilter filter = new FacetFilter();
+        filter.setResourceType(index);
+        filter.addFilter("visibility", "public");
+        return filter;
+    }
+
+    private static List<String> ids(Paging<Resource> results) {
+        return results.getResults().stream().map(Resource::getId).toList();
+    }
+
+    private static Map<String, Long> facetCounts(Paging<?> results, String field) {
+        return results.getFacets().stream()
+                .filter(facet -> facet.getField().equals(field))
+                .findFirst()
+                .orElseThrow()
+                .getValues().stream()
+                .collect(Collectors.toMap(Value::getValue, Value::getCount));
+    }
+
+    /**
+     * Creates an index with four public documents and a hidden one in a category of its own.
+     */
+    private String createFacetIndex() throws Exception {
+        String index = FACET_INDEX_PREFIX + UUID.randomUUID().toString().replace("-", "");
+        String mapping = objectMapper.writeValueAsString(Map.of(
+                "settings", Map.of(
+                        "number_of_replicas", 0
+                ),
+                "mappings", Map.of(
+                        "properties", Map.of(
+                                "id", Map.of("type", "keyword"),
+                                "payload", Map.of(
+                                        "type", "keyword",
+                                        "index", false,
+                                        "doc_values", false
+                                ),
+                                "payloadFormat", Map.of("type", "keyword"),
+                                "version", Map.of("type", "keyword"),
+                                "title", Map.of(
+                                        "type", "keyword",
+                                        "fields", Map.of(
+                                                "text", Map.of("type", "text")
+                                        )
+                                ),
+                                "category", Map.of("type", "keyword"),
+                                "region", Map.of("type", "keyword"),
+                                "visibility", Map.of("type", "keyword")
+                        )
+                )
+        ));
+        client.indices().create(c -> c.index(index).withJson(new StringReader(mapping)));
+
+        indexFacetDocument(index, "a", "x", "eu", "public");
+        indexFacetDocument(index, "b", "y", "eu", "public");
+        indexFacetDocument(index, "c", "y", "us", "public");
+        indexFacetDocument(index, "d", "z", "us", "public");
+        indexFacetDocument(index, "e", "w", "eu", "hidden");
+        return index;
+    }
+
+    private void indexFacetDocument(String index, String id, String category, String region, String visibility)
+            throws Exception {
+        Map<String, Object> document = new LinkedHashMap<>();
+        document.put("id", id);
+        document.put("title", "alpha " + id);
+        document.put("payload", "alpha");
+        document.put("payloadFormat", "json");
+        document.put("version", "1");
+        document.put("category", category);
+        document.put("region", region);
+        document.put("visibility", visibility);
+        client.index(i -> i.index(index).id(id).document(document).refresh(Refresh.True));
     }
 
     private void indexDocumentWithStatus(String index, String id, String payload, String status,

@@ -17,10 +17,13 @@
 package gr.uoa.di.madgik.registry.domain;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 /**
  * Shared helpers for assembling {@link Facet} objects consistently across backends.
@@ -58,6 +61,28 @@ public final class FacetUtils {
         facet.setLabel(label);
         facet.setValues(normalizeValues(values));
         return facet;
+    }
+
+    /**
+     * Returns {@code values} with a zero-count entry for each selected value they don't contain, so that
+     * a selection stays visible when no result matches it.
+     *
+     * @param selected a single value, a collection of values, or {@code null} when the field has no selection
+     */
+    public static List<Value> includeSelectedValues(List<Value> values, Object selected) {
+        if (values == null || selected == null) {
+            return values;
+        }
+        Collection<?> selectedValues = selected instanceof Collection<?> collection ? collection : List.of(selected);
+        Set<String> present = values.stream().map(Value::getValue).collect(Collectors.toSet());
+        List<Value> merged = new ArrayList<>(values);
+        for (Object value : selectedValues) {
+            String selectedValue = String.valueOf(value);
+            if (present.add(selectedValue)) {
+                merged.add(new Value(selectedValue, 0));
+            }
+        }
+        return normalizeValues(merged);
     }
 
     public static List<Value> normalizeValues(List<Value> values) {

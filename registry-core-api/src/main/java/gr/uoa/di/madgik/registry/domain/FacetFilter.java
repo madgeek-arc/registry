@@ -16,16 +16,25 @@
 
 package gr.uoa.di.madgik.registry.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * A Filter to pass to the indexer.
  */
 public class FacetFilter {
+
+    /**
+     * Request parameter naming the filters of a request that are fixed instead of selections. It can only
+     * narrow facets, since it applies to filters the same request sends.
+     */
+    public static final String FIXED_FIELDS_PARAMETER = "fixedFields";
+
     private String keyword;
 
     private String resourceType;
@@ -35,6 +44,13 @@ public class FacetFilter {
     private int quantity;
 
     private Map<String, Object> filter;
+
+    /**
+     * Keys of {@link #filter} that are selections. A selection constrains the results and every facet
+     * except its own field's, so that facet keeps offering alternative values. All other filters are
+     * fixed and constrain every facet.
+     */
+    private Set<String> selectionFields = new LinkedHashSet<>();
 
     private List<String> browseBy;
 
@@ -145,17 +161,28 @@ public class FacetFilter {
         ff.setQuantity(params.get("quantity") != null ? Integer.parseInt((String) params.remove("quantity").get(0)) : 10);
         ff.setOrderBy(createOrderBy(params.remove("sort"), params.remove("order")));
         if (params.containsKey("browseBy")) {
-            ff.setBrowseBy(params.remove("browseBy")
-                    .stream()
-                    .map(Object::toString)
-                    .map(FacetFilter::urlDecode)
-                    .toList()
-            );
+            ff.setBrowseBy(fieldNames(params.remove("browseBy")));
         }
+        List<String> fixedFields = params.containsKey(FIXED_FIELDS_PARAMETER)
+                ? fieldNames(params.remove(FIXED_FIELDS_PARAMETER))
+                : List.of();
         if (!params.isEmpty()) {
             ff.setFilter(createFilterFromRequestParameters(params));
+            ff.setSelectionFields(ff.getFilter().keySet());
+            ff.getSelectionFields().removeAll(fixedFields);
         }
         return ff;
+    }
+
+    private static List<String> fieldNames(List<Object> values) {
+        return values.stream()
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .map(FacetFilter::urlDecode)
+                .flatMap(fields -> Arrays.stream(fields.split(",")))
+                .map(String::trim)
+                .filter(field -> !field.isEmpty())
+                .toList();
     }
 
     public String getKeyword() {
@@ -198,9 +225,64 @@ public class FacetFilter {
         this.filter = filter;
     }
 
+    /**
+     * Adds a fixed filter, replacing any existing filter on the same key. Null and empty values are ignored.
+     */
     public void addFilter(String key, Object value) {
-        if (value != null && !Objects.equals(value, ""))
+        addFilter(key, value, true);
+    }
+
+    /**
+     * Adds a filter, replacing any existing filter on the same key. Null and empty values are ignored.
+     *
+     * @param fixed {@code true} to constrain every facet, {@code false} to add a selection, which leaves
+     *              the facet of its own field unconstrained
+     */
+    public void addFilter(String key, Object value, boolean fixed) {
+        if (value != null && !Objects.equals(value, "")) {
             this.filter.put(key, value);
+            if (fixed) {
+                this.selectionFields.remove(key);
+            } else {
+                this.selectionFields.add(key);
+            }
+        }
+    }
+
+    public Set<String> getSelectionFields() {
+        return selectionFields;
+    }
+
+    public void setSelectionFields(Set<String> selectionFields) {
+        this.selectionFields = selectionFields != null ? new LinkedHashSet<>(selectionFields) : new LinkedHashSet<>();
+    }
+
+    /**
+     * Returns the filters that constrain every facet.
+     */
+    @JsonIgnore
+    public Map<String, Object> getFixedFilters() {
+        return filtersMatching(key -> !selectionFields.contains(key));
+    }
+
+    /**
+     * Returns the filters that leave the facet of their own field unconstrained.
+     */
+    @JsonIgnore
+    public Map<String, Object> getSelectionFilters() {
+        return filtersMatching(selectionFields::contains);
+    }
+
+    private Map<String, Object> filtersMatching(Predicate<String> keyPredicate) {
+        Map<String, Object> matching = new LinkedHashMap<>();
+        if (filter != null) {
+            filter.forEach((key, value) -> {
+                if (keyPredicate.test(key)) {
+                    matching.put(key, value);
+                }
+            });
+        }
+        return matching;
     }
 
     public Map<String, RangeFilter> getRangeFilters() {
@@ -247,11 +329,11 @@ public class FacetFilter {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         FacetFilter that = (FacetFilter) o;
-        return from == that.from && quantity == that.quantity && Objects.equals(keyword, that.keyword) && Objects.equals(resourceType, that.resourceType) && Objects.equals(filter, that.filter) && Objects.equals(browseBy, that.browseBy) && Objects.equals(orderBy, that.orderBy);
+        return from == that.from && quantity == that.quantity && Objects.equals(keyword, that.keyword) && Objects.equals(resourceType, that.resourceType) && Objects.equals(filter, that.filter) && Objects.equals(selectionFields, that.selectionFields) && Objects.equals(browseBy, that.browseBy) && Objects.equals(orderBy, that.orderBy);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(keyword, resourceType, from, quantity, filter, browseBy, orderBy);
+        return Objects.hash(keyword, resourceType, from, quantity, filter, selectionFields, browseBy, orderBy);
     }
 }
