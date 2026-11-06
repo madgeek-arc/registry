@@ -57,7 +57,7 @@ class IndexedFieldDaoImplTest extends PostgreSqlTestContainerSupport {
     @Test
     void getIndexedFields_NONE() {
         Resource testingResource = resourceDao.getResource(TEST_MISSING_RESOURCE_ID);
-        Assertions.assertThrows(NullPointerException.class, () -> indexedFieldDao.getIndexedFieldsOfResource(testingResource));
+        Assertions.assertTrue(indexedFieldDao.getIndexedFieldsOfResource(testingResource).isEmpty());
     }
 
     @Test

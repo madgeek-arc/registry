@@ -124,7 +124,7 @@ class ResourceDaoImplTest extends PostgreSqlTestContainerSupport {
     @Test
     @Order(8)
     void getResourceByResourceType_NO_RESOURCETYPE_FOUND() {
-        Assertions.assertThrows(NullPointerException.class, () -> resourceDao.getResource(resourceTypeDao.getResourceType("event")).size());
+        Assertions.assertTrue(resourceDao.getResource(resourceTypeDao.getResourceType("event")).isEmpty());
     }
 
     @Test

@@ -104,7 +104,7 @@ class ResourceServiceImplTest extends PostgreSqlTestContainerSupport {
     @Order(4)
     void getResourceByResourceType_NO_RESOURCETYPE_FOUND() {
         ResourceType nullResourceType = resourceTypeDao.getResourceType("missing");
-        Assertions.assertThrows(NullPointerException.class, () -> resourceService.getResource(nullResourceType).size());
+        Assertions.assertTrue(resourceService.getResource(nullResourceType).isEmpty());
     }
 
     @Test

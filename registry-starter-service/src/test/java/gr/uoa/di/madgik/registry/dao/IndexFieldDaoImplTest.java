@@ -64,7 +64,7 @@ class IndexFieldDaoImplTest extends PostgreSqlTestContainerSupport {
     @Test
     void getIndexFields_NONE() {
         ResourceType resourceType = resourceTypeDao.getResourceType("event");
-        Assertions.assertThrows(NullPointerException.class, () -> indexFieldDao.getIndexFieldsOfResourceType(resourceType));
+        Assertions.assertTrue(indexFieldDao.getIndexFieldsOfResourceType(resourceType).isEmpty());
     }
 
 }
