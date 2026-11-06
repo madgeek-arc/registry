@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.9</version>
+        <version>4.1.2</version>
     </parent>
 
     <groupId>gr.uoa.di.madgik</groupId>
@@ -26,7 +26,7 @@
         <owasp-dependency-check-plugin.version>12.2.2</owasp-dependency-check-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>${project.parent.version}</spring-boot.version>
-        <springdoc.version>3.0.3</springdoc.version>
+        <springdoc.version>3.2.0</springdoc.version>
         <swagger-ui.version>5.34.1</swagger-ui.version>
         <log4j2.version>2.26.1</log4j2.version>
         <joda-time.version>2.12.5</joda-time.version>
@@ -122,13 +122,6 @@
                 <version>${spring-retry.version}</version>
             </dependency>
 
-            <dependency> <!-- Addresses issues of version shipped by spring-boot 4.0.6 -->
-                <groupId>org.apache.activemq</groupId>
-                <artifactId>activemq-bom</artifactId>
-                <version>6.2.7</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
 
 
             <dependency>
