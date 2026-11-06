@@ -275,16 +275,73 @@ class ElasticSearchServiceIntegrationTest {
     }
 
     @Test
-    void hybridSearch_keepsSelectionsInTheQuery() throws Exception {
+    void hybridSearch_selection_filtersHits_andKeepsAlternativesOfItsOwnFacet() throws Exception {
         FacetFilter filter = publicFacetFilter(createFacetIndex());
         filter.setKeyword("alpha");
         filter.addFilter("category", List.of("x"), false);
-        when(embeddingService.embed("alpha")).thenReturn(new float[0]);
+        when(embeddingService.embed("alpha")).thenReturn(new float[]{1.0f, 0.0f, 0.0f});
+
+        Paging<Resource> results = searchService.hybridSearch(filter);
+
+        assertEquals(List.of("a"), ids(results));
+        assertEquals(1, results.getTotal());
+        assertEquals(Map.of("x", 1L, "y", 2L, "z", 1L), facetCounts(results, "category"));
+        assertEquals(Map.of("eu", 1L), facetCounts(results, "region"));
+    }
+
+    @Test
+    void hybridSearch_fixedFilter_constrainsItsOwnFacet() throws Exception {
+        FacetFilter filter = publicFacetFilter(createFacetIndex());
+        filter.setKeyword("alpha");
+        filter.addFilter("category", List.of("x"));
+        when(embeddingService.embed("alpha")).thenReturn(new float[]{1.0f, 0.0f, 0.0f});
 
         Paging<Resource> results = searchService.hybridSearch(filter);
 
         assertEquals(List.of("a"), ids(results));
         assertEquals(Map.of("x", 1L), facetCounts(results, "category"));
+    }
+
+    @Test
+    void hybridSearch_selectionsMatchingNothing_stayInTheirFacetsWithZeroCount() throws Exception {
+        FacetFilter filter = publicFacetFilter(createFacetIndex());
+        filter.setKeyword("alpha");
+        filter.addFilter("category", List.of("z"), false);
+        filter.addFilter("region", List.of("eu"), false);
+        when(embeddingService.embed("alpha")).thenReturn(new float[]{1.0f, 0.0f, 0.0f});
+
+        Paging<Resource> results = searchService.hybridSearch(filter);
+
+        assertEquals(0, results.getTotal());
+        assertEquals(Map.of("x", 1L, "y", 1L, "z", 0L), facetCounts(results, "category"));
+        assertEquals(Map.of("us", 1L, "eu", 0L), facetCounts(results, "region"));
+    }
+
+    @Test
+    void hybridSearchWithHighlights_selection_filtersHits_andKeepsAlternativesOfItsOwnFacet() throws Exception {
+        FacetFilter filter = publicFacetFilter(createFacetIndex());
+        filter.setKeyword("alpha");
+        filter.addFilter("category", List.of("x"), false);
+        when(embeddingService.embed("alpha")).thenReturn(new float[]{1.0f, 0.0f, 0.0f});
+
+        Paging<HighlightedResult<Resource>> results = searchService.hybridSearchWithHighlights(filter);
+
+        assertEquals(List.of("a"), results.getResults().stream().map(r -> r.getResult().getId()).toList());
+        assertEquals(Map.of("x", 1L, "y", 2L, "z", 1L), facetCounts(results, "category"));
+    }
+
+    @Test
+    void semanticSearch_selection_filtersHits_andKeepsAlternativesOfItsOwnFacet() throws Exception {
+        FacetFilter filter = publicFacetFilter(createFacetIndex());
+        filter.setKeyword("alpha");
+        filter.addFilter("category", List.of("x"), false);
+        when(embeddingService.embed("alpha")).thenReturn(new float[]{1.0f, 0.0f, 0.0f});
+
+        Paging<Resource> results = searchService.semanticSearch(filter);
+
+        assertEquals(List.of("a"), ids(results));
+        assertEquals(Map.of("x", 1L, "y", 2L, "z", 1L), facetCounts(results, "category"));
+        assertEquals(Map.of("eu", 1L), facetCounts(results, "region"));
     }
 
     @Test
@@ -782,7 +839,13 @@ class ElasticSearchServiceIntegrationTest {
                                 ),
                                 "category", Map.of("type", "keyword"),
                                 "region", Map.of("type", "keyword"),
-                                "visibility", Map.of("type", "keyword")
+                                "visibility", Map.of("type", "keyword"),
+                                "embedding", Map.of(
+                                        "type", "dense_vector",
+                                        "dims", 3,
+                                        "index", true,
+                                        "similarity", "cosine"
+                                )
                         )
                 )
         ));
@@ -807,6 +870,7 @@ class ElasticSearchServiceIntegrationTest {
         document.put("category", category);
         document.put("region", region);
         document.put("visibility", visibility);
+        document.put("embedding", List.of(1.0f, 0.0f, 0.0f));
         client.index(i -> i.index(index).id(id).document(document).refresh(Refresh.True));
     }
 

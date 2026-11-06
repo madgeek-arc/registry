@@ -369,6 +369,36 @@ class ElasticSearchServiceQueryNodeTest {
         assertFalse(query.get("bool").has("should"));
     }
 
+    @Test
+    void semanticQuery_leavesOutSelections() throws Exception {
+        when(embeddingService.embed("registry")).thenReturn(new float[]{0.2f, 0.4f});
+
+        FacetFilter filter = filter("my_index");
+        filter.setKeyword("registry");
+        filter.addFilter("status", "APPROVED");
+        filter.addFilter("category", "x", false);
+
+        String query = invokeSemantic(filter).toString();
+
+        assertTrue(query.contains("status"));
+        assertFalse(query.contains("category"));
+    }
+
+    @Test
+    void hybridQuery_leavesOutSelections() throws Exception {
+        when(embeddingService.embed("registry")).thenReturn(new float[]{0.2f, 0.4f});
+
+        FacetFilter filter = filter("my_index");
+        filter.setKeyword("registry");
+        filter.addFilter("status", "APPROVED");
+        filter.addFilter("category", "x", false);
+
+        String query = invokeHybrid(filter).toString();
+
+        assertTrue(query.contains("status"));
+        assertFalse(query.contains("category"));
+    }
+
     // -------------------------------------------------------------------------
     // Prefix matching
     // -------------------------------------------------------------------------

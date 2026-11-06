@@ -36,6 +36,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -47,6 +49,7 @@ import javax.sql.DataSource;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -449,6 +452,68 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
         assertEquals(analytics.getId(), results.getResults().getFirst().getId());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"semantic", "hybrid", "hybridWithHighlights"})
+    void vectorSearch_selection_filtersResults_andKeepsAlternativesOfItsOwnFacet(String mode) {
+        addAnalyticsEmployees();
+        FacetFilter filter = employeeFilter();
+        filter.setKeyword("analytics");
+        filter.setBrowseBy(List.of("age"));
+        filter.addFilter("age", List.of("71"), false);
+
+        Paging<?> results = vectorSearch(mode, filter);
+
+        assertEquals(1, results.getTotal());
+        Map<String, Long> ageCounts = facetCounts(results);
+        assertEquals(1L, ageCounts.get("71"));
+        assertEquals(1L, ageCounts.get("72"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"semantic", "hybrid", "hybridWithHighlights"})
+    void vectorSearch_fixedFilter_constrainsItsOwnFacet(String mode) {
+        addAnalyticsEmployees();
+        FacetFilter filter = employeeFilter();
+        filter.setKeyword("analytics");
+        filter.setBrowseBy(List.of("age"));
+        filter.addFilter("age", List.of("71"));
+
+        Paging<?> results = vectorSearch(mode, filter);
+
+        assertEquals(Map.of("71", 1L), facetCounts(results));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"semantic", "hybrid", "hybridWithHighlights"})
+    void vectorSearch_selectionMatchingNothing_staysInItsFacetWithZeroCount(String mode) {
+        addAnalyticsEmployees();
+        FacetFilter filter = employeeFilter();
+        filter.setKeyword("analytics");
+        filter.setBrowseBy(List.of("age"));
+        filter.addFilter("age", List.of("99"), false);
+
+        Paging<?> results = vectorSearch(mode, filter);
+
+        assertEquals(0, results.getTotal());
+        Map<String, Long> ageCounts = facetCounts(results);
+        assertEquals(0L, ageCounts.get("99"));
+        assertEquals(1L, ageCounts.get("71"));
+    }
+
+    @Test
+    void semanticSearch_unusableEmbedding_keepsSelectionInItsFacetWithZeroCount() {
+        when(embeddingService.embed("analytics")).thenReturn(new float[0]);
+        FacetFilter filter = employeeFilter();
+        filter.setKeyword("analytics");
+        filter.setBrowseBy(List.of("age"));
+        filter.addFilter("age", List.of("99"), false);
+
+        Paging<Resource> results = searchService.semanticSearch(filter);
+
+        assertEquals(0, results.getTotal());
+        assertEquals(Map.of("99", 0L), facetCounts(results));
+    }
+
     @Test
     void semanticSearch_rejectsExplicitSortOrder() {
         FacetFilter filter = employeeFilter();
@@ -563,6 +628,25 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
                 "Resource [id=%s] has no embeddings; embedding-backed operations are unavailable.".formatted(source.getId()),
                 exception.getMessage()
         );
+    }
+
+    private void addAnalyticsEmployees() {
+        resourceChunkIndexService.reindex(resourceService.addResource(newEmployeeResource("Analytics Engineer", 71)));
+        resourceChunkIndexService.reindex(resourceService.addResource(newEmployeeResource("Analytics Engineer", 72)));
+    }
+
+    private Paging<?> vectorSearch(String mode, FacetFilter filter) {
+        return switch (mode) {
+            case "semantic" -> searchService.semanticSearch(filter);
+            case "hybrid" -> searchService.hybridSearch(filter);
+            case "hybridWithHighlights" -> searchService.hybridSearchWithHighlights(filter);
+            default -> throw new IllegalArgumentException(mode);
+        };
+    }
+
+    private Map<String, Long> facetCounts(Paging<?> results) {
+        return results.getFacets().getFirst().getValues().stream()
+                .collect(Collectors.toMap(Value::getValue, value -> (long) value.getCount()));
     }
 
     private FacetFilter employeeFilter() {

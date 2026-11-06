@@ -66,6 +66,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -168,16 +169,8 @@ public class DefaultSearchService implements SearchService {
                 new SingleColumnRowMapper<>(Integer.class));
         List<Resource> resources = npJdbcTemplate.query(sqlQuery.resultQuery(), sqlQuery.params(), resourceRowMapper);
         List<String> matchedIds = browseBy.isEmpty() ? List.of() : queryMatchedIds(sqlQuery, lexicalMatch);
-        Map<String, Object> selections = filter.getSelectionFilters();
-        List<Facet> facets = selections.isEmpty() || browseBy.isEmpty()
-                ? sqlFacetService.createFacets(browseBy, resourceTypes, matchedIds)
-                : sqlFacetService.createFacets(browseBy, resourceTypes,
-                        field -> selections.containsKey(field)
-                                ? matchedIdsWithoutFilter(filter, field, resourceTypes)
-                                : matchedIds,
-                        selections);
         return new Paging<>(total == null ? 0 : total, filter.getFrom(), filter.getFrom() + resources.size(), resources,
-                facets);
+                createFacets(filter, browseBy, resourceTypes, matchedIds, scope -> lexicalMatchedIds(scope, resourceTypes)));
     }
 
     private List<String> queryMatchedIds(SearchSqlQueryBuilder.SearchSqlQuery sqlQuery, LexicalMatch lexicalMatch) {
@@ -189,19 +182,42 @@ public class DefaultSearchService implements SearchService {
     }
 
     /**
-     * Returns the ids of the resources matching {@code filter} when its filter on {@code field} is ignored.
+     * Creates the facets of a search. The facet of a selected field counts the resources that
+     * {@code scopeMatchedIds} resolves for the search without that field's filter; every other facet
+     * counts {@code matchedIds}.
      */
-    private List<String> matchedIdsWithoutFilter(FacetFilter filter, String field, List<ResourceType> resourceTypes) {
+    private List<Facet> createFacets(FacetFilter filter, List<String> browseBy, List<ResourceType> resourceTypes,
+                                     List<String> matchedIds, Function<FacetFilter, List<String>> scopeMatchedIds) {
+        Map<String, Object> selections = filter.getSelectionFilters();
+        if (selections.isEmpty() || browseBy.isEmpty()) {
+            return sqlFacetService.createFacets(browseBy, resourceTypes, matchedIds);
+        }
+        return sqlFacetService.createFacets(browseBy, resourceTypes,
+                field -> selections.containsKey(field)
+                        ? scopeMatchedIds.apply(withoutFilter(filter, field))
+                        : matchedIds,
+                selections);
+    }
+
+    /**
+     * Returns a copy of the search criteria of {@code filter} without its filter on {@code field}.
+     */
+    private FacetFilter withoutFilter(FacetFilter filter, String field) {
         FacetFilter scope = new FacetFilter();
         scope.setResourceType(filter.getResourceType());
         scope.setKeyword(filter.getKeyword());
+        scope.setFrom(filter.getFrom());
+        scope.setQuantity(filter.getQuantity());
         scope.setFilter(new LinkedHashMap<>(filter.getFilter()));
         scope.getFilter().remove(field);
         scope.setRangeFilters(new LinkedHashMap<>(filter.getRangeFilters()));
+        return scope;
+    }
 
+    private List<String> lexicalMatchedIds(FacetFilter scope, List<ResourceType> resourceTypes) {
         MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("from", filter.getFrom());
-        params.addValue("quantity", filter.getQuantity());
+        params.addValue("from", scope.getFrom());
+        params.addValue("quantity", scope.getQuantity());
         LexicalMatch lexicalMatch = lexicalSearchStrategySelector.active().build(scope.getKeyword(), params);
 
         return queryMatchedIds(SearchSqlQueryBuilder.builder(dataSource)
@@ -210,6 +226,18 @@ public class DefaultSearchService implements SearchService {
                 .withParameters(params)
                 .withLexicalPredicate(lexicalMatch.wherePredicate("ar"))
                 .buildSearchQuery(), lexicalMatch);
+    }
+
+    private List<String> semanticMatchedIds(FacetFilter scope, List<ResourceType> resourceTypes, float[] embedding) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        String cte = semanticCte(scope, resourceTypes, embedding, params);
+        return npJdbcTemplate.queryForList(cte + " SELECT id FROM best_semantic_hits", params, String.class);
+    }
+
+    private List<String> hybridMatchedIds(FacetFilter scope, List<ResourceType> resourceTypes, float[] embedding) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        String cte = hybridCte(scope, resourceTypes, embedding, params);
+        return npJdbcTemplate.queryForList(cte + " SELECT id FROM merged_hits", params, String.class);
     }
 
     @Override
@@ -230,7 +258,8 @@ public class DefaultSearchService implements SearchService {
         QueryExecutionResult semantic = executeSemanticQuery(filter, browseBy, resourceTypes, embedding);
         List<Resource> resources = semantic.rows().stream().map(ScoredRow::resource).toList();
         return new Paging<>(semantic.total(), filter.getFrom(), filter.getFrom() + resources.size(), resources,
-                sqlFacetService.createFacets(browseBy, resourceTypes, semantic.matchedIds()));
+                createFacets(filter, browseBy, resourceTypes, semantic.matchedIds(),
+                        scope -> semanticMatchedIds(scope, resourceTypes, embedding)));
     }
 
     @Override
@@ -251,7 +280,8 @@ public class DefaultSearchService implements SearchService {
         QueryExecutionResult hybrid = executeHybridQuery(filter, browseBy, resourceTypes, embedding);
         List<Resource> resources = hybrid.rows().stream().map(ScoredRow::resource).toList();
         return new Paging<>(hybrid.total(), filter.getFrom(), filter.getFrom() + resources.size(), resources,
-                sqlFacetService.createFacets(browseBy, resourceTypes, hybrid.matchedIds()));
+                createFacets(filter, browseBy, resourceTypes, hybrid.matchedIds(),
+                        scope -> hybridMatchedIds(scope, resourceTypes, embedding)));
     }
 
     @Override
@@ -307,7 +337,8 @@ public class DefaultSearchService implements SearchService {
                 .toList();
 
         return new Paging<>(hybrid.total(), filter.getFrom(), filter.getFrom() + results.size(), results,
-                sqlFacetService.createFacets(browseBy, resourceTypes, hybrid.matchedIds()));
+                createFacets(filter, browseBy, resourceTypes, hybrid.matchedIds(),
+                        scope -> hybridMatchedIds(scope, resourceTypes, embedding)));
     }
 
     @Override
@@ -564,11 +595,13 @@ public class DefaultSearchService implements SearchService {
         return result;
     }
 
-    private QueryExecutionResult executeSemanticQuery(FacetFilter filter,
-                                                      List<String> browseBy,
-                                                      List<ResourceType> resourceTypes,
-                                                      float[] embedding) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
+    /**
+     * Builds the common table expressions of a semantic query and adds their parameters to {@code params}.
+     */
+    private String semanticCte(FacetFilter filter,
+                               List<ResourceType> resourceTypes,
+                               float[] embedding,
+                               MapSqlParameterSource params) {
         params.addValue("from", filter.getFrom());
         params.addValue("quantity", filter.getQuantity());
         params.addValue("queryVector", toVectorLiteral(embedding));
@@ -576,7 +609,7 @@ public class DefaultSearchService implements SearchService {
         params.addValue("semanticMinScore", semanticMinScore);
 
         String filteredQuery = createFilteredResourceScopeQuery(filter, resourceTypes, params);
-        String semanticCte = """
+        return """
                 WITH filtered AS (
                     %s
                 ),
@@ -599,6 +632,14 @@ public class DefaultSearchService implements SearchService {
                     WHERE chunk_rank = 1 AND score >= :semanticMinScore
                 )
                 """.formatted(filteredQuery);
+    }
+
+    private QueryExecutionResult executeSemanticQuery(FacetFilter filter,
+                                                      List<String> browseBy,
+                                                      List<ResourceType> resourceTypes,
+                                                      float[] embedding) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        String semanticCte = semanticCte(filter, resourceTypes, embedding, params);
 
         Integer total = npJdbcTemplate.queryForObject(semanticCte + " SELECT COUNT(*) FROM best_semantic_hits", params, Integer.class);
         if (total == null || total == 0) {
@@ -623,11 +664,13 @@ public class DefaultSearchService implements SearchService {
         return new QueryExecutionResult(total, matchedIds, rows);
     }
 
-    private QueryExecutionResult executeHybridQuery(FacetFilter filter,
-                                                    List<String> browseBy,
-                                                    List<ResourceType> resourceTypes,
-                                                    float[] embedding) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
+    /**
+     * Builds the common table expressions of a hybrid query and adds their parameters to {@code params}.
+     */
+    private String hybridCte(FacetFilter filter,
+                             List<ResourceType> resourceTypes,
+                             float[] embedding,
+                             MapSqlParameterSource params) {
         params.addValue("from", filter.getFrom());
         params.addValue("quantity", filter.getQuantity());
         params.addValue("queryVector", toVectorLiteral(embedding));
@@ -637,7 +680,7 @@ public class DefaultSearchService implements SearchService {
         LexicalMatch lexicalMatch = lexicalSearchStrategySelector.active().build(filter.getKeyword(), params);
 
         String filteredQuery = createFilteredResourceScopeQuery(filter, resourceTypes, params);
-        String hybridCte = """
+        return """
                 WITH filtered AS (
                     %s
                 ),
@@ -695,6 +738,14 @@ public class DefaultSearchService implements SearchService {
                     FULL OUTER JOIN semantic_ranked s ON s.id = l.id
                 )
                 """.formatted(filteredQuery, lexicalMatch.rankExpression("f"), lexicalMatch.wherePredicate("f"));
+    }
+
+    private QueryExecutionResult executeHybridQuery(FacetFilter filter,
+                                                    List<String> browseBy,
+                                                    List<ResourceType> resourceTypes,
+                                                    float[] embedding) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        String hybridCte = hybridCte(filter, resourceTypes, embedding, params);
 
         Integer total = npJdbcTemplate.queryForObject(hybridCte + " SELECT COUNT(*) FROM merged_hits", params, Integer.class);
         if (total == null || total == 0) {
@@ -767,7 +818,7 @@ public class DefaultSearchService implements SearchService {
                                          List<String> browseBy,
                                          List<ResourceType> resourceTypes) {
         return new Paging<>(0, filter.getFrom(), filter.getFrom(), List.of(),
-                sqlFacetService.createFacets(browseBy, resourceTypes, List.of()));
+                createFacets(filter, browseBy, resourceTypes, List.of(), scope -> List.of()));
     }
 
     private boolean isUsableEmbedding(float[] embedding) {

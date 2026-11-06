@@ -239,7 +239,7 @@ public class ElasticSearchService implements SearchService {
     }
 
     /**
-     * Builds the hybrid lexical + vector query from the incoming facet filter.
+     * Builds the hybrid lexical + vector query from the incoming facet filter, leaving out its selections.
      */
     private ObjectNode createHybridQueryNode(FacetFilter filter) {
         ObjectNode bool = mapper.createObjectNode();
@@ -270,11 +270,14 @@ public class ElasticSearchService implements SearchService {
             must.addObject().putObject("match_all");
         }
 
-        applyFilters(filter.getFilter(), bool);
+        applyFilters(filter.getFixedFilters(), bool);
         applyRangeFilters(filter.getRangeFilters(), bool);
         return mapper.createObjectNode().set("bool", bool);
     }
 
+    /**
+     * Builds the vector query from the incoming facet filter, leaving out its selections.
+     */
     private ObjectNode createSemanticQueryNode(FacetFilter filter) {
         if (!StringUtils.hasText(filter.getKeyword())) {
             throw new ServiceException("Semantic search requires a non-empty keyword.");
@@ -291,7 +294,7 @@ public class ElasticSearchService implements SearchService {
         ArrayNode must = bool.putArray("must");
         must.add(knnQueryNode(embedding, knnWindow(filter), 1.0f, 0.0f));
 
-        applyFilters(filter.getFilter(), bool);
+        applyFilters(filter.getFixedFilters(), bool);
         applyRangeFilters(filter.getRangeFilters(), bool);
         return mapper.createObjectNode().set("bool", bool);
     }
@@ -498,10 +501,6 @@ public class ElasticSearchService implements SearchService {
     // Search execution
     // -------------------------------------------------------------------------
 
-    private Paging<Resource> buildSearch(FacetFilter filter, ObjectNode queryNode) {
-        return buildSearch(filter, queryNode, Map.of());
-    }
-
     /**
      * Runs a search whose {@code queryNode} leaves out {@code selections}: they apply to the hits as a
      * post filter, and to each facet except the one of their own field.
@@ -527,10 +526,6 @@ public class ElasticSearchService implements SearchService {
         } catch (IOException e) {
             throw new ServiceException("Search failed", e);
         }
-    }
-
-    private Paging<HighlightedResult<Resource>> buildSearchWithHighlights(FacetFilter filter, ObjectNode queryNode) {
-        return buildSearchWithHighlights(filter, queryNode, Map.of());
     }
 
     /**
@@ -884,12 +879,12 @@ public class ElasticSearchService implements SearchService {
 
     @Override
     public Paging<Resource> semanticSearch(FacetFilter filter) {
-        return buildSearch(filter, createSemanticQueryNode(filter));
+        return buildSearch(filter, createSemanticQueryNode(filter), filter.getSelectionFilters());
     }
 
     @Override
     public Paging<Resource> hybridSearch(FacetFilter filter) {
-        return buildSearch(filter, createHybridQueryNode(filter));
+        return buildSearch(filter, createHybridQueryNode(filter), filter.getSelectionFilters());
     }
 
     @Override
@@ -976,7 +971,7 @@ public class ElasticSearchService implements SearchService {
 
     @Override
     public Paging<HighlightedResult<Resource>> hybridSearchWithHighlights(FacetFilter filter) {
-        return buildSearchWithHighlights(filter, createHybridQueryNode(filter));
+        return buildSearchWithHighlights(filter, createHybridQueryNode(filter), filter.getSelectionFilters());
     }
 
     @Override
