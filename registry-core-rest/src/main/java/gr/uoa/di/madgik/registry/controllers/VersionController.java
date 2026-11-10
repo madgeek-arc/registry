@@ -19,12 +19,17 @@ package gr.uoa.di.madgik.registry.controllers;
 import gr.uoa.di.madgik.registry.domain.Version;
 import gr.uoa.di.madgik.registry.exception.ResourceNotFoundException;
 import gr.uoa.di.madgik.registry.service.VersionService;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Read access to resource versions under {@code /versions}. The {@code /version} paths are deprecated aliases,
+ * to be removed in the next major release.
+ */
 @RestController
 public class VersionController {
 
@@ -34,58 +39,69 @@ public class VersionController {
         this.versionService = versionService;
     }
 
-    @GetMapping(value = "/version/{resourceType}", headers = "Accept=application/json")
+    @GetMapping(value = "/versions/{resourceType}", headers = "Accept=application/json")
     public ResponseEntity<List<Version>> getVersionsByResourceType(@PathVariable("resourceType") String resourceType) {
-
-        List<Version> versions = versionService.getVersionsByResourceType(resourceType);
-
-        if (versions == null || versions.isEmpty()) {
-            throw new ResourceNotFoundException("Version not found");
-        } else {
-            return new ResponseEntity<>(versions, HttpStatus.OK);
-        }
-
+        return found(versionService.getVersionsByResourceType(resourceType));
     }
 
-    @GetMapping(value = "/version/{resourceType}/{resource}", headers = "Accept=application/json")
+    @GetMapping(value = "/versions/{resourceType}/{resource}", headers = "Accept=application/json")
     public ResponseEntity<List<Version>> getVersionsByResource(@PathVariable("resourceType") String resourceType,
                                                                @PathVariable("resource") String resource) {
-        List<Version> versions = versionService.getVersionsByResource(resource);
-
-        if (versions == null || versions.isEmpty()) {
-            throw new ResourceNotFoundException("Version not found");
-        } else {
-            return new ResponseEntity<>(versions, HttpStatus.OK);
-        }
-
+        return found(versionService.getVersionsByResource(resource));
     }
 
-    @GetMapping(value = "/version/{resourceType}/{resource}/{version}", headers = "Accept=application/json")
+    @GetMapping(value = "/versions/{resourceType}/{resource}/{version}", headers = "Accept=application/json")
     public ResponseEntity<Version> getVersion(@PathVariable("resourceType") String resourceType,
                                               @PathVariable("resource") String resource,
                                               @PathVariable("version") String versionNumber) {
-
         Version version = versionService.getVersion(resource, versionNumber);
-
         if (version == null) {
             throw new ResourceNotFoundException("Version not found");
-        } else {
-            return new ResponseEntity<>(version, HttpStatus.OK);
         }
-
+        return new ResponseEntity<>(version, HttpStatus.OK);
     }
 
-    @GetMapping(value = "/version", headers = "Accept=application/json")
+    @GetMapping(value = "/versions", headers = "Accept=application/json")
     public ResponseEntity<List<Version>> getVersions() {
+        return found(versionService.getAllVersions());
+    }
 
-        List<Version> versions = versionService.getAllVersions();
+    @Deprecated(forRemoval = true)
+    @Operation(deprecated = true, summary = "Deprecated: use /versions/{resourceType}")
+    @GetMapping(value = "/version/{resourceType}", headers = "Accept=application/json")
+    public ResponseEntity<List<Version>> getVersionsByResourceTypeDeprecated(
+            @PathVariable("resourceType") String resourceType) {
+        return getVersionsByResourceType(resourceType);
+    }
 
+    @Deprecated(forRemoval = true)
+    @Operation(deprecated = true, summary = "Deprecated: use /versions/{resourceType}/{resource}")
+    @GetMapping(value = "/version/{resourceType}/{resource}", headers = "Accept=application/json")
+    public ResponseEntity<List<Version>> getVersionsByResourceDeprecated(
+            @PathVariable("resourceType") String resourceType, @PathVariable("resource") String resource) {
+        return getVersionsByResource(resourceType, resource);
+    }
+
+    @Deprecated(forRemoval = true)
+    @Operation(deprecated = true, summary = "Deprecated: use /versions/{resourceType}/{resource}/{version}")
+    @GetMapping(value = "/version/{resourceType}/{resource}/{version}", headers = "Accept=application/json")
+    public ResponseEntity<Version> getVersionDeprecated(@PathVariable("resourceType") String resourceType,
+                                                        @PathVariable("resource") String resource,
+                                                        @PathVariable("version") String versionNumber) {
+        return getVersion(resourceType, resource, versionNumber);
+    }
+
+    @Deprecated(forRemoval = true)
+    @Operation(deprecated = true, summary = "Deprecated: use /versions")
+    @GetMapping(value = "/version", headers = "Accept=application/json")
+    public ResponseEntity<List<Version>> getVersionsDeprecated() {
+        return getVersions();
+    }
+
+    private static ResponseEntity<List<Version>> found(List<Version> versions) {
         if (versions == null || versions.isEmpty()) {
             throw new ResourceNotFoundException("Version not found");
-        } else {
-            return new ResponseEntity<>(versions, HttpStatus.OK);
         }
-
+        return new ResponseEntity<>(versions, HttpStatus.OK);
     }
-
 }

@@ -70,12 +70,12 @@ public class VersionServiceImpl implements VersionService {
 
     @Override
     public List<Version> getVersionsByResourceType(String resourceType_name) {
-        return getListVersions(registryHost + "/version/" + resourceType_name);
+        return getListVersions(registryHost + "/versions/" + resourceType_name);
     }
 
     @Override
     public List<Version> getAllVersions() {
-        return getListVersions(registryHost + "/version");
+        return getListVersions(registryHost + "/versions");
     }
 
     @Override
