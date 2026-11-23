@@ -75,7 +75,7 @@ class ElasticSearchServiceIntegrationTest {
 
     @Container
     static final GenericContainer<?> ELASTICSEARCH = new GenericContainer<>(
-            DockerImageName.parse("docker.elastic.co/elasticsearch/elasticsearch:9.4.10"))
+            DockerImageName.parse("docker.elastic.co/elasticsearch/elasticsearch:9.5.7"))
             .withEnv("discovery.type", "single-node")
             .withEnv("xpack.security.enabled", "false")
             .withEnv("cluster.routing.allocation.disk.threshold_enabled", "false")
