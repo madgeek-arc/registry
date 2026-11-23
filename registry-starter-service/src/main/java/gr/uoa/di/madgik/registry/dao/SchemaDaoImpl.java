@@ -16,10 +16,9 @@
 
 package gr.uoa.di.madgik.registry.dao;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.util.concurrent.UncheckedExecutionException;
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Schema;
 import gr.uoa.di.madgik.registry.service.ServiceException;
@@ -53,6 +52,12 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
     private static final Logger logger = LoggerFactory.getLogger(SchemaDaoImpl.class);
     private static final String XSD_SCHEMA = XMLConstants.W3C_XML_SCHEMA_NS_URI + ".xsd";
     private final LoadingCache<String, javax.xml.validation.Schema> schemaXMLLoader;
+    /**
+     * Holds only the W3C XSD meta-schema, kept apart from {@link #schemaXMLLoader} because loading an
+     * XSD there can resolve imports that validate against the meta-schema, and a Caffeine loader must
+     * not load another entry of its own cache.
+     */
+    private final LoadingCache<String, javax.xml.validation.Schema> xsdMetaSchemaLoader;
     private final LoadingCache<String, org.everit.json.schema.Schema> schemaJSONLoader;
 
     public SchemaDaoImpl() {
@@ -61,8 +66,9 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
         xmlLoader = new XMLSchemaLoader(this);
         CacheLoader<String, org.everit.json.schema.Schema> jsonLoader;
         jsonLoader = new JSONSchemaLoader(this);
-        schemaXMLLoader = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build(xmlLoader);
-        schemaJSONLoader = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build(jsonLoader);
+        schemaXMLLoader = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build(xmlLoader);
+        xsdMetaSchemaLoader = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build(xmlLoader);
+        schemaJSONLoader = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build(jsonLoader);
     }
 
     private static String stringToMd5(String schema) {
@@ -110,14 +116,14 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
 
     @Override
     public javax.xml.validation.Schema loadXMLSchema(ResourceType resourceType) {
-        return schemaXMLLoader.getUnchecked(resourceType.getName());
+        return schemaXMLLoader.get(resourceType.getName());
     }
 
     @Override
     public org.everit.json.schema.Schema loadJSONSchema(ResourceType resourceType) {
         try {
-            return this.schemaJSONLoader.getUnchecked(resourceType.getName());
-        } catch (UncheckedExecutionException e) {
+            return this.schemaJSONLoader.get(resourceType.getName());
+        } catch (RuntimeException e) {
             logger.warn("Failed to load JSON schema for resource type: {}", resourceType.getName(), e);
             return EmptySchema.INSTANCE;
         }
@@ -169,8 +175,8 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
 
     private boolean validateXML(String schema) throws IOException {
 
-        Validator validator = schemaXMLLoader
-                .getUnchecked(XSD_SCHEMA)
+        Validator validator = xsdMetaSchemaLoader
+                .get(XSD_SCHEMA)
                 .newValidator();
         try {
             validator.validate(new StreamSource(IOUtils.toInputStream(schema)));
@@ -209,7 +215,7 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
         }
     }
 
-    private static class XMLSchemaLoader extends CacheLoader<String, javax.xml.validation.Schema> {
+    private static class XMLSchemaLoader implements CacheLoader<String, javax.xml.validation.Schema> {
 
         private final SchemaFactory factory;
 
@@ -237,7 +243,7 @@ public class SchemaDaoImpl extends AbstractDao<Schema> implements SchemaDao {
         }
     }
 
-    private static class JSONSchemaLoader extends CacheLoader<String, org.everit.json.schema.Schema> {
+    private static class JSONSchemaLoader implements CacheLoader<String, org.everit.json.schema.Schema> {
 
         private final SchemaDao schemaDao;
 

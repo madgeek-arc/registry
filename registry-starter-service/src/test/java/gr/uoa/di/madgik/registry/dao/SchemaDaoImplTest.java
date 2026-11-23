@@ -18,8 +18,10 @@ package gr.uoa.di.madgik.registry.dao;
 
 import gr.uoa.di.madgik.registry.configuration.DatabaseConfiguration;
 import gr.uoa.di.madgik.registry.configuration.PostgreSqlTestContainerSupport;
+import gr.uoa.di.madgik.registry.domain.ResourceType;
 import gr.uoa.di.madgik.registry.domain.Schema;
 import jakarta.transaction.Transactional;
+import org.everit.json.schema.EmptySchema;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -84,5 +86,32 @@ class SchemaDaoImplTest extends PostgreSqlTestContainerSupport {
         Assertions.assertNull(schemaDao.getSchemaByUrl("employee"));
     }
 
+    @Test
+    void loadXMLSchema_cachesParsedSchema() {
+        javax.xml.validation.Schema first = schemaDao.loadXMLSchema(resourceType("employee"));
+        Assertions.assertNotNull(first);
+        Assertions.assertSame(first, schemaDao.loadXMLSchema(resourceType("employee")));
+    }
 
+    @Test
+    void loadXMLSchema_missingSchemaThrows() {
+        Assertions.assertThrows(RuntimeException.class,
+                () -> schemaDao.loadXMLSchema(resourceType("no-such-schema")));
+    }
+
+    @Test
+    void loadJSONSchema_missingSchemaFallsBackToEmptySchema() {
+        Assertions.assertSame(EmptySchema.INSTANCE, schemaDao.loadJSONSchema(resourceType("no-such-schema")));
+    }
+
+    @Test
+    void loadJSONSchema_unparsableSchemaFallsBackToEmptySchema() {
+        Assertions.assertSame(EmptySchema.INSTANCE, schemaDao.loadJSONSchema(resourceType("employee")));
+    }
+
+    private static ResourceType resourceType(String name) {
+        ResourceType resourceType = new ResourceType();
+        resourceType.setName(name);
+        return resourceType;
+    }
 }
