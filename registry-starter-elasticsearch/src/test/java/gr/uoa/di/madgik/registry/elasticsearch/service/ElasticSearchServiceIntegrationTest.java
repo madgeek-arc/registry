@@ -582,6 +582,18 @@ class ElasticSearchServiceIntegrationTest {
     }
 
     @Test
+    void search_negativePaging_throwsUnsupportedSearchParameterException() throws Exception {
+        String index = createIndex();
+        FacetFilter negativeFrom = filter(index, null);
+        negativeFrom.setFrom(-1);
+        FacetFilter negativeQuantity = filter(index, null);
+        negativeQuantity.setQuantity(-1);
+
+        assertThrows(UnsupportedSearchParameterException.class, () -> searchService.search(negativeFrom));
+        assertThrows(UnsupportedSearchParameterException.class, () -> searchService.search(negativeQuantity));
+    }
+
+    @Test
     void search_fromPlusQuantityExceedsWindow_throwsUnsupportedSearchParameterException() throws Exception {
         // maxResultWindow is 1000 in this test's RegistryElasticsearchProperties; 999 + 10 = 1009
         // exceeds it even though quantity (10) alone would not.

@@ -117,7 +117,7 @@ public class DefaultSearchService implements SearchService {
                                      int from,
                                      String sortByField,
                                      String sortOrder) {
-        validateQuantity(quantity);
+        validatePaging(from, quantity);
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("from", from);
         params.addValue("quantity", quantity);
@@ -149,7 +149,7 @@ public class DefaultSearchService implements SearchService {
 
     @Override
     public Paging<Resource> search(FacetFilter filter) {
-        validateQuantity(filter.getQuantity());
+        validatePaging(filter.getFrom(), filter.getQuantity());
         List<String> browseBy = resolveBrowseBy(filter);
         List<ResourceType> resourceTypes = getResourceTypes(filter.getResourceType());
 
@@ -242,7 +242,7 @@ public class DefaultSearchService implements SearchService {
 
     @Override
     public Paging<Resource> semanticSearch(FacetFilter filter) throws ServiceException {
-        validateQuantity(filter.getQuantity());
+        validatePaging(filter.getFrom(), filter.getQuantity());
         if (!StringUtils.hasText(filter.getKeyword())) {
             throw new ServiceException("Semantic search requires a non-empty keyword.");
         }
@@ -264,7 +264,7 @@ public class DefaultSearchService implements SearchService {
 
     @Override
     public Paging<Resource> hybridSearch(FacetFilter filter) throws ServiceException {
-        validateQuantity(filter.getQuantity());
+        validatePaging(filter.getFrom(), filter.getQuantity());
         if (!StringUtils.hasText(filter.getKeyword())) {
             return search(filter);
         }
@@ -309,7 +309,7 @@ public class DefaultSearchService implements SearchService {
 
     @Override
     public Paging<HighlightedResult<Resource>> hybridSearchWithHighlights(FacetFilter filter) throws ServiceException {
-        validateQuantity(filter.getQuantity());
+        validatePaging(filter.getFrom(), filter.getQuantity());
         if (!StringUtils.hasText(filter.getKeyword())) {
             return searchWithHighlights(filter);
         }
@@ -343,7 +343,7 @@ public class DefaultSearchService implements SearchService {
 
     @Override
     public List<ScoredResult<Resource>> recommend(FacetFilter filter, KeyValue idValue) throws ServiceException {
-        validateQuantity(filter.getQuantity());
+        validatePaging(filter.getFrom(), filter.getQuantity());
         ResourceType resourceType = requireSingleResourceType(filter.getResourceType());
 
         Map<String, Object> sourceRow = getSourceProjection(resourceType, idValue.getField(), idValue.getValue());
@@ -407,7 +407,7 @@ public class DefaultSearchService implements SearchService {
 
     @Override
     public List<ScoredResult<Resource>> recommend(FacetFilter filter, Resource queryResource) throws ServiceException {
-        validateQuantity(filter.getQuantity());
+        validatePaging(filter.getFrom(), filter.getQuantity());
         ResourceType resourceType = requireSingleResourceType(filter.getResourceType());
 
         List<IndexField> indexFields = new ArrayList<>(
@@ -808,9 +808,12 @@ public class DefaultSearchService implements SearchService {
         return resourceTypes;
     }
 
-    private void validateQuantity(int quantity) {
+    private void validatePaging(int from, int quantity) {
         if (quantity < 0) {
-            throw new IllegalArgumentException("Quantity cannot be negative.");
+            throw new UnsupportedSearchParameterException("Parameter 'quantity' must be a non-negative integer.");
+        }
+        if (from < 0) {
+            throw new UnsupportedSearchParameterException("Parameter 'from' must be a non-negative integer.");
         }
     }
 

@@ -16,7 +16,10 @@
 
 package gr.uoa.di.madgik.registry.domain;
 
+import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,6 +30,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FacetFilterTest {
@@ -148,6 +152,51 @@ class FacetFilterTest {
         params.put("browseBy", new ArrayList<>(List.of("trl, users", "portfolios")));
 
         assertEquals(List.of("trl", "users", "portfolios"), FacetFilter.from(params).getBrowseBy());
+    }
+
+    @Test
+    void fromReadsPaging() {
+        FacetFilter filter = FacetFilter.from(params("from", "20", "quantity", "0"));
+
+        assertEquals(20, filter.getFrom());
+        assertEquals(0, filter.getQuantity());
+        assertTrue(filter.getFilter().isEmpty());
+    }
+
+    @Test
+    void fromDefaultsPaging() {
+        FacetFilter filter = FacetFilter.from(params());
+
+        assertEquals(0, filter.getFrom());
+        assertEquals(10, filter.getQuantity());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"abc", "1.5", "", "99999999999", "-1"})
+    void fromRejectsInvalidPaging(String value) {
+        for (String name : List.of("from", "quantity")) {
+            UnsupportedSearchParameterException exception = assertThrows(UnsupportedSearchParameterException.class,
+                    () -> FacetFilter.from(params(name, value)));
+
+            assertEquals("Parameter '" + name + "' must be a non-negative integer.", exception.getMessage());
+        }
+    }
+
+    @Test
+    void fromDecodesUrlEncodedValues() {
+        FacetFilter filter = FacetFilter.from(params("keyword", "open%20data", "name", "a%26b"));
+
+        assertEquals("open data", filter.getKeyword());
+        assertEquals(List.of("a&b"), filter.getFilter().get("name"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"%", "100%", "50%zz", "%2"})
+    void fromKeepsValuesThatAreNotUrlEncoded(String value) {
+        FacetFilter filter = FacetFilter.from(params("keyword", value, "name", value));
+
+        assertEquals(value, filter.getKeyword());
+        assertEquals(List.of(value), filter.getFilter().get("name"));
     }
 
     private static Map<String, List<Object>> params(String... keysAndValues) {

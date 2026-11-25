@@ -740,13 +740,17 @@ public class ElasticSearchService implements SearchService {
      * than requested with no signal that anything was truncated. {@link Integer#MAX_VALUE} is
      * the one carve-out — an established "fetch everything" sentinel (e.g.
      * {@code DefaultSearchService.searchKeyword}) — and is clamped down to whatever fits in the
-     * window given {@code from}, rather than rejected like a genuine oversized request. If
+     * window given {@code from}, rather than rejected like a genuine oversized request. Negative
+     * values are rejected. If
      * {@code from} alone already meets or exceeds the window, no quantity — however small — can
      * produce a valid response at that offset, so that case is always rejected, sentinel or not.
      */
     private int resolveQuantity(int from, int quantity) {
         if (quantity < 0) {
-            throw new IllegalArgumentException("Quantity cannot be negative.");
+            throw new UnsupportedSearchParameterException("Parameter 'quantity' must be a non-negative integer.");
+        }
+        if (from < 0) {
+            throw new UnsupportedSearchParameterException("Parameter 'from' must be a non-negative integer.");
         }
         if (from >= maxQuantity) {
             throw new UnsupportedSearchParameterException(

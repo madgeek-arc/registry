@@ -17,6 +17,7 @@
 package gr.uoa.di.madgik.registry.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import gr.uoa.di.madgik.registry.exception.UnsupportedSearchParameterException;
 import gr.uoa.di.madgik.registry.service.ServiceException;
 
 import java.net.URLDecoder;
@@ -95,8 +96,18 @@ public class FacetFilter {
         return toFilterLists(filter);
     }
 
+    /**
+     * Decodes a URL-encoded value. A value that is not valid URL encoding, such as {@code 100%}, is returned as is.
+     */
     public static String urlDecode(String value) {
-        return value != null ? URLDecoder.decode(value, StandardCharsets.UTF_8) : null;
+        if (value == null) {
+            return null;
+        }
+        try {
+            return URLDecoder.decode(value, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return value;
+        }
     }
 
     // Gets all given filters
@@ -157,8 +168,8 @@ public class FacetFilter {
         FacetFilter ff = new FacetFilter();
         ff.setResourceType(params.get("resourceType") != null ? (String) params.remove("resourceType").get(0) : null);
         ff.setKeyword(params.get("keyword") != null ? urlDecode((String) params.remove("keyword").get(0)) : "");
-        ff.setFrom(params.get("from") != null ? Integer.parseInt((String) params.remove("from").get(0)) : 0);
-        ff.setQuantity(params.get("quantity") != null ? Integer.parseInt((String) params.remove("quantity").get(0)) : 10);
+        ff.setFrom(nonNegativeInt(params, "from", 0));
+        ff.setQuantity(nonNegativeInt(params, "quantity", 10));
         ff.setOrderBy(createOrderBy(params.remove("sort"), params.remove("order")));
         if (params.containsKey("browseBy")) {
             ff.setBrowseBy(fieldNames(params.remove("browseBy")));
@@ -172,6 +183,28 @@ public class FacetFilter {
             ff.getSelectionFields().removeAll(fixedFields);
         }
         return ff;
+    }
+
+    /**
+     * Removes the parameter and returns its value, or the fallback if it is missing.
+     *
+     * @throws UnsupportedSearchParameterException if the value is not a non-negative integer
+     */
+    private static int nonNegativeInt(Map<String, List<Object>> params, String name, int fallback) {
+        if (params.get(name) == null) {
+            return fallback;
+        }
+        int value;
+        try {
+            value = Integer.parseInt((String) params.remove(name).get(0));
+        } catch (NumberFormatException e) {
+            value = -1;
+        }
+        if (value < 0) {
+            throw new UnsupportedSearchParameterException(
+                    "Parameter '%s' must be a non-negative integer.".formatted(name));
+        }
+        return value;
     }
 
     private static List<String> fieldNames(List<Object> values) {

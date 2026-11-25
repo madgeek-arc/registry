@@ -203,6 +203,25 @@ class DefaultSearchServiceQueryBuilderTest extends PostgreSqlTestContainerSuppor
     }
 
     @Test
+    void search_rejectsNegativePaging() {
+        FacetFilter negativeFrom = employeeFilter();
+        negativeFrom.setFrom(-1);
+        FacetFilter negativeQuantity = employeeFilter();
+        negativeQuantity.setQuantity(-1);
+
+        assertThrows(UnsupportedSearchParameterException.class, () -> searchService.search(negativeFrom));
+        assertThrows(UnsupportedSearchParameterException.class, () -> searchService.search(negativeQuantity));
+    }
+
+    @Test
+    void cqlQuery_rejectsNegativePaging() {
+        assertThrows(UnsupportedSearchParameterException.class,
+                () -> searchService.cqlQuery("age = 28", "employee", 10, -1, "", "ASC"));
+        assertThrows(UnsupportedSearchParameterException.class,
+                () -> searchService.cqlQuery("age = 28", "employee", -1, 0, "", "ASC"));
+    }
+
+    @Test
     void searchFields_rejectsNullValuedField() {
         UnsupportedSearchParameterException exception = assertThrows(UnsupportedSearchParameterException.class,
                 () -> searchService.searchFields("employee", new SearchService.KeyValue("first_name", null)));
